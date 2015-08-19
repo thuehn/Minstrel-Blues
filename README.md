@@ -25,7 +25,7 @@ about practical ressource allocation in WiFi networks at the Technical Universit
 (my development environment is Linux OpenWrt on embedded routers driving Atheros ath9k WiFi hardware)
 - get the current trunk verision of OpenWrt (git clone git://git.openwrt.org/openwrt.git)
 - checkout Minstrel-Blues current version
-- copy all patches from the src folder into /openwwrt/packages/kernel/mac80211/
+- copy all patches from the src folder into /openwwrt/packages/kernel/mac80211/patches
 - rebuild mac80211 subsystem by: make package/mac80211/{clean,compile} or re-build complite OpenWrt
 - install new mac80211 package or flash full image to your router
 
