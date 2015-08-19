@@ -10,13 +10,13 @@ for the Linux mac80211 subsystem. The mac80211 rate control algorithms Minstrel 
 extended by my transmit power control algorithm Blues. The current development is based on my dissertation 
 about practical ressource allocation in WiFi networks at the Technical University of Berlin.
 
-# main contributions
+# Contributions
 - joint rate and power control in WiFi networks to increase spacial reuse and hence sum-network throughput
 - cross-layer algorithm Minstrel-Blues for 802.11b/g/a WiFi hardware
 - new joint utility function to specify user preferences by setting a weighting factor
 - Linux kernel implementation, validation, performance evaluation with legacy Minstrel
 
-# current Goals
+# Current Goals
 1. integration of Blues into Minstrel-HT to supprt IEEE 802.11n/ac hardware
 2. get a well structured set of patches to enable Linux ubstream acceptance & final intregration
 3. validate and analyse Minstrel-Blues performance in different environments
@@ -35,11 +35,14 @@ about practical ressource allocation in WiFi networks at the Technical Universit
 ## Do you want to contribute ?
 Everybody can participate, and any help is highly appreciated.
 Feel free to send pull requests or open a new issue via GitHub.
-- testing Minstrel-Blues performance
-- reviewing kernel patches
+- testing Minstrel-Blues and its performance in your environment
+- reviewing kernel patches (get your hands on QUILT to work with patch series)
 
-
-
+### Supporters and Developers
+- Sven Venz from TU-Berlin
+- Felix Fietkau (aka nbd) from OpenWrt
+- Bastian Bittorf from Freifunk Weimar
+- Alina Friedrichsen
 
 ### How to reference to  Minstrel-Blues ?
 Just use the following bibtex :
