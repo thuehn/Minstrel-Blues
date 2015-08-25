@@ -39,7 +39,7 @@ Feel free to send pull requests or open a new issue via GitHub.
 - reviewing kernel patches (get your hands on QUILT to work with patch series)
 
 ### Supporters and Developers
-- Sven Venz from TU-Berlin
+- Stefan Venz from TU-Berlin
 - Felix Fietkau (aka nbd) from OpenWrt
 - Bastian Bittorf from Freifunk Weimar
 - Alina Friedrichsen
