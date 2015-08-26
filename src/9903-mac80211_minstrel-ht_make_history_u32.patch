@@ -8,8 +8,6 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  net/mac80211/rc80211_minstrel.h | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/net/mac80211/rc80211_minstrel.h b/net/mac80211/rc80211_minstrel.h
-index c230bbe..209961c 100644
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
 @@ -59,7 +59,7 @@ struct minstrel_rate_stats {
@@ -21,6 +19,3 @@ index c230bbe..209961c 100644
  
  	/* statistis of packet delivery probability
  	 *  cur_prob  - current prob within last update intervall
--- 
-2.2.2
-
