@@ -74,7 +74,7 @@
  				struct {
  					struct ieee80211_tx_rate rates[
  						IEEE80211_TX_MAX_RATES];
-@@ -889,7 +895,7 @@ struct ieee80211_tx_info {
+@@ -889,13 +895,11 @@ struct ieee80211_tx_info {
  			u8 ampdu_len;
  			u8 antenna;
  			u16 tx_time;
@@ -83,7 +83,13 @@
  		} status;
  		struct {
  			struct ieee80211_tx_rate driver_rates[
-@@ -963,7 +969,7 @@ ieee80211_tx_info_clear_status(struct ie
+ 				IEEE80211_TX_MAX_STATUS_RATES];
+-			u8 pad[4];
+-
+ 			void *rate_driver_data[
+ 				IEEE80211_TX_INFO_RATE_DRIVER_DATA_SIZE / sizeof(void *)];
+ 		};
+@@ -963,7 +967,7 @@ ieee80211_tx_info_clear_status(struct ie
  		info->status.rates[i].count = 0;
  
  	BUILD_BUG_ON(
@@ -92,7 +98,7 @@
  	memset(&info->status.ampdu_ack_len, 0,
  	       sizeof(struct ieee80211_tx_info) -
  	       offsetof(struct ieee80211_tx_info, status.ampdu_ack_len));
-@@ -1640,20 +1646,21 @@ enum ieee80211_sta_rx_bandwidth {
+@@ -1640,20 +1644,21 @@ enum ieee80211_sta_rx_bandwidth {
  };
  
  /**
@@ -113,12 +119,12 @@
  		u8 count_cts;
  		u8 count_rts;
 -		u16 flags;
-+		u16 count:5;
++		u16 count:5,
 +		    flags:11;
  	} rate[IEEE80211_TX_RATE_TABLE_SIZE];
  };
  
-@@ -1903,6 +1910,16 @@ struct ieee80211_txq {
+@@ -1903,6 +1908,16 @@ struct ieee80211_txq {
   * @IEEE80211_HW_TDLS_WIDER_BW: The device/driver supports wider bandwidth
   *	than then BSS bandwidth for a TDLS link on the base channel.
   *
@@ -135,7 +141,7 @@
   * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
   */
  enum ieee80211_hw_flags {
-@@ -1936,6 +1953,9 @@ enum ieee80211_hw_flags {
+@@ -1936,6 +1951,9 @@ enum ieee80211_hw_flags {
  	IEEE80211_HW_SUPPORTS_CLONED_SKBS,
  	IEEE80211_HW_SINGLE_SCAN_ON_ALL_BANDS,
  	IEEE80211_HW_TDLS_WIDER_BW,
@@ -145,7 +151,7 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2034,6 +2054,11 @@ enum ieee80211_hw_flags {
+@@ -2034,6 +2052,11 @@ enum ieee80211_hw_flags {
   *	Use IEEE80211_WMM_IE_STA_QOSINFO_SP_* for correct values.
   *
   * @n_cipher_schemes: a size of an array of cipher schemes definitions.
@@ -157,7 +163,7 @@
   * @cipher_schemes: a pointer to an array of cipher scheme definitions
   *	supported by HW.
   *
-@@ -2067,6 +2092,7 @@ struct ieee80211_hw {
+@@ -2067,6 +2090,7 @@ struct ieee80211_hw {
  	u8 uapsd_queues;
  	u8 uapsd_max_sp_len;
  	u8 n_cipher_schemes;
@@ -165,7 +171,7 @@
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	int txq_ac_max_pending;
  };
-@@ -3878,16 +3904,19 @@ void ieee80211_sta_set_buffered(struct i
+@@ -3878,16 +3902,19 @@ void ieee80211_sta_set_buffered(struct i
  				u8 tid, bool buffered);
  
  /**
@@ -187,3 +193,15 @@
   * @max_rates: maximum number of rates to fetch
   */
  void ieee80211_get_tx_rates(struct ieee80211_vif *vif,
+--- a/net/mac80211/debugfs.c
++++ b/net/mac80211/debugfs.c
+@@ -123,6 +123,9 @@ static const char *hw_flag_names[NUM_IEE
+ 	FLAG(SUPPORTS_CLONED_SKBS),
+ 	FLAG(SINGLE_SCAN_ON_ALL_BANDS),
+ 	FLAG(TDLS_WIDER_BW),
++	FLAG(SUPPORTS_TPC_PER_PACKET),
++	FLAG(SUPPORTS_TPC_PER_MRR),
++	FLAG(SUPPORTS_TPC_FOR_ACK_PACKETS),
+ 
+ 	/* keep last for the build bug below */
+ 	(void *)0x1
