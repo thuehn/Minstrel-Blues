@@ -267,7 +267,7 @@
  		rate = minstrel_ht_get_stats(mp, mi, &ar[i]);
 --- a/net/mac80211/status.c
 +++ b/net/mac80211/status.c
-@@ -588,7 +588,7 @@ static int ieee80211_tx_get_rates(struct
+@@ -589,7 +589,7 @@ static int ieee80211_tx_get_rates(struct
  	int count = -1;
  	int i;
  
