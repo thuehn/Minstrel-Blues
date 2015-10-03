@@ -221,7 +221,7 @@
 +		    !(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
 +		    !(tmp_flags & IEEE80211_TX_RC_SHORT_GI)) {
 +			printk(KERN_ERR "Downgrade max_prob_rate by 1 stream "
-+			       "from rate %i to new rate %i",mi->max_prob_rate,
++			       "from rate %i to new rate %i\n",mi->max_prob_rate,
 +			       tmp_group * MCS_GROUP_RATES + cur_idx);
 +			mi->max_prob_rate = tmp_group * MCS_GROUP_RATES + cur_idx;
 +			break;
