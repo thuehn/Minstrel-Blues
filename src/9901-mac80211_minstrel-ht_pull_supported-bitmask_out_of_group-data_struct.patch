@@ -7,11 +7,9 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  net/mac80211/rc80211_minstrel_ht_debugfs.c |  8 ++++----
  3 files changed, 22 insertions(+), 22 deletions(-)
 
-diff --git a/net/mac80211/rc80211_minstrel_ht.c b/net/mac80211/rc80211_minstrel_ht.c
-index 3928dbd..f6ee335 100644
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -301,7 +301,7 @@ minstrel_ht_get_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi,
+@@ -301,7 +301,7 @@ minstrel_ht_get_stats(struct minstrel_pr
  				break;
  
  		/* short preamble */
@@ -20,7 +18,7 @@ index 3928dbd..f6ee335 100644
  			idx += 4;
  	}
  	return &mi->groups[group].rates[idx];
-@@ -485,7 +485,7 @@ minstrel_ht_prob_rate_reduce_streams(struct minstrel_ht_sta *mi)
+@@ -485,7 +485,7 @@ minstrel_ht_prob_rate_reduce_streams(str
  			  MCS_GROUP_RATES].streams;
  	for (group = 0; group < ARRAY_SIZE(minstrel_mcs_groups); group++) {
  		mg = &mi->groups[group];
@@ -29,7 +27,7 @@ index 3928dbd..f6ee335 100644
  			continue;
  
  		tmp_idx = mg->max_group_prob_rate % MCS_GROUP_RATES;
-@@ -539,7 +539,7 @@ minstrel_ht_update_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
+@@ -539,7 +539,7 @@ minstrel_ht_update_stats(struct minstrel
  	for (group = 0; group < ARRAY_SIZE(minstrel_mcs_groups); group++) {
  
  		mg = &mi->groups[group];
@@ -38,7 +36,7 @@ index 3928dbd..f6ee335 100644
  			continue;
  
  		mi->sample_count++;
-@@ -549,7 +549,7 @@ minstrel_ht_update_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
+@@ -549,7 +549,7 @@ minstrel_ht_update_stats(struct minstrel
  			tmp_group_tp_rate[j] = group;
  
  		for (i = 0; i < MCS_GROUP_RATES; i++) {
@@ -47,7 +45,7 @@ index 3928dbd..f6ee335 100644
  				continue;
  
  			index = MCS_GROUP_RATES * group + i;
-@@ -635,7 +635,7 @@ minstrel_set_next_sample_idx(struct minstrel_ht_sta *mi)
+@@ -635,7 +635,7 @@ minstrel_set_next_sample_idx(struct mins
  		mi->sample_group %= ARRAY_SIZE(minstrel_mcs_groups);
  		mg = &mi->groups[mi->sample_group];
  
@@ -56,7 +54,7 @@ index 3928dbd..f6ee335 100644
  			continue;
  
  		if (++mg->index >= MCS_GROUP_RATES) {
-@@ -656,7 +656,7 @@ minstrel_downgrade_rate(struct minstrel_ht_sta *mi, u16 *idx, bool primary)
+@@ -656,7 +656,7 @@ minstrel_downgrade_rate(struct minstrel_
  	while (group > 0) {
  		group--;
  
@@ -65,7 +63,7 @@ index 3928dbd..f6ee335 100644
  			continue;
  
  		if (minstrel_mcs_groups[group].streams >
-@@ -938,7 +938,7 @@ minstrel_get_sample_rate(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
+@@ -938,7 +938,7 @@ minstrel_get_sample_rate(struct minstrel
  	sample_idx = sample_table[mg->column][mg->index];
  	minstrel_set_next_sample_idx(mi);
  
@@ -83,7 +81,7 @@ index 3928dbd..f6ee335 100644
  
  	if (!supported || !mi->cck_supported_short)
  		return;
-@@ -997,7 +997,7 @@ minstrel_ht_check_cck_shortpreamble(struct minstrel_priv *mp,
+@@ -997,7 +997,7 @@ minstrel_ht_check_cck_shortpreamble(stru
  		return;
  
  	supported ^= mi->cck_supported_short | (mi->cck_supported_short << 4);
@@ -92,7 +90,7 @@ index 3928dbd..f6ee335 100644
  }
  
  static void
-@@ -1090,7 +1090,7 @@ minstrel_ht_update_cck(struct minstrel_priv *mp, struct minstrel_ht_sta *mi,
+@@ -1090,7 +1090,7 @@ minstrel_ht_update_cck(struct minstrel_p
  			mi->cck_supported_short |= BIT(i);
  	}
  
@@ -101,7 +99,7 @@ index 3928dbd..f6ee335 100644
  }
  
  static void
-@@ -1160,7 +1160,7 @@ minstrel_ht_update_caps(void *priv, struct ieee80211_supported_band *sband,
+@@ -1160,7 +1160,7 @@ minstrel_ht_update_caps(void *priv, stru
  		u32 gflags = minstrel_mcs_groups[i].flags;
  		int bw, nss;
  
@@ -110,7 +108,7 @@ index 3928dbd..f6ee335 100644
  		if (i == MINSTREL_CCK_GROUP) {
  			minstrel_ht_update_cck(mp, mi, sband, sta);
  			continue;
-@@ -1192,8 +1192,8 @@ minstrel_ht_update_caps(void *priv, struct ieee80211_supported_band *sband,
+@@ -1192,8 +1192,8 @@ minstrel_ht_update_caps(void *priv, stru
  			if (use_vht && minstrel_vht_only)
  				continue;
  #endif
@@ -121,7 +119,7 @@ index 3928dbd..f6ee335 100644
  				n_supported++;
  			continue;
  		}
-@@ -1219,10 +1219,10 @@ minstrel_ht_update_caps(void *priv, struct ieee80211_supported_band *sband,
+@@ -1219,10 +1219,10 @@ minstrel_ht_update_caps(void *priv, stru
  		else
  			bw = BW_20;
  
@@ -134,8 +132,6 @@ index 3928dbd..f6ee335 100644
  			n_supported++;
  	}
  
-diff --git a/net/mac80211/rc80211_minstrel_ht.h b/net/mac80211/rc80211_minstrel_ht.h
-index e8b52a9..de1646c 100644
 --- a/net/mac80211/rc80211_minstrel_ht.h
 +++ b/net/mac80211/rc80211_minstrel_ht.h
 @@ -52,9 +52,6 @@ struct minstrel_mcs_group_data {
@@ -158,11 +154,9 @@ index e8b52a9..de1646c 100644
  	/* MCS rate group info and statistics */
  	struct minstrel_mcs_group_data groups[MINSTREL_GROUPS_NB];
  };
-diff --git a/net/mac80211/rc80211_minstrel_ht_debugfs.c b/net/mac80211/rc80211_minstrel_ht_debugfs.c
-index 6822ce0..284470d 100644
 --- a/net/mac80211/rc80211_minstrel_ht_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_ht_debugfs.c
-@@ -24,7 +24,7 @@ minstrel_ht_stats_dump(struct minstrel_ht_sta *mi, int i, char *p)
+@@ -24,7 +24,7 @@ minstrel_ht_stats_dump(struct minstrel_h
  	char gimode = 'L';
  	u32 gflags;
  
@@ -171,7 +165,7 @@ index 6822ce0..284470d 100644
  		return p;
  
  	mg = &minstrel_mcs_groups[i];
-@@ -42,7 +42,7 @@ minstrel_ht_stats_dump(struct minstrel_ht_sta *mi, int i, char *p)
+@@ -42,7 +42,7 @@ minstrel_ht_stats_dump(struct minstrel_h
  		static const int bitrates[4] = { 10, 20, 55, 110 };
  		int idx = i * MCS_GROUP_RATES + j;
  
@@ -180,7 +174,7 @@ index 6822ce0..284470d 100644
  			continue;
  
  		if (gflags & IEEE80211_TX_RC_MCS) {
-@@ -172,7 +172,7 @@ minstrel_ht_stats_csv_dump(struct minstrel_ht_sta *mi, int i, char *p)
+@@ -170,7 +170,7 @@ minstrel_ht_stats_csv_dump(struct minstr
  	char gimode = 'L';
  	u32 gflags;
  
@@ -189,7 +183,7 @@ index 6822ce0..284470d 100644
  		return p;
  
  	mg = &minstrel_mcs_groups[i];
-@@ -190,7 +190,7 @@ minstrel_ht_stats_csv_dump(struct minstrel_ht_sta *mi, int i, char *p)
+@@ -188,7 +188,7 @@ minstrel_ht_stats_csv_dump(struct minstr
  		static const int bitrates[4] = { 10, 20, 55, 110 };
  		int idx = i * MCS_GROUP_RATES + j;
  
@@ -198,6 +192,3 @@ index 6822ce0..284470d 100644
  			continue;
  
  		if (gflags & IEEE80211_TX_RC_MCS) {
--- 
-2.2.2
-
