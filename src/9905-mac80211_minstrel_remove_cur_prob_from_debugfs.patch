@@ -66,27 +66,26 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  	char *p;
  
  	ms = kmalloc(2048, GFP_KERNEL);
-@@ -86,10 +86,10 @@ minstrel_stats_open(struct inode *inode,
+@@ -86,9 +86,9 @@ minstrel_stats_open(struct inode *inode,
  	p = ms->buf;
  	p += sprintf(p, "\n");
- 	p += sprintf(p, "best   __________rate_________    ______"
--			"statistics______    ________last_______    "
-+			"statistics_______    _____last____    "
- 			"______sum-of________\n");
- 	p += sprintf(p, "rate  [name idx airtime max_tp]  [ ø(tp) ø(prob) "
--			"sd(prob)]  [prob.|retry|suc|att]  "
-+			"sd(prob)]  [retry|suc|att]  "
- 			"[#success | #attempts]\n");
+ 	p += sprintf(p,
+-		     "best   __________rate_________    ________statistics________    ________last_______    ______sum-of________\n");
++		     "best   __________rate_________    ________statistics________    ____last_____    ______sum-of________\n");
+ 	p += sprintf(p,
+-		     "rate  [name idx airtime max_tp]  [avg(tp) avg(prob) sd(prob)]  [prob.|retry|suc|att]  [#success | #attempts]\n");
++		     "rate  [name idx airtime max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]\n");
  
  	for (i = 0; i < mi->n_rates; i++) {
-@@ -109,17 +109,15 @@ minstrel_stats_open(struct inode *inode,
+ 		struct minstrel_rate *mr = &mi->r[i];
+@@ -107,17 +107,15 @@ minstrel_stats_open(struct inode *inode,
  
  		tp_max = minstrel_get_tp_avg(mr, MINSTREL_FRAC(100,100));
  		tp_avg = minstrel_get_tp_avg(mr, mrs->prob_ewma);
 -		prob = MINSTREL_TRUNC(mrs->cur_prob * 1000);
  		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
  
- 		p += sprintf(p, "%4u.%1u   %4u.%1u   %3u.%1u    %3u.%1u"
+ 		p += sprintf(p, "%4u.%1u    %4u.%1u     %3u.%1u    %3u.%1u"
 -				"     %3u.%1u %3u   %3u %-3u   "
 +				"     %3u   %3u %-3u   "
  				"%9llu   %-9llu\n",
@@ -98,7 +97,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  				mrs->retry_count,
  				mrs->last_success,
  				mrs->last_attempts,
-@@ -150,7 +148,7 @@ minstrel_stats_csv_open(struct inode *in
+@@ -148,7 +146,7 @@ minstrel_stats_csv_open(struct inode *in
  {
  	struct minstrel_sta_info *mi = inode->i_private;
  	struct minstrel_debugfs_info *ms;
@@ -107,7 +106,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  	char *p;
  
  	ms = kmalloc(2048, GFP_KERNEL);
-@@ -177,16 +175,14 @@ minstrel_stats_csv_open(struct inode *in
+@@ -175,16 +173,14 @@ minstrel_stats_csv_open(struct inode *in
  
  		tp_max = minstrel_get_tp_avg(mr, MINSTREL_FRAC(100,100));
  		tp_avg = minstrel_get_tp_avg(mr, mrs->prob_ewma);
@@ -143,7 +142,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
 -		prob = MINSTREL_TRUNC(mrs->cur_prob * 1000);
  		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
  
- 		p += sprintf(p, "%4u.%1u   %4u.%1u   %3u.%1u    %3u.%1u"
+ 		p += sprintf(p, "%4u.%1u    %4u.%1u     %3u.%1u    %3u.%1u"
 -				"     %3u.%1u %3u   %3u %-3u   "
 +				"     %3u   %3u %-3u   "
  				"%9llu   %-9llu\n",
@@ -155,20 +154,19 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  				mrs->retry_count,
  				mrs->last_success,
  				mrs->last_attempts,
-@@ -130,10 +128,10 @@ minstrel_ht_stats_open(struct inode *ino
+@@ -130,9 +128,9 @@ minstrel_ht_stats_open(struct inode *ino
  
  	p += sprintf(p, "\n");
- 	p += sprintf(p, "              best   ____________rate__________    "
--			"______statistics______    ________last_______    "
-+			"______statistics_______     ___last____    "
- 			"______sum-of________\n");
- 	p += sprintf(p, "mode guard #  rate  [name   idx airtime  max_tp]  "
--			"[ ø(tp) ø(prob) sd(prob)]  [prob.|retry|suc|att]  [#success | "
-+			"[ ø(tp) ø(prob) sd(prob)]  [retry|suc|att]  [#success | "
- 			"#attempts]\n");
+ 	p += sprintf(p,
+-		     "              best   ____________rate__________    ________statistics________    ________last_______    ______sum-of________\n");
++		     "              best   ____________rate__________    ________statistics________    _____last____    ______sum-of________\n");
+ 	p += sprintf(p,
+-		     "mode guard #  rate  [name   idx airtime  max_tp]  [avg(tp) avg(prob) sd(prob)]  [prob.|retry|suc|att]  [#success | #attempts]\n");
++		     "mode guard #  rate  [name   idx airtime  max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]\n");
  
  	p = minstrel_ht_stats_dump(mi, MINSTREL_CCK_GROUP, p);
-@@ -167,7 +165,7 @@ static char *
+ 	for (i = 0; i < MINSTREL_CCK_GROUP; i++)
+@@ -165,7 +163,7 @@ static char *
  minstrel_ht_stats_csv_dump(struct minstrel_ht_sta *mi, int i, char *p)
  {
  	const struct mcs_group *mg;
@@ -177,7 +175,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  	char htmode = '2';
  	char gimode = 'L';
  	u32 gflags;
-@@ -228,16 +226,14 @@ minstrel_ht_stats_csv_dump(struct minstr
+@@ -226,16 +224,14 @@ minstrel_ht_stats_csv_dump(struct minstr
  
  		tp_max = minstrel_ht_get_tp_avg(mi, i, j, MINSTREL_FRAC(100, 100));
  		tp_avg = minstrel_ht_get_tp_avg(mi, i, j, mrs->prob_ewma);
