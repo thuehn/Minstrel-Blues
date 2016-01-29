@@ -280,7 +280,7 @@
  	return mi;
  
  error1:
-@@ -671,12 +667,6 @@ minstrel_alloc(struct ieee80211_hw *hw, 
+@@ -671,12 +667,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
  	mp->cw_min = 15;
  	mp->cw_max = 1023;
  
@@ -293,7 +293,7 @@
  	/* maximum time that the hw is allowed to stay in one MRR segment */
  	mp->segment_size = 6000;
  
-@@ -690,7 +680,6 @@ minstrel_alloc(struct ieee80211_hw *hw, 
+@@ -690,7 +680,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
  		mp->has_mrr = true;
  
  	mp->hw = hw;
@@ -303,7 +303,7 @@
  	mp->fixed_rate_idx = (u32) -1;
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -734,7 +734,7 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -738,7 +738,7 @@ minstrel_ht_tx_status(void *priv, struct
  	}
  
  	if (time_after(jiffies, mi->last_stats_update +
