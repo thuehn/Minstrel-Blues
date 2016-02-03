@@ -1,5 +1,7 @@
---- a/net/mac80211/rc80211_minstrel_ht.c
-+++ b/net/mac80211/rc80211_minstrel_ht.c
+Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.c
+===================================================================
+--- compat-wireless-2016-01-10.orig/net/mac80211/rc80211_minstrel_ht.c
++++ compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.c
 @@ -312,12 +312,12 @@ minstrel_ht_get_tp_avg(struct minstrel_h
  	nsecs += minstrel_mcs_groups[group].duration[rate];
  
@@ -273,7 +275,7 @@
 +
 +		/* Assign proper sampling parameters */
 +		sampling_setup->count = 1;
-+		sampling_setup->flags = &minstrel_mcs_groups[s_group].flags;
++		sampling_setup->flags = minstrel_mcs_groups[s_group].flags;
 +		if (sampling_setup->flags & IEEE80211_TX_RC_MCS) {
 +			sampling_setup->idx = s_idx + (sample_rate_group->streams - 1) * 8;
 +			return;
@@ -308,8 +310,10 @@
  }
  
  static void
---- a/net/mac80211/rc80211_minstrel_ht.h
-+++ b/net/mac80211/rc80211_minstrel_ht.h
+Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.h
+===================================================================
+--- compat-wireless-2016-01-10.orig/net/mac80211/rc80211_minstrel_ht.h
++++ compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.h
 @@ -73,6 +73,12 @@ struct minstrel_ht_sta {
  	/* time of last status update */
  	unsigned long last_stats_update;
