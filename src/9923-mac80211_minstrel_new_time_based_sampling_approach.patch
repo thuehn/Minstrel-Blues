@@ -1,5 +1,7 @@
---- a/net/mac80211/rc80211_minstrel.h
-+++ b/net/mac80211/rc80211_minstrel.h
+Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel.h
+===================================================================
+--- compat-wireless-2016-01-10.orig/net/mac80211/rc80211_minstrel.h
++++ compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel.h
 @@ -23,6 +23,12 @@
  /* number of highest throughput rates to consider*/
  #define MAX_THR_RATES 4
@@ -55,8 +57,10 @@
  
  	u8 cck_rates[4];
  
---- a/net/mac80211/rc80211_minstrel.c
-+++ b/net/mac80211/rc80211_minstrel.c
+Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel.c
+===================================================================
+--- compat-wireless-2016-01-10.orig/net/mac80211/rc80211_minstrel.c
++++ compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel.c
 @@ -88,6 +88,32 @@ int minstrel_get_tp_avg(struct minstrel_
  		return MINSTREL_TRUNC(100000 * (prob_ewma / usecs));
  }
@@ -152,9 +156,11 @@
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	if (mp->fixed_rate_idx != -1)
  		return;
-@@ -377,73 +394,49 @@ minstrel_get_rate(void *priv, struct iee
+@@ -376,77 +393,50 @@ minstrel_get_rate(void *priv, struct iee
+ 	if (mp->hw->max_rates == 1 &&
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
  		return;
++	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
  
 -	delta = (mi->total_packets * sampling_ratio / 100) -
 -			(mi->sample_packets + mi->sample_deferred / 2);
@@ -164,8 +170,7 @@
 -	mi->prev_sample = false;
 -	if (delta < 0 || (!mrr_capable && prev_sample))
 -		return;
-+	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
- 
+-
 -	if (mi->total_packets >= 10000) {
 -		mi->sample_deferred = 0;
 -		mi->sample_packets = 0;
@@ -250,20 +255,23 @@
 +	} else {
 +		/* no sampling required */
  		return;
-+	}
- 
+-
 -	mi->prev_sample = true;
 -
 -	rate->idx = mi->r[ndx].rix;
 -	rate->count = minstrel_get_retry_count(&mi->r[ndx], info);
++	}
 +	/* assign sampling parameter*/
 +	sampling_setup->idx = mi->r[sampling_ndx].rix;
 +	sampling_setup->count = minstrel_get_retry_count(&mi->r[sampling_ndx],
 +	                                                 info);
  }
  
- 
-@@ -572,6 +565,7 @@ minstrel_rate_init(void *priv, struct ie
+-
+ static void
+ calc_rate_durations(enum ieee80211_band band,
+ 		    struct minstrel_rate *d,
+@@ -572,6 +562,7 @@ minstrel_rate_init(void *priv, struct ie
  
  	mi->n_rates = n;
  	mi->last_stats_update = jiffies;
@@ -271,7 +279,7 @@
  
  	init_sample_table(mi);
  	minstrel_update_rates(mp, mi);
-@@ -606,6 +600,8 @@ minstrel_alloc_sta(void *priv, struct ie
+@@ -606,6 +597,8 @@ minstrel_alloc_sta(void *priv, struct ie
  		goto error1;
  
  	mi->last_stats_update = jiffies;
@@ -280,7 +288,7 @@
  	return mi;
  
  error1:
-@@ -671,12 +667,6 @@ minstrel_alloc(struct ieee80211_hw *hw, 
+@@ -671,12 +664,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
  	mp->cw_min = 15;
  	mp->cw_max = 1023;
  
@@ -293,7 +301,7 @@
  	/* maximum time that the hw is allowed to stay in one MRR segment */
  	mp->segment_size = 6000;
  
-@@ -690,7 +680,6 @@ minstrel_alloc(struct ieee80211_hw *hw, 
+@@ -690,7 +677,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
  		mp->has_mrr = true;
  
  	mp->hw = hw;
@@ -301,8 +309,10 @@
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	mp->fixed_rate_idx = (u32) -1;
---- a/net/mac80211/rc80211_minstrel_ht.c
-+++ b/net/mac80211/rc80211_minstrel_ht.c
+Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.c
+===================================================================
+--- compat-wireless-2016-01-10.orig/net/mac80211/rc80211_minstrel_ht.c
++++ compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.c
 @@ -734,7 +734,7 @@ minstrel_ht_tx_status(void *priv, struct
  	}
  
