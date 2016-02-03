@@ -157,7 +157,7 @@ Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.c
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -995,41 +984,122 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -995,41 +984,126 @@ minstrel_ht_get_rate(void *priv, struct
  		return;
  #endif
  
@@ -275,14 +275,18 @@ Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.c
 +
 +		/* Assign proper sampling parameters */
 +		sampling_setup->count = 1;
-+		if (sampling_setup->flags & IEEE80211_TX_RC_MCS) {
-+			sampling_setup->idx = s_idx + (sample_rate_group->streams - 1) * 8;
-+			sampling_setup->flags = minstrel_mcs_groups[s_group].flags;
++		if (minstrel_mcs_groups[s_group].flags & IEEE80211_TX_RC_MCS) {
++			sampling_setup->idx = s_idx +
++					(sample_rate_group->streams - 1) * 8;
++			sampling_setup->flags =
++					minstrel_mcs_groups[s_group].flags;
 +			return;
-+		} else if (sampling_setup->flags & IEEE80211_TX_RC_VHT_MCS) {
++		} else if (minstrel_mcs_groups[s_group].flags
++			   & IEEE80211_TX_RC_VHT_MCS) {
 +			ieee80211_rate_set_vht(sampling_setup, s_idx,
-+					       minstrel_mcs_groups[s_group].streams);
-+			sampling_setup->flags = minstrel_mcs_groups[s_group].flags;
++					  minstrel_mcs_groups[s_group].streams);
++			sampling_setup->flags =
++					minstrel_mcs_groups[s_group].flags;
 +			return;
 +		} else {
 +			int idx = sample_rate % ARRAY_SIZE(mp->cck_rates);
@@ -301,7 +305,7 @@ Index: compat-wireless-2016-01-10/net/mac80211/rc80211_minstrel_ht.c
  }
  
  static void
-@@ -1215,7 +1285,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1215,7 +1289,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
