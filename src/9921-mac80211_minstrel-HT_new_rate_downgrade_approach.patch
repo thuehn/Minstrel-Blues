@@ -146,14 +146,14 @@
  	/* try to sample all available rates during each interval */
  	mi->sample_count *= 8;
  
-@@ -624,27 +566,74 @@ minstrel_set_next_sample_idx(struct mins
+@@ -624,27 +566,125 @@ minstrel_set_next_sample_idx(struct mins
  	}
  }
  
 +/*
-+ * Downgrading is done for max_prob_rate. When possible it first switches
-+ * from SGI to LGI, second lower HT40 to HT20 and then reduces the
-+ * number of streams for max_prob_rate.
++ * Downgrading a rate is done based on the mrr capabilities. If possible we
++ * first switche from SGI to LGI, second lower HT40 to HT20 and last reduce
++ * the number of streams.
 + */
  static void
 -minstrel_downgrade_rate(struct minstrel_ht_sta *mi, u16 *idx, bool primary)
@@ -173,11 +173,21 @@
  
 -		if (!mi->supported[group])
 -			continue;
-+	tmp_group = cur_group = mi->max_prob_rate / MCS_GROUP_RATES;
-+	cur_idx = mi->max_prob_rate % MCS_GROUP_RATES;
++	/* if we have mrr support,  just downgrade max_prob_rate,
++	 * otherwise downgrade first mrr stage max_tp_rate[0] */
++	if (mp->has_mrr) {
++		tmp_group = cur_group = mi->max_prob_rate / MCS_GROUP_RATES;
++		cur_idx = mi->max_prob_rate % MCS_GROUP_RATES;
++	} else {
++		tmp_group = cur_group = mi->max_tp_rate[0] / MCS_GROUP_RATES;
++		cur_idx = mi->max_tp_rate[0] % MCS_GROUP_RATES;
++	}
++
 +	cur_flags = minstrel_mcs_groups[cur_group].flags;
 +	cur_streams = minstrel_mcs_groups[cur_group].streams;
-+
+ 
+-		if (minstrel_mcs_groups[group].streams >
+-		    minstrel_mcs_groups[orig_group].streams)
 +	/* Ignore CCK group and lowest single stream rate */
 +	if ((cur_group == MINSTREL_CCK_GROUP) ||
 +	    (cur_idx == 0 && cur_streams == 1))
@@ -187,9 +197,7 @@
 +		tmp_group--;
 +		tmp_flags = minstrel_mcs_groups[tmp_group].flags;
 +		tmp_streams = minstrel_mcs_groups[tmp_group].streams;
- 
--		if (minstrel_mcs_groups[group].streams >
--		    minstrel_mcs_groups[orig_group].streams)
++
 +		if (!mi->supported[tmp_group])
  			continue;
  
@@ -200,42 +208,85 @@
 -		break;
 +		/* first try to switch from SGI to LGI */
 +		if ((cur_flags & IEEE80211_TX_RC_SHORT_GI) &&
-+		    !(tmp_flags & IEEE80211_TX_RC_SHORT_GI) &&
-+		    ((cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) ==
-+		     (tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH)) &&
-+		    (cur_streams == tmp_streams)) {
-+			printk(KERN_ERR "Downgrade max_prob_rate from SGI "
-+			       "rate %i ->to LGI rate %i\n", mi->max_prob_rate,
-+			       tmp_group * MCS_GROUP_RATES + cur_idx);
-+			mi->max_prob_rate = tmp_group * MCS_GROUP_RATES + cur_idx;
++			!(tmp_flags & IEEE80211_TX_RC_SHORT_GI) &&
++			(((cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) ==
++			(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH)) ||
++			((cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) ==
++			(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)) ||
++			((!(cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) ==
++			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH)) &&
++			(!(cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) ==
++			!(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)))) &&
++			(cur_streams == tmp_streams)) {
++			if (mp->has_mrr) {
++				mi->max_prob_rate = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++				printk(KERN_ERR "Downgrade max_prob_rate from "
++					"SGI rate %i ->to LGI rate %i\n",
++					mi->max_prob_rate, tmp_group *
++					MCS_GROUP_RATES + cur_idx);
++			} else {
++				mi->max_tp_rate[0] = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++				printk(KERN_ERR "Downgrade max_tp_rate[0] from "
++					"SGI rate %i ->to LGI rate %i\n",
++					mi->max_tp_rate[0], tmp_group *
++					MCS_GROUP_RATES + cur_idx);
++			}
 +			break;
 +		}
 +
-+		/* second try to switch from HT40 to HT20 */
-+		if ((cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
-+		    !(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
-+		    (cur_streams == tmp_streams)) {
-+			printk(KERN_ERR "Downgrade max_prob_rate from HT40 "
-+			       "rate %i -> to HT20 rate %i\n", mi->max_prob_rate,
-+			       tmp_group * MCS_GROUP_RATES + cur_idx);
-+			mi->max_prob_rate = tmp_group * MCS_GROUP_RATES + cur_idx;
++		/* second try to switch from HT80 to HT40 to HT20 */
++		if ((((cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) && (tmp_flags &
++			IEEE80211_TX_RC_40_MHZ_WIDTH)) ||
++			((cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
++			!(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) &&
++			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH))) &&
++			(cur_streams == tmp_streams)) {
++			if (mp->has_mrr) {
++				mi->max_prob_rate = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++				printk(KERN_ERR "Downgrade channel width from "
++					"max_prob_rate %i -> to rate %i\n",
++					mi->max_prob_rate, tmp_group *
++					MCS_GROUP_RATES + cur_idx);
++			} else {
++				mi->max_tp_rate[0] = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++				printk(KERN_ERR "Downgrade channel width from "
++					"max_tp_rate[0] %i -> to rate %i\n",
++					mi->max_tp_rate[0], tmp_group *
++					MCS_GROUP_RATES + cur_idx);
++			}
 +			break;
 +		}
 +
 +		/* third try to reduce number of used streams by 1 */
 +		if ((cur_streams > 1) &&
-+		    !(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
-+		    !(tmp_flags & IEEE80211_TX_RC_SHORT_GI)) {
-+			printk(KERN_ERR "Downgrade max_prob_rate by 1 stream "
-+			       "from rate %i to new rate %i\n",mi->max_prob_rate,
-+			       tmp_group * MCS_GROUP_RATES + cur_idx);
-+			mi->max_prob_rate = tmp_group * MCS_GROUP_RATES + cur_idx;
++			!(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) &&
++			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
++			!(tmp_flags & IEEE80211_TX_RC_SHORT_GI)) {
++			if (mp->has_mrr) {
++				mi->max_prob_rate = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++				printk(KERN_ERR "Downgrade max_prob_rate by "
++					"1 stream from rate %i to new rate %i\n",
++					mi->max_prob_rate, tmp_group *
++					MCS_GROUP_RATES + cur_idx);
++			} else {
++				mi->max_tp_rate[0] = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++				printk(KERN_ERR "Downgrade max_tp_rate[0] by "
++					"1 stream from rate %i to new rate %i\n",
++					mi->max_tp_rate[0], tmp_group *
++					MCS_GROUP_RATES + cur_idx);
++			}
 +			break;
 +		}
  	}
  }
  
-@@ -679,7 +668,7 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -679,7 +719,7 @@ minstrel_ht_tx_status(void *priv, struct
  	struct minstrel_ht_sta_priv *msp = priv_sta;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct ieee80211_tx_rate *ar = info->status.rates;
@@ -244,7 +295,7 @@
  	struct minstrel_priv *mp = priv;
  	bool last, update = false;
  	int i;
-@@ -725,23 +714,23 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -725,23 +765,23 @@ minstrel_ht_tx_status(void *priv, struct
  	}
  
  	/*
@@ -254,7 +305,7 @@
 +	 * spatial stream errors. If the ratio of block ack length
 +	 * to AMPDU length is smaller than STREAM_ERROR_THRES in % a stream
 +	 * error occurred. If the number of consecutive stream errors is
-+	 * greater than 3 downgrade max_prob_rate to increase robustness.
++	 * greater than 3 downgrade current rate to increase robustness.
  	 */
 -	rate = minstrel_get_ratestats(mi, mi->max_tp_rate[0]);
 -	if (rate->attempts > 30 &&
