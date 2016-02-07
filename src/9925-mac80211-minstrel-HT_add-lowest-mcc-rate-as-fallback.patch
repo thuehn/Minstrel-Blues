@@ -1,13 +1,35 @@
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -872,7 +872,16 @@ minstrel_ht_update_rates(struct minstrel
+@@ -903,6 +903,8 @@ static void
+ minstrel_ht_update_rates(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
+ {
+ 	struct ieee80211_sta_rates *rates;
++	struct minstrel_mcs_group_data *mg;
++	int group, j;
+ 	int i = 0;
+ 
+ 	rates = kzalloc(sizeof(*rates), GFP_ATOMIC);
+@@ -923,7 +925,29 @@ minstrel_ht_update_rates(struct minstrel
  		minstrel_ht_set_rate(mp, mi, rates, i++, mi->max_prob_rate);
  	}
  
 -	rates->rate[i].idx = -1;
-+	/* set 4th mrr rate stage to lowest MCC rate if MCC rates used */
-+	if (mi->max_prob_rate / MCS_GROUP_RATES != MINSTREL_CCK_GROUP) {
-+		rates->rate[i].idx = 0;
++	/* set 4th mrr rate stage to lowest MCS rate if MCS rates used */
++	if ((mp->hw->max_rates > 3 ) &&
++	    (mi->max_prob_rate / MCS_GROUP_RATES != MINSTREL_CCK_GROUP)) {
++		for (group = 0; group < ARRAY_SIZE(minstrel_mcs_groups); group++) {
++			mg = &mi->groups[group];
++			if (!mi->supported[group])
++				continue;
++
++			for (j = 0; j < MCS_GROUP_RATES; j++) {
++				if (!(mi->supported[group] & BIT(j)))
++					continue;
++				else
++					break;
++			}
++		}
++		rates->rate[i].idx = MCS_GROUP_RATES * group + j;
 +		rates->rate[i].count = mp->max_retry;
 +		rates->rate[i].count_cts = mp->max_retry;
 +		rates->rate[i].count_rts = mp->max_retry;
