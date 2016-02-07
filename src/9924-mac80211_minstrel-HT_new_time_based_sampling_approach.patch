@@ -155,7 +155,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1046,41 +1035,126 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1046,41 +1035,132 @@ minstrel_ht_get_rate(void *priv, struct
  		return;
  #endif
  
@@ -230,11 +230,17 @@
 +			if (sample_rate == mi->max_tp_rate[0])
 +				continue;
 +
-+			/* sample fallback rates */
++			/* sample fallback rates with respect to mrr stages */
 +			if ((s_skipped < random_skipp / 2) &&
++			    ((mp->hw->max_rates >= 3) &&
 +			    ((sample_rate == mi->max_tp_rate[1]) ||
 +			    (sample_rate == mi->max_tp_rate[2]) ||
-+			    (sample_rate == mi->max_tp_rate[3]))) {
++			    (sample_rate == mi->max_tp_rate[3]))) ||
++			    ((mp->hw->max_rates == 3) &&
++			    ((sample_rate == mi->max_tp_rate[1]) ||
++			    (sample_rate == mi->max_tp_rate[2]))) ||
++			    ((mp->hw->max_rates == 2) &&
++			    (sample_rate == mi->max_tp_rate[1]))) {
 +				mi->groups[s_group].rates[s_idx].sample_skipped++;
 +				continue;
 +			}
@@ -243,7 +249,7 @@
 +			if ((s_skipped < random_skipp) &&
 +			    ((s_max_tp * 10 > 15 * cur_max_tp) ||
 +			     (s_max_tp * 15 < 10 * cur_min_tp))) {
-+//				mi->groups[s_group].rates[s_idx].sample_skipped++;
++				mi->groups[s_group].rates[s_idx].sample_skipped++;
 +				continue;
 +			}
 +
@@ -303,7 +309,7 @@
  }
  
  static void
-@@ -1266,7 +1340,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1266,7 +1346,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
