@@ -7,7 +7,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
 
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -1024,20 +1024,13 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1058,20 +1058,13 @@ minstrel_ht_get_rate(void *priv, struct
  		minstrel_aggr_check(sta, txrc->skb);
  
  	info->flags |= mi->tx_flags;
@@ -29,7 +29,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  	mi->total_packets++;
  
  	/* wraparound */
-@@ -1049,6 +1042,13 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1083,6 +1076,13 @@ minstrel_ht_get_rate(void *priv, struct
  	if (sample_idx < 0)
  		return;
  

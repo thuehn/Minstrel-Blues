@@ -219,19 +219,19 @@
 +			!(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)))) &&
 +			(cur_streams == tmp_streams)) {
 +			if (mp->has_mrr) {
-+				mi->max_prob_rate = tmp_group *
-+					MCS_GROUP_RATES + cur_idx;
 +				printk(KERN_ERR "Downgrade max_prob_rate from "
-+					"SGI rate %i ->to LGI rate %i\n",
++					"SGI rate %i to LGI rate %i\n",
 +					mi->max_prob_rate, tmp_group *
 +					MCS_GROUP_RATES + cur_idx);
-+			} else {
-+				mi->max_tp_rate[0] = tmp_group *
++				mi->max_prob_rate = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
++			} else {
 +				printk(KERN_ERR "Downgrade max_tp_rate[0] from "
-+					"SGI rate %i ->to LGI rate %i\n",
++					"SGI rate %i to LGI rate %i\n",
 +					mi->max_tp_rate[0], tmp_group *
 +					MCS_GROUP_RATES + cur_idx);
++				mi->max_tp_rate[0] = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
 +			}
 +			break;
 +		}
@@ -244,19 +244,19 @@
 +			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH))) &&
 +			(cur_streams == tmp_streams)) {
 +			if (mp->has_mrr) {
-+				mi->max_prob_rate = tmp_group *
-+					MCS_GROUP_RATES + cur_idx;
-+				printk(KERN_ERR "Downgrade channel width from "
-+					"max_prob_rate %i -> to rate %i\n",
++				printk(KERN_ERR "Downgrade max_prob_rate %i by "
++					"halving channel width to rate %i\n",
 +					mi->max_prob_rate, tmp_group *
 +					MCS_GROUP_RATES + cur_idx);
-+			} else {
-+				mi->max_tp_rate[0] = tmp_group *
++				mi->max_prob_rate = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
-+				printk(KERN_ERR "Downgrade channel width from "
-+					"max_tp_rate[0] %i -> to rate %i\n",
++			} else {
++				printk(KERN_ERR "Downgrade max_tp_rate[0] %i by"
++					" halving channel width to rate %i\n",
 +					mi->max_tp_rate[0], tmp_group *
 +					MCS_GROUP_RATES + cur_idx);
++				mi->max_tp_rate[0] = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
 +			}
 +			break;
 +		}
@@ -267,19 +267,19 @@
 +			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
 +			!(tmp_flags & IEEE80211_TX_RC_SHORT_GI)) {
 +			if (mp->has_mrr) {
-+				mi->max_prob_rate = tmp_group *
-+					MCS_GROUP_RATES + cur_idx;
 +				printk(KERN_ERR "Downgrade max_prob_rate by "
-+					"1 stream from rate %i to new rate %i\n",
++					"1 stream from rate %i to rate %i\n",
 +					mi->max_prob_rate, tmp_group *
 +					MCS_GROUP_RATES + cur_idx);
-+			} else {
-+				mi->max_tp_rate[0] = tmp_group *
++				mi->max_prob_rate = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
++			} else {
 +				printk(KERN_ERR "Downgrade max_tp_rate[0] by "
-+					"1 stream from rate %i to new rate %i\n",
++					"1 stream from rate %i to rate %i\n",
 +					mi->max_tp_rate[0], tmp_group *
 +					MCS_GROUP_RATES + cur_idx);
++				mi->max_tp_rate[0] = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
 +			}
 +			break;
 +		}

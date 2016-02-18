@@ -16,7 +16,7 @@
  								      / nsecs));
  	else
  		return MINSTREL_TRUNC(100000 * ((prob_ewma * 1000) / nsecs));
-@@ -935,70 +935,27 @@ minstrel_get_duration(int index)
+@@ -969,70 +969,27 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -98,7 +98,7 @@
  }
  
  static void
-@@ -1017,21 +974,53 @@ minstrel_ht_check_cck_shortpreamble(stru
+@@ -1051,21 +1008,53 @@ minstrel_ht_check_cck_shortpreamble(stru
  	mi->supported[MINSTREL_CCK_GROUP] = supported;
  }
  
@@ -155,7 +155,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1046,41 +1035,133 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1080,41 +1069,133 @@ minstrel_ht_get_rate(void *priv, struct
  		return;
  #endif
  
@@ -310,7 +310,7 @@
  }
  
  static void
-@@ -1266,7 +1347,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1300,7 +1381,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
