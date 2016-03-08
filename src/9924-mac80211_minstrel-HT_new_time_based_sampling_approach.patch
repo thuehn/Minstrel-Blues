@@ -16,7 +16,7 @@
  								      / nsecs));
  	else
  		return MINSTREL_TRUNC(100000 * ((prob_ewma * 1000) / nsecs));
-@@ -969,70 +969,27 @@ minstrel_get_duration(int index)
+@@ -969,79 +969,27 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -26,6 +26,7 @@
 -	struct minstrel_rate_stats *mrs;
  	struct minstrel_mcs_group_data *mg;
 -	unsigned int sample_dur, sample_group, cur_max_tp_streams;
+-	int tp_rate1, tp_rate2;
 -	int sample_idx = 0;
 -
 -	if (mi->sample_wait > 0) {
@@ -50,14 +51,27 @@
 -	mrs = &mg->rates[sample_idx];
 -	sample_idx += sample_group * MCS_GROUP_RATES;
 -
+-	/* Set tp_rate1, tp_rate2 to the highest / second highest max_tp_rate */
+-	if (minstrel_get_duration(mi->max_tp_rate[0]) >
+-	    minstrel_get_duration(mi->max_tp_rate[1])) {
+-		tp_rate1 = mi->max_tp_rate[1];
+-		tp_rate2 = mi->max_tp_rate[0];
+-	} else {
+-		tp_rate1 = mi->max_tp_rate[0];
+-		tp_rate2 = mi->max_tp_rate[1];
++	while (!(mi->supported[sample_group] & BIT(sample_idx))) {
++		sample_group = mi->sample_group;
++		mg = &mi->groups[sample_group];
++		sample_idx = sample_table[mg->column][mg->index];
++		minstrel_set_next_sample_idx(mi);
+ 	}
+ 
 -	/*
 -	 * Sampling might add some overhead (RTS, no aggregation)
--	 * to the frame. Hence, don't use sampling for the currently
--	 * used rates.
+-	 * to the frame. Hence, don't use sampling for the highest currently
+-	 * used highest throughput or probability rate.
 -	 */
--	if (sample_idx == mi->max_tp_rate[0] ||
--	    sample_idx == mi->max_tp_rate[1] ||
--	    sample_idx == mi->max_prob_rate)
+-	if (sample_idx == mi->max_tp_rate[0] || sample_idx == mi->max_prob_rate)
 -		return -1;
 -
 -	/*
@@ -72,10 +86,10 @@
 -	 * if the link is working perfectly.
 -	 */
 -
--	cur_max_tp_streams = minstrel_mcs_groups[mi->max_tp_rate[0] /
+-	cur_max_tp_streams = minstrel_mcs_groups[tp_rate1 /
 -		MCS_GROUP_RATES].streams;
 -	sample_dur = minstrel_get_duration(sample_idx);
--	if (sample_dur >= minstrel_get_duration(mi->max_tp_rate[1]) &&
+-	if (sample_dur >= minstrel_get_duration(tp_rate2) &&
 -	    (cur_max_tp_streams - 1 <
 -	     minstrel_mcs_groups[sample_group].streams ||
 -	     sample_dur >= minstrel_get_duration(mi->max_prob_rate))) {
@@ -84,21 +98,16 @@
 -
 -		if (mi->sample_slow++ > 2)
 -			return -1;
-+	while (!(mi->supported[sample_group] & BIT(sample_idx))) {
-+		sample_group = mi->sample_group;
-+		mg = &mi->groups[sample_group];
-+		sample_idx = sample_table[mg->column][mg->index];
-+		minstrel_set_next_sample_idx(mi);
- 	}
+-	}
 -	mi->sample_tries--;
- 
+-
 -	return sample_idx;
 +	sample_rate = sample_group * MCS_GROUP_RATES + sample_idx;
 +	return sample_rate;
  }
  
  static void
-@@ -1051,21 +1008,53 @@ minstrel_ht_check_cck_shortpreamble(stru
+@@ -1060,21 +1008,53 @@ minstrel_ht_check_cck_shortpreamble(stru
  	mi->supported[MINSTREL_CCK_GROUP] = supported;
  }
  
@@ -155,7 +164,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1080,41 +1069,133 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1089,41 +1069,133 @@ minstrel_ht_get_rate(void *priv, struct
  		return;
  #endif
  
@@ -310,7 +319,7 @@
  }
  
  static void
-@@ -1300,7 +1381,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1309,7 +1381,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {

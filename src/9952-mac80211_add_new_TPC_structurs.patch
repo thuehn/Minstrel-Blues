@@ -118,7 +118,7 @@
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
-@@ -1980,6 +1985,16 @@ struct ieee80211_txq {
+@@ -1985,6 +1990,16 @@ struct ieee80211_txq {
   * @IEEE80211_HW_TX_FRAG_LIST: Hardware (or driver) supports sending frag_list
   *	skbs, needed for zero-copy software A-MSDU.
   *
@@ -135,7 +135,7 @@
   * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
   */
  enum ieee80211_hw_flags {
-@@ -2019,6 +2034,9 @@ enum ieee80211_hw_flags {
+@@ -2024,6 +2039,9 @@ enum ieee80211_hw_flags {
  	IEEE80211_HW_SUPPORTS_REORDERING_BUFFER,
  	IEEE80211_HW_TX_AMSDU,
  	IEEE80211_HW_TX_FRAG_LIST,
@@ -145,7 +145,7 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2122,6 +2140,11 @@ enum ieee80211_hw_flags {
+@@ -2127,6 +2145,11 @@ enum ieee80211_hw_flags {
   *	Use IEEE80211_WMM_IE_STA_QOSINFO_SP_* for correct values.
   *
   * @n_cipher_schemes: a size of an array of cipher schemes definitions.
@@ -157,7 +157,7 @@
   * @cipher_schemes: a pointer to an array of cipher scheme definitions
   *	supported by HW.
   *
-@@ -2156,6 +2179,7 @@ struct ieee80211_hw {
+@@ -2161,6 +2184,7 @@ struct ieee80211_hw {
  	u8 uapsd_queues;
  	u8 uapsd_max_sp_len;
  	u8 n_cipher_schemes;
@@ -165,7 +165,7 @@
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	int txq_ac_max_pending;
  };
-@@ -4005,16 +4029,19 @@ void ieee80211_sta_set_buffered(struct i
+@@ -4010,16 +4034,19 @@ void ieee80211_sta_set_buffered(struct i
  				u8 tid, bool buffered);
  
  /**
