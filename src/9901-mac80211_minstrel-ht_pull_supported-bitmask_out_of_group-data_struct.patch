@@ -63,7 +63,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  			continue;
  
  		if (minstrel_mcs_groups[group].streams >
-@@ -974,7 +974,7 @@ minstrel_get_sample_rate(struct minstrel
+@@ -994,7 +994,7 @@ minstrel_get_sample_rate(struct minstrel
  	sample_idx = sample_table[mg->column][mg->index];
  	minstrel_set_next_sample_idx(mi);
  
@@ -72,7 +72,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  		return -1;
  
  	mrs = &mg->rates[sample_idx];
-@@ -1032,7 +1032,7 @@ static void
+@@ -1052,7 +1052,7 @@ static void
  minstrel_ht_check_cck_shortpreamble(struct minstrel_priv *mp,
  				    struct minstrel_ht_sta *mi, bool val)
  {
@@ -81,7 +81,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  
  	if (!supported || !mi->cck_supported_short)
  		return;
-@@ -1041,7 +1041,7 @@ minstrel_ht_check_cck_shortpreamble(stru
+@@ -1061,7 +1061,7 @@ minstrel_ht_check_cck_shortpreamble(stru
  		return;
  
  	supported ^= mi->cck_supported_short | (mi->cck_supported_short << 4);
@@ -90,7 +90,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  }
  
  static void
-@@ -1134,7 +1134,7 @@ minstrel_ht_update_cck(struct minstrel_p
+@@ -1154,7 +1154,7 @@ minstrel_ht_update_cck(struct minstrel_p
  			mi->cck_supported_short |= BIT(i);
  	}
  
@@ -99,7 +99,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  }
  
  static void
-@@ -1204,7 +1204,7 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1224,7 +1224,7 @@ minstrel_ht_update_caps(void *priv, stru
  		u32 gflags = minstrel_mcs_groups[i].flags;
  		int bw, nss;
  
@@ -108,7 +108,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  		if (i == MINSTREL_CCK_GROUP) {
  			minstrel_ht_update_cck(mp, mi, sband, sta);
  			continue;
-@@ -1236,8 +1236,8 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1256,8 +1256,8 @@ minstrel_ht_update_caps(void *priv, stru
  			if (use_vht && minstrel_vht_only)
  				continue;
  #endif
@@ -119,7 +119,7 @@ Signed-off-by: Felix Fietkau <nbd@openwrt.org>
  				n_supported++;
  			continue;
  		}
-@@ -1263,10 +1263,10 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1283,10 +1283,10 @@ minstrel_ht_update_caps(void *priv, stru
  		else
  			bw = BW_20;
  

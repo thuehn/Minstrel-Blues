@@ -1,6 +1,6 @@
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -781,8 +781,11 @@ enum mac80211_rate_control_flags {
+@@ -785,8 +785,11 @@ enum mac80211_rate_control_flags {
  /* if you do need the rateset, then you have less space */
  #define IEEE80211_TX_INFO_RATE_DRIVER_DATA_SIZE 24
  
@@ -14,7 +14,7 @@
  
  /* maximum number of rate table entries */
  #define IEEE80211_TX_RATE_TABLE_SIZE	4
-@@ -802,18 +805,23 @@ enum mac80211_rate_control_flags {
+@@ -806,18 +809,23 @@ enum mac80211_rate_control_flags {
   *
   * &struct ieee80211_tx_info contains an array of these structs
   * in the control information, and it will be filled by the rate
@@ -47,7 +47,7 @@
   */
  struct ieee80211_tx_rate {
  	s8 idx;
-@@ -885,7 +893,7 @@ struct ieee80211_tx_info {
+@@ -889,7 +897,7 @@ struct ieee80211_tx_info {
  					u8 use_cts_prot:1;
  					u8 short_preamble:1;
  					u8 skip_table:1;
@@ -56,7 +56,7 @@
  				};
  				/* only needed before rate control */
  				unsigned long jiffies;
-@@ -900,7 +908,8 @@ struct ieee80211_tx_info {
+@@ -904,7 +912,8 @@ struct ieee80211_tx_info {
  			u64 cookie;
  		} ack;
  		struct {
@@ -66,7 +66,7 @@
  			s32 ack_signal;
  			u8 ampdu_ack_len;
  			u8 ampdu_len;
-@@ -910,7 +919,7 @@ struct ieee80211_tx_info {
+@@ -914,7 +923,7 @@ struct ieee80211_tx_info {
  		} status;
  		struct {
  			struct ieee80211_tx_rate driver_rates[
@@ -75,7 +75,7 @@
  			u8 pad[4];
  
  			void *rate_driver_data[
-@@ -976,7 +985,7 @@ ieee80211_tx_info_clear_status(struct ie
+@@ -980,7 +989,7 @@ ieee80211_tx_info_clear_status(struct ie
  		     offsetof(struct ieee80211_tx_info, driver_rates));
  	BUILD_BUG_ON(offsetof(struct ieee80211_tx_info, status.rates) != 8);
  	/* clear the rate counts */
@@ -168,7 +168,7 @@
  		}
 --- a/drivers/net/wireless/mac80211_hwsim.c
 +++ b/drivers/net/wireless/mac80211_hwsim.c
-@@ -1301,8 +1301,8 @@ static void mac80211_hwsim_tx(struct iee
+@@ -1332,8 +1332,8 @@ static void mac80211_hwsim_tx(struct iee
  
  	if (ieee80211_hw_check(hw, SUPPORTS_RC_TABLE))
  		ieee80211_get_tx_rates(txi->control.vif, control->sta, skb,
@@ -179,7 +179,7 @@
  
  	txi->rate_driver_data[0] = channel;
  
-@@ -1427,8 +1427,8 @@ static void mac80211_hwsim_tx_frame(stru
+@@ -1456,8 +1456,8 @@ static void mac80211_hwsim_tx_frame(stru
  	if (ieee80211_hw_check(hw, SUPPORTS_RC_TABLE)) {
  		struct ieee80211_tx_info *txi = IEEE80211_SKB_CB(skb);
  		ieee80211_get_tx_rates(txi->control.vif, NULL, skb,
@@ -190,7 +190,7 @@
  	}
  
  	mac80211_hwsim_monitor_rx(hw, skb, chan);
-@@ -2817,7 +2817,7 @@ static int hwsim_tx_info_frame_received_
+@@ -2861,7 +2861,7 @@ static int hwsim_tx_info_frame_received_
  
  	ieee80211_tx_info_clear_status(txi);
  

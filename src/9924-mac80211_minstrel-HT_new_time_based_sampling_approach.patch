@@ -16,7 +16,7 @@
  								      / nsecs));
  	else
  		return MINSTREL_TRUNC(100000 * ((prob_ewma * 1000) / nsecs));
-@@ -969,79 +969,27 @@ minstrel_get_duration(int index)
+@@ -989,79 +989,27 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -59,13 +59,8 @@
 -	} else {
 -		tp_rate1 = mi->max_tp_rate[0];
 -		tp_rate2 = mi->max_tp_rate[1];
-+	while (!(mi->supported[sample_group] & BIT(sample_idx))) {
-+		sample_group = mi->sample_group;
-+		mg = &mi->groups[sample_group];
-+		sample_idx = sample_table[mg->column][mg->index];
-+		minstrel_set_next_sample_idx(mi);
- 	}
- 
+-	}
+-
 -	/*
 -	 * Sampling might add some overhead (RTS, no aggregation)
 -	 * to the frame. Hence, don't use sampling for the highest currently
@@ -98,16 +93,21 @@
 -
 -		if (mi->sample_slow++ > 2)
 -			return -1;
--	}
++	while (!(mi->supported[sample_group] & BIT(sample_idx))) {
++		sample_group = mi->sample_group;
++		mg = &mi->groups[sample_group];
++		sample_idx = sample_table[mg->column][mg->index];
++		minstrel_set_next_sample_idx(mi);
+ 	}
 -	mi->sample_tries--;
--
+ 
 -	return sample_idx;
 +	sample_rate = sample_group * MCS_GROUP_RATES + sample_idx;
 +	return sample_rate;
  }
  
  static void
-@@ -1060,21 +1008,53 @@ minstrel_ht_check_cck_shortpreamble(stru
+@@ -1080,21 +1028,53 @@ minstrel_ht_check_cck_shortpreamble(stru
  	mi->supported[MINSTREL_CCK_GROUP] = supported;
  }
  
@@ -164,7 +164,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1089,41 +1069,133 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1109,41 +1089,133 @@ minstrel_ht_get_rate(void *priv, struct
  		return;
  #endif
  
@@ -319,7 +319,7 @@
  }
  
  static void
-@@ -1309,7 +1381,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1329,7 +1401,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {

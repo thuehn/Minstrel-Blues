@@ -265,7 +265,7 @@
  
 -
  static void
- calc_rate_durations(enum ieee80211_band band,
+ calc_rate_durations(enum nl80211_band band,
  		    struct minstrel_rate *d,
 @@ -572,6 +562,7 @@ minstrel_rate_init(void *priv, struct ie
  

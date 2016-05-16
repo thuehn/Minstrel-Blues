@@ -1,6 +1,6 @@
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -1251,6 +1251,7 @@ enum ieee80211_conf_flags {
+@@ -1270,6 +1270,7 @@ enum ieee80211_conf_flags {
   * @IEEE80211_CONF_CHANGE_SMPS: Spatial multiplexing powersave mode changed
   *	Note that this is only valid if channel contexts are not used,
   *	otherwise each channel context has the number of chains listed.
@@ -8,7 +8,7 @@
   */
  enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_SMPS		= BIT(1),
-@@ -1261,6 +1262,7 @@ enum ieee80211_conf_changed {
+@@ -1280,6 +1281,7 @@ enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_CHANNEL		= BIT(6),
  	IEEE80211_CONF_CHANGE_RETRY_LIMITS	= BIT(7),
  	IEEE80211_CONF_CHANGE_IDLE		= BIT(8),
@@ -16,7 +16,7 @@
  };
  
  /**
-@@ -1326,6 +1328,7 @@ struct ieee80211_conf {
+@@ -1345,6 +1347,7 @@ struct ieee80211_conf {
  	u8 ps_dtim_period;
  
  	u8 long_frame_max_tx_count, short_frame_max_tx_count;

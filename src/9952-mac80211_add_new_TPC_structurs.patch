@@ -1,6 +1,6 @@
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -791,40 +791,46 @@ enum mac80211_rate_control_flags {
+@@ -795,40 +795,46 @@ enum mac80211_rate_control_flags {
  #define IEEE80211_TX_RATE_TABLE_SIZE	4
  
  /**
@@ -65,7 +65,7 @@
  	u16 count:5,
  	    flags:11;
  } __packed;
-@@ -884,7 +890,7 @@ struct ieee80211_tx_info {
+@@ -888,7 +894,7 @@ struct ieee80211_tx_info {
  	union {
  		struct {
  			union {
@@ -74,7 +74,7 @@
  				struct {
  					struct ieee80211_tx_rate rates[
  						IEEE80211_TX_MAX_RATES];
-@@ -915,13 +921,11 @@ struct ieee80211_tx_info {
+@@ -919,13 +925,11 @@ struct ieee80211_tx_info {
  			u8 ampdu_len;
  			u8 antenna;
  			u16 tx_time;
@@ -89,7 +89,7 @@
  			void *rate_driver_data[
  				IEEE80211_TX_INFO_RATE_DRIVER_DATA_SIZE / sizeof(void *)];
  		};
-@@ -989,7 +993,7 @@ ieee80211_tx_info_clear_status(struct ie
+@@ -993,7 +997,7 @@ ieee80211_tx_info_clear_status(struct ie
  		info->status.rates[i].count = 0;
  
  	BUILD_BUG_ON(
@@ -98,7 +98,7 @@
  	memset(&info->status.ampdu_ack_len, 0,
  	       sizeof(struct ieee80211_tx_info) -
  	       offsetof(struct ieee80211_tx_info, status.ampdu_ack_len));
-@@ -1679,16 +1683,17 @@ enum ieee80211_sta_rx_bandwidth {
+@@ -1702,16 +1706,17 @@ enum ieee80211_sta_rx_bandwidth {
  };
  
  /**
@@ -118,7 +118,7 @@
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
-@@ -1985,6 +1990,16 @@ struct ieee80211_txq {
+@@ -2013,6 +2018,16 @@ struct ieee80211_txq {
   * @IEEE80211_HW_TX_FRAG_LIST: Hardware (or driver) supports sending frag_list
   *	skbs, needed for zero-copy software A-MSDU.
   *
@@ -135,8 +135,8 @@
   * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
   */
  enum ieee80211_hw_flags {
-@@ -2024,6 +2039,9 @@ enum ieee80211_hw_flags {
- 	IEEE80211_HW_SUPPORTS_REORDERING_BUFFER,
+@@ -2053,6 +2068,9 @@ enum ieee80211_hw_flags {
+ 	IEEE80211_HW_USES_RSS,
  	IEEE80211_HW_TX_AMSDU,
  	IEEE80211_HW_TX_FRAG_LIST,
 +	IEEE80211_HW_SUPPORTS_TPC_PER_PACKET,
@@ -145,7 +145,7 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2127,6 +2145,11 @@ enum ieee80211_hw_flags {
+@@ -2156,6 +2174,11 @@ enum ieee80211_hw_flags {
   *	Use IEEE80211_WMM_IE_STA_QOSINFO_SP_* for correct values.
   *
   * @n_cipher_schemes: a size of an array of cipher schemes definitions.
@@ -157,7 +157,7 @@
   * @cipher_schemes: a pointer to an array of cipher scheme definitions
   *	supported by HW.
   *
-@@ -2161,6 +2184,7 @@ struct ieee80211_hw {
+@@ -2190,6 +2213,7 @@ struct ieee80211_hw {
  	u8 uapsd_queues;
  	u8 uapsd_max_sp_len;
  	u8 n_cipher_schemes;
@@ -165,7 +165,7 @@
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	int txq_ac_max_pending;
  };
-@@ -4010,16 +4034,19 @@ void ieee80211_sta_set_buffered(struct i
+@@ -4072,16 +4096,19 @@ void ieee80211_sta_set_buffered(struct i
  				u8 tid, bool buffered);
  
  /**
@@ -189,13 +189,13 @@
  void ieee80211_get_tx_rates(struct ieee80211_vif *vif,
 --- a/net/mac80211/debugfs.c
 +++ b/net/mac80211/debugfs.c
-@@ -129,6 +129,9 @@ static const char *hw_flag_names[NUM_IEE
- 	FLAG(SUPPORTS_REORDERING_BUFFER),
+@@ -130,6 +130,9 @@ static const char *hw_flag_names[] = {
+ 	FLAG(USES_RSS),
  	FLAG(TX_AMSDU),
  	FLAG(TX_FRAG_LIST),
 +	FLAG(SUPPORTS_TPC_PER_PACKET),
 +	FLAG(SUPPORTS_TPC_PER_MRR),
 +	FLAG(SUPPORTS_TPC_FOR_ACK_PACKETS),
+ #undef FLAG
+ };
  
- 	/* keep last for the build bug below */
- 	(void *)0x1
