@@ -20,3 +20,11 @@
  
  	if (ath9k_ps_enable)
  		ieee80211_hw_set(hw, SUPPORTS_PS);
+@@ -1022,6 +1024,7 @@ static void ath9k_set_hw_capab(struct at
+ 	hw->max_rates = 4;
+ 	hw->max_listen_interval = 10;
+ 	hw->max_rate_tries = 10;
++	hw->min_tx_power = 0;
+ 	hw->sta_data_size = sizeof(struct ath_node);
+ 	hw->vif_data_size = sizeof(struct ath_vif);
+ 	hw->extra_tx_headroom = 4;

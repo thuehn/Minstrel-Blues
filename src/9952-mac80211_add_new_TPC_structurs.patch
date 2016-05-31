@@ -145,27 +145,28 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2156,6 +2174,11 @@ enum ieee80211_hw_flags {
+@@ -2156,6 +2174,12 @@ enum ieee80211_hw_flags {
   *	Use IEEE80211_WMM_IE_STA_QOSINFO_SP_* for correct values.
   *
   * @n_cipher_schemes: a size of an array of cipher schemes definitions.
 + *
-+ * @min_power: minimum power level in dBm, that is supported by the hardware.
-+ *	Negative values are possible (e.g. -5 dBm). The lowest power level
-+ *	is -100 dBm (which equals 0.01 mW). A value below -100 is invalid.
++ * @min_tx_power: minimum tx power level in dBm, that is supported by the
++ *	hardware. Negative values are possible (e.g. -5 dBm). The lowest
++ *	power level is -100 dBm (which equals 0.01 mW). A value below -100
++ *	is invalid.
 + *
   * @cipher_schemes: a pointer to an array of cipher scheme definitions
   *	supported by HW.
   *
-@@ -2190,6 +2213,7 @@ struct ieee80211_hw {
+@@ -2190,6 +2214,7 @@ struct ieee80211_hw {
  	u8 uapsd_queues;
  	u8 uapsd_max_sp_len;
  	u8 n_cipher_schemes;
-+	s8 min_power;
++	s8 min_tx_power;
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	int txq_ac_max_pending;
  };
-@@ -4072,16 +4096,19 @@ void ieee80211_sta_set_buffered(struct i
+@@ -4072,16 +4097,19 @@ void ieee80211_sta_set_buffered(struct i
  				u8 tid, bool buffered);
  
  /**
