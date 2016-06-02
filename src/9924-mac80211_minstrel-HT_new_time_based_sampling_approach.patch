@@ -16,7 +16,49 @@
  								      / nsecs));
  	else
  		return MINSTREL_TRUNC(100000 * ((prob_ewma * 1000) / nsecs));
-@@ -989,79 +989,27 @@ minstrel_get_duration(int index)
+@@ -459,9 +459,6 @@ minstrel_ht_update_stats(struct minstrel
+ 		mi->ampdu_packets = 0;
+ 	}
+ 
+-	mi->sample_slow = 0;
+-	mi->sample_count = 0;
+-
+ 	/* Initialize global rate indexes */
+ 	for(j = 0; j < MAX_THR_RATES; j++){
+ 		tmp_mcs_tp_rate[j] = 0;
+@@ -475,8 +472,6 @@ minstrel_ht_update_stats(struct minstrel
+ 		if (!mi->supported[group])
+ 			continue;
+ 
+-		mi->sample_count++;
+-
+ 		for (i = 0; i < MCS_GROUP_RATES; i++) {
+ 			if (!(mi->supported[group] & BIT(i)))
+ 				continue;
+@@ -509,9 +504,6 @@ minstrel_ht_update_stats(struct minstrel
+ 	minstrel_ht_assign_best_tp_rates(mi, tmp_mcs_tp_rate, tmp_cck_tp_rate);
+ 	memcpy(mi->max_tp_rate, tmp_mcs_tp_rate, sizeof(mi->max_tp_rate));
+ 
+-	/* try to sample all available rates during each interval */
+-	mi->sample_count *= 8;
+-
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	/* use fixed index if set */
+ 	if (mp->fixed_rate_idx != -1) {
+@@ -742,12 +734,6 @@ minstrel_ht_tx_status(void *priv, struct
+ 	mi->ampdu_packets++;
+ 	mi->ampdu_len += info->status.ampdu_len;
+ 
+-	if (!mi->sample_wait && !mi->sample_tries && mi->sample_count > 0) {
+-		mi->sample_wait = 16 + 2 * MINSTREL_TRUNC(mi->avg_ampdu_len);
+-		mi->sample_tries = 1;
+-		mi->sample_count--;
+-	}
+-
+ 	if (info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
+ 		mi->sample_packets += info->status.ampdu_len;
+ 
+@@ -989,79 +975,27 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -107,7 +149,7 @@
  }
  
  static void
-@@ -1080,21 +1028,53 @@ minstrel_ht_check_cck_shortpreamble(stru
+@@ -1080,21 +1014,53 @@ minstrel_ht_check_cck_shortpreamble(stru
  	mi->supported[MINSTREL_CCK_GROUP] = supported;
  }
  
@@ -164,7 +206,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1109,41 +1089,133 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1109,41 +1075,133 @@ minstrel_ht_get_rate(void *priv, struct
  		return;
  #endif
  
@@ -319,7 +361,24 @@
  }
  
  static void
-@@ -1329,7 +1401,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1216,16 +1274,6 @@ minstrel_ht_update_caps(void *priv, stru
+ 
+ 	mi->avg_ampdu_len = MINSTREL_FRAC(1, 1);
+ 
+-	/* When using MRR, sample more on the first attempt, without delay */
+-	if (mp->has_mrr) {
+-		mi->sample_count = 16;
+-		mi->sample_wait = 0;
+-	} else {
+-		mi->sample_count = 8;
+-		mi->sample_wait = 8;
+-	}
+-	mi->sample_tries = 4;
+-
+ 	/* TODO tx_flags for vht - ATM the RC API is not fine-grained enough */
+ 	if (!use_vht) {
+ 		stbc = (sta_cap & IEEE80211_HT_CAP_RX_STBC) >>
+@@ -1329,7 +1377,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
@@ -345,3 +404,15 @@
  	/* overhead time in usec for each frame */
  	unsigned int overhead;
  	unsigned int overhead_rtscts;
+@@ -84,11 +90,6 @@ struct minstrel_ht_sta {
+ 	u32 tx_flags;
+ 	u8 stream_errors;
+ 
+-	u8 sample_wait;
+-	u8 sample_tries;
+-	u8 sample_count;
+-	u8 sample_slow;
+-
+ 	/* current MCS group to be sampled */
+ 	u8 sample_group;
+ 

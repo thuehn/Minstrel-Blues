@@ -11,7 +11,7 @@
  	if (!AR_SREV_9300_20_OR_LATER(ah))
 --- a/drivers/net/wireless/ath/ath9k/init.c
 +++ b/drivers/net/wireless/ath/ath9k/init.c
-@@ -971,6 +971,8 @@ static void ath9k_set_hw_capab(struct at
+@@ -823,6 +823,8 @@ static void ath9k_set_hw_capab(struct at
  	ieee80211_hw_set(hw, HOST_BROADCAST_PS_BUFFERING);
  	ieee80211_hw_set(hw, SUPPORT_FAST_XMIT);
  	ieee80211_hw_set(hw, SUPPORTS_CLONED_SKBS);
@@ -20,7 +20,7 @@
  
  	if (ath9k_ps_enable)
  		ieee80211_hw_set(hw, SUPPORTS_PS);
-@@ -1022,6 +1024,7 @@ static void ath9k_set_hw_capab(struct at
+@@ -874,6 +876,7 @@ static void ath9k_set_hw_capab(struct at
  	hw->max_rates = 4;
  	hw->max_listen_interval = 10;
  	hw->max_rate_tries = 10;
