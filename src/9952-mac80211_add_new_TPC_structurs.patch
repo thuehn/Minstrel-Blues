@@ -200,3 +200,25 @@
  #undef FLAG
  };
  
+--- a/drivers/net/wireless/ath/carl9170/tx.c
++++ b/drivers/net/wireless/ath/carl9170/tx.c
+@@ -276,7 +276,7 @@ static void carl9170_tx_release(struct k
+ 		return;
+ 
+ 	BUILD_BUG_ON(
+-	    offsetof(struct ieee80211_tx_info, status.ack_signal) != 20);
++	    offsetof(struct ieee80211_tx_info, status.ack_signal) != 24);
+ 
+ 	memset(&txinfo->status.ack_signal, 0,
+ 	       sizeof(struct ieee80211_tx_info) -
+--- a/drivers/net/wireless/intersil/p54/txrx.c
++++ b/drivers/net/wireless/intersil/p54/txrx.c
+@@ -429,7 +429,7 @@ static void p54_rx_frame_sent(struct p54
+ 	       sizeof(struct ieee80211_tx_info) -
+ 	       offsetof(struct ieee80211_tx_info, status.ack_signal));
+ 	BUILD_BUG_ON(offsetof(struct ieee80211_tx_info,
+-			      status.ack_signal) != 20);
++			      status.ack_signal) != 24);
+ 
+ 	if (entry_hdr->flags & cpu_to_le16(P54_HDR_FLAG_DATA_ALIGN))
+ 		pad = entry_data->align[0];
