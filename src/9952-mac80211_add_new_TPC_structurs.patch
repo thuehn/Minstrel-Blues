@@ -15,7 +15,7 @@
   * A value of -1 for @idx indicates an invalid rate and, if used
   * in an array of retry rates, that no more rates should be tried.
   *
-+ * A value < -100 for @power (-100dBm equals 0.01mW) indicates an
++ * A value = -127 for @power (-100dBm equals 0.01mW) indicates an
 + * invalid power level.
 + *
   * When used for transmit status reporting, the driver should
@@ -145,20 +145,19 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2156,6 +2174,12 @@ enum ieee80211_hw_flags {
+@@ -2156,6 +2174,11 @@ enum ieee80211_hw_flags {
   *	Use IEEE80211_WMM_IE_STA_QOSINFO_SP_* for correct values.
   *
   * @n_cipher_schemes: a size of an array of cipher schemes definitions.
 + *
 + * @min_tx_power: minimum tx power level in dBm, that is supported by the
-+ *	hardware. Negative values are possible (e.g. -5 dBm). The lowest
-+ *	power level is -100 dBm (which equals 0.01 mW). A value below -100
-+ *	is invalid.
++ *	hardware. Negative values are possible (e.g. -5 dBm). The lowest valid
++ *	power level to be annotated is -126 dBm.
 + *
   * @cipher_schemes: a pointer to an array of cipher scheme definitions
   *	supported by HW.
   *
-@@ -2190,6 +2214,7 @@ struct ieee80211_hw {
+@@ -2190,6 +2213,7 @@ struct ieee80211_hw {
  	u8 uapsd_queues;
  	u8 uapsd_max_sp_len;
  	u8 n_cipher_schemes;
@@ -166,7 +165,7 @@
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	int txq_ac_max_pending;
  };
-@@ -4072,16 +4097,19 @@ void ieee80211_sta_set_buffered(struct i
+@@ -4072,16 +4096,19 @@ void ieee80211_sta_set_buffered(struct i
  				u8 tid, bool buffered);
  
  /**
@@ -222,3 +221,33 @@
  
  	if (entry_hdr->flags & cpu_to_le16(P54_HDR_FLAG_DATA_ALIGN))
  		pad = entry_data->align[0];
+--- a/net/mac80211/rate.c
++++ b/net/mac80211/rate.c
+@@ -659,11 +659,13 @@ static void rate_control_fill_sta_table(
+ 	for (i = 0; i < max_rates; i++) {
+ 		if (i < ARRAY_SIZE(info->control.rates) &&
+ 		    info->control.rates[i].idx >= 0 &&
++		    info->control.rates[i].power > -127 &&
+ 		    info->control.rates[i].count) {
+ 			if (rates != info->control.rates)
+ 				rates[i] = info->control.rates[i];
+ 		} else if (ratetbl) {
+ 			rates[i].idx = ratetbl->rate[i].idx;
++			rates[i].power = ratetbl->rate[i].power;
+ 			rates[i].flags = ratetbl->rate[i].flags;
+ 			if (info->control.use_rts)
+ 				rates[i].count = ratetbl->rate[i].count_rts;
+@@ -673,10 +675,12 @@ static void rate_control_fill_sta_table(
+ 				rates[i].count = ratetbl->rate[i].count;
+ 		} else {
+ 			rates[i].idx = -1;
++			rates[i].power = -127;
+ 			rates[i].count = 0;
+ 		}
+ 
+-		if (rates[i].idx < 0 || !rates[i].count)
++		if (rates[i].idx < 0 || !rates[i].count ||
++		    rates[i].power == -127)
+ 			break;
+ 	}
+ }
