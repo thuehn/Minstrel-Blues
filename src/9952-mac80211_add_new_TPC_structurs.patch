@@ -10,7 +10,7 @@
   * @idx: rate index to attempt to send with
   * @flags: rate control flags (&enum mac80211_rate_control_flags)
   * @count: number of tries in this rate before going to the next rate
-+ * @power: transmit power level in dBm to attempt to send with
++ * @txpower: transmit power level in dBm to attempt to send with
   *
   * A value of -1 for @idx indicates an invalid rate and, if used
   * in an array of retry rates, that no more rates should be tried.
@@ -39,7 +39,7 @@
 + * sufficient for rate/power sampling annotations, as the remaining
 + * rates and power levels per frame are filled in by the rate-power
 + * table lookup. For example, if this array contains, in the format
-+ * { <idx>, <power>, <count> } the information
++ * { <idx>, <txpower>, <count> } the information
 + *    { 3, 16, 2 }, { 2, 10, 6 }
   * then this means that the frame should be transmitted
 - * up to twice at rate 3, up to six times at rate 2, and up to those
@@ -61,7 +61,7 @@
   */
  struct ieee80211_tx_rate {
  	s8 idx;
-+	s8 power;
++	s8 txpower;
  	u16 count:5,
  	    flags:11;
  } __packed;
@@ -114,7 +114,7 @@
  	struct rcu_head rcu_head;
  	struct {
  		s8 idx;
-+		s8 power;
++		s8 txpower;
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
@@ -227,13 +227,13 @@
  	for (i = 0; i < max_rates; i++) {
  		if (i < ARRAY_SIZE(info->control.rates) &&
  		    info->control.rates[i].idx >= 0 &&
-+		    info->control.rates[i].power > -127 &&
++		    info->control.rates[i].txpower > -127 &&
  		    info->control.rates[i].count) {
  			if (rates != info->control.rates)
  				rates[i] = info->control.rates[i];
  		} else if (ratetbl) {
  			rates[i].idx = ratetbl->rate[i].idx;
-+			rates[i].power = ratetbl->rate[i].power;
++			rates[i].txpower = ratetbl->rate[i].txpower;
  			rates[i].flags = ratetbl->rate[i].flags;
  			if (info->control.use_rts)
  				rates[i].count = ratetbl->rate[i].count_rts;
@@ -241,13 +241,13 @@
  				rates[i].count = ratetbl->rate[i].count;
  		} else {
  			rates[i].idx = -1;
-+			rates[i].power = -127;
++			rates[i].txpower = -127;
  			rates[i].count = 0;
  		}
  
 -		if (rates[i].idx < 0 || !rates[i].count)
 +		if (rates[i].idx < 0 || !rates[i].count ||
-+		    rates[i].power == -127)
++		    rates[i].txpower == -127)
  			break;
  	}
  }

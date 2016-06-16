@@ -15,7 +15,7 @@
  
 +		/* Send management & multicast packets at global power level */
 +		for (i = 0; i < IEEE80211_TX_MAX_RATES; i++)
-+			info->control.rates[i].power = txrc->hw->conf.power_level;
++			info->control.rates[i].txpower = txrc->hw->conf.power_level;
 +
  		return true;
  	}
