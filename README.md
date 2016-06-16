@@ -11,15 +11,15 @@ extended by my transmit power control algorithm Blues. The current development i
 about practical ressource allocation in WiFi networks at the Technical University of Berlin.
 
 # Contributions
-- joint rate and power control in WiFi networks to increase spacial reuse and hence sum-network throughput
-- cross-layer algorithm Minstrel-Blues for 802.11b/g/a WiFi hardware
-- new joint utility function to specify user preferences by setting a weighting factor
-- Linux kernel implementation, validation, performance evaluation with legacy Minstrel
+- joint rate and power control in WiFi networks to increase spacial reuse by lowering interference to the necessary level and hence increase sum-network throughput in todays WiFi networks
+- cross-layer algorithm Minstrel-Blues for off-the-shelf 802.11b/g/a WiFi hardware
+- new joint utility function to specify user preferences for lowering transmit power with respect to throughput reduction
+- Linux kernel implementation, validation, performance evaluation with legacy Minstrel & Minstrel_HT
 
 # Current Goals
-1. integration of Blues into Minstrel-HT to supprt IEEE 802.11n/ac hardware
-2. get a well structured set of patches to enable Linux ubstream acceptance & final intregration
-3. validate and analyse Minstrel-Blues performance in different environments
+1. integration of Blues into Minstrel-HT to supprt IEEE 802.11b/g/a/n/ac hardware
+2. get a well structured set of patches to enable Linux ubstream acceptance & final kernel intregration
+3. validate and analyse Minstrel-Blues performance in different WiFi environments
 
 ## How to use Minstrel-Blues ?
 (my development environment is Linux LEDE on embedded routers driving Atheros ath9k WiFi hardware)
