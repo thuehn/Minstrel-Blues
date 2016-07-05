@@ -361,7 +361,7 @@
  }
  
  static void
-@@ -1216,16 +1274,6 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1217,16 +1275,6 @@ minstrel_ht_update_caps(void *priv, stru
  
  	mi->avg_ampdu_len = MINSTREL_FRAC(1, 1);
  
@@ -375,10 +375,10 @@
 -	}
 -	mi->sample_tries = 4;
 -
- 	/* TODO tx_flags for vht - ATM the RC API is not fine-grained enough */
  	if (!use_vht) {
- 		stbc = (sta_cap & IEEE80211_HT_CAP_RX_STBC) >>
-@@ -1329,7 +1377,10 @@ minstrel_ht_rate_init(void *priv, struct
+ 		stbc = (ht_cap & IEEE80211_HT_CAP_RX_STBC) >>
+ 			IEEE80211_HT_CAP_RX_STBC_SHIFT;
+@@ -1338,7 +1386,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
