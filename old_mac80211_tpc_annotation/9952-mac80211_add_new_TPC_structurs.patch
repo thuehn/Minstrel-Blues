@@ -1,0 +1,253 @@
+--- a/include/net/mac80211.h
++++ b/include/net/mac80211.h
+@@ -796,40 +796,46 @@ enum mac80211_rate_control_flags {
+ #define IEEE80211_TX_RATE_TABLE_SIZE	4
+ 
+ /**
+- * struct ieee80211_tx_rate - rate selection/status
++ * struct ieee80211_tx_rate - rate & tpc selection/status
+  *
+  * @idx: rate index to attempt to send with
+  * @flags: rate control flags (&enum mac80211_rate_control_flags)
+  * @count: number of tries in this rate before going to the next rate
++ * @txpower: transmit power level in dBm to attempt to send with
+  *
+  * A value of -1 for @idx indicates an invalid rate and, if used
+  * in an array of retry rates, that no more rates should be tried.
+  *
++ * A value = -127 for @power (-100dBm equals 0.01mW) indicates an
++ * invalid power level.
++ *
+  * When used for transmit status reporting, the driver should
+- * always report the rate along with the flags it used.
++ * always report the rate and power along with the flags it used.
+  *
+  * &struct ieee80211_tx_info contains an array of these structs
+  * in the control information, and it will be filled by the rate
+- * control algorithm according to what should be sent. Within the
+- * tx-path this array is of size IEEE80211_TX_MAX_RATES while in
+- * the rx-path this array is of size IEEE80211_TX_MAX_STATUS_RATES.
+- * For rate control this reduces rate array is sufficient for the
+- * rate sampling annotation, as the remaining rates per frame are
+- * filled be a rate table lookup. For example, if this array
+- * contains, in the format { <idx>, <count> } the information
+- *    { 3, 2 }, { 2, 6 }
++ * and power control algorithm according to what should be sent.
++ * Within the tx-path this array is of size IEEE80211_TX_MAX_RATES
++ * while in the rx-path this array is of size IEEE80211_TX_MAX_STATUS_RATES.
++ * For rate and power control this reduces rate/power array is
++ * sufficient for rate/power sampling annotations, as the remaining
++ * rates and power levels per frame are filled in by the rate-power
++ * table lookup. For example, if this array contains, in the format
++ * { <idx>, <txpower>, <count> } the information
++ *    { 3, 16, 2 }, { 2, 10, 6 }
+  * then this means that the frame should be transmitted
+- * up to twice at rate 3, up to six times at rate 2, and up to those
+- * values filled in by the rate table lookup for the remaining rates.
+- * if the frame doesn not get acknowledged. Say it gets
+- * acknowledged by the peer after the fifth attempt, the status
+- * information should then contain
+- *   { 3, 2 }, { 2, 3 }, { -1, 0 }, { -1, 0 }
+- * since it was transmitted twice at rate 3 and three times at rate 2
+- * after which we received an acknowledgement.
++ * up to twice at rate 3 with 16dBm, up to six times at rate 2 with
++ * 10 dBm, and up to those values filled in by the rate-power table
++ * lookup for the remaining rates, if the frame doesn not get
++ * acknowledged. Say it gets acknowledged by the peer after the fifth
++ * attempt, the status information should then contain
++ *    { 3, 16, 2 }, { 2, 10, 3 }, { -1, -100, 0 }, { -1, -100, 0 }
++ * since it was transmitted twice at rate 3 with 16dBm and three
++ * times at rate 2 with 10dBm after which we received an acknowledgement.
+  */
+ struct ieee80211_tx_rate {
+ 	s8 idx;
++	s8 txpower;
+ 	u16 count:5,
+ 	    flags:11;
+ } __packed;
+@@ -889,7 +895,7 @@ struct ieee80211_tx_info {
+ 	union {
+ 		struct {
+ 			union {
+-				/* rate control */
++				/* rate control & transmit power control */
+ 				struct {
+ 					struct ieee80211_tx_rate rates[
+ 						IEEE80211_TX_MAX_RATES];
+@@ -931,13 +937,11 @@ struct ieee80211_tx_info {
+ 			u8 ampdu_len;
+ 			u8 antenna;
+ 			u16 tx_time;
+-			void *status_driver_data[19 / sizeof(void *)];
++			void *status_driver_data[15 / sizeof(void *)];
+ 		} status;
+ 		struct {
+ 			struct ieee80211_tx_rate driver_rates[
+ 				IEEE80211_TX_MAX_STATUS_RATES];
+-			u8 pad[4];
+-
+ 			void *rate_driver_data[
+ 				IEEE80211_TX_INFO_RATE_DRIVER_DATA_SIZE / sizeof(void *)];
+ 		};
+@@ -1005,7 +1009,7 @@ ieee80211_tx_info_clear_status(struct ie
+ 		info->status.rates[i].count = 0;
+ 
+ 	BUILD_BUG_ON(
+-	    offsetof(struct ieee80211_tx_info, status.ack_signal) != 20);
++	    offsetof(struct ieee80211_tx_info, status.ack_signal) != 24);
+ 	memset(&info->status.ampdu_ack_len, 0,
+ 	       sizeof(struct ieee80211_tx_info) -
+ 	       offsetof(struct ieee80211_tx_info, status.ampdu_ack_len));
+@@ -1714,16 +1718,17 @@ enum ieee80211_sta_rx_bandwidth {
+ };
+ 
+ /**
+- * struct ieee80211_sta_rates - station rate selection table
++ * struct ieee80211_sta_rates - station rate-power selection table
+  *
+  * @rcu_head: RCU head used for freeing the table on update
+- * @rate: transmit rates/flags to be used by default.
++ * @rate: transmit rates/power-level/flags to be used by default.
+  *	Overriding entries per-packet is possible by using cb tx control.
+  */
+ struct ieee80211_sta_rates {
+ 	struct rcu_head rcu_head;
+ 	struct {
+ 		s8 idx;
++		s8 txpower;
+ 		u8 count;
+ 		u8 count_cts;
+ 		u8 count_rts;
+@@ -2028,6 +2033,16 @@ struct ieee80211_txq {
+  * @IEEE80211_HW_NEEDS_ALIGNED4_SKBS: Driver need aligned skbs to four-byte.
+  *	Padding will be added after ieee80211_hdr, before IV/LLC.
+  *
++ * @IEEE80211_HW_SUPPORTS_TPC_PER_PACKET: The hardware/driver supports transmit
++ *	power control (TPC) with one power level per data packet.
++ *
++ * @IEEE80211_HW_SUPPORTS_TPC_PER_MRR: The hardware/driver supports transmit
++ *	power control (TPC) with individual power levels for each
++ *	multi-rate-retry (mrr) stage per data packet.
++ *
++ * @IEEE80211_HW_SUPPORTS_TPC_PER_MRR: The hardware/driver supports transmit
++ *	power control (TPC) for ACK packets.
++ *
+  * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
+  */
+ enum ieee80211_hw_flags {
+@@ -2069,6 +2084,9 @@ enum ieee80211_hw_flags {
+ 	IEEE80211_HW_TX_AMSDU,
+ 	IEEE80211_HW_TX_FRAG_LIST,
+ 	IEEE80211_HW_NEEDS_ALIGNED4_SKBS,
++	IEEE80211_HW_SUPPORTS_TPC_PER_PACKET,
++	IEEE80211_HW_SUPPORTS_TPC_PER_MRR,
++	IEEE80211_HW_SUPPORTS_TPC_FOR_ACK_PACKETS,
+ 
+ 	/* keep last, obviously */
+ 	NUM_IEEE80211_HW_FLAGS
+@@ -2172,6 +2190,11 @@ enum ieee80211_hw_flags {
+  *	Use IEEE80211_WMM_IE_STA_QOSINFO_SP_* for correct values.
+  *
+  * @n_cipher_schemes: a size of an array of cipher schemes definitions.
++ *
++ * @min_tx_power: minimum tx power level in dBm, that is supported by the
++ *	hardware. Negative values are possible (e.g. -5 dBm). The lowest valid
++ *	power level to be annotated is -126 dBm.
++ *
+  * @cipher_schemes: a pointer to an array of cipher scheme definitions
+  *	supported by HW.
+  */
+@@ -2203,6 +2226,7 @@ struct ieee80211_hw {
+ 	u8 uapsd_queues;
+ 	u8 uapsd_max_sp_len;
+ 	u8 n_cipher_schemes;
++	s8 min_tx_power;
+ 	const struct ieee80211_cipher_scheme *cipher_schemes;
+ };
+ 
+@@ -4084,16 +4108,19 @@ void ieee80211_sta_set_buffered(struct i
+ 				u8 tid, bool buffered);
+ 
+ /**
+- * ieee80211_get_tx_rates - get the selected transmit rates for a packet
++ * ieee80211_get_tx_rates - get the selected transmit rates and power
++ * levels for a packet
+  *
+  * Call this function in a driver with per-packet rate selection support
+  * to combine the rate info in the packet tx info with the most recent
+  * rate selection table for the station entry.
++ * This also includes power levels meant for drivers that utilize hardware
++ * support for per packet or MRR stage power annotation.
+  *
+  * @vif: &struct ieee80211_vif pointer from the add_interface callback.
+  * @sta: the receiver station to which this packet is sent.
+  * @skb: the frame to be transmitted.
+- * @dest: buffer for extracted rate/retry information
++ * @dest: buffer for extracted rate/retry and power level information
+  * @max_rates: maximum number of rates to fetch
+  */
+ void ieee80211_get_tx_rates(struct ieee80211_vif *vif,
+--- a/net/mac80211/debugfs.c
++++ b/net/mac80211/debugfs.c
+@@ -303,6 +303,9 @@ static const char *hw_flag_names[] = {
+ 	FLAG(TX_AMSDU),
+ 	FLAG(TX_FRAG_LIST),
+ 	FLAG(NEEDS_ALIGNED4_SKBS),
++	FLAG(SUPPORTS_TPC_PER_PACKET),
++	FLAG(SUPPORTS_TPC_PER_MRR),
++	FLAG(SUPPORTS_TPC_FOR_ACK_PACKETS),
+ #undef FLAG
+ };
+ 
+--- a/drivers/net/wireless/ath/carl9170/tx.c
++++ b/drivers/net/wireless/ath/carl9170/tx.c
+@@ -276,7 +276,7 @@ static void carl9170_tx_release(struct k
+ 		return;
+ 
+ 	BUILD_BUG_ON(
+-	    offsetof(struct ieee80211_tx_info, status.ack_signal) != 20);
++	    offsetof(struct ieee80211_tx_info, status.ack_signal) != 24);
+ 
+ 	memset(&txinfo->status.ack_signal, 0,
+ 	       sizeof(struct ieee80211_tx_info) -
+--- a/drivers/net/wireless/intersil/p54/txrx.c
++++ b/drivers/net/wireless/intersil/p54/txrx.c
+@@ -429,7 +429,7 @@ static void p54_rx_frame_sent(struct p54
+ 	       sizeof(struct ieee80211_tx_info) -
+ 	       offsetof(struct ieee80211_tx_info, status.ack_signal));
+ 	BUILD_BUG_ON(offsetof(struct ieee80211_tx_info,
+-			      status.ack_signal) != 20);
++			      status.ack_signal) != 24);
+ 
+ 	if (entry_hdr->flags & cpu_to_le16(P54_HDR_FLAG_DATA_ALIGN))
+ 		pad = entry_data->align[0];
+--- a/net/mac80211/rate.c
++++ b/net/mac80211/rate.c
+@@ -659,11 +659,13 @@ static void rate_control_fill_sta_table(
+ 	for (i = 0; i < max_rates; i++) {
+ 		if (i < ARRAY_SIZE(info->control.rates) &&
+ 		    info->control.rates[i].idx >= 0 &&
++		    info->control.rates[i].txpower > -127 &&
+ 		    info->control.rates[i].count) {
+ 			if (rates != info->control.rates)
+ 				rates[i] = info->control.rates[i];
+ 		} else if (ratetbl) {
+ 			rates[i].idx = ratetbl->rate[i].idx;
++			rates[i].txpower = ratetbl->rate[i].txpower;
+ 			rates[i].flags = ratetbl->rate[i].flags;
+ 			if (info->control.use_rts)
+ 				rates[i].count = ratetbl->rate[i].count_rts;
+@@ -673,10 +675,12 @@ static void rate_control_fill_sta_table(
+ 				rates[i].count = ratetbl->rate[i].count;
+ 		} else {
+ 			rates[i].idx = -1;
++			rates[i].txpower = -127;
+ 			rates[i].count = 0;
+ 		}
+ 
+-		if (rates[i].idx < 0 || !rates[i].count)
++		if (rates[i].idx < 0 || !rates[i].count ||
++		    rates[i].txpower == -127)
+ 			break;
+ 	}
+ }
