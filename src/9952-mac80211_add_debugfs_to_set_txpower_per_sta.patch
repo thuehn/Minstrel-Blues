@@ -1,6 +1,6 @@
 --- a/net/mac80211/rc80211_minstrel.c
 +++ b/net/mac80211/rc80211_minstrel.c
-@@ -146,6 +146,14 @@ minstrel_set_rate(struct minstrel_sta_in
+@@ -146,6 +146,12 @@ minstrel_set_rate(struct minstrel_sta_in
  	ratetbl->rate[offset].count = r->adjusted_retry_count;
  	ratetbl->rate[offset].count_cts = r->retry_count_cts;
  	ratetbl->rate[offset].count_rts = r->stats.retry_count_rtscts;
@@ -9,8 +9,6 @@
 +	if (mi->fixed_txpower < 0xff) {
 +		ratetbl->rate[offset].txpower = mi->fixed_txpower;
 +	}
-+	printk(KERN_ERR "txpower changed by debugfs to: %d \n",
-+		mi->fixed_txpower);
 +#endif
  }
  
@@ -56,7 +54,7 @@
  	u8 idx;
  	u16 flags = group->flags;
  
-@@ -886,6 +887,15 @@ minstrel_ht_set_rate(struct minstrel_pri
+@@ -886,6 +887,13 @@ minstrel_ht_set_rate(struct minstrel_pri
  
  	ratetbl->rate[offset].idx = idx;
  	ratetbl->rate[offset].flags = flags;
@@ -66,8 +64,6 @@
 +        if (msp->fixed_txpower < 0xff) {
 +                ratetbl->rate[offset].txpower = msp->fixed_txpower;
 +        }
-+	printk(KERN_ERR "txpower changed by debugfs to: %d \n",
-+		msp->fixed_txpower);
 +#endif
  }
  
