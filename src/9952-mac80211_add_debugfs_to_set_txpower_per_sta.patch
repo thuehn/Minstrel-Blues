@@ -1,0 +1,103 @@
+--- a/net/mac80211/rc80211_minstrel.c
++++ b/net/mac80211/rc80211_minstrel.c
+@@ -146,6 +146,14 @@ minstrel_set_rate(struct minstrel_sta_in
+ 	ratetbl->rate[offset].count = r->adjusted_retry_count;
+ 	ratetbl->rate[offset].count_cts = r->retry_count_cts;
+ 	ratetbl->rate[offset].count_rts = r->stats.retry_count_rtscts;
++#ifdef CPTCFG_MAC80211_DEBUGFS
++	/* use fixed txpower if set */
++	if (mi->fixed_txpower < 0xff) {
++		ratetbl->rate[offset].txpower = mi->fixed_txpower;
++	}
++	printk(KERN_ERR "txpower changed by debugfs to: %d \n",
++		mi->fixed_txpower);
++#endif
+ }
+ 
+ static void
+--- a/net/mac80211/rc80211_minstrel.h
++++ b/net/mac80211/rc80211_minstrel.h
+@@ -121,6 +121,8 @@ struct minstrel_sta_info {
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	struct dentry *dbg_stats;
+ 	struct dentry *dbg_stats_csv;
++	struct dentry *dbg_fixed_txpower;
++	u8 fixed_txpower;
+ #endif
+ };
+ 
+--- a/net/mac80211/rc80211_minstrel_debugfs.c
++++ b/net/mac80211/rc80211_minstrel_debugfs.c
+@@ -219,6 +219,9 @@ minstrel_add_sta_debugfs(void *priv, voi
+ 
+ 	mi->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO, dir,
+ 			mi, &minstrel_stat_csv_fops);
++	mi->fixed_txpower = 0xff;
++	mi->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
++			S_IRUGO | S_IWUGO, dir, &mi->fixed_txpower);
+ }
+ 
+ void
+@@ -227,6 +230,6 @@ minstrel_remove_sta_debugfs(void *priv,
+ 	struct minstrel_sta_info *mi = priv_sta;
+ 
+ 	debugfs_remove(mi->dbg_stats);
+-
+ 	debugfs_remove(mi->dbg_stats_csv);
++	debugfs_remove(mi->dbg_fixed_txpower);
+ }
+--- a/net/mac80211/rc80211_minstrel_ht.c
++++ b/net/mac80211/rc80211_minstrel_ht.c
+@@ -850,6 +850,7 @@ minstrel_ht_set_rate(struct minstrel_pri
+ {
+ 	const struct mcs_group *group = &minstrel_mcs_groups[index / MCS_GROUP_RATES];
+ 	struct minstrel_rate_stats *mrs;
++	struct minstrel_ht_sta_priv *msp;
+ 	u8 idx;
+ 	u16 flags = group->flags;
+ 
+@@ -886,6 +887,15 @@ minstrel_ht_set_rate(struct minstrel_pri
+ 
+ 	ratetbl->rate[offset].idx = idx;
+ 	ratetbl->rate[offset].flags = flags;
++#ifdef CPTCFG_MAC80211_DEBUGFS
++        /* use fixed txpower if set */
++	msp = container_of(mi,struct minstrel_ht_sta_priv, ht);
++        if (msp->fixed_txpower < 0xff) {
++                ratetbl->rate[offset].txpower = msp->fixed_txpower;
++        }
++	printk(KERN_ERR "txpower changed by debugfs to: %d \n",
++		msp->fixed_txpower);
++#endif
+ }
+ 
+ static inline int
+--- a/net/mac80211/rc80211_minstrel_ht.h
++++ b/net/mac80211/rc80211_minstrel_ht.h
+@@ -111,6 +111,8 @@ struct minstrel_ht_sta_priv {
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	struct dentry *dbg_stats;
+ 	struct dentry *dbg_stats_csv;
++	struct dentry *dbg_fixed_txpower;
++	u8 fixed_txpower;
+ #endif
+ 	void *ratelist;
+ 	void *sample_table;
+--- a/net/mac80211/rc80211_minstrel_ht_debugfs.c
++++ b/net/mac80211/rc80211_minstrel_ht_debugfs.c
+@@ -307,6 +307,9 @@ minstrel_ht_add_sta_debugfs(void *priv,
+ 			&minstrel_ht_stat_fops);
+ 	msp->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO,
+ 			     dir, msp, &minstrel_ht_stat_csv_fops);
++	msp->fixed_txpower = 0xff;
++	msp->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
++			S_IRUGO | S_IWUGO, dir, &msp->fixed_txpower);
+ }
+ 
+ void
+@@ -316,4 +319,5 @@ minstrel_ht_remove_sta_debugfs(void *pri
+ 
+ 	debugfs_remove(msp->dbg_stats);
+ 	debugfs_remove(msp->dbg_stats_csv);
++	debugfs_remove(msp->dbg_fixed_txpower);
+ }
