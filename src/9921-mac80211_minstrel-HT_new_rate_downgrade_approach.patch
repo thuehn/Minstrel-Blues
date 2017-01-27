@@ -146,7 +146,7 @@
  	/* try to sample all available rates during each interval */
  	mi->sample_count *= 8;
  
-@@ -629,27 +571,125 @@ minstrel_set_next_sample_idx(struct mins
+@@ -629,27 +571,101 @@ minstrel_set_next_sample_idx(struct mins
  	}
  }
  
@@ -219,17 +219,9 @@
 +			!(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)))) &&
 +			(cur_streams == tmp_streams)) {
 +			if (mp->has_mrr) {
-+				printk(KERN_ERR "Downgrade max_prob_rate from "
-+					"SGI rate %i to LGI rate %i\n",
-+					mi->max_prob_rate, tmp_group *
-+					MCS_GROUP_RATES + cur_idx);
 +				mi->max_prob_rate = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
 +			} else {
-+				printk(KERN_ERR "Downgrade max_tp_rate[0] from "
-+					"SGI rate %i to LGI rate %i\n",
-+					mi->max_tp_rate[0], tmp_group *
-+					MCS_GROUP_RATES + cur_idx);
 +				mi->max_tp_rate[0] = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
 +			}
@@ -244,17 +236,9 @@
 +			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH))) &&
 +			(cur_streams == tmp_streams)) {
 +			if (mp->has_mrr) {
-+				printk(KERN_ERR "Downgrade max_prob_rate %i by "
-+					"halving channel width to rate %i\n",
-+					mi->max_prob_rate, tmp_group *
-+					MCS_GROUP_RATES + cur_idx);
 +				mi->max_prob_rate = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
 +			} else {
-+				printk(KERN_ERR "Downgrade max_tp_rate[0] %i by"
-+					" halving channel width to rate %i\n",
-+					mi->max_tp_rate[0], tmp_group *
-+					MCS_GROUP_RATES + cur_idx);
 +				mi->max_tp_rate[0] = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
 +			}
@@ -267,17 +251,9 @@
 +			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
 +			!(tmp_flags & IEEE80211_TX_RC_SHORT_GI)) {
 +			if (mp->has_mrr) {
-+				printk(KERN_ERR "Downgrade max_prob_rate by "
-+					"1 stream from rate %i to rate %i\n",
-+					mi->max_prob_rate, tmp_group *
-+					MCS_GROUP_RATES + cur_idx);
 +				mi->max_prob_rate = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
 +			} else {
-+				printk(KERN_ERR "Downgrade max_tp_rate[0] by "
-+					"1 stream from rate %i to rate %i\n",
-+					mi->max_tp_rate[0], tmp_group *
-+					MCS_GROUP_RATES + cur_idx);
 +				mi->max_tp_rate[0] = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
 +			}
@@ -286,7 +262,7 @@
  	}
  }
  
-@@ -684,7 +724,7 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -684,7 +700,7 @@ minstrel_ht_tx_status(void *priv, struct
  	struct minstrel_ht_sta_priv *msp = priv_sta;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct ieee80211_tx_rate *ar = info->status.rates;
@@ -295,7 +271,7 @@
  	struct minstrel_priv *mp = priv;
  	bool last, update = false;
  	int i;
-@@ -730,23 +770,23 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -730,23 +746,23 @@ minstrel_ht_tx_status(void *priv, struct
  	}
  
  	/*
