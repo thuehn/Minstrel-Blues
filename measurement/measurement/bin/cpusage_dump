@@ -1,0 +1,9 @@
+#!/bin/ash
+
+trap 'kill -TERM $PID' TERM INT
+/usr/bin/cpusage > /tmp/cpusage_dump &
+PID=$!
+wait $PID
+trap - TERM INT
+wait $PID
+EXIT_STATUS=$?

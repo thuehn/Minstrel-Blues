@@ -1,0 +1,69 @@
+dependencies
+============
+
+build
+-----
+lua: measurement runtime [+openwrt]
+lua-posix: process id [+openwrt]
+lua-ex: spawn process [+openwrt]
+lua-argparse: command line parser / interface [+openwrt]
+lua-rpc: remote procedure calls for lua [+openwrt]
+pcap-lua: parse pcap files [-openwrt]
+
+runtime
+-------
+tcpdump: dump monitor interface packets
+iperf (NOT iperf3): generation of payload for measurement
+cputime: cpu load
+ping: reachablity
+ssh/ssh-keygen: start/stop nodes, with authorized keys
+kill: stop processes
+iw, ifconfig: add monitor
+tee: split tcpdump output
+ssh-add, ssh-agent: local ssh authorizer for remote command execution (~/.ssh# ssh-add id_rsa)
+
+logging
+=======
+- single lua rpc node
+
+control
+=======
+- lua rpc nodes via control network interface
+- transfer stats
+
+setup
+=====
+- add mac addresses of all stations to dhcp (setup should get same ip adresses)
+- WAN firewall zone should accept input for ssh connections via WAN
+-- ISSUE: when a router is configured as the only dhcp server all clients will not get a ipv4 address from other dhcp server
+
+stations
+--------
+- no routing at all
+- no filtering
+- each the wifi and the control interface belongs to different networks
+- add route to wifi network on gw
+
+access points
+-------------
+- no bridged routing between wifi and control interfaces
+- each the wifi and the control interface belongs to different networks
+- add route to wifi network on gw
+
+utils
+=====
+
+tcpdump
+-------
+
+iperf
+-----
+
+cpusage
+-------
+
+cpusage is a small program written in C to print the CPU stats periodically. It is bundled within the LEDE old-packages feed.
+Since cpusage seems a bit buggy ad we don't need a summary at termination it is wrapped by a simple shell loop that executes
+cpusage in single line mode by parameterizing with '-s'. Otherwise cpusages output will disappear from piped stdout. Sometimes
+a single line is readable from stdout only and sometimes no output is readable at all. Redirecting the output to a file doesn't
+work with lua io.read. Because other programs like 'date' doesn't show this behaviour we choose to limit cpusage to single line output.

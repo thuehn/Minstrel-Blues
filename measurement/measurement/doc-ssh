@@ -1,0 +1,8 @@
+user@host:~/.ssh$ ssh-keygen -t rsa
+user@host:~/.ssh$ ssh-add id_rsa
+eval `ssh-agent`
+user@host:~/.ssh$ scp id_rsa.pub remoteuser@remotehost.com:~/.ssh/
+remoteuser@remotehost:~$ cd ~/.ssh
+remoteuser@remotehost:~/.ssh~$ cat id_rsa.pub >> authorized_keys
+remoteuser@remotehost:~/.ssh$ chmod 600 authorized_keys
+user@host:~$ ssh remoteuser@remotehost.com  uname -a

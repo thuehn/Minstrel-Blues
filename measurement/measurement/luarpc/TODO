@@ -1,0 +1,160 @@
+TODO
+----
+
+come up with cleaner approach towards getting remote variables
+
+__newindex implementation to set variables on remote side
+
+deal better with link level errors, especially for serial where minimal
+transmission guarantees are made
+
+rpc.on_error (HANDLE, func)   <-- add option for handle 
+
+pass functions to a remote function (maybe so we can pass local callbacks
+to a remote function). thus we are tying together two function spaces?
+
+handle circular refs in data structures when dumping. tag data structures as
+we traverse them?
+
+optimizations:
+	* handling of numbers: s8,s16,s32,double - encoded in type
+	* handling of string lengths (u8,u16,u32) - encoded in 1st byte
+	* socket reading and writing stuff to use buffers, like FILEs, don't
+	  use system calls all the time.
+	  	do this: FILE *file = fdopen (sock,"wb"); ... ?
+
+protocol for telling the client when the header or version is bad.
+
+asyncronous client operation when no return arguments are expected.
+
+check @@@'s
+
+code review
+	TRY and ENDTRY paired
+	all resources freed on exception
+
+doc:
+	socket errors close the handle, can't refer to it anymore!
+	all API inside C file
+
+test:
+	all error modes
+	code coverage
+	arg & reply stress testing
+	saving and *restoring* _ERRORMESSAGE handler.
+	resource freeing on exceptions.
+	memory leaks
+
+async mode:
+	pass async flag in function call, so no return args passed
+	when reading old async function return values, handle old errors??
+
+OLD TODOS
+---------
+
+pass user data to a remote function (or as return values)? the write()
+function apparently needs this
+
+DONE
+----
+
+abstract link/transport layer to allow different transports to be used
+
+implement serial support
+
+allow calling functions which are not globals (i.e. ones registered on tables)
+
+handle non-existance of the remote function. we need some convention around
+LRF_call ... or a "verify existance of remote function" function.
+
+when LRF_close called, how do we prevent the user from using the handle again
+- we can't, but at least prevent crashes or flag errors. the handle object
+should have:
+	* state indicator (connected, closed)
+	* a lua GC tidyup routine
+
+timeouts for expecting function return values --> just rely on standard
+socket timeouts and the errors they generate.
+
+implement "keepalive" option, i.e. more than one function call per connection.
+
+error handling
+	* handle all socket and protocol errors
+	* use exception handling
+	* make sure exception throwing releases resources on the lua stack -
+	  or does it need to? make sure all other resources are freed.
+	* as we are pushing stuff on the stack (eg in the server), check that
+	  we dont run out of stack space --> lua rutime error will be triggered
+	  anyway, so this is ok.
+
+handing of IP addresses, names.
+
+better function calling syntax:
+	handle.foo (1,2,3)
+	if handle.foo != nil then function_exists...
+handle["foo"] returns a temporary userdata object that contains the name.
+when this obj is called as a function it sends the data.
+	intermediate obj must call lua_ref, lua_unref
+
+make it C not C++
+	use setjmp/longjmp to do exceptions
+
+FIXUP socket exception handling - use setjmp/longjmp stack?
+
+error handling
+	* propagate remote script errors to client --> rpc_on_error()
+	* runtime instead of fatal errors in many places (e.g. socket stuff).
+	  BUT make sure we always tidy up open sockets, memory etc on
+	  exceptions.
+	* should not panic as much.
+
+server side "event handling", i.e. just handle one function at a time, so
+server code can execute as well.
+
+------------------------------------------------------------------------------
+-- a better way?
+
+once connection is opened, function calls can be made in both directions.
+protocol:
+
+	u8	call (0) or result (1)
+	data...
+
+call:
+	make a call
+	read the reply
+	if reply is result, done
+	if reply is another call,
+		do_call
+		return result
+
+--
+
+handle = rpc_listen (12345)
+
+while 1 do
+	if rpc_peek (handle) then
+		rpc_dispatch (handle)
+	else
+		write ("doo de doo...\n")
+	end
+end
+
+rpc_close (handle)		-- works for clients *and* servers
+
+
+function rpc_server (port)
+	rpc_listen (port);
+	while 1 do
+		rpc_dispatch()
+	end
+end
+
+--
+
+future:
+	function references may be passed around.
+	when function references are passed around, they contain info about
+	which host/port the function lives on. calling that function opens up
+	a connection and calls the function. thus - need to do away with the
+	concept of handles.

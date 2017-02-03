@@ -1,0 +1,35 @@
+diff --git a/conf.in b/conf.in
+index 4a6832e..b549e33 100755
+--- a/conf.in
++++ b/conf.in
+@@ -1,7 +1,6 @@
+ ### Change these to match your Lua installation
+-LUA= /home/medgar/src/lang/lua/lua-5.1.1
+-LUAINC= -I$(LUA)/src
+-LUALIB= -L$(LUA)/src -llua51
++#LUAINC= -I/usr/include
++#LUALIB= -L/usr/lib/lua -llua
+ 
+ #LUA= /home/mark/luabinaries/lua51
+ #LUAINC= -I$(LUA)/include
+diff --git a/posix/Makefile b/posix/Makefile
+index d12c388..0d6d1cb 100755
+--- a/posix/Makefile
++++ b/posix/Makefile
+@@ -1,6 +1,6 @@
+ include ../conf
+ 
+-CFLAGS= $(WARNINGS) $(DEFINES) $(INCLUDES)
++CFLAGS= $(CFLAG) -fPIC $(WARNINGS) $(DEFINES) $(INCLUDES)
+ DEFINES= -D_XOPEN_SOURCE=600 $(POSIX_SPAWN)
+ INCLUDES= $(LUAINC)
+ WARNINGS= -W -Wall
+@@ -10,7 +10,7 @@ T= ex.so
+ default: $(T)
+ 
+ OBJS= ex.o spawn.o $(EXTRA)
+-$(T): $(OBJS) $(EXTRA); $(CC) -shared -o $@ $(OBJS) $(LIBS)
++$(T): $(OBJS) $(EXTRA); $(CC) -fPIC -shared -o $@ $(OBJS) $(LIBS)
+ ex.o: ex.c spawn.h
+ spawn.o: spawn.c spawn.h
+ posix_spawn.o: posix_spawn.c posix_spawn.h

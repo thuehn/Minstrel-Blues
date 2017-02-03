@@ -1,0 +1,56 @@
+
+Lua Remote Procedure Call Protocol (draft)
+------------------------------------------
+
+All LuaRPC servers listen for connections on some sort of transport that reads
+and writes bytes. Only one connection is accepted at a time, as the function
+server only runs single threaded Lua code. Multiple servers may run on a
+single computer, as long as they use different ports.
+
+When an external client opens a connection, it can send function invocation
+data. Multiple function invocations can be sent before the connection is
+closed. Each function call has a set of return values that are returned to
+the caller. On the client side, function calls that require no return
+variables may be executed asynchronously.
+
+`function' and `userdata' types can not be passed over the connection.
+(a future option should allow this, one can already send functions as strings)
+
+Protocol Definition
+-------------------
+
+session:
+	u8 (03)				-- send command to exchange headers
+	"LRPC"				-- "lua remote function protocol"
+	u8						-- protocol version
+	command, command, command, ...
+	<end_of_file>
+
+command:
+	u8						-- command type (RPC_CMD_*)
+									 01 - function_call
+									 02 - get remote variable
+									 03 - exchange header credentials
+
+function_call:
+	string				-- name of function
+	u32						-- number of input variables
+	var,var,...		-- input arguments
+
+return_value:		-- normal return value
+	u8 (0)
+	u32						-- number of output variables
+	var,var,...
+
+return_value:
+	u8 (1)				-- error return
+	u32						-- error code
+	string				-- error string
+
+var:
+	u8						-- type
+	data...
+
+string:	
+	u32						-- length
+	u8,u8,u8...		-- string bytes
