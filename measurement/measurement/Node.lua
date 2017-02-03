@@ -215,6 +215,8 @@ end
 -- rc_stats
 -- --------------------------
 
+-- fixme: list_stations differs from time to time, use fixed station list
+
 function Node:start_rc_stats ( phy )
     self:send_info("start collecting rc stats for " .. self.wifi.iface .. ", " .. phy)
     local stations = list_stations ( phy, self.wifi.iface )
@@ -243,7 +245,11 @@ function Node:get_rc_stats ( station )
         return nil
     end
     self:send_info("send rc-stats for " .. self.wifi.iface ..  ", station " .. station)
-    return self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
+    if ( self.rc_stats_procs [ station ] ) then 
+        return self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
+    else
+        return nil
+    end
 end
 
 function Node:stop_rc_stats ( pid )

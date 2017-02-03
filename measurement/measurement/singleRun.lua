@@ -176,12 +176,12 @@ end
 function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
                            tcpdata )
     
-    local stats = Measurement:create( ap_rpc )
-    stats:enable_rc_stats ( wifi_stations )
+    local ap_stats = Measurement:create( ap_rpc )
+    ap_stats:enable_rc_stats ( wifi_stations )
 
     for run = 1, runs do
 
-        local string key = tostring(run)
+        local key = tostring(run)
 
         -- start tcp iperf server on STA
         local iperf_s_proc_str = sta_rpc.start_tcp_iperf_s()
@@ -197,27 +197,30 @@ function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
 
         -- add monitor on STA
         sta_rpc.add_monitor( sta_phys[1] )
-
         wait_linked ( sta_rpc, sta_wifi.iface )
 
         -- start measurement on STA and AP
-        stats:start ( ap_phys[1], key )
+        ap_stats:start ( ap_phys[1], key )
+
+        -- -------------------------------------------------------
+        -- Experiment
+        -- -------------------------------------------------------
 
         -- start iperf client on AP
         local iperf_c_proc_str = ap_rpc.run_tcp_iperf( tcpdata )
 
         -- stop measurement on STA and AP
-        stats:stop ()
+        ap_stats:stop ()
 
         -- stop iperf server on STA
         sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
         
         -- collect traces
-        stats:fetch ( key )
+        ap_stats:fetch ( key )
     end
 
     print ()
-    print ( stats:__tostring() )
+    print ( ap_stats:__tostring() )
 
 end
 
@@ -225,8 +228,8 @@ end
 function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc, 
                            packet_sizes, cct_intervals, packet_rates, udp_interval )
 
-    local stats = Measurement:create( ap_rpc )
-    stats:enable_rc_stats ( wifi_stations )
+    local ap_stats = Measurement:create( ap_rpc )
+    ap_stats:enable_rc_stats ( wifi_stations )
 
     local size = head ( split ( packet_sizes, "," ) )
     for _,interval in ipairs ( split( cct_intervals, ",") ) do
@@ -261,7 +264,7 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
                 print ("start measurement")
 
                 -- start measurement on AP and STA
-                stats:start ( ap_phys[1], key )
+                ap_stats:start ( ap_phys[1], key )
 
                 -- -------------------------------------------------------
                 -- Experiment
@@ -273,13 +276,13 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
                 -- -------------------------------------------------------
 
                 -- stop measurement on AP and STA
-                stats:stop ()
+                ap_stats:stop ()
 
                 -- stop iperf server on STA
                 sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
 
                 -- collect traces
-                stats:fetch ( key )
+                ap_stats:fetch ( key )
 
             end -- run
         end -- rate
@@ -287,7 +290,7 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
     end -- cct
 
     print ()
-    print ( stats:__tostring() )
+    print ( ap_stats:__tostring() )
 
 end
 

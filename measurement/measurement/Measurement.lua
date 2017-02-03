@@ -15,7 +15,7 @@ Measurement = { rpc_node = nil
               , regmon_proc = nil
               , tcpdump_proc = nil
               , cpusage_proc = nil
-              , rc_stats_procs = {}
+              , rc_stats_procs = nil
               , stations = nil
               }
 
@@ -112,6 +112,7 @@ function Measurement:start ( phy, key )
     str = self.rpc_node.start_tcpdump( tcpdump_fname )
     self.tcpdump_proc = parse_process ( str )
     -- rc stats
+    self.rc_stats_procs = {}
     if ( self.enable_rc_stats ) then
         local rc_stats_procs = self.rpc_node.start_rc_stats ( phy )
         local rc_procs = {}
@@ -156,7 +157,8 @@ function Measurement:fetch ( key )
     -- rc_stats
     if ( self.enable_rc_stats ) then
         for _, station in ipairs ( self.stations ) do
-            self.rc_stats [ station ] [ key ] = self.rpc_node.get_rc_stats ( station )
+            local stats = self.rpc_node.get_rc_stats ( station )
+            self.rc_stats [ station ] [ key ] = stats 
         end
     end
 end
