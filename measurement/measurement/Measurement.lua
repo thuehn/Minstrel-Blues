@@ -33,7 +33,7 @@ function Measurement:create ( rpc_node )
 end
 
 function Measurement:__tostring() 
-    local out = ""
+    local out = "Measurement\n=========="
     -- regmon stats
     -- print ( tostring ( table_size ( regmon_stats ) ) )
     for key, stat in pairs ( self.regmon_stats ) do
