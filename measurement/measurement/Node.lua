@@ -13,9 +13,7 @@ local lease_fname = "/tmp/dhcp.leases"
 
 -- TODO: 
 -- - STA connect to AP
--- - check ssid: iw dev wlan0 link
 -- - split Node into NodeAP, NodeSTA
--- - luarpc is able to transmit tables, don't serialize manually
 
 Node = { name = nil, wifi = nil, ctrl = nil 
        , iperf_port = nil, tcpdump_proc = nil
@@ -69,6 +67,7 @@ function Node:get_ssid( iface )
     if (exit_code == 0) then
         -- TODO: parse response
         local str = iwinfo ['out']:read("*all")
+        close_proc_pipes ( iwinfo )
         str = string.gsub ( str, "\t", " " )
         str = string.gsub ( str, "\n", " " )
         local tokens = split ( str, " " )
@@ -90,13 +89,17 @@ end
 
 -- iw phy phy0 interface add wlan0 type monitor
 -- ifconfig wlan0 up
+-- fixme: command failed: Too many open files in system (-23)
 function Node:add_monitor ( phy )
     local iw_info = spawn_pipe("iw", "dev", self.wifi.mon, "info")
     local exit_code = iw_info['proc']:wait()
     if (exit_code ~= 0) then
-        self:send_info("adding monitor " .. self.wifi.mon .. " to " .. phy)
+        self:send_info("Adding monitor " .. self.wifi.mon .. " to " .. phy)
         local iw_add = spawn_pipe("iw", "phy", phy, "interface", "add", self.wifi.mon, "type", "monitor")
         local exit_code = iw_add['proc']:wait()
+        if (exit_code ~= 0) then
+            self:send_info("Add monitor failed: " .. exit_code)
+        end
     end
     self:send_info("enable monitor " .. self.wifi.mon)
     local ifconfig = spawn_pipe("ifconfig", self.wifi.mon, "up")
@@ -142,6 +145,7 @@ function Node:set_ani ( phy, enabled )
     else
         file:write(0)
     end
+    file:close()
 end
 
 function Node:get_mac ( iface )
@@ -245,11 +249,11 @@ function Node:get_rc_stats ( station )
         return nil
     end
     self:send_info("send rc-stats for " .. self.wifi.iface ..  ", station " .. station)
-    if ( self.rc_stats_procs [ station ] ) then 
-        return self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
-    else
-        return nil
-    end
+    if ( self.rc_stats_procs [ station ] == nil) then return nil end
+    local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
+    self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
+    --close_proc_pipes ( self.rc_stats_procs [ station ] )
+    return content 
 end
 
 function Node:stop_rc_stats ( pid )
@@ -280,11 +284,14 @@ end
 
 function Node:get_regmon_stats ()
     self:send_info("send regmon-stats")
-    if (self.regmon_proc == nil) then
-        return nil
-    else
-        return self.regmon_proc['out']:read("*a")
+    if (self.regmon_proc == nil) then 
+        self:send_error("no regmon process running" )
+        return nil 
     end
+    local content = self.regmon_proc['out']:read("*a")
+    self:send_info ( string.len ( content ) .. " bytes from regmon" )
+    close_proc_pipes ( self.regmon_proc )
+    return content
 end
 
 function Node:stop_regmon_stats ( pid )
@@ -306,8 +313,10 @@ end
 
 function Node:get_cpusage()
     self:send_info("send cpusage")
-    if self.cpusage_proc == nil then return nil end
+    if ( self.cpusage_proc == nil ) then return nil end
     local a = self.cpusage_proc['out']:read("*all")
+    self:send_info ( string.len ( a ) .. " bytes from cpusage" )
+    close_proc_pipes ( self.cpusage_proc )
     return a
 end
 
@@ -324,6 +333,7 @@ end
 -- TODO: lock
 -- -U packet-buffered output instead of line buffered (-l)
 -- tcpdump -l | tee file
+-- tcpdump -i mon0 -s 150 -U
 function Node:start_tcpdump ( fname )
     self:send_info("start tcpdump for " .. self.wifi.mon)
     local tcpdump = spawn_pipe( "tcpdump", "-i", self.wifi.mon, "-s", "150", "-U", "-w", fname)
@@ -347,6 +357,7 @@ function Node:get_tcpdump_online()
 
     if not self.tcpdump_proc then return nil end
     local l = self.tcpdump_proc['out']:read("*line")
+    close_proc_pipes ( self.tcpdump_proc )
 --    if (l ~= nil) then print ("tcpdump: " .. l) end
     return l
 end
@@ -354,7 +365,10 @@ end
 function Node:get_tcpdump_offline ( fname )
     self:send_info("send tcpdump offline for file " .. fname)
     local file = io.open ( fname, "rb" )
-    return file:read("*a")
+    if ( file == nil ) then return nil end
+    local content = file:read("*a")
+    file:close()
+    return content
 end
 
 -- TODO: unlock

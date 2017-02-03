@@ -24,6 +24,14 @@ function spawn_pipe(...)
     return ret
 end
 
+function close_proc_pipes ( proc )
+    if ( proc ~= nil ) then
+        proc['out']:close()
+        proc['in']:close()
+        proc['err']:close()
+    end
+end
+
 -- spawns two piped processes with pipe to stdin of fst and stdout of snd 
 -- returns two tables with 
 --   1. struct with process, pid and life cycle state

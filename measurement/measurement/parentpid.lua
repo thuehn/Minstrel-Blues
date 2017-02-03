@@ -8,6 +8,7 @@ function parent_pid ( pid )
             return tonumber(string.sub(line,6))
         end
     until not line
+    file:close()
     return nil
 end
 

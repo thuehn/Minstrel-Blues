@@ -1,4 +1,5 @@
-require ("ex")
+require ('ex')
+require ('misc')
 local argparse = require "argparse"
 
 local parser = argparse("fetch_file", "dump file continuously to stdout")
@@ -19,7 +20,9 @@ end
 
 -- note: line reads can result in broken lines
 while (true) do
+    if ( isFile ( args.filename ) == false ) then os.exit(1) end
     local file = io.open ( args.filename, mode )
+    if ( file == nil ) then os.exit(1) end
     if (args.line) then
         local line = file:read ("*l")
         if (line ~= nil) then print ( line ) end

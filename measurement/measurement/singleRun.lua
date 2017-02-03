@@ -178,6 +178,7 @@ function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
     
     local ap_stats = Measurement:create( ap_rpc )
     ap_stats:enable_rc_stats ( wifi_stations )
+    local sta_stats = Measurement:create( sta_rpc )
 
     for run = 1, runs do
 
@@ -188,19 +189,16 @@ function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
         local iperf_s_proc = parse_process ( iperf_s_proc_str )
 
         -- restart wifi on STA
-        local succ = sta_rpc.restart_wifi()
-        if (succ) then
-            print ("wifi on STA restarted")
-        else
-            print ("restart wifi on STA failed")
-        end
+        sta_rpc.restart_wifi()
 
-        -- add monitor on STA
+        -- add monitor on AP and STA
+        ap_rpc.add_monitor( ap_phys[1] )
         sta_rpc.add_monitor( sta_phys[1] )
         wait_linked ( sta_rpc, sta_wifi.iface )
 
         -- start measurement on STA and AP
         ap_stats:start ( ap_phys[1], key )
+        sta_stats:start ( ap_phys[1], key )
 
         -- -------------------------------------------------------
         -- Experiment
@@ -211,25 +209,29 @@ function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
 
         -- stop measurement on STA and AP
         ap_stats:stop ()
+        sta_stats:stop ()
 
         -- stop iperf server on STA
         sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
         
         -- collect traces
         ap_stats:fetch ( key )
+        sta_stats:fetch ( key )
     end
 
-    print ()
-    print ( ap_stats:__tostring() )
-
+    return ap_stats, sta_stats
 end
 
 
 function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc, 
                            packet_sizes, cct_intervals, packet_rates, udp_interval )
 
+    -- FIXME: sta_stats overwrites ap_stats, maybe somewhere global vars?
+    --          - regmon overwritten 
+    --          - pipes overwritten
     local ap_stats = Measurement:create( ap_rpc )
     ap_stats:enable_rc_stats ( wifi_stations )
+    --local sta_stats = Measurement:create( sta_rpc )
 
     local size = head ( split ( packet_sizes, "," ) )
     for _,interval in ipairs ( split( cct_intervals, ",") ) do
@@ -250,14 +252,10 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
                 local iperf_s_proc = parse_process ( iperf_s_proc_str )
             
                 -- restart wifi on STA
-                local succ = sta_rpc.restart_wifi()
-                if (succ) then
-                    print ("wifi on STA restarted")
-                else
-                    print ("restart wifi on STA failed")
-                end
+                sta_rpc.restart_wifi()
 
-                -- add monitor on STA
+                -- add monitor on AP and STA
+                ap_rpc.add_monitor( ap_phys[1] )
                 sta_rpc.add_monitor( sta_phys[1] )
                 wait_linked ( sta_rpc, sta_wifi.iface )
 
@@ -265,6 +263,7 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
 
                 -- start measurement on AP and STA
                 ap_stats:start ( ap_phys[1], key )
+                --sta_stats:start ( sta_phys[1], key )
 
                 -- -------------------------------------------------------
                 -- Experiment
@@ -277,20 +276,22 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
 
                 -- stop measurement on AP and STA
                 ap_stats:stop ()
+                --sta_stats:stop ()
 
                 -- stop iperf server on STA
                 sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
 
                 -- collect traces
                 ap_stats:fetch ( key )
+                --sta_stats:fetch ( key )
 
             end -- run
         end -- rate
         -- fixme: stop attenuate
     end -- cct
 
-    print ()
-    print ( ap_stats:__tostring() )
+    --return ap_stats, sta_stats
+    return ap_stats, nil
 
 end
 
@@ -356,8 +357,8 @@ print (sta_ctrl)
 print (ap_wifi)
 print (ap_ctrl)
 print ()
-print ( "run udp: " .. tostring( not args.udp_only ) )
-print ( "run tcp: " .. tostring( not args.tcp_only ) )
+print ( "run udp: " .. tostring( args.tcp_only == false ) )
+print ( "run tcp: " .. tostring( args.udp_only == false ) )
 print ()
 
 -- check reachability 
@@ -504,14 +505,42 @@ sta_rpc.set_ani ( sta_phys[1], not args.disable_ani )
 
 local runs = tonumber ( args.runs )
 
-if ( not args.udp_only ) then
-    tcp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
-                     args.tcpdata )
+if ( args.udp_only == false ) then
+    local ap_stats
+    local sta_stats
+    ap_stats, sta_stats 
+        = tcp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
+                           args.tcpdata )
+    print ()
+    if ( ap_stats ~= nil ) then
+        print ( "AP stats" )
+        print ( ap_stats:__tostring() )
+        print ()
+    end
+    if ( sta_stats ~= nil ) then
+        print ( "STA stats" )
+        print ( sta_stats:__tostring() )
+        print ()
+    end
 end
 
-if ( not args.tcp_only ) then
-    udp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
-                     args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+if ( args.tcp_only == false ) then
+    local ap_stats
+    local sta_stats
+    ap_stats, sta_stats 
+        = udp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
+                           args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+    print ()
+    if ( ap_stats ~= nil ) then
+        print ( "AP stats" )
+        print ( ap_stats:__tostring() )
+        print ()
+    end
+    if ( sta_stats ~= nil ) then
+        print ( "STA stats" )
+        print ( sta_stats:__tostring() )
+        print ()
+    end
 end                 
 
 -- query lua pid before closing rpc connection

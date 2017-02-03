@@ -20,7 +20,7 @@ Measurement = { rpc_node = nil
               }
 
 function Measurement:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
@@ -28,19 +28,22 @@ end
 
 function Measurement:create ( rpc_node )
     if (rpc_node == nil) then error ( "rpc node unset" ) end
-    o = Measurement:new( { rpc_node = rpc_node } )
+    local o = Measurement:new( { rpc_node = rpc_node } )
     return o
 end
 
 function Measurement:__tostring() 
-    local out = "Measurement\n=========="
+    local out = "Measurement\n==========\n"
     -- regmon stats
-    -- print ( tostring ( table_size ( regmon_stats ) ) )
+    out = out .. "regmon: " .. table_size ( self.regmon_stats ) .. " stats\n"
+    local key
+    local stat
     for key, stat in pairs ( self.regmon_stats ) do
         out = out .. "regmon-" .. key .. ": " .. string.len(stat) .. " bytes\n"
         --print (stat)
     end
     -- cpusage stats
+    out = out .. "cpusage: " .. table_size ( self.cpusage_stats ) .. " stats\n"
     for key, stat in pairs ( self.cpusage_stats ) do
         out = out .. "cpusage_stats-" .. key .. ": " .. string.len(stat) .. " bytes\n"
         for _, str in ipairs ( split ( stat, "\n" ) ) do
@@ -49,9 +52,10 @@ function Measurement:__tostring()
         end
     end
     -- tcpdump pcap
+    out = out .. "pcaps: " .. table_size ( self.tcpdump_pcaps ) .. " stats\n"
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         out = out .. "tcpdump_pcap-" .. key .. ":\n"
-        out = out .. "timestamp, wirelen, #capdata" .. key .. ":\n"
+        out = out .. "timestamp, wirelen, #capdata\n"
         local fname = "/tmp/" .. key .. ".pcap"
         local file = io.open(fname, "wb")
         file:write ( stats )
@@ -70,8 +74,9 @@ function Measurement:__tostring()
         end
     end
     -- rc_stats
-    if ( self.enable_rc_stats ) then
+    if ( self.enable_rc_stats == true ) then
         for _, station in ipairs ( self.stations ) do
+            out = out .. "rc_stats: " .. table_size ( self.rc_stats [ station ] ) .. " stats\n"
             if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil) then
                 for key, stat in pairs ( self.rc_stats [ station ] ) do
                     out = out .. "rc_stats-" .. station .. "-" .. key .. ": " .. string.len(stat) .. " bytes\n"
@@ -113,7 +118,7 @@ function Measurement:start ( phy, key )
     self.tcpdump_proc = parse_process ( str )
     -- rc stats
     self.rc_stats_procs = {}
-    if ( self.enable_rc_stats ) then
+    if ( self.enable_rc_stats == true ) then
         local rc_stats_procs = self.rpc_node.start_rc_stats ( phy )
         local rc_procs = {}
         for _, rc_proc_str in ipairs ( rc_stats_procs ) do
@@ -136,7 +141,7 @@ function Measurement:stop ()
         local exit_code = self.rpc_node.stop_tcpdump( self.tcpdump_proc['pid'] )
     end
     -- rc_stats
-    if ( self.enable_rc_stats ) then
+    if ( self.enable_rc_stats == true ) then
         for _, rc_proc in ipairs ( self.rc_stats_procs ) do
             if ( rc_proc ~= nil ) then
                 local exit_code = self.rpc_node.stop_rc_stats( rc_proc['pid'] )
@@ -155,7 +160,7 @@ function Measurement:fetch ( key )
     self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( tcpdump_fname )
     
     -- rc_stats
-    if ( self.enable_rc_stats ) then
+    if ( self.enable_rc_stats == true ) then
         for _, station in ipairs ( self.stations ) do
             local stats = self.rpc_node.get_rc_stats ( station )
             self.rc_stats [ station ] [ key ] = stats 
