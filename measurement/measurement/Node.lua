@@ -238,11 +238,11 @@ function Node:start_rc_stats ( phy )
 end
 
 function Node:get_rc_stats ( station )
-    self:send_info("send rc-stats for " .. self.wifi.iface ..  ", station " .. station)
     if ( station == nil ) then
         self:send_error ( "Cannot send rc_stats because the station argument is nil!" )
         return nil
     end
+    self:send_info("send rc-stats for " .. self.wifi.iface ..  ", station " .. station)
     return self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
 end
 
@@ -365,7 +365,8 @@ end
 -- --------------------------
 
 -- TODO: lock
-function Node:start_tcp_iperf_server ()
+-- fixme: rpc function name to long
+function Node:start_tcp_iperf_s ()
     self:send_info("start TCP iperf server at port " .. self.iperf_port)
     local iperf = spawn_pipe(iperf_bin, "-s", "-p", self.iperf_port)
     return iperf['proc']:__tostring()
@@ -373,6 +374,7 @@ end
 
 -- TODO: lock
 -- iperf -s -u -p 12000
+-- fixme: rpc function name to long
 function Node:start_udp_iperf_s ()
     self:send_info("start UDP iperf server at port " .. self.iperf_port)
     local iperf = spawn_pipe(iperf_bin, "-s", "-u", "-p", self.iperf_port)
@@ -394,10 +396,10 @@ end
 -- TODO: lock / unlock
 -- note: don't forget to wait for pid
 function Node:run_tcp_iperf ( tcpdata )
-    self:send_info("run TCP iperf at port " .. port 
+    self:send_info("run TCP iperf at port " .. self.iperf_port 
                                 .. " on iface " .. self.wifi.iface 
                                 .. " with tcpdata " .. tcpdata)
-    local iperf = spawn_pipe(iperf_bin, "-c", self.wifi.iface, "-p", port, "-n", tcpdata)
+    local iperf = spawn_pipe(iperf_bin, "-c", self.wifi.iface, "-p", self.iperf_port, "-n", tcpdata)
     return iperf['proc']:__tostring()
 end
 

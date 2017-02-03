@@ -72,7 +72,7 @@ function get_tcpdump_offline(...) return node:get_tcpdump_offline(...) end
 function stop_tcpdump(...) return node:stop_tcpdump(...) end
 
 -- tcp iperf
-function start_tcp_iperf_server (...) return node:start_tcp_iperf_server(...) end
+function start_tcp_iperf_s (...) return node:start_tcp_iperf_s(...) end
 function run_tcp_iperf(...) return node:run_tcp_iperf(...) end
 
 -- udp iperf

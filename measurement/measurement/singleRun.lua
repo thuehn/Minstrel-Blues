@@ -53,6 +53,7 @@ parser:option ("-L --log_port", "Logging RPC port", "12347" )
 
 parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
 
+parser:option ("--runs", "Number of iterations", "1" )
 parser:option ("-t --tcpdata", "Amount of TCP data", "500MB" )
 parser:option ("-s --packet_sizes", "Amount of UDP data", "1500" )
 parser:option ("-r --packet_rates", "Rates of UDP data", "50,200,600,1200" )
@@ -63,6 +64,8 @@ parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 
 parser:flag ("--dry_run", "Don't measure anything", false )
+parser:flag ("--udp_only", "Measure tcp", false )
+parser:flag ("--tcp_only", "Measure udp", false )
 
 local args = parser:parse()
 
@@ -154,6 +157,269 @@ else
     nodes[2] = stations[1]
 end
 
+function connect_node ( addr, port )
+    function connect ()
+        local l, e = rpc.connect ( addr, port )
+        return l, e
+    end
+    local status, slave, err = pcall ( connect )
+    if (status == false) then
+        print ( "Err: Connection to node failed" )
+        print ( "Err: no node at address: " .. addr .. " on port: " .. port )
+        return nil
+    else
+        return slave
+    end
+end
+
+function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
+                           tcpdata )
+
+    for run = 1, runs do
+
+        -- start tcp iperf server on STA
+        local iperf_s_proc_str = sta_rpc.start_tcp_iperf_s()
+        local iperf_s_proc = parse_process ( iperf_s_proc_str )
+
+        -- restart wifi on STA
+        local succ = sta_rpc.restart_wifi()
+        if (succ) then
+            print ("wifi on STA restarted")
+        else
+            print ("restart wifi on STA failed")
+        end
+
+        -- add monitor on STA
+        sta_rpc.add_monitor( sta_phys[1] )
+
+        wait_linked ( sta_rpc, sta_wifi.iface )
+
+        -- start measurement on STA and AP
+
+        -- start iperf client on AP
+        local iperf_c_proc_str = ap_rpc.run_tcp_iperf( tcpdata )
+
+        -- stop measurement on STA and AP
+
+        -- stop iperf server on STA
+        sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
+    end
+end
+
+
+function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc, 
+                           packet_sizes, cct_intervals, packet_rates, udp_interval )
+
+    local regmon_stats = {}
+    local rc_stats = {}
+    for _, station in ipairs ( wifi_stations ) do
+        rc_stats[ station ] = {}
+    end
+    local cpusage_stats = {}
+    local tcpdump_pcaps = {}
+
+    local size = head ( split ( packet_sizes, "," ) )
+    for _,interval in ipairs ( split( cct_intervals, ",") ) do
+
+        -- fixme: attenuate
+        -- https://github.com/thuehn/Labbrick_Digital_Attenuator
+
+        for _,rate in ipairs ( split( packet_rates, ",") ) do
+
+            for run = 1, runs do
+
+                local key = tostring(rate) .. "-" .. tostring(interval) .. "-" .. tostring(run)
+
+                print ( "run iperf with size, rate, interval " .. size .. ", " .. rate .. ", " .. interval )
+
+                -- start udp iperf server on STA
+                local iperf_s_proc_str = sta_rpc.start_udp_iperf_s()
+                local iperf_s_proc = parse_process ( iperf_s_proc_str )
+            
+                -- restart wifi on STA
+                local succ = sta_rpc.restart_wifi()
+                if (succ) then
+                    print ("wifi on STA restarted")
+                else
+                    print ("restart wifi on STA failed")
+                end
+
+                -- add monitor on STA
+                sta_rpc.add_monitor( sta_phys[1] )
+
+                wait_linked ( sta_rpc, sta_wifi.iface )
+
+                print ("start measurement")
+
+                -- -------------------------------
+                -- start measurement on AP and STA
+                -- -------------------------------
+            
+                -- regmon stats
+                local regmon_proc_str = ap_rpc.start_regmon_stats ( ap_phys[1] )
+                local regmon_proc = nil
+                if ( regmon_proc_str ~= nil ) then
+                    regmon_proc = parse_process ( regmon_proc_str )
+                end
+
+                -- rc stats
+                local rc_stats_procs = ap_rpc.start_rc_stats ( ap_phys[1] )
+                local rc_procs = {}
+                for _, rc_proc_str in ipairs ( rc_stats_procs ) do
+                    rc_procs [ #rc_procs + 1 ] = parse_process ( rc_proc_str )
+                end
+
+                -- cpusage stats
+                local cpusage_proc_str = ap_rpc.start_cpusage()
+                local cpusage_proc = parse_process ( cpusage_proc_str )
+
+                local tcpdump_fname = "/tmp/" .. key .. ".pcap"
+                local tcpdump_proc_str = ap_rpc.start_tcpdump( tcpdump_fname )
+                local tcpdump_proc = parse_process ( tcpdump_proc_str )
+
+                -- -------------------------------------------------------
+                -- Measurement
+                -- -------------------------------------------------------
+
+                -- start iperf client on AP
+                local iperf_c_proc_str = ap_rpc.run_udp_iperf( size, rate, udp_interval )
+
+            
+                -- -------------------------------
+                -- stop measurement on AP and STA
+                -- -------------------------------
+            
+                -- regmon 
+                if ( regmon_proc ~= nil) then
+                    ap_rpc.stop_regmon_stats( regmon_proc['pid'] )
+                end
+                -- rc_stats
+                for _, rc_proc in ipairs ( rc_procs ) do
+                    ap_rpc.stop_rc_stats( rc_proc['pid'] )
+                end
+
+                -- cpusage
+                -- stop cpuage before reading, because io:read wait for closed pipe
+                ap_rpc.stop_cpusage( cpusage_proc['pid'] )
+
+                -- stop iperf server on STA
+                sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
+
+                -- stop pcap tracing
+                local exit_code = ap_rpc.stop_tcpdump( tcpdump_proc['pid'] )
+
+
+                -- ------------------------
+                -- collect traces
+                -- ------------------------
+
+                -- regmon 
+                regmon_stats [ key ] = ap_rpc.get_regmon_stats()
+            
+                -- rc_stats
+                for _, station in ipairs ( wifi_stations ) do
+                    rc_stats [ station ] [ key ] = ap_rpc.get_rc_stats ( station )
+                end
+            
+                -- cpusage
+                cpusage_stats [ key ] = ap_rpc.get_cpusage()
+
+                -- tcpdump
+                tcpdump_pcaps[ key ] = ap_rpc.get_tcpdump_offline ( tcpdump_fname )
+
+            end -- run
+
+        end -- rate
+
+        -- fixme: stop attenuate
+
+    end -- cct
+
+    -- regmon stats
+    -- print ( tostring ( table_size ( regmon_stats ) ) )
+    for key, stat in pairs ( regmon_stats ) do
+        print ( "regmon-" .. key .. ": " .. string.len(stat) .. " bytes" )
+        --print (stat)
+    end
+
+    -- rc_stats
+    for _, station in ipairs ( wifi_stations ) do
+        if ( rc_stats ~= nil and rc_stats [ station ] ~= nil) then
+            for key, stat in pairs ( rc_stats [ station ] ) do
+                print ( "rc_stats-" .. station .. "-" .. key .. ": " .. string.len(stat) .. " bytes" )
+                -- if (stat ~= nil) then print (stat) end
+            end
+        end
+    end
+
+    -- cpusage stats
+    for key, stat in pairs ( cpusage_stats ) do
+        print ( "cpusage_stats-" .. key .. ": " .. string.len(stat) .. " bytes" )
+        for _, str in ipairs ( split ( stat, "\n" ) ) do
+            local cpustat = parse_cpusage ( str )
+    --        print (cpustat)
+        end
+    end
+
+    -- tcpdump pcap
+    for key, stats in pairs ( tcpdump_pcaps ) do
+        print ( "tcpdump_pcap-" .. key .. ": " )
+        local fname = "/tmp/" .. key .. ".pcap"
+        local file = io.open(fname, "wb")
+        file:write ( stats )
+        file:close()
+        cap = pcap.open_offline( fname )
+        if (cap ~= nil) then
+            -- cap:set_filter(filter, nooptimize)
+
+            for capdata, timestamp, wirelen in cap.next, cap do
+                print(timestamp, wirelen, #capdata)
+            end
+    
+            cap:close()
+        else
+            print ("pcap open failed: " .. fname)
+        end
+    end
+end
+
+-- waits until all stations appears on ap
+-- not precise, sta maybe not really connected afterwards
+-- but two or three seconds later
+-- not used
+function wait_station ( ap_rpc, ap_phys, wifi_stations )
+    repeat
+        print ("wait for stations to come up ... ")
+        os.sleep(1)
+        local wifi_stations_cur = ap_rpc.stations( ap_phys[1] )
+        local miss = false
+        for _, str in ipairs ( wifi_stations ) do
+            if ( table.contains ( wifi_stations_cur, str ) == false ) then
+                miss = true
+                break
+            end
+        end
+    until miss
+end
+
+-- wait for station is linked to ssid
+function wait_linked ( sta_rpc, iface )
+    local connected = false
+    repeat
+        local ssid = sta_rpc.get_linked_ssid ( iface )
+        if (ssid == nil) then 
+            print ("Waiting: station not connected")
+            os.sleep (1)
+        else
+            print ("station connected to " .. ssid)
+            connected = true
+        end
+    until connected
+end
+
+-- ---------------------------------------------------------------
+
+
 local ap_node = find_node( "AP", aps )
 local sta_node = find_node ( "STA", stations )
 
@@ -171,30 +437,17 @@ ap['wifi'] = ap_wifi
 ap['ctrl'] = ap_ctrl
 
 -- print configuration
-print("Configuration:")
-print("==============")
-print()
+print ("Configuration:")
+print ("==============")
+print ()
 print (sta_wifi)
 print (sta_ctrl)
 print (ap_wifi)
 print (ap_ctrl)
-print()
-
-
-function connect_node ( addr, port )
-    function connect ()
-        local l, e = rpc.connect ( addr, port )
-        return l, e
-    end
-    local status, slave, err = pcall ( connect )
-    if (status == false) then
-        print ( "Err: Connection to node failed" )
-        print ( "Err: no node at address: " .. addr .. " on port: " .. port )
-        return nil
-    else
-        return slave
-    end
-end
+print ()
+print ( "run udp: " .. tostring( not args.udp_only ) )
+print ( "run tcp: " .. tostring( not args.tcp_only ) )
+print ()
 
 -- check reachability 
 local reached = {}
@@ -242,29 +495,29 @@ if rpc.mode ~= "tcpip" then
     os.exit(1)
 end
 
-ap_slave = connect_node (ap_ctrl.addr, args.ctrl_port)
-sta_slave = connect_node (sta_ctrl.addr, args.ctrl_port)
+ap_rpc = connect_node (ap_ctrl.addr, args.ctrl_port)
+sta_rpc = connect_node (sta_ctrl.addr, args.ctrl_port)
 
-if ( ap_slave == nil or sta_slave == nil) then
+if ( ap_rpc == nil or sta_rpc == nil) then
     print ("connection failed!")
     os.exit(1)
 end
 
 print()
 
-local sta_mac = sta_slave.get_mac ( sta_wifi.iface )
+local sta_mac = sta_rpc.get_mac ( sta_wifi.iface )
 if ( sta_mac ~= nil) then
     print ("STA mac: " ..  sta_mac)
 else
     print ("STA mac: no ipv4 assigned?")
 end
-local sta_addr = sta_slave.get_addr ( sta_wifi.iface )
+local sta_addr = sta_rpc.get_addr ( sta_wifi.iface )
 if ( sta_addr ~= nil ) then
     print ("STA addr: " ..  sta_addr)
 else
     print ("STA addr: no ipv4 assigned")
     if ( sta_mac ~= nil ) then
-        local addr = ap_slave.has_lease ( sta_mac )
+        local addr = ap_rpc.has_lease ( sta_mac )
         if ( addr ~= nil ) then
             print ("STA addr (ap lease): " ..  sta_addr)
         end
@@ -272,21 +525,21 @@ else
 end
 print()
 
-local ap_mac = ap_slave.get_mac ( "br-lan" )
+local ap_mac = ap_rpc.get_mac ( "br-lan" )
 if ( ap_mac ~= nil) then
     print ("AP mac: " ..  ap_mac)
 else
     print ("AP mac: no ipv4 assigned")
 end
-local ap_addr = ap_slave.get_addr ( "br-lan" )
+local ap_addr = ap_rpc.get_addr ( "br-lan" )
 if ( ap_addr ~= nil ) then
     print ("AP addr: " ..  ap_addr)
 else
     print ("AP addr: no ipv4 assigned")
 end
 print()
-local ap_phys = ap_slave.wifi_devices()
-local sta_phys = sta_slave.wifi_devices()
+local ap_phys = ap_rpc.wifi_devices()
+local sta_phys = sta_rpc.wifi_devices()
 
 local phy_str = ""
 for _, phy in ipairs ( ap_phys ) do
@@ -309,14 +562,14 @@ end
 print ("STA wifi devices: " .. phy_str)
 print ()
 
-local ssid = ap_slave.get_ssid( ap_node.wifi_if )
+local ssid = ap_rpc.get_ssid( ap_node.wifi_if )
 print (ssid)
 print ()
 
 print ( "STATIONS on " .. ap_wifi.iface)
 print ( "==================")
 print ( )
-local wifi_stations = ap_slave.stations( ap_phys[1] )
+local wifi_stations = ap_rpc.stations( ap_phys[1] )
 for _, station in ipairs ( wifi_stations ) do
     print ( station )
     print ("-----------------")
@@ -335,231 +588,32 @@ if (args.dry_run) then
     os.exit(1)
 end
 
-ap_slave.add_monitor( ap_phys[1] )
-sta_slave.add_monitor( sta_phys[1] )
+ap_rpc.add_monitor( ap_phys[1] )
+sta_rpc.add_monitor( sta_phys[1] )
 
-ap_slave.set_ani ( ap_phys[1], not args.disable_ani )
-sta_slave.set_ani ( sta_phys[1], not args.disable_ani )
+ap_rpc.set_ani ( ap_phys[1], not args.disable_ani )
+sta_rpc.set_ani ( sta_phys[1], not args.disable_ani )
 
-local regmon_stats = {}
-local rc_stats = {}
-for _, station in ipairs ( wifi_stations ) do
-    rc_stats[ station ] = {}
-end
-local cpusage_stats = {}
-local tcpdump_pcaps = {}
+local runs = tonumber ( args.runs )
 
-local size = head ( split ( args.packet_sizes, "," ) )
-local runs = 1
-for _,interval in ipairs ( split( args.cct_intervals, ",") ) do
-
-    -- fixme: attenuate
-    -- https://github.com/thuehn/Labbrick_Digital_Attenuator
-
-    for _,rate in ipairs ( split( args.packet_rates, ",") ) do
-
-        for run = 1, runs do
-
-            local key = tostring(rate) .. "-" .. tostring(interval) .. "-" .. tostring(run)
-
-            print ( "run iperf with size, rate, interval " .. size .. ", " .. rate .. ", " .. interval )
-
-            -- start udp iperf server on STA
-            local iperf_s_proc_str = sta_slave.start_udp_iperf_s()
-            local iperf_s_proc = parse_process ( iperf_s_proc_str )
-            --print ( "IPERF_s pid: " .. iperf_s_proc['pid'])
-            
-            -- restart wifi on STA
-            local succ = sta_slave.restart_wifi()
-            if (succ) then
-                print ("wifi on STA restarted")
-            else
-                print ("restart wifi on STA failed")
-            end
-
-            -- add monitor on STA
-            sta_slave.add_monitor( sta_phys[1] )
-
-            repeat
-                print ("wait for stations to come up ... ")
-                os.sleep(1)
-                local wifi_stations_cur = ap_slave.stations( ap_phys[1] )
-                local miss = false
-                for _, str in ipairs ( wifi_stations ) do
-                    if ( table.contains ( wifi_stations_cur, str ) == false ) then
-                        miss = true
-                        break
-                    end
-                end
-            until miss
-
-            local connected = false
-            repeat
-                local ssid = sta_slave.get_linked_ssid ( sta_wifi.iface )
-                if (ssid == nil) then 
-                    print ("Warning: station not connected")
-                    os.sleep (1)
-                else
-                    print ("station connected to " .. ssid)
-                    connected = true
-                end
-            until connected
-
-            print ("start measurement")
-
-            -- -------------------------------
-            -- start measurement on AP and STA
-            -- -------------------------------
-            
-            -- regmon stats
-            local regmon_proc_str = ap_slave.start_regmon_stats ( ap_phys[1] )
-            local regmon_proc = nil
-            if ( regmon_proc_str ~= nil ) then
-                regmon_proc = parse_process ( regmon_proc_str )
-            end
-
-            -- rc stats
-            local rc_stats_procs = ap_slave.start_rc_stats ( ap_phys[1] )
-            local rc_procs = {}
-            for _, rc_proc_str in ipairs ( rc_stats_procs ) do
-                rc_procs [ #rc_procs + 1 ] = parse_process ( rc_proc_str )
-            end
-
-            -- cpusage stats
-            local cpusage_proc_str = ap_slave.start_cpusage()
-            local cpusage_proc = parse_process ( cpusage_proc_str )
-
-            local tcpdump_fname = "/tmp/" .. key .. ".pcap"
-            local tcpdump_proc_str = ap_slave.start_tcpdump( tcpdump_fname )
-            local tcpdump_proc = parse_process ( tcpdump_proc_str )
-            -- print ( "TCPDUMP pid: " .. tcpdump_proc['pid'])
-
-            -- -------------------------------------------------------
-            -- Measurement
-            -- -------------------------------------------------------
-
-            -- start iperf client on AP
-            local iperf_c_proc_str = ap_slave.run_udp_iperf( size, rate, args.interval )
-            --print (iperf_c_proc_str)
-            --local iperf_c_proc = parse_process( iperf_c_proc_str )
-            --print ( "IPERF_c pid: " .. iperf_c_proc['pid'])
-
-            
-            -- -------------------------------
-            -- stop measurement on AP and STA
-            -- -------------------------------
-            
-            -- regmon 
-            if ( regmon_proc ~= nil) then
-                ap_slave.stop_regmon_stats( regmon_proc['pid'] )
-            end
-            -- rc_stats
-            for _, rc_proc in ipairs ( rc_procs ) do
-                ap_slave.stop_rc_stats( rc_proc['pid'] )
-            end
-
-            -- cpusage
-            -- stop cpuage before reading, because io:read wait for closed pipe
-            ap_slave.stop_cpusage( cpusage_proc['pid'] )
-
-            -- stop iperf server on STA
-            sta_slave.stop_iperf_server( iperf_s_proc['pid'] )
-
-            -- stop pcap tracing
-            local exit_code = ap_slave.stop_tcpdump( tcpdump_proc['pid'] )
-
-
-            -- ------------------------
-            -- collect traces
-            -- ------------------------
-
-            -- regmon 
-            regmon_stats [ key ] = ap_slave.get_regmon_stats()
-            
-            -- rc_stats
-            for _, station in ipairs ( wifi_stations ) do
-                rc_stats [ station ] [ key ] = ap_slave.get_rc_stats ( station )
-            end
-            
-            -- cpusage
-            cpusage_stats [ key ] = ap_slave.get_cpusage()
-
-            -- tcpdump
-            tcpdump_pcaps[ key ] = ap_slave.get_tcpdump_offline ( tcpdump_fname )
-
-        end -- run
-
-    end -- rate
-
-    -- fixme: stop attenuate
-
-end -- cct
-
--- regmon stats
--- print ( tostring ( table_size ( regmon_stats ) ) )
-for key, stat in pairs ( regmon_stats ) do
-    print ( "regmon-" .. key .. ": " .. string.len(stat) .. " bytes" )
-    --print (stat)
+if ( not args.udp_only ) then
+    tcp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
+                     args.tcpdata )
 end
 
--- rc_stats
-for _, station in ipairs ( wifi_stations ) do
-    if ( rc_stats ~= nil and rc_stats [ station ] ~= nil) then
-        for key, stat in pairs ( rc_stats [ station ] ) do
-            print ( "rc_stats-" .. station .. "-" .. key .. ": " .. string.len(stat) .. " bytes" )
-            -- if (stat ~= nil) then print (stat) end
-        end
-    end
-end
-
--- cpusage stats
-for key, stat in pairs ( cpusage_stats ) do
-    print ( "cpusage_stats-" .. key .. ": " .. string.len(stat) .. " bytes" )
-    for _, str in ipairs ( split ( stat, "\n" ) ) do
-        local cpustat = parse_cpusage ( str )
---        print (cpustat)
-    end
-end
-
--- tcpdump pcap
-for key, stats in pairs ( tcpdump_pcaps ) do
-    print ( "tcpdump_pcap-" .. key .. ": " )
-    local fname = "/tmp/" .. key .. ".pcap"
-    local file = io.open(fname, "wb")
-    file:write ( stats )
-    file:close()
-    cap = pcap.open_offline( fname )
-    if (cap ~= nil) then
-        -- cap:set_filter(filter, nooptimize)
-
-        for capdata, timestamp, wirelen in cap.next, cap do
-            print(timestamp, wirelen, #capdata)
-        end
-
-        cap:close()
-    else
-        print ("pcap open failed: " .. fname)
-    end
-end
-
--- for _ in 1, runs do
---  start tcp iperf server on STA
---  restart wifi on STA
---  add monitor on STA
---  start measurement on STA and AP
---  start iperf client on AP
---  stop measurement on STA and AP
---  stop iperd serber on AP and STA
--- end
+if ( not args.tcp_only ) then
+    udp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
+                     args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+end                 
 
 -- query lua pid before closing rpc connection
 -- maybe to kill nodes later
 local pids = {}
-pids[1] = ap_slave.get_pid()
-pids[2] = sta_slave.get_pid()
+pids[1] = ap_rpc.get_pid()
+pids[2] = sta_rpc.get_pid()
 
-rpc.close(ap_slave)
-rpc.close(sta_slave)
+rpc.close(ap_rpc)
+rpc.close(sta_rpc)
 
 -- kill nodes if desired by the user
 if (args.disable_autostart == false) then
