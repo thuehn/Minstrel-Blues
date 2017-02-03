@@ -226,9 +226,9 @@ function Node:start_rc_stats ( phy )
         self:send_info ( " start collecting rc_stats stations: " .. station )
         local file = debugfs .. "/" .. phy .. "/netdev:" .. self.wifi.iface .. "/stations/"
                         .. station .. "/rc_stats_csv"
-        local rc_stats = spawn_pipe ( "lua", "fetch_file.lua", "-i", "50000", file )
+        local rc_stats = spawn_pipe ( "lua", "bin/fetch_file.lua", "-i", "50000", file )
         if ( rc_stats ['err_msg'] ~= nil ) then
-            self:send_error("fetch_file.lua" .. rc_stats ['err_msg'] )
+            self:send_error("fetch_file: " .. rc_stats ['err_msg'] )
         end
         self.rc_stats_procs [ station ] = rc_stats
         self:send_info("rc stats for station " .. station .. " started " .. rc_stats['proc']:__tostring())
@@ -267,7 +267,7 @@ function Node:start_regmon_stats ( phy )
         return nil
     end
     self:send_info("start collecting regmon stats for " .. self.wifi.iface .. ", " .. phy)
-    local regmon = spawn_pipe( "lua", "fetch_file.lua", "-l", "-i", "50000", file )
+    local regmon = spawn_pipe( "lua", "bin/fetch_file.lua", "-l", "-i", "50000", file )
     self.regmon_proc = regmon
     return regmon['proc']:__tostring()
 end
