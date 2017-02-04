@@ -4,14 +4,14 @@
 
 NetIF = { name = nil, iface = nil, addr = nil, mon = nil }
 function NetIF:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
 function NetIF:create ( name, iface, addr, mon )
-    o = NetIF:new({ name = name, iface = iface, addr = addr, mon = mon })
+    local o = NetIF:new({ name = name, iface = iface, addr = addr, mon = mon })
     return o
 end
 

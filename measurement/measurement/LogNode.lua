@@ -23,7 +23,7 @@ LogNode = { name = nil, fname = nil, logfile = nil }
 -- and optional initializer table
 -- param o: initializer table, i.e. {name = "Logger", fname = "/tmp/lua.log"} (maybe nil)
 function LogNode:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
@@ -34,7 +34,7 @@ end
 -- param name: a name for the logging node
 -- param fname: the name of the log file
 function LogNode:create( name, fname )
-    o = LogNode:new({ name = name, fname = fname })
+    local o = LogNode:new({ name = name, fname = fname })
     o.logfile = io.open ( fname, "a")
     return o
 end

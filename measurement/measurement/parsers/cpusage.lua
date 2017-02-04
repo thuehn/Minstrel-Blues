@@ -5,14 +5,14 @@ Cpusage = { timestamp = nil, user = nil, nice = nil
           , irq = nil, softirq = nil
           }
 function Cpusage:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
 function Cpusage:create ()
-    o = Cpusage:new()
+    local o = Cpusage:new()
     return o
 end
 
@@ -43,20 +43,28 @@ end
 
 
 function parse_cpusage ( line )
-    local state, rest = parse_str( line, "timestamp: " )
-    local year, rest = parse_num( rest )
-    state, rest = parse_str( rest, "-" )
-    local month, rest = parse_num( rest )
-    state, rest = parse_str( rest, "-" )
-    local day, rest = parse_num( rest )
+    local state
+    local rest
+    local year
+    local month
+    local day
+    local hour
+    local second
 
-    state, rest = parse_str( rest, " " )
+    state, rest = parse_str( line, "timestamp: " )
+    year, rest = parse_num( rest )
+    state, rest = parse_str( rest, "-" )
+    month, rest = parse_num( rest )
+    state, rest = parse_str( rest, "-" )
+    day, rest = parse_num( rest )
+
+    rest = skip_layout ( rest )
         
-    local hour, rest = parse_num( rest )
+    hour, rest = parse_num( rest )
     state, rest = parse_str( rest, "." )
-    local minute, rest = parse_num( rest )
+    minute, rest = parse_num( rest )
     state, rest = parse_str( rest, "." )
-    local second, rest = parse_num( rest )
+    second, rest = parse_num( rest )
 
     state, rest = parse_str( rest, ", user: " )
     rest = skip_layout( rest )

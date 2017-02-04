@@ -3,14 +3,14 @@ require ('parsers/parsers')
 
 DhcpLease = { timestamp = nil, mac = nil, addr = nil, hostname = nil, addr6 }
 function DhcpLease:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
 function DhcpLease:create ()
-    o = DhcpLease:new()
+    local o = DhcpLease:new()
     return o
 end
 
@@ -54,7 +54,7 @@ function parse_dhcp_lease ( ifconfig )
     
     local out = DhcpLease:create()
     out.timestamp = tonumber ( timestamp )
-    out.mac = mac
+    out.mac = string.lower ( mac )
     out.hostname = hostname
     out.addr = addr
     out.addr6 = addr6

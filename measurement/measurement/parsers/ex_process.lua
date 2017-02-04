@@ -1,11 +1,14 @@
 require ('parsers/parsers')
 
 function parse_process( procstr )
-    local state, rest = parse_str( procstr, "process (" )
-    local num, rest = parse_num( rest )
-    local state, rest = parse_str( rest, ", " )
+    local state
+    local rest
+    local num
+    state, rest = parse_str( procstr, "process (" )
+    num, rest = parse_num( rest )
+    state, rest = parse_str( rest, ", " )
     local is_running = true
-    local state, rest = parse_str( rest, "running" )
+    state, rest = parse_str( rest, "running" )
     if (state ~= true) then
         state, rest = parse_str( rest, "terminated" )
         if (state == true) then 

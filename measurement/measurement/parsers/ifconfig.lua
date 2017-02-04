@@ -14,14 +14,14 @@ require ('parsers/parsers')
 
 IfConfig = { iface = nil, encap = nil, mac = nil, addr = nil }
 function IfConfig:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
 function IfConfig:create ()
-    o = IfConfig:new()
+    local o = IfConfig:new()
     return o
 end
 
@@ -63,7 +63,9 @@ function parse_ifconfig ( ifconfig )
     
     local out = IfConfig:create()
     out.encap = encap
-    out.mac = mac
+    if ( mac ~= nil ) then
+        out.mac = string.lower ( mac )
+    end
     out.iface = iface
     out.addr = addr
     return out

@@ -33,14 +33,14 @@ Not connected.
 
 IwLink = { ssid = nil, iface = nil, mac = nil }
 function IwLink:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
 function IwLink:create ()
-    o = IwLink:new()
+    local o = IwLink:new()
     return o
 end
 

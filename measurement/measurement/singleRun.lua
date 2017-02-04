@@ -226,12 +226,9 @@ end
 function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc, 
                            packet_sizes, cct_intervals, packet_rates, udp_interval )
 
-    -- FIXME: sta_stats overwrites ap_stats, maybe somewhere global vars?
-    --          - regmon overwritten 
-    --          - pipes overwritten
     local ap_stats = Measurement:create( ap_rpc )
     ap_stats:enable_rc_stats ( wifi_stations )
-    --local sta_stats = Measurement:create( sta_rpc )
+    local sta_stats = Measurement:create( sta_rpc )
 
     local size = head ( split ( packet_sizes, "," ) )
     for _,interval in ipairs ( split( cct_intervals, ",") ) do
@@ -263,7 +260,7 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
 
                 -- start measurement on AP and STA
                 ap_stats:start ( ap_phys[1], key )
-                --sta_stats:start ( sta_phys[1], key )
+                sta_stats:start ( sta_phys[1], key )
 
                 -- -------------------------------------------------------
                 -- Experiment
@@ -276,14 +273,14 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
 
                 -- stop measurement on AP and STA
                 ap_stats:stop ()
-                --sta_stats:stop ()
+                sta_stats:stop ()
 
                 -- stop iperf server on STA
                 sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
 
                 -- collect traces
                 ap_stats:fetch ( key )
-                --sta_stats:fetch ( key )
+                sta_stats:fetch ( key )
 
             end -- run
         end -- rate
@@ -291,7 +288,7 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
     end -- cct
 
     --return ap_stats, sta_stats
-    return ap_stats, nil
+    return ap_stats, sta_stats
 
 end
 
@@ -407,8 +404,8 @@ if rpc.mode ~= "tcpip" then
     os.exit(1)
 end
 
-ap_rpc = connect_node (ap_ctrl.addr, args.ctrl_port)
-sta_rpc = connect_node (sta_ctrl.addr, args.ctrl_port)
+local ap_rpc = connect_node (ap_ctrl.addr, args.ctrl_port)
+local sta_rpc = connect_node (sta_ctrl.addr, args.ctrl_port)
 
 if ( ap_rpc == nil or sta_rpc == nil) then
     print ("connection failed!")
@@ -450,44 +447,35 @@ else
     print ("AP addr: no ipv4 assigned")
 end
 print()
+
 local ap_phys = ap_rpc.wifi_devices()
+print ("AP wifi devices:")
+map ( print, ap_phys)
+
 local sta_phys = sta_rpc.wifi_devices()
-
-local phy_str = ""
-for _, phy in ipairs ( ap_phys ) do
-    if (phy_str == "") then 
-        phy_str = phy_str .. phy
-    else 
-        phy_str = phy_str .. "," .. phy 
-    end
-end
-print ("AP wifi devices: " .. phy_str)
-
-local phy_str = ""
-for _, phy in ipairs ( sta_phys ) do
-    if (phy_str == "") then 
-        phy_str = phy_str .. phy
-    else 
-        phy_str = phy_str .. "," .. phy 
-    end
-end
-print ("STA wifi devices: " .. phy_str)
+print ("STA wifi devices:")
+map ( print, sta_phys)
 print ()
 
 local ssid = ap_rpc.get_ssid( ap_node.wifi_if )
-print (ssid)
+print ("AP ssid: ".. ssid)
 print ()
 
 print ( "STATIONS on " .. ap_wifi.iface)
 print ( "==================")
 local wifi_stations = ap_rpc.stations( ap_phys[1] )
+local wifi_stations_target = {}
+wifi_stations_target[1] = sta_mac
 map ( print, wifi_stations )
 print ("-----------------")
+print ( "STATIONS configured")
+print ( "==================")
+map ( print, wifi_stations_target )
 print ()
 
 -- check whether station is connected
 -- got the right station? query mac from STA
-if ( table_size ( wifi_stations ) < 1 ) then
+if ( table_size ( wifi_stations_target ) < 1 ) then
     print ("no station connected with access point")
     os.exit(1)
 end
@@ -509,7 +497,7 @@ if ( args.udp_only == false ) then
     local ap_stats
     local sta_stats
     ap_stats, sta_stats 
-        = tcp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
+        = tcp_measurement( runs, wifi_stations_target, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
                            args.tcpdata )
     print ()
     if ( ap_stats ~= nil ) then
@@ -528,7 +516,7 @@ if ( args.tcp_only == false ) then
     local ap_stats
     local sta_stats
     ap_stats, sta_stats 
-        = udp_measurement( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
+        = udp_measurement( runs, wifi_stations_target, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
                            args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
     print ()
     if ( ap_stats ~= nil ) then

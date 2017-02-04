@@ -7,11 +7,11 @@
 require ("parsers/ex_process")
 
 Measurement = { rpc_node = nil
-              , regmon_stats = {}
-              , tcpdump_pcaps = {}
-              , cpusage_stats = {}
-              , rc_stats = {}
-              , enable_rc_stats = false
+              , regmon_stats = nil
+              , tcpdump_pcaps = nil
+              , cpusage_stats = nil
+              , rc_stats = nil
+              , rc_stats_enabled = nil
               , regmon_proc = nil
               , tcpdump_proc = nil
               , cpusage_proc = nil
@@ -28,7 +28,13 @@ end
 
 function Measurement:create ( rpc_node )
     if (rpc_node == nil) then error ( "rpc node unset" ) end
-    local o = Measurement:new( { rpc_node = rpc_node } )
+    local o = Measurement:new( { rpc_node = rpc_node
+                               , regmon_stats = {}
+                               , tcpdump_pcaps = {}
+                               , cpusage_stats = {}
+                               , rc_stats = {}
+                               , rc_stats_enabled = false
+                               } )
     return o
 end
 
@@ -74,7 +80,7 @@ function Measurement:__tostring()
         end
     end
     -- rc_stats
-    if ( self.enable_rc_stats == true ) then
+    if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
             out = out .. "rc_stats: " .. table_size ( self.rc_stats [ station ] ) .. " stats\n"
             if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil) then
@@ -93,7 +99,7 @@ function Measurement:enable_rc_stats ( stations )
     if ( stations == nil ) then
         error ( "stations unset" )
     end
-    self.enable_rc_stats = true
+    self.rc_stats_enabled = true
     self.stations = stations
     for _, station in ipairs ( stations ) do
         self.rc_stats [ station ] = {}
@@ -118,7 +124,7 @@ function Measurement:start ( phy, key )
     self.tcpdump_proc = parse_process ( str )
     -- rc stats
     self.rc_stats_procs = {}
-    if ( self.enable_rc_stats == true ) then
+    if ( self.rc_stats_enabled == true ) then
         local rc_stats_procs = self.rpc_node.start_rc_stats ( phy )
         local rc_procs = {}
         for _, rc_proc_str in ipairs ( rc_stats_procs ) do
@@ -141,7 +147,7 @@ function Measurement:stop ()
         local exit_code = self.rpc_node.stop_tcpdump( self.tcpdump_proc['pid'] )
     end
     -- rc_stats
-    if ( self.enable_rc_stats == true ) then
+    if ( self.rc_stats_enabled == true ) then
         for _, rc_proc in ipairs ( self.rc_stats_procs ) do
             if ( rc_proc ~= nil ) then
                 local exit_code = self.rpc_node.stop_rc_stats( rc_proc['pid'] )
@@ -160,7 +166,7 @@ function Measurement:fetch ( key )
     self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( tcpdump_fname )
     
     -- rc_stats
-    if ( self.enable_rc_stats == true ) then
+    if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
             local stats = self.rpc_node.get_rc_stats ( station )
             self.rc_stats [ station ] [ key ] = stats 

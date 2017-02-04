@@ -20,19 +20,21 @@ Node = { name = nil, wifi = nil, ctrl = nil
        , cpusage_proc = nil
        , log_port = nil
        , regmon_proc = nil
-       , rc_stats_procs = {}
+       , rc_stats_procs = nil
        }
 
 function Node:new (o)
-    o = o or {}
+    local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
 function Node:create ( name, wifi, ctrl, iperf_port, log_ip, log_port )
-    o = Node:new({ name = name, wifi = wifi, ctrl = ctrl
-                 , iperf_port = iperf_port, log_ip = log_ip, log_port = log_port })
+    local o = Node:new({ name = name, wifi = wifi, ctrl = ctrl
+                       , iperf_port = iperf_port, log_ip = log_ip, log_port = log_port 
+                       , rc_stats_procs = {}
+                       })
     return o
 end
 
@@ -108,14 +110,15 @@ end
 
 
 function Node:wifi_devices ()
+    self:send_info("Send phy devices for " .. self.wifi.iface)
     local phys = {}
     for file in lfs.dir( debugfs ) do
         if (file ~= "." and file ~= "..") then
             phys [ #phys + 1 ] = file
         end
     end
-    self:send_info("Send wifi devices for " .. self.wifi.name)
     table.sort ( phys )
+    self:send_info(" phys: " .. foldr ( string.concat, "" , phys ) )
     return phys
 end
 
@@ -132,7 +135,7 @@ end
 
 function Node:stations ( phy )
     local list = list_stations ( phy, self.wifi.iface )
-    self:send_info("Send stations for " .. self.wifi.name )
+    self:send_info("Send stations for " .. self.wifi.iface )
     return list
 end
 
@@ -153,6 +156,8 @@ function Node:get_mac ( iface )
     local ifconfig_proc = spawn_pipe( "ifconfig", iface )
     ifconfig_proc['proc']:wait()
     local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
+    if ( ifconfig == nil or ifconfig.mac == nil ) then return nil end
+    self:send_info(" mac for " .. iface .. ": " .. ifconfig.mac )
     return ifconfig.mac
 end
 
@@ -161,10 +166,11 @@ function Node:get_addr ( iface )
     local ifconfig_proc = spawn_pipe( "ifconfig", iface )
     ifconfig_proc['proc']:wait()
     local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
-    if (ifconfig.addr == nil) then 
+    if (ifconfig == nil or ifconfig.addr == nil) then 
         self:send_error(" interface " .. iface .. " has no ipv4 addr assigned")
         return nil 
     end
+    self:send_info(" addr for " .. iface .. ": " .. ifconfig.addr )
     return ifconfig.addr
 end
 
@@ -176,7 +182,7 @@ function Node:has_lease ( mac )
     local content = file:read("*a")
     for _, line in ipairs ( split ( content, '\n' ) ) do
         local lease = parse_dhcp_lease ( line )
-        if ( lease ~= nil and string.lower ( lease.mac ) == string.lower ( mac ) ) then
+        if ( lease ~= nil and lease.mac == mac ) then
             file:close()
             return lease.addr
         end
@@ -252,6 +258,7 @@ function Node:get_rc_stats ( station )
     if ( self.rc_stats_procs [ station ] == nil) then return nil end
     local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
+    --fixme: attemp to use a close file
     --close_proc_pipes ( self.rc_stats_procs [ station ] )
     return content 
 end

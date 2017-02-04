@@ -11,7 +11,7 @@ end
 
 -- https://stackoverflow.com/questions/1426954/split-string-in-lua
 function split(s, delimiter)
-    result = {};
+    local result = {};
     for match in (s..delimiter):gmatch("(.-)"..delimiter) do
         table.insert(result, match);
     end
@@ -71,4 +71,16 @@ function table.contains(table, element)
     end
   end
   return false
+end
+
+function print_globals()
+    for k, v in pairs(_G) do 
+        if ( type (v) ~= "function" ) then
+            print(k  .. " " .. ": " .. type(v)) 
+        end
+    end
+end
+
+function string.concat ( a, b )
+    return a .. b
 end
