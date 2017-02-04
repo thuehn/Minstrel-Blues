@@ -67,7 +67,6 @@ function stop_regmon_stats(...) return node:stop_regmon_stats(...) end
 
 -- tcpdump
 function start_tcpdump(...) return node:start_tcpdump(...) end
-function get_tcpdump_online(...) return node:get_tcpdump_online(...) end
 function get_tcpdump_offline(...) return node:get_tcpdump_offline(...) end
 function stop_tcpdump(...) return node:stop_tcpdump(...) end
 

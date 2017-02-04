@@ -23,6 +23,7 @@ require ('Measurement')
 function reachable ( ip ) 
     local ping = spawn_pipe("ping", "-c1", ip)
     local exitcode = ping['proc']:wait()
+    close_proc_pipes ( ping )
     return exitcode == 0
 end
 
@@ -82,8 +83,8 @@ stations = {}
 aps = {}
 
 nodes = {}
-for _,v in ipairs(stations) do nodes[#nodes+1] = v end
-for _,v in ipairs(aps) do nodes[#nodes+1] = v end
+for _,v in ipairs(stations) do nodes [ #nodes + 1 ] = v end
+for _,v in ipairs(aps) do nodes [ #nodes + 1 ] = v end
 
 function find_node( name, nodes ) 
     for _,node in ipairs(nodes) do 
@@ -164,6 +165,7 @@ function start_logger ( port )
     if ( logger ['err_msg'] ~= nil ) then
         print("Logger not started" .. logger ['err_msg'] )
     end
+    close_proc_pipes ( logger )
     local str = logger['proc']:__tostring()
     print ( str )
     return parse_process ( str ) 
@@ -171,6 +173,7 @@ end
 
 function stop_logger ( pid )
     kill = spawn_pipe("kill", pid)
+    close_proc_pipes ( kill )
 end
 
 function connect_node ( addr, port )
@@ -208,6 +211,7 @@ function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
 
         -- add monitor on AP and STA
         ap_rpc.add_monitor( ap_phys[1] )
+        -- fixme: mon0 not created because of too many open files (~650/12505)
         sta_rpc.add_monitor( sta_phys[1] )
         wait_linked ( sta_rpc, sta_wifi.iface )
 
@@ -220,7 +224,7 @@ function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
         -- -------------------------------------------------------
 
         -- start iperf client on AP
-        local iperf_c_proc_str = ap_rpc.run_tcp_iperf( tcpdata )
+        local iperf_c_proc_str = ap_rpc.run_tcp_iperf( sta_wifi.addr, tcpdata )
 
         -- stop measurement on STA and AP
         ap_stats:stop ()
@@ -282,7 +286,7 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
                 -- -------------------------------------------------------
 
                 -- start iperf client on AP
-                local iperf_c_proc_str = ap_rpc.run_udp_iperf( size, rate, udp_interval )
+                local iperf_c_proc_str = ap_rpc.run_udp_iperf( sta_wifi.addr, size, rate, udp_interval )
 
                 -- -------------------------------------------------------
 
@@ -410,6 +414,7 @@ if ( args.disable_autostart == false ) then
                         .. " --log_ip " .. args.log_ip 
             print ( remote_cmd )
             local ssh = spawn_pipe("ssh", "root@" .. node.ctrl_ip, remote_cmd)
+            close_proc_pipes ( ssh )
 --[[        local exit_code = ssh['proc']:wait()
             if (exit_code == 0) then
                 print (node.name .. ": node started" )
@@ -572,6 +577,7 @@ if (args.disable_autostart == false) then
     for i, node in ipairs ( { ap_node, sta_node } ) do -- fixme: zip nodes with pids
         local ssh = spawn_pipe("ssh", "root@" .. node.ctrl_ip, "kill " .. pids[i])
         local exit_code = ssh['proc']:wait()
+        close_proc_pipes ( ssh )
     end
 end
 
