@@ -7,12 +7,14 @@ require ('functional')
 -- returns first char of a string
 -- pre: string.len ( str ) > 0
 function shead ( str )
+    if ( string.len ( str ) == 0 ) then return nil end
     return string.sub(str, 1, 1)
 end
 
 -- returns rest of a string ( except first char )
 -- pre: string.len ( str ) > 0
 function stail ( str )
+    if ( string.len ( str ) == 0 ) then return nil end
     return string.sub(str, 2)
 end
 
@@ -75,6 +77,26 @@ function skip_layout ( str )
         end
     until state
     return rest
+end
+
+function skip_line_comment ( str, cc )
+    local state = false
+    local rest = str
+    local rest_cc = cc
+    repeat
+        local c1 = shead ( rest )
+        local c2 = shead ( rest_cc )
+        rest = stail ( rest )
+        rest_cc = stail ( rest_cc )
+        if (c1 ~= c2) then
+            return false, str
+        end
+    until string.len( rest_cc ) == 0
+    repeat
+        local c = shead ( rest )
+        rest = stail ( rest )
+    until c == '\n'
+    return true, rest
 end
 
 -- check whether char c is a hexadecimal digit

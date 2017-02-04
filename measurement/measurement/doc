@@ -21,6 +21,7 @@ kill: stop processes
 iw, ifconfig: add monitor
 tee: split tcpdump output
 ssh-add, ssh-agent: local ssh authorizer for remote command execution (~/.ssh# ssh-add id_rsa)
+bind-dig: optain ip addresses
 
 logging
 =======
