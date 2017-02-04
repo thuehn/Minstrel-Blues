@@ -51,6 +51,7 @@ parser:option ("--ctrl_port", "Port for control RPC", "12346" )
 
 parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
+parser:option ("-l --log_file", "Logging to File", "/tmp/measurement.log" )
 
 parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
 
@@ -156,6 +157,20 @@ else
                   }
     nodes[1] = aps[1]
     nodes[2] = stations[1]
+end
+
+function start_logger ( port )
+    local logger = spawn_pipe ( "lua", "bin/Logger.lua", args.log_file, "--port", port )
+    if ( logger ['err_msg'] ~= nil ) then
+        print("Logger not started" .. logger ['err_msg'] )
+    end
+    local str = logger['proc']:__tostring()
+    print ( str )
+    return parse_process ( str ) 
+end
+
+function stop_logger ( pid )
+    kill = spawn_pipe("kill", pid)
 end
 
 function connect_node ( addr, port )
@@ -358,9 +373,19 @@ print ( "run udp: " .. tostring( args.tcp_only == false ) )
 print ( "run tcp: " .. tostring( args.udp_only == false ) )
 print ()
 
+-- autostart logger
+local logger_proc
+if ( args.disable_autostart == false ) then
+    logger_proc = start_logger ( args.log_port )
+    if ( logger_proc == nil ) then
+        print ("Logger not started.")
+        os.exit(1)
+    end
+end
+
 -- check reachability 
 local reached = {}
-if (args.disable_reachable == false) then
+if ( args.disable_reachable == false ) then
     for _, node in ipairs ( { ap_node, sta_node } ) do
         if reachable ( node.ctrl_ip ) then
             reached[node.name] = true
@@ -375,7 +400,7 @@ end
 print ()
 
 -- and auto start nodes
-if (args.disable_autostart == false) then
+if ( args.disable_autostart == false ) then
     for _, node in ipairs ( { ap_node, sta_node } ) do
         if ( reached[node.name] ) then
             local remote_cmd = "lua runNode.lua"
@@ -404,6 +429,7 @@ if rpc.mode ~= "tcpip" then
     os.exit(1)
 end
 
+print ("connect to nodes")
 local ap_rpc = connect_node (ap_ctrl.addr, args.ctrl_port)
 local sta_rpc = connect_node (sta_ctrl.addr, args.ctrl_port)
 
@@ -482,6 +508,7 @@ end
 
 if (args.dry_run) then 
     print ( "dry run is set, quit here" )
+    stop_logger ( logger_proc['pid'] )
     os.exit(1)
 end
 
@@ -548,3 +575,6 @@ if (args.disable_autostart == false) then
     end
 end
 
+if ( args.disable_autostart == false ) then
+    stop_logger ( logger_proc['pid'] )
+end

@@ -17,7 +17,11 @@
 -- the connections sequentially (connection refused)
 
 -- prototype table
-LogNode = { name = nil, fname = nil, logfile = nil }
+LogNode = { name = nil
+          , fname = nil
+          , logfile = nil
+          , use_stdout = nil
+          }
 
 -- create an object table with LogNode prototype
 -- and optional initializer table
@@ -33,8 +37,8 @@ end
 -- and open the log file in append mode
 -- param name: a name for the logging node
 -- param fname: the name of the log file
-function LogNode:create( name, fname )
-    local o = LogNode:new({ name = name, fname = fname })
+function LogNode:create( name, fname, use_stdout )
+    local o = LogNode:new({ name = name, fname = fname, use_stdout = use_stdout })
     o.logfile = io.open ( fname, "a")
     return o
 end
@@ -52,7 +56,9 @@ end
 -- param msg: the message string to pass to logger
 function LogNode:send ( msgtype, from, msg )
     local ret = os.time() .. " " .. msgtype .. " : " .. from .. " : " .. msg
-    print ( ret )
+    if ( self.use_stdout == true ) then
+        print ( ret )
+    end
     if not self.logfile then 
         print ("error: logfile closed"); 
         return nil 
@@ -63,7 +69,9 @@ end
 
 function LogNode:set_cut()
     local cut = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-    print ( cut )
+    if ( self.use_stdout == true ) then
+        print ( cut )
+    end
     if not self.logfile then 
         print ("error: logfile closed"); 
         return nil 
