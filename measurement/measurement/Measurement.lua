@@ -125,7 +125,7 @@ function Measurement:start ( phy, key )
     -- rc stats
     self.rc_stats_procs = {}
     if ( self.rc_stats_enabled == true ) then
-        local rc_stats_procs = self.rpc_node.start_rc_stats ( phy )
+        local rc_stats_procs = self.rpc_node.start_rc_stats ( phy, self.stations )
         local rc_procs = {}
         for _, rc_proc_str in ipairs ( rc_stats_procs ) do
             self.rc_stats_procs [ #self.rc_stats_procs + 1 ] = parse_process ( rc_proc_str )

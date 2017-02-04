@@ -92,6 +92,10 @@ end
 -- iw phy phy0 interface add wlan0 type monitor
 -- ifconfig wlan0 up
 -- fixme: command failed: Too many open files in system (-23)
+--   root@lede-sta:~# cat /proc/sys/fs/file-max
+--   12505
+--   root@lede-sta:~# lsof | wc -l
+--   643
 function Node:add_monitor ( phy )
     local iw_info = spawn_pipe("iw", "dev", self.wifi.mon, "info")
     local exit_code = iw_info['proc']:wait()
@@ -227,12 +231,8 @@ end
 
 -- fixme: list_stations differs from time to time, use fixed station list
 
-function Node:start_rc_stats ( phy )
+function Node:start_rc_stats ( phy, stations )
     self:send_info("start collecting rc stats for " .. self.wifi.iface .. ", " .. phy)
-    local stations = list_stations ( phy, self.wifi.iface )
-    if ( stations == nil or table_size ( stations) == 0) then 
-        self:send_warning ( "no stations connected" )
-    end
     local out = {}
     for _, station in ipairs ( stations ) do
         self:send_info ( " start collecting rc_stats stations: " .. station )
@@ -258,8 +258,7 @@ function Node:get_rc_stats ( station )
     if ( self.rc_stats_procs [ station ] == nil) then return nil end
     local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
-    --fixme: attemp to use a close file
-    --close_proc_pipes ( self.rc_stats_procs [ station ] )
+    close_proc_pipes ( self.rc_stats_procs [ station ] )
     return content 
 end
 
@@ -341,6 +340,7 @@ end
 -- -U packet-buffered output instead of line buffered (-l)
 -- tcpdump -l | tee file
 -- tcpdump -i mon0 -s 150 -U
+-- tcpdump: mon0: SIOCETHTOOL(ETHTOOL_GET_TS_INFO) ioctl failed: No such device
 function Node:start_tcpdump ( fname )
     self:send_info("start tcpdump for " .. self.wifi.mon)
     local tcpdump = spawn_pipe( "tcpdump", "-i", self.wifi.mon, "-s", "150", "-U", "-w", fname)
