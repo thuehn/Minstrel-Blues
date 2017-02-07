@@ -15,7 +15,7 @@ function NodeRef:new (o)
 end
 
 function NodeRef:create ( name, ctrl )
-    local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {}, stations = {} })
+local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {} })
     return o
 end
 
@@ -38,16 +38,6 @@ function NodeRef:__tostring()
         for i, wifi in ipairs ( self.wifis ) do
             if ( i ~= 1 ) then out = out .. ", " end
             out = out .. wifi
-        end
-    end
-    out = out .. "\n\t"
-          .. "stations: "
-    if ( self.stations == {} ) then
-        out = out .. " none"
-    else
-        for i, station in ipairs ( self.stations ) do
-            if ( i ~= 1 ) then out = out .. ", " end
-            out = out .. station
         end
     end
     return out        

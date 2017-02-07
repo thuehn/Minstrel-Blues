@@ -12,7 +12,8 @@
 require ('functional') -- head
 local argparse = require "argparse"
 require ('NetIF')
-require ('NodeRef')
+require ('AccessPointRef')
+require ('StationRef')
 require ("rpc")
 require ("spawn_pipe")
 require ("parsers/ex_process")
@@ -406,11 +407,11 @@ local ap_node = find_node ( "AP", aps )
 local sta_node = find_node ( "STA", stations )
 
 local sta_ctrl = NetIF:create ("ctrl", sta_node['ctrl_if'], sta_node['ctrl_ip'] )
-local sta_ref = NodeRef:create ("STA", sta_ctrl )
+local sta_ref = StationRef:create ("STA", sta_ctrl )
 local sta = {}
 
 local ap_ctrl = NetIF:create ("ctrl", ap_node['ctrl_if'], ap_node['ctrl_ip'] )
-local ap_ref = NodeRef:create ("AP", ap_ctrl )
+local ap_ref = AccessPointRef:create ("AP", ap_ctrl )
 local ap = {}
 
 -- print configuration
