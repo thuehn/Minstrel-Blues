@@ -161,6 +161,7 @@ end
 --   12505
 --   root@lede-sta:~# lsof | wc -l
 --   643
+-- ix dev mon0 del
 function Node:add_monitor ( phy )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
@@ -175,6 +176,8 @@ function Node:add_monitor ( phy )
         if (exit_code ~= 0) then
             self:send_error("Add monitor failed: " .. exit_code)
         end
+    else
+        self:send_info("Monitor " .. mon .. " not added to " .. phy .. ": already exists")
     end
     self:send_info("enable monitor " .. mon)
     local ifconfig = spawn_pipe("ifconfig", mon, "up")
@@ -297,34 +300,61 @@ function Node:has_lease ( mac )
     return nil
 end
 
--- /sys/kernel/debug/ieee80211/phy0/netdev:mon0/ap_power_level
--- /sys/kernel/debug/ieee80211/phy0/netdev:mon0/user_power_level
--- /sys/kernel/debug/ieee80211/phy0/netdev:mon0/txpower
--- /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/ap_power_level
--- /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/user_power_level
--- /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/txpower
--- /sys/kernel/debug/ieee80211/phy0/power
--- /sys/kernel/debug/ieee80211/phy0/user_power
+function Node:tx_rate_indices( phy, station )
+    self:send_info("List tx rates for station " .. station .. " at device " .. phy)
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local fname = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" .. station .. "/rc_stats_csv"
+    local rates = {}
+    -- TODO: csv parser
+    local file = io.open( fname )
+    if ( file ~= nil ) then
+        local content = file:read("*a")
+        for _, line in ipairs ( split (content, '\n') ) do
+            local fields = split (line, ',')
+            if ( fields[6] ~= nil ) then
+                rates [ #rates + 1 ] = tonumber ( fields[6] )
+            end
+        end
+        table.sort ( rates )
+        file:close()
+    end
+    return rates
+end
+
+-- fixme: tx_power_levels
+-- funtion tx_power_levels ( phy, station )
+-- end
+
 -- set the power level by index (i.e. 25 is the index of the highest power level, sometimes 50)
 -- usally two different power levels differs by a multiple of 1mW (25 levels) or 0.5mW (50 power levels)
 -- todo: set tx_power with newly created debugfs entry
 function Node:set_tx_power ( phy, station, tx_power )
+    self:send_info("Set tx power level for station " .. station .. " at device " .. phy .. " to " .. tx_power)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    --local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/txpower"
     local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/txpower"
+    local file = io.open ( fname )
+    if ( file ~= nil) then
+        file:write ( tostring ( tx_power ) )
+        file:flush()
+        file:close()
+    end
 end
 
--- https://dhalperi.github.io/linux-80211n-csitool/faq.html
--- fixme: there should rate tables defined at:
--- /sys/kernel/debug/ieee80211/ .. phy .. /netdev: .. iface /stations/ .. station .. /rate_scale_table
 -- rate can be set for 
 --      - monitored device at 'monitor_tx_rate' (fixme: not in tree)
 --      - broadcast at 'bcast_tx_rate' (fixme: not in tree)
---      - per station at 'rate_scale_table'
-function Node:set_tx_rate ( phy, station, tx_rate )
-    local dev = self:find_wifi_device ( phy )
-
+--      - per station at 'rate_scale_table' (fixme: not in tree)
+function Node:set_tx_rate ( phy, station, tx_rate_idx )
+    self:send_info("Set tx rate index for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx)
+    local fname = debugfs .. "/rc/" .. "fixed_rate_idx"
+    local file = io.open ( fname )
+    if ( file ~= nil) then
+        file:write ( tostring ( tx_rate_idx ) )
+        file:flush()
+        file:close()
+    end
 end
 
 -- returns the ssid when iface is connected

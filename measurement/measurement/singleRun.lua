@@ -183,7 +183,13 @@ function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval, tx_rates, 
     ap_stats:enable_rc_stats ( ap_ref.stations )
     local sta_stats = Measurement:create( sta_ref.rpc )
 
-    -- for each rates, for each power level
+    local tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifis[1], ap_ref.stations[1] )
+    local tx_powers = {}
+    for i = 1, 25 do
+        tx_powers[1] = i
+    end
+
+    local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
 
     for run = 1, runs do
 
@@ -193,7 +199,7 @@ function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval, tx_rates, 
 
                 local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring(run)
 
-                -- for all stations
+                -- todo: for all stations
 
                 ap_ref.rpc.set_tx_rate ( ap_ref.wifis[1], ap_ref.stations[1], tx_rate )
                 ap_ref.rpc.set_tx_power ( ap_ref.wifis[1], ap_ref.stations[1], tx_power )
@@ -218,8 +224,8 @@ function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval, tx_rates, 
 
                 -- start iperf client on AP
                 local addr = "224.0.67.0"
-                local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
-                local iperf_c_proc_str = ap_ref.rpc.run_multicast( sta_wifi_addr, addr, 32, udp_interval )
+                local ttl = 32
+                local iperf_c_proc_str = ap_ref.rpc.run_multicast( sta_wifi_addr, addr, ttl, udp_interval )
 
                 -- -------------------------------------------------------
 
@@ -242,6 +248,8 @@ function tcp_measurement ( ap_ref, sta_ref, runs, tcpdata )
     local ap_stats = Measurement:create( ap_ref.rpc )
     ap_stats:enable_rc_stats ( ap_ref.stations )
     local sta_stats = Measurement:create( sta_ref.rpc )
+
+    local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
 
     for run = 1, runs do
 
@@ -269,7 +277,6 @@ function tcp_measurement ( ap_ref, sta_ref, runs, tcpdata )
         -- -------------------------------------------------------
 
         -- start iperf client on AP
-        local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
         local iperf_c_proc_str = ap_ref.rpc.run_tcp_iperf( sta_wifi_addr, tcpdata )
 
         -- stop measurement on STA and AP
@@ -293,6 +300,8 @@ function udp_measurement ( ap_ref, sta_ref, runs, packet_sizes, cct_intervals, p
     local ap_stats = Measurement:create( ap_ref.rpc )
     ap_stats:enable_rc_stats ( ap_ref.stations )
     local sta_stats = Measurement:create( sta_ref.rpc )
+
+    local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
 
     local size = head ( split ( packet_sizes, "," ) )
     for _,interval in ipairs ( split( cct_intervals, ",") ) do
@@ -331,7 +340,6 @@ function udp_measurement ( ap_ref, sta_ref, runs, packet_sizes, cct_intervals, p
                 -- -------------------------------------------------------
 
                 -- start iperf client on AP
-                local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
                 local iperf_c_proc_str = ap_ref.rpc.run_udp_iperf( sta_wifi_addr, size, rate, udp_interval )
 
                 -- -------------------------------------------------------
@@ -569,12 +577,8 @@ local runs = tonumber ( args.runs )
 if ( args.tcp_only == false and args.udp_only == false and args.multicast_only == true) then
     local ap_stats
     local sta_stats
-    local tx_rates = {}
-    local tx_powers = {}
-    tx_rates[1] = 1
-    tx_powers[1] = 25
     ap_stats, sta_stats 
-        = multicast_measurement( ap_ref, sta_ref, runs, args.interval, tx_rates, tx_powers )
+        = multicast_measurement( ap_ref, sta_ref, runs, args.interval )
     print ()
     if ( ap_stats ~= nil ) then
         print ( "AP stats" )

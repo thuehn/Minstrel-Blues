@@ -35,6 +35,7 @@ function get_mac(...) return node:get_mac(...) end
 function get_addr(...) return node:get_addr(...) end
 function has_lease(...) return node:has_lease(...) end
 
+function tx_rate_indices(...) return node:tx_rate_indices(...) end
 function set_tx_rate(...) return node:set_tx_rate(...) end
 function set_tx_power(...) return node:set_tx_power(...) end
 
