@@ -39,7 +39,10 @@ function parse_dig ( lines )
         local addr
         local num
         
-        name, rest = parse_ide ( rest, "." )
+        local add_chars = {}
+        add_chars[1] = "."
+        add_chars[2] = "-"
+        name, rest = parse_ide ( rest, add_chars )
         rest = skip_layout( rest )
         num, rest = parse_num ( rest )
         rest = skip_layout( rest )

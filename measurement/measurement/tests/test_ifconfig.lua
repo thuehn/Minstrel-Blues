@@ -5,7 +5,7 @@ local num
 local rest
 local ide
 
-ide, rest = parse_ide ( "abc0 bcd", "abc0" )
+ide, rest = parse_ide ( "abc0 bcd" )
 print ( assert ( ide == "abc0" ) )
 print ( assert ( rest == " bcd" ) )
 
@@ -20,7 +20,9 @@ print ( assert ( rest == " abc" ) )
 rest = skip_layout ( "    b" )
 print ( assert ( rest == "b" ) )
 
-ide, rest = parse_ide ( "br-lan mf", '-')
+local add_chars = {}
+add_chars[1] = '-'
+ide, rest = parse_ide ( "br-lan mf", add_chars)
 print ( assert ( ide == "br-lan" ) )
 print ( assert ( rest == " mf" ) )
 

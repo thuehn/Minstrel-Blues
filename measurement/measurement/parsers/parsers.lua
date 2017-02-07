@@ -130,13 +130,20 @@ end
 -- parse string of digits and letters from begin of 'str'
 -- return ide, rest
 -- todo: maybe first char should never be a digit
-function parse_ide ( str, additional_char )
+function parse_ide ( str, additional_chars )
+    function is_in ( l, c )
+        if ( l == nil) then return false end
+        for _, c2 in ipairs(l) do
+            if ( c == c2) then return true end
+        end
+        return false
+    end
     local state = false
     local rest = str
     local ide = nil 
     repeat
         local c = shead ( rest )
-        if ( is_digit(c) == false and is_char(c) == false and (additional_char == nil or c ~= additional_char) ) then
+        if ( is_digit(c) == false and is_char(c) == false and not is_in (additional_chars, c) ) then
             state = true
         else
             rest = stail ( rest )

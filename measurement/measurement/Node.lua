@@ -22,6 +22,7 @@ Node = { name = nil, wifis = nil, ctrl = nil
        , regmon_proc = nil
        , rc_stats_procs = nil
        , iperf_sever_proc = nil
+       , iperf_client_proc = nil
        }
 
 function Node:new (o)
@@ -431,7 +432,7 @@ function Node:get_rc_stats ( phy, station )
     if ( self.rc_stats_procs [ station ] == nil) then return nil end
     local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
-    close_proc_pipes ( self.rc_stats_procs [ station ] )
+    --close_proc_pipes ( self.rc_stats_procs [ station ] )
     return content 
 end
 
@@ -625,22 +626,33 @@ function Node:run_udp_iperf ( addr, size, rate, interval )
 end
 
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
-function Node:run_multicast ( addr, multicast_addr, ttl, interval )
+-- iperf -c 224.0.67.0 -u --ttl 1 -t 120 -b 100M -l 1500 -B 10.10.250.2
+function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
     self:send_info("run UDP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with ttl and interval " .. ttl .. ", " .. interval)
-    local iperf = spawn_pipe ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port, "-T", ttl, "-t", interval, "-B", addr)
+    local iperf = spawn_pipe ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port
+                             , "-T", ttl, "-t", interval, "-b", size, "-B", addr)
     if ( iperf['proc'] == nil ) then
         self:send_error ( "tcp iperf client not started" )
     end
-    local exit_code = iperf['proc']:wait()
-    repeat
-        local line = iperf['out']:read("*l")
-        if line ~= nil then self:send_info ( line ) end
-    until line == nil
-    close_proc_pipes ( iperf )
+    self.iperf_client_proc = iperf
+    if ( wait == true) then
+        self:wait_iperf_c ()
+    end
     return iperf['proc']:__tostring()
 
+end
+
+function Node:wait_iperf_c ()
+    self:send_info("wait for UDP client iperf") 
+    local exit_code = self.iperf_client_proc['proc']:wait()
+    repeat
+        local line = self.iperf_client_proc['out']:read("*l")
+        if line ~= nil then self:send_info ( line ) end
+    until line == nil
+    close_proc_pipes ( self.iperf_client_proc )
+    self.iperf_client_proc = nil
 end
 
 -- TODO: unlock

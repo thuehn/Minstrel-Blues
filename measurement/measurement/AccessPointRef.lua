@@ -2,8 +2,9 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, ctrl )
-    local o = AccessPointRef:new{ name = name, ctrl = ctrl, wifis = {}, stations = {} }
+function AccessPointRef:create ( name, ctrl, port )
+    -- fixme: init of wifis, addrs should be done by NodeRef:create
+    local o = AccessPointRef:new{ name = name, ctrl = ctrl, wifis = {}, addrs = {}, macs = {}, ssid = nil, stations = {} }
     return o
 end
 
@@ -28,3 +29,10 @@ function AccessPointRef:add_station ( mac )
     self.stations [ #self.stations + 1 ] = mac
 end
 
+function AccessPointRef:set_ssid ( ssid )
+    self.ssid = ssid 
+end
+
+function AccessPointRef:get_ssid ()
+    return self.ssid
+end

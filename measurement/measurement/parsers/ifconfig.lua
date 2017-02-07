@@ -48,7 +48,9 @@ function parse_ifconfig ( ifconfig )
     local iface = nil
     local encap = nil
 
-    iface, rest = parse_ide ( rest, '-' )
+    local add_chars = {}
+    add_chars[1] = '-'
+    iface, rest = parse_ide ( rest, add_chars )
     rest = skip_layout( rest )
     state, rest = parse_str ( rest, "Link encap:" )
     encap, rest = parse_ide ( rest )

@@ -1,19 +1,23 @@
 local msg = ""
 
 co = coroutine.create(
-        function ()
-            local file = io.open("/tmp/test", "r")
+        function (fname)
+            local file = io.open(fname, "r")
             while true do
+                print ("read")
                 local line = file:read("*l")
                 if (line ~= nil) then
                     msg = line 
                 end
                 coroutine.yield()
             end
+            file:close()
         end
     )
 
+local fname = "/tmp/test"
 while true do
-    coroutine.resume(co)
+    state = coroutine.resume(co, fname)
+    print (tostring(state))
     print (msg)
 end

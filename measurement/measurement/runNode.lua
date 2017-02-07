@@ -70,6 +70,7 @@ function run_tcp_iperf(...) return node:run_tcp_iperf(...) end
 function start_udp_iperf_s(...) return node:start_udp_iperf_s(...) end
 function run_udp_iperf(...) return node:run_udp_iperf(...) end
 function run_multicast(...) return node:run_multicast(...) end
+function wait_iperf_c(...) return node:wait_iperf_c(...) end
 
 -- udp / tcp iperf
 function stop_iperf_server(...) return node:stop_iperf_server(...) end

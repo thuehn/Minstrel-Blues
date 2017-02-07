@@ -48,7 +48,9 @@ function parse_dhcp_lease ( ifconfig )
     rest = skip_layout( rest )
     addr, rest = parse_ipv4 ( rest )
     rest = skip_layout( rest )
-    hostname, rest = parse_ide ( rest, '*' )
+    local add_chars = {}
+    add_chars[1] = "*"
+    hostname, rest = parse_ide ( rest, add_chars )
     rest = skip_layout( rest )
     -- ... addr6 | '*'
     

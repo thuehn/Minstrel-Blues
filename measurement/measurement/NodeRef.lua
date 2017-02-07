@@ -4,7 +4,9 @@ NodeRef = { name = nil
           , ctrl = nil
           , rpc = nil
           , wifis = nil
-          , stations = nil
+          , addrs = nil
+          , macs = nil
+          , ssid = nil
           }
 
 function NodeRef:new (o)
@@ -14,17 +16,37 @@ function NodeRef:new (o)
     return o
 end
 
-function NodeRef:create ( name, ctrl )
-local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {} })
+function NodeRef:create ( name, ctrl, port )
+    local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {}, ssid = nil, addrs = {}, macs = {}, ssid = nil, stations = {} })
     return o
+end
+
+function NodeRef:connect ( port )
+    function connect_rpc ()
+        local l, e = rpc.connect ( self.ctrl.addr, port )
+        return l, e
+    end
+    local status, slave, err = pcall ( connect_rpc )
+    if (status == false) then
+        print ( "Err: Connection to node failed" )
+        print ( "Err: no node at address: " .. self.ctrl.addr .. " on port: " .. port )
+        return
+    end
+    self.rpc = slave
 end
 
 function NodeRef:add_wifi ( phy )
     self.wifis [ #self.wifis + 1 ] = phy
+    self.addrs [ phy ] = self.rpc.get_addr ( phy )
+    self.macs [ phy ] = self.rpc.get_mac ( phy )
 end
 
-function NodeRef:add_station ( mac )
-    self.stations [ #self.stations + 1 ] = mac
+function NodeRef:get_addr ( phy )
+    return self.addrs [ phy ]
+end
+
+function NodeRef:get_mac ( phy )
+    return self.macs [ phy ]
 end
 
 function NodeRef:__tostring() 
@@ -37,7 +59,7 @@ function NodeRef:__tostring()
     else
         for i, wifi in ipairs ( self.wifis ) do
             if ( i ~= 1 ) then out = out .. ", " end
-            out = out .. wifi
+            out = out .. wifi .. ", addr " .. self.addrs [ wifi ]
         end
     end
     return out        

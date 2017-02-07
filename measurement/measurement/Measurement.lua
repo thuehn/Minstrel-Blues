@@ -82,7 +82,7 @@ function Measurement:__tostring()
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            out = out .. "rc_stats: " .. table_size ( self.rc_stats [ station ] ) .. " stats\n"
+            out = out .. "rc_stats:" .. table_size ( self.rc_stats [ station ] ) .. " stats\n"
             if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil) then
                 for key, stat in pairs ( self.rc_stats [ station ] ) do
                     out = out .. "rc_stats-" .. station .. "-" .. key .. ": " .. string.len(stat) .. " bytes\n"
