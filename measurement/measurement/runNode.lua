@@ -29,14 +29,10 @@ local ctrl = NetIF:create("ctrl", args.ctrl_if , args.ctrl_ip, nil)
 local node = Node:create(args.name, wifi, ctrl, args.iperf_port, args.log_ip, args.log_port )
 
 function wifi_devices(...) return node:wifi_devices(...) end
-
 function restart_wifi(...) return node:restart_wifi(...) end
-
 function get_ssid (...) return node:get_ssid(...) end
-
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
 function stations(...) return node:stations(...) end
-
 function set_ani (...) return node:set_ani(...) end
 
 function get_linked_ssid(...) return node:get_linked_ssid(...) end
@@ -46,6 +42,9 @@ function get_linked_mac(...) return node:get_linked_mac(...) end
 function get_mac(...) return node:get_mac(...) end
 function get_addr(...) return node:get_addr(...) end
 function has_lease(...) return node:has_lease(...) end
+
+function set_tx_rate(...) return node:set_tx_rate(...) end
+function set_tx_power(...) return node:set_tx_power(...) end
 
 -- cpuage
 function start_cpusage(...) return node:start_cpusage(...) end
@@ -77,6 +76,7 @@ function run_tcp_iperf(...) return node:run_tcp_iperf(...) end
 -- udp iperf
 function start_udp_iperf_s(...) return node:start_udp_iperf_s(...) end
 function run_udp_iperf(...) return node:run_udp_iperf(...) end
+function run_multicast(...) return node:run_multicast(...) end
 
 -- udp / tcp iperf
 function stop_iperf_server(...) return node:stop_iperf_server(...) end

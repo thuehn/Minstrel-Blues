@@ -61,8 +61,20 @@ local debugfs = "/sys/kernel/debug/ieee80211"
 -- --------------------------
 -- wifi
 -- --------------------------
+-- uci show wireless
+-- wireless.@wifi-iface[1].key=''
+-- uci show network
+-- network.lan.ipaddr='192.168.10.1'
+-- network.wan.ifname='eth0.2'
+-- network.wan.proto='dhcp'
+-- 
 
 -- AP only
+-- use uci:
+-- root@lede-ap:~# uci show wireless.default_radio0.ssid
+-- wireless.default_radio0.ssid='LEDE'
+-- root@lede-ap:~# uci show wireless.default_radio1.ssid
+-- wireless.default_radio0.ssid='LEDE'
 function Node:get_ssid( iface )
     self:send_info("send ssid for " .. iface)
     local iwinfo = spawn_pipe("iw", iface, "info")
@@ -204,6 +216,33 @@ function Node:has_lease ( mac )
     end
     file:close()
     return nil
+end
+
+-- /sys/kernel/debug/ieee80211/phy0/netdev:mon0/ap_power_level
+-- /sys/kernel/debug/ieee80211/phy0/netdev:mon0/user_power_level
+-- /sys/kernel/debug/ieee80211/phy0/netdev:mon0/txpower
+-- /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/ap_power_level
+-- /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/user_power_level
+-- /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/txpower
+-- /sys/kernel/debug/ieee80211/phy0/power
+-- /sys/kernel/debug/ieee80211/phy0/user_power
+-- set the power level by index (i.e. 25 is the index of the highest power level, sometimes 50)
+-- usally two different power levels differs by a multiple of 1mW (25 levels) or 0.5mW (50 power levels)
+-- todo: set tx_power with newly created debugfs entry
+function Node:set_tx_power ( phy, station, tx_power )
+    --local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. self.wifi.iface .. "/txpower"
+    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. self.wifi.mon .. "/txpower"
+end
+
+-- https://dhalperi.github.io/linux-80211n-csitool/faq.html
+-- fixme: there should rate tables defined at:
+-- /sys/kernel/debug/ieee80211/ .. phy .. /netdev: .. iface /stations/ .. station .. /rate_scale_table
+-- rate can be set for 
+--      - monitored device at 'monitor_tx_rate' (fixme: not in tree)
+--      - broadcast at 'bcast_tx_rate' (fixme: not in tree)
+--      - per station at 'rate_scale_table'
+function Node:set_tx_rate ( phy, station, tx_rate )
+
 end
 
 -- returns the ssid when iface is connected
@@ -459,6 +498,25 @@ function Node:run_udp_iperf ( addr, size, rate, interval )
     until line == nil
     close_proc_pipes ( iperf )
     return iperf['proc']:__tostring()
+end
+
+-- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
+function Node:run_multicast ( addr, multicast_addr, ttl, interval )
+    self:send_info("run UDP iperf at port " .. self.iperf_port 
+                                .. " to addr " .. addr 
+                                .. " with ttl and interval " .. ttl .. ", " .. interval)
+    local iperf = spawn_pipe ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port, "-T", ttl, "-t", interval, "-B", addr)
+    if ( iperf['proc'] == nil ) then
+        self:send_error ( "tcp iperf client not started" )
+    end
+    local exit_code = iperf['proc']:wait()
+    repeat
+        local line = iperf['out']:read("*l")
+        if line ~= nil then self:send_info ( line ) end
+    until line == nil
+    close_proc_pipes ( iperf )
+    return iperf['proc']:__tostring()
+
 end
 
 -- TODO: unlock

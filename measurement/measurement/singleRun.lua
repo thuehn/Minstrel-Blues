@@ -61,7 +61,7 @@ parser:option ("-t --tcpdata", "Amount of TCP data", "500MB" )
 parser:option ("-s --packet_sizes", "Amount of UDP data", "1500" )
 parser:option ("-r --packet_rates", "Rates of UDP data", "50,200,600,1200" )
 parser:option ("-i --cct_intervals", "send iperf traffic intervals in milliseconds", "20000,50,100,1000" )
-parser:option ("--interval", "Intervals of TCP and UDP data", "240" )
+parser:option ("--interval", "Intervals of TCP and UDP data", "1" )
 
 parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes", false )
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
@@ -69,6 +69,7 @@ parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 parser:flag ("--dry_run", "Don't measure anything", false )
 parser:flag ("--udp_only", "Measure tcp", false )
 parser:flag ("--tcp_only", "Measure udp", false )
+parser:flag ("--multicast_only", "Measure multicast", false )
 
 local args = parser:parse()
 
@@ -189,6 +190,71 @@ function connect_node ( addr, port )
     else
         return slave
     end
+end
+
+function multicast_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc
+                               , udp_interval, tx_rates, tx_powers )
+
+    local ap_stats = Measurement:create( ap_rpc )
+    ap_stats:enable_rc_stats ( wifi_stations )
+    local sta_stats = Measurement:create( sta_rpc )
+
+    -- for each rates, for each power level
+
+    for run = 1, runs do
+
+        for _, tx_rate in ipairs ( tx_rates ) do
+            
+            for _, tx_power in ipairs ( tx_powers ) do
+
+                local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring(run)
+
+                -- for all stations
+
+                ap_rpc.set_tx_rate ( ap_phys[1], wifi_stations[1], tx_rate )
+                ap_rpc.set_tx_power ( ap_phys[1], wifi_stations[1], tx_power )
+    
+                -- start udp iperf server on STA
+                local iperf_s_proc_str = sta_rpc.start_udp_iperf_s()
+                local iperf_s_proc = parse_process ( iperf_s_proc_str )
+
+                -- restart wifi on STA
+                sta_rpc.restart_wifi()
+
+                -- add monitor on AP and STA
+                ap_rpc.add_monitor( ap_phys[1] )
+                -- fixme: mon0 not created because of too many open files (~650/12505)
+                sta_rpc.add_monitor( sta_phys[1] )
+                wait_linked ( sta_rpc, sta_wifi.iface )
+
+                -- start measurement on STA and AP
+                ap_stats:start ( ap_phys[1], key )
+                sta_stats:start ( ap_phys[1], key )
+
+
+                -- -------------------------------------------------------
+                -- Experiment
+                -- -------------------------------------------------------
+
+                -- start iperf client on AP
+                local addr = "224.0.67.0"
+                local iperf_c_proc_str = ap_rpc.run_multicast( sta_wifi.addr, addr, 32, udp_interval )
+
+                -- stop measurement on STA and AP
+                ap_stats:stop ()
+                sta_stats:stop ()
+
+                -- stop iperf server on STA
+                sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
+        
+                -- collect traces
+                ap_stats:fetch ( key )
+                sta_stats:fetch ( key )
+            end
+        end
+    end
+
+    return ap_stats, sta_stats
 end
 
 function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
@@ -373,8 +439,9 @@ print (sta_ctrl)
 print (ap_wifi)
 print (ap_ctrl)
 print ()
-print ( "run udp: " .. tostring( args.tcp_only == false ) )
-print ( "run tcp: " .. tostring( args.udp_only == false ) )
+print ( "run udp: " .. tostring( args.tcp_only == false and args.tcp_only == false and args.multicast_only == false) )
+print ( "run tcp: " .. tostring( args.udp_only == false and args.tcp_only == false and args.multicast_only == false) )
+print ( "run multicast: " .. tostring( args.udp_only == false and args.tcp_only == false and args.multicast_only == true) )
 print ()
 
 -- autostart logger
@@ -525,7 +592,30 @@ sta_rpc.set_ani ( sta_phys[1], not args.disable_ani )
 
 local runs = tonumber ( args.runs )
 
-if ( args.udp_only == false ) then
+if ( args.tcp_only == false and args.udp_only == false and args.multicast_only == true) then
+    local ap_stats
+    local sta_stats
+    local tx_rates = {}
+    local tx_powers = {}
+    tx_rates[1] = 1
+    tx_powers[1] = 25
+    ap_stats, sta_stats 
+        = multicast_measurement( runs, wifi_stations_target, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc
+                               , args.interval, tx_rates, tx_powers )
+    print ()
+    if ( ap_stats ~= nil ) then
+        print ( "AP stats" )
+        print ( ap_stats:__tostring() )
+        print ()
+    end
+    if ( sta_stats ~= nil ) then
+        print ( "STA stats" )
+        print ( sta_stats:__tostring() )
+        print ()
+    end
+end
+
+if ( args.tcp_only == true and args.udp_only == false and args.multicast_only == false) then
     local ap_stats
     local sta_stats
     ap_stats, sta_stats 
@@ -544,7 +634,7 @@ if ( args.udp_only == false ) then
     end
 end
 
-if ( args.tcp_only == false ) then
+if ( args.tcp_only == false and args.udp_only == true and args.multicast_only == false) then
     local ap_stats
     local sta_stats
     ap_stats, sta_stats 
