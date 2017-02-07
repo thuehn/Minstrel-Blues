@@ -15,7 +15,7 @@ local lease_fname = "/tmp/dhcp.leases"
 -- - STA connect to AP
 -- - split Node into NodeAP, NodeSTA
 
-Node = { name = nil, wifi = nil, ctrl = nil 
+Node = { name = nil, wifis = nil, ctrl = nil 
        , iperf_port = nil, tcpdump_proc = nil
        , cpusage_proc = nil
        , log_port = nil
@@ -31,18 +31,65 @@ function Node:new (o)
     return o
 end
 
-function Node:create ( name, wifi, ctrl, iperf_port, log_ip, log_port )
-    local o = Node:new({ name = name, wifi = wifi, ctrl = ctrl
+function Node:create ( name, ctrl, iperf_port, log_ip, log_port )
+    local o = Node:new({ name = name, ctrl = ctrl, wifis = {}
                        , iperf_port = iperf_port, log_ip = log_ip, log_port = log_port 
                        , rc_stats_procs = {}
                        })
+    if ( name == nil) then
+        error ( "A Node needs to have a name set, but it isn't!" )
+    end
+    local phys = list_phys()
+    for i, phy in ipairs ( phys ) do
+        local netif = NetIF:create ( "radio" .. i-1 )
+        o.wifis [ #o.wifis + 1 ] = netif
+        netif.phy = phy
+        -- mon: maybe obsolete, but some devices doesn't support default monitoring, they have prism monitors, i.e. prism0
+        netif.mon = "mon" .. tostring(i-1)
+        netif.iface = get_interface_name ( phy )
+        -- doesn't work in APs with bridged lan over switchdevice and wifi
+        netif.addr = get_ip_addr ( netif.iface )
+    end
     return o
 end
 
 function Node:__tostring() 
-    return self.name .. " :: " 
-            .. tostring(self.wifi) .. ", "
-            .. tostring(self.ctrl)
+    local name = "none"
+    if ( self.name ~= nil) then
+        name = self.name
+    end
+    local out = name .. "\n"
+                .. self.ctrl:__tostring()
+                .. "\n"
+    for i, wifi in ipairs ( self.wifis ) do
+        if (i ~= 1) then
+            out = out .. ", "
+        end
+        out = out .. wifi:__tostring()
+    end
+    return out
+end
+
+function get_ip_addr ( iface )
+    if ( iface == nil ) then error ( "argument iface unset!" ) end
+    local ifconfig_proc = spawn_pipe( "ifconfig", iface )
+    ifconfig_proc['proc']:wait()
+    local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
+    close_proc_pipes ( ifconfig_proc )
+    if (ifconfig == nil or ifconfig.addr == nil) then 
+        return nil
+    else
+        return ifconfig.addr
+    end
+end
+
+function Node:find_wifi_device ( phy )
+    for _, dev in ipairs ( self.wifis ) do
+        if ( dev.phy == phy) then
+            return dev
+        end
+    end
+    return nil
 end
 
 -- fixme: try to catch address in use
@@ -75,7 +122,9 @@ local debugfs = "/sys/kernel/debug/ieee80211"
 -- wireless.default_radio0.ssid='LEDE'
 -- root@lede-ap:~# uci show wireless.default_radio1.ssid
 -- wireless.default_radio0.ssid='LEDE'
-function Node:get_ssid( iface )
+function Node:get_ssid( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     self:send_info("send ssid for " .. iface)
     local iwinfo = spawn_pipe("iw", iface, "info")
     local exit_code = iwinfo['proc']:wait()
@@ -104,6 +153,7 @@ function Node:restart_wifi()
     return exit_code == 0
 end
 
+-- iw dev mon0 info
 -- iw phy phy0 interface add wlan0 type monitor
 -- ifconfig wlan0 up
 -- fixme: command failed: Too many open files in system (-23)
@@ -112,20 +162,22 @@ end
 --   root@lede-sta:~# lsof | wc -l
 --   643
 function Node:add_monitor ( phy )
-    local iw_info = spawn_pipe("iw", "dev", self.wifi.mon, "info")
+    local dev = self:find_wifi_device ( phy )
+    local mon = dev.mon
+    local iw_info = spawn_pipe("iw", "dev", mon, "info")
     local exit_code = iw_info['proc']:wait()
     close_proc_pipes ( iw_info )
     if (exit_code ~= 0) then
-        self:send_info("Adding monitor " .. self.wifi.mon .. " to " .. phy)
-        local iw_add = spawn_pipe("iw", "phy", phy, "interface", "add", self.wifi.mon, "type", "monitor")
+        self:send_info("Adding monitor " .. mon .. " to " .. phy)
+        local iw_add = spawn_pipe("iw", "phy", phy, "interface", "add", mon, "type", "monitor")
         local exit_code = iw_add['proc']:wait()
         close_proc_pipes ( iw_add )
         if (exit_code ~= 0) then
             self:send_error("Add monitor failed: " .. exit_code)
         end
     end
-    self:send_info("enable monitor " .. self.wifi.mon)
-    local ifconfig = spawn_pipe("ifconfig", self.wifi.mon, "up")
+    self:send_info("enable monitor " .. mon)
+    local ifconfig = spawn_pipe("ifconfig", mon, "up")
     local exit_code = ifconfig['proc']:wait()
     if (exit_code ~= 0) then
         self:send_error("add monitor for device " .. phy .. "failed with exit code " .. exit_code)
@@ -133,9 +185,7 @@ function Node:add_monitor ( phy )
     close_proc_pipes ( ifconfig )
 end
 
-
-function Node:wifi_devices ()
-    self:send_info("Send phy devices for " .. self.wifi.iface)
+function list_phys ()
     local phys = {}
     for file in lfs.dir( debugfs ) do
         if (file ~= "." and file ~= "..") then
@@ -143,11 +193,36 @@ function Node:wifi_devices ()
         end
     end
     table.sort ( phys )
+    local phys = {}
+    for file in lfs.dir( debugfs ) do
+        if (file ~= "." and file ~= "..") then
+            phys [ #phys + 1 ] = file
+        end
+    end
+    table.sort ( phys )
+    return phys
+end
+
+function get_interface_name ( phy )
+    local dname = debugfs .. "/" .. phy
+    for file in lfs.dir( dname ) do
+        if ( string.sub( file, 1, 7 ) == "netdev:" and string.sub ( file, 8, 10 ) ~= "mon" ) then
+            return string.sub( file, 8 )
+        end
+    end
+    return nil
+end
+
+function Node:wifi_devices ()
+    self:send_info( "Send phy devices." )
+    local phys = list_phys()
     self:send_info(" phys: " .. foldr ( string.concat, "" , phys ) )
     return phys
 end
 
-function list_stations ( phy, iface )
+function Node:list_stations ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     local stations = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
     local out = {}
     for _, name in ipairs ( scandir ( stations ) ) do
@@ -159,8 +234,10 @@ function list_stations ( phy, iface )
 end
 
 function Node:stations ( phy )
-    local list = list_stations ( phy, self.wifi.iface )
-    self:send_info("Send stations for " .. self.wifi.iface )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local list = self:list_stations ( phy )
+    self:send_info("Send stations for " .. iface )
     return list
 end
 
@@ -176,7 +253,9 @@ function Node:set_ani ( phy, enabled )
     file:close()
 end
 
-function Node:get_mac ( iface )
+function Node:get_mac ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     self:send_info("send mac for " .. iface )
     local ifconfig_proc = spawn_pipe( "ifconfig", iface )
     ifconfig_proc['proc']:wait()
@@ -187,18 +266,18 @@ function Node:get_mac ( iface )
     return ifconfig.mac
 end
 
-function Node:get_addr ( iface )
+function Node:get_addr ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     self:send_info("send ipv4 addr for " .. iface )
-    local ifconfig_proc = spawn_pipe( "ifconfig", iface )
-    ifconfig_proc['proc']:wait()
-    local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
-    close_proc_pipes ( ifconfig_proc )
-    if (ifconfig == nil or ifconfig.addr == nil) then 
+    local addr = get_ip_addr ( iface )
+    if ( addr == nil ) then
         self:send_error(" interface " .. iface .. " has no ipv4 addr assigned")
         return nil 
+    else
+        self:send_info(" addr for " .. iface .. ": " .. addr )
+        return addr
     end
-    self:send_info(" addr for " .. iface .. ": " .. ifconfig.addr )
-    return ifconfig.addr
 end
 
 -- returns addr when host with mac has a dhcp lease else nil
@@ -230,8 +309,10 @@ end
 -- usally two different power levels differs by a multiple of 1mW (25 levels) or 0.5mW (50 power levels)
 -- todo: set tx_power with newly created debugfs entry
 function Node:set_tx_power ( phy, station, tx_power )
-    --local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. self.wifi.iface .. "/txpower"
-    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. self.wifi.mon .. "/txpower"
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    --local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/txpower"
+    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/txpower"
 end
 
 -- https://dhalperi.github.io/linux-80211n-csitool/faq.html
@@ -242,12 +323,15 @@ end
 --      - broadcast at 'bcast_tx_rate' (fixme: not in tree)
 --      - per station at 'rate_scale_table'
 function Node:set_tx_rate ( phy, station, tx_rate )
+    local dev = self:find_wifi_device ( phy )
 
 end
 
 -- returns the ssid when iface is connected
 -- otherwise nil is returned
-function Node:get_linked_ssid ( iface )
+function Node:get_linked_ssid ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
     iwlink_proc['proc']:wait()
     local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
@@ -258,7 +342,9 @@ end
 
 -- returns the remote iface when iface is connected
 -- otherwise nil is returned
-function Node:get_linked_iface ( iface )
+function Node:get_linked_iface ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
     iwlink_proc['proc']:wait()
     local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
@@ -269,7 +355,9 @@ end
 
 -- returns the remote mac when iface is connected
 -- otherwise nil is returned
-function Node:get_linked_mac ( iface )
+function Node:get_linked_mac ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
     iwlink_proc['proc']:wait()
     local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
@@ -282,14 +370,14 @@ end
 -- rc_stats
 -- --------------------------
 
--- fixme: list_stations differs from time to time, use fixed station list
-
 function Node:start_rc_stats ( phy, stations )
-    self:send_info("start collecting rc stats for " .. self.wifi.iface .. ", " .. phy)
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    self:send_info("start collecting rc stats for " .. iface .. ", " .. phy)
     local out = {}
     for _, station in ipairs ( stations ) do
         self:send_info ( " start collecting rc_stats stations: " .. station )
-        local file = debugfs .. "/" .. phy .. "/netdev:" .. self.wifi.iface .. "/stations/"
+        local file = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
                         .. station .. "/rc_stats_csv"
         local rc_stats = spawn_pipe ( "lua", "bin/fetch_file.lua", "-i", "50000", file )
         if ( rc_stats ['err_msg'] ~= nil ) then
@@ -302,12 +390,14 @@ function Node:start_rc_stats ( phy, stations )
     return out
 end
 
-function Node:get_rc_stats ( station )
+function Node:get_rc_stats ( phy, station )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     if ( station == nil ) then
         self:send_error ( "Cannot send rc_stats because the station argument is nil!" )
         return nil
     end
-    self:send_info("send rc-stats for " .. self.wifi.iface ..  ", station " .. station)
+    self:send_info("send rc-stats for " .. iface ..  ", station " .. station)
     if ( self.rc_stats_procs [ station ] == nil) then return nil end
     local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
@@ -329,13 +419,15 @@ end
 -- --------------------------
 
 function Node:start_regmon_stats ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     local file = debugfs .. "/" .. phy .. "/regmon/register_log"
     if (not isFile(file)) then
-        self:send_warning("no regmon-stats for " .. self.wifi.iface .. ", " .. phy)
+        self:send_warning("no regmon-stats for " .. iface .. ", " .. phy)
         self.regmon_proc = nil
         return nil
     end
-    self:send_info("start collecting regmon stats for " .. self.wifi.iface .. ", " .. phy)
+    self:send_info("start collecting regmon stats for " .. iface .. ", " .. phy)
     local regmon = spawn_pipe( "lua", "bin/fetch_file.lua", "-l", "-i", "50000", file )
     self.regmon_proc = regmon
     return regmon['proc']:__tostring()
@@ -394,10 +486,12 @@ end
 -- tcpdump -l | tee file
 -- tcpdump -i mon0 -s 150 -U
 -- tcpdump: mon0: SIOCETHTOOL(ETHTOOL_GET_TS_INFO) ioctl failed: No such device
-function Node:start_tcpdump ( fname )
-    self:send_info("start tcpdump for " .. self.wifi.mon)
-    local tcpdump = spawn_pipe( "tcpdump", "-i", self.wifi.mon, "-s", "150", "-U", "-w", fname)
---    local tcpdump, _ = spawn_pipe2( { "tcpdump", "-i", self.wifi.mon, "-s", "150", "-U", "-w", "-" },
+function Node:start_tcpdump ( phy, fname )
+    local dev = self:find_wifi_device ( phy )
+    local mon = dev.mon
+    self:send_info("start tcpdump for " .. mon)
+    local tcpdump = spawn_pipe( "tcpdump", "-i", mon, "-s", "150", "-U", "-w", fname)
+--    local tcpdump, _ = spawn_pipe2( { "tcpdump", "-i", mon, "-s", "150", "-U", "-w", "-" },
 --                                 { "tee", "-a", fname } )
     self.tcpdump_proc = tcpdump
 --    repeat

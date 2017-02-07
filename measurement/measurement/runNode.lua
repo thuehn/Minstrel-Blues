@@ -9,13 +9,6 @@ parser:option ("-n --name", "Node Name" )
 
 -- TODO: try to get ip address from interface with lua socket
 
-parser:option ("--wifi_ip", "Wifi IP-Address", "192.168.1.1" ) -- "127.0.0.1"
-parser:option ("--wifi_if", "Wifi Interface", "wlan0" ) -- lo0
-parser:option ("--wifi_mon", "Wifi Monitor Interface", "mon0" )
-
-parser:option ("--ctrl_ip", "Control IP-Address", "192.168.2.218" ) -- "127.0.0.1"
-parser:option ("--ctrl_if", "Control Monitor Interface", "eth0" ) -- lo0
-
 parser:option ("--log_ip", "IP of Logging node", "192.168.1.141" ) -- "192.168.2.211"
 
 parser:option ("-P --port", "Control RPC port", "12346" )
@@ -24,9 +17,8 @@ parser:option ("-I --iperf_port", "Port for iperf", "12000" )
 
 local args = parser:parse()
 
-local wifi = NetIF:create("wifi", args.wifi_if, args.wifi_ip, args.wifi_mon)
-local ctrl = NetIF:create("ctrl", args.ctrl_if , args.ctrl_ip, nil)
-local node = Node:create(args.name, wifi, ctrl, args.iperf_port, args.log_ip, args.log_port )
+local ctrl = NetIF:create("ctrl")
+local node = Node:create(args.name, ctrl, args.iperf_port, args.log_ip, args.log_port )
 
 function wifi_devices(...) return node:wifi_devices(...) end
 function restart_wifi(...) return node:restart_wifi(...) end

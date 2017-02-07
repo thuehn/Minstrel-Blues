@@ -11,7 +11,8 @@
 
 require ('functional') -- head
 local argparse = require "argparse"
-require "NetIF"
+require ('NetIF')
+require ('NodeRef')
 require ("rpc")
 require ("spawn_pipe")
 require ("parsers/ex_process")
@@ -33,17 +34,13 @@ local parser = argparse("singleRun", "Run minstrel blues single AP/STA mesuremen
 
 parser:option ("-c --config", "config file name", nil)
 
-parser:option ("--sta_wifi_ip", "STA Wifi IP-Address")
-parser:option ("--sta_wifi_if", "STA Wifi Interface")
-parser:option ("--sta_wifi_mon", "STA Wifi Monitor Interface")
+parser:option ("--sta_radio", "STA Wifi Interface name", "radio0")
 
 parser:option ("--sta_ctrl_ip", "STA Control IP-Address")
 parser:option ("--sta_ctrl_if", "STA Control Interface")
 
 
-parser:option ("--ap_wifi_ip", "AP Wifi IP-Address")
-parser:option ("--ap_wifi_if", "AP Wifi Interface")
-parser:option ("--ap_wifi_mon", "AP Wifi Interface")
+parser:option ("--ap_radio", "AP Wifi Interface name", "radio0")
 
 parser:option ("--ap_ctrl_ip", "AP Control IP-Address")
 parser:option ("--ap_ctrl_if", "AP Control Monitor Interface")
@@ -117,42 +114,30 @@ if (args.config ~= nil) then
         os.exit()
     end
     -- overwrite config file setting with command line settings
-    if (args.ap_wifi_if ~= nil) then ap.wifi_if = args.ap_wifi_if end 
-    if (args.ap_wifi_ip ~= nil) then ap.wifi_ip = args.ap_wifi_ip end 
-    if (args.ap_wifi_mon ~= nil) then ap.wifi_mon = args.ap_wifi_mon end 
+    if (args.ap_radio ~= nil) then ap.radio = args.ap_radio end 
     if (args.ap_ctrl_if ~= nil) then ap.ctrl_if = args.ap_ctrl_if end 
     if (args.ap_ctrl_ip ~= nil) then ap.ctrl_ip = args.ap_ctrl_ip end 
 
-    if (args.sta_wifi_if ~= nil) then sta.wifi_if = args.sta_wifi_if end 
-    if (args.sta_wifi_ip ~= nil) then sta.wifi_ip = args.sta_wifi_ip end 
-    if (args.sta_wifi_mon ~= nil) then sta.wifi_mon = args.sta_wifi_mon end 
+    if (args.sta_radio ~= nil) then sta.radio = args.sta_radio end 
     if (args.sta_ctrl_if ~= nil) then sta.ctrl_if = args.sta_ctrl_if end 
     if (args.sta_ctrl_ip ~= nil) then sta.ctrl_ip = args.sta_ctrl_ip end 
 else
-    if (args.ap_wifi_if == nil) then show_config_error ( "ap_wifi_if") end
-    if (args.ap_wifi_ip == nil) then show_config_error ( "ap_wifi_ip") end
-    if (args.ap_wifi_mon == nil) then show_config_error ( "ap_wifi_mon") end
+    if (args.ap_radio == nil) then show_config_error ( "ap_radio") end
     if (args.ap_ctrl_if == nil) then show_config_error ( "ap_ctrl_if") end
     if (args.ap_ctrl_ip == nil) then show_config_error ( "ap_ctrl_ip") end
 
-    if (args.sta_wifi_if == nil) then show_config_error ( "sta_wifi_if") end
-    if (args.sta_wifi_ip == nil) then show_config_error ( "sta_wifi_ip") end
-    if (args.sta_wifi_mon == nil) then show_config_error ( "sta_wifi_mon") end
+    if (args.sta_radio == nil) then show_config_error ( "sta_radio") end
     if (args.sta_ctrl_if == nil) then show_config_error ( "sta_ctrl_if") end
     if (args.sta_ctrl_ip == nil) then show_config_error ( "sta_ctrl_ip") end
 
     aps[1] = { name = "AP"
-             , wifi_if = args.ap_wifi_if
-             , wifi_ip = args.ap_wifi_ip
-             , wifi_mon = args.ap_wifi_mon
+             , radio = args.ap_radio
              , ctrl_if = args.ap_ctrl_if
              , ctrl_ip = args.ap_ctrl_ip
              , ctrl_if = args.ap_ctrl_if
              }
     stations[1] = { name = "STA"
-                  , wifi_if = args.sta_wifi_if
-                  , wifi_ip = args.sta_wifi_ip
-                  , wifi_mon = args.sta_wifi_mon
+                  , radio = args.sta_radio
                   , ctrl_if = args.sta_ctrl_if
                   , ctrl_ip = args.sta_ctrl_ip
                   , ctrl_if = args.sta_ctrl_if
@@ -192,12 +177,11 @@ function connect_node ( addr, port )
     end
 end
 
-function multicast_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc
-                               , udp_interval, tx_rates, tx_powers )
+function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval, tx_rates, tx_powers )
 
-    local ap_stats = Measurement:create( ap_rpc )
-    ap_stats:enable_rc_stats ( wifi_stations )
-    local sta_stats = Measurement:create( sta_rpc )
+    local ap_stats = Measurement:create( ap_ref.rpc )
+    ap_stats:enable_rc_stats ( ap_ref.stations )
+    local sta_stats = Measurement:create( sta_ref.rpc )
 
     -- for each rates, for each power level
 
@@ -211,26 +195,22 @@ function multicast_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wif
 
                 -- for all stations
 
-                ap_rpc.set_tx_rate ( ap_phys[1], wifi_stations[1], tx_rate )
-                ap_rpc.set_tx_power ( ap_phys[1], wifi_stations[1], tx_power )
+                ap_ref.rpc.set_tx_rate ( ap_ref.wifis[1], ap_ref.stations[1], tx_rate )
+                ap_ref.rpc.set_tx_power ( ap_ref.wifis[1], ap_ref.stations[1], tx_power )
     
-                -- start udp iperf server on STA
-                local iperf_s_proc_str = sta_rpc.start_udp_iperf_s()
-                local iperf_s_proc = parse_process ( iperf_s_proc_str )
-
                 -- restart wifi on STA
-                sta_rpc.restart_wifi()
+                sta_ref.rpc.restart_wifi()
 
                 -- add monitor on AP and STA
-                ap_rpc.add_monitor( ap_phys[1] )
+                ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
                 -- fixme: mon0 not created because of too many open files (~650/12505)
-                sta_rpc.add_monitor( sta_phys[1] )
-                wait_linked ( sta_rpc, sta_wifi.iface )
+                --   -- maybe mon0 already exists
+                sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
+                wait_linked ( sta_ref.rpc, sta_ref.wifis[1] )
 
                 -- start measurement on STA and AP
-                ap_stats:start ( ap_phys[1], key )
-                sta_stats:start ( ap_phys[1], key )
-
+                ap_stats:start ( ap_ref.wifis[1], key )
+                sta_stats:start ( sta_ref.wifis[1], key )
 
                 -- -------------------------------------------------------
                 -- Experiment
@@ -238,18 +218,18 @@ function multicast_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wif
 
                 -- start iperf client on AP
                 local addr = "224.0.67.0"
-                local iperf_c_proc_str = ap_rpc.run_multicast( sta_wifi.addr, addr, 32, udp_interval )
+                local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
+                local iperf_c_proc_str = ap_ref.rpc.run_multicast( sta_wifi_addr, addr, 32, udp_interval )
+
+                -- -------------------------------------------------------
 
                 -- stop measurement on STA and AP
                 ap_stats:stop ()
                 sta_stats:stop ()
 
-                -- stop iperf server on STA
-                sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
-        
                 -- collect traces
-                ap_stats:fetch ( key )
-                sta_stats:fetch ( key )
+                ap_stats:fetch ( ap_ref.wifis[1], key )
+                sta_stats:fetch ( sta_ref.wifis[1], key )
             end
         end
     end
@@ -257,63 +237,62 @@ function multicast_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wif
     return ap_stats, sta_stats
 end
 
-function tcp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
-                           tcpdata )
+function tcp_measurement ( ap_ref, sta_ref, runs, tcpdata )
     
-    local ap_stats = Measurement:create( ap_rpc )
-    ap_stats:enable_rc_stats ( wifi_stations )
-    local sta_stats = Measurement:create( sta_rpc )
+    local ap_stats = Measurement:create( ap_ref.rpc )
+    ap_stats:enable_rc_stats ( ap_ref.stations )
+    local sta_stats = Measurement:create( sta_ref.rpc )
 
     for run = 1, runs do
 
-        local key = tostring(run)
+        local key = tostring ( run )
 
         -- start tcp iperf server on STA
-        local iperf_s_proc_str = sta_rpc.start_tcp_iperf_s()
+        local iperf_s_proc_str = sta_ref.rpc.start_tcp_iperf_s()
         local iperf_s_proc = parse_process ( iperf_s_proc_str )
 
         -- restart wifi on STA
-        sta_rpc.restart_wifi()
+        sta_ref.rpc.restart_wifi()
 
         -- add monitor on AP and STA
-        ap_rpc.add_monitor( ap_phys[1] )
+        ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
         -- fixme: mon0 not created because of too many open files (~650/12505)
-        sta_rpc.add_monitor( sta_phys[1] )
-        wait_linked ( sta_rpc, sta_wifi.iface )
+        sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
+        wait_linked ( sta_ref.rpc, sta_ref.wifis[1] )
 
         -- start measurement on STA and AP
-        ap_stats:start ( ap_phys[1], key )
-        sta_stats:start ( ap_phys[1], key )
+        ap_stats:start ( ap_ref.wifis[1], key )
+        sta_stats:start ( sta_ref.wifis[1], key )
 
         -- -------------------------------------------------------
         -- Experiment
         -- -------------------------------------------------------
 
         -- start iperf client on AP
-        local iperf_c_proc_str = ap_rpc.run_tcp_iperf( sta_wifi.addr, tcpdata )
+        local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
+        local iperf_c_proc_str = ap_ref.rpc.run_tcp_iperf( sta_wifi_addr, tcpdata )
 
         -- stop measurement on STA and AP
         ap_stats:stop ()
         sta_stats:stop ()
 
         -- stop iperf server on STA
-        sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
+        sta_ref.rpc.stop_iperf_server( iperf_s_proc['pid'] )
         
         -- collect traces
-        ap_stats:fetch ( key )
-        sta_stats:fetch ( key )
+        ap_stats:fetch ( ap_ref.wifis[1], key )
+        sta_stats:fetch ( sta_ref.wifis[1], key )
     end
 
     return ap_stats, sta_stats
 end
 
 
-function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc, 
-                           packet_sizes, cct_intervals, packet_rates, udp_interval )
+function udp_measurement ( ap_ref, sta_ref, runs, packet_sizes, cct_intervals, packet_rates, udp_interval )
 
-    local ap_stats = Measurement:create( ap_rpc )
-    ap_stats:enable_rc_stats ( wifi_stations )
-    local sta_stats = Measurement:create( sta_rpc )
+    local ap_stats = Measurement:create( ap_ref.rpc )
+    ap_stats:enable_rc_stats ( ap_ref.stations )
+    local sta_stats = Measurement:create( sta_ref.rpc )
 
     local size = head ( split ( packet_sizes, "," ) )
     for _,interval in ipairs ( split( cct_intervals, ",") ) do
@@ -330,29 +309,30 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
                 print ( "run iperf with size, rate, interval " .. size .. ", " .. rate .. ", " .. interval )
 
                 -- start udp iperf server on STA
-                local iperf_s_proc_str = sta_rpc.start_udp_iperf_s()
+                local iperf_s_proc_str = sta_ref.rpc.start_udp_iperf_s()
                 local iperf_s_proc = parse_process ( iperf_s_proc_str )
             
                 -- restart wifi on STA
-                sta_rpc.restart_wifi()
+                sta_ref.rpc.restart_wifi()
 
                 -- add monitor on AP and STA
-                ap_rpc.add_monitor( ap_phys[1] )
-                sta_rpc.add_monitor( sta_phys[1] )
-                wait_linked ( sta_rpc, sta_wifi.iface )
+                ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
+                sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
+                wait_linked ( sta_ref.rpc, sta_ref.wifis[1] )
 
                 print ("start measurement")
 
                 -- start measurement on AP and STA
-                ap_stats:start ( ap_phys[1], key )
-                sta_stats:start ( sta_phys[1], key )
+                ap_stats:start ( ap_ref.wifis[1], key )
+                sta_stats:start ( sta_ref.wifis[1], key )
 
                 -- -------------------------------------------------------
                 -- Experiment
                 -- -------------------------------------------------------
 
                 -- start iperf client on AP
-                local iperf_c_proc_str = ap_rpc.run_udp_iperf( sta_wifi.addr, size, rate, udp_interval )
+                local sta_wifi_addr = sta_ref.rpc.get_addr ( sta_ref.wifis[1] )
+                local iperf_c_proc_str = ap_ref.rpc.run_udp_iperf( sta_wifi_addr, size, rate, udp_interval )
 
                 -- -------------------------------------------------------
 
@@ -361,11 +341,11 @@ function udp_measurement ( runs, wifi_stations, sta_phys, ap_phys, sta_wifi, ap_
                 sta_stats:stop ()
 
                 -- stop iperf server on STA
-                sta_rpc.stop_iperf_server( iperf_s_proc['pid'] )
+                sta_ref.rpc.stop_iperf_server( iperf_s_proc['pid'] )
 
                 -- collect traces
-                ap_stats:fetch ( key )
-                sta_stats:fetch ( key )
+                ap_stats:fetch ( ap_ref.wifis[1], key )
+                sta_stats:fetch ( sta_ref.wifis[1], key )
 
             end -- run
         end -- rate
@@ -381,11 +361,11 @@ end
 -- not precise, sta maybe not really connected afterwards
 -- but two or three seconds later
 -- not used
-function wait_station ( ap_rpc, ap_phys, wifi_stations )
+function wait_station ( ap_ref )
     repeat
         print ("wait for stations to come up ... ")
         os.sleep(1)
-        local wifi_stations_cur = ap_rpc.stations( ap_phys[1] )
+        local wifi_stations_cur = ap_ref.rpc.stations( ap_phys[1] )
         local miss = false
         for _, str in ipairs ( wifi_stations ) do
             if ( table.contains ( wifi_stations_cur, str ) == false ) then
@@ -397,10 +377,10 @@ function wait_station ( ap_rpc, ap_phys, wifi_stations )
 end
 
 -- wait for station is linked to ssid
-function wait_linked ( sta_rpc, iface )
+function wait_linked ( sta_rpc, phy )
     local connected = false
     repeat
-        local ssid = sta_rpc.get_linked_ssid ( iface )
+        local ssid = sta_rpc.get_linked_ssid ( phy )
         if (ssid == nil) then 
             print ("Waiting: station not connected")
             os.sleep (1)
@@ -414,30 +394,23 @@ end
 -- ---------------------------------------------------------------
 
 
-local ap_node = find_node( "AP", aps )
+local ap_node = find_node ( "AP", aps )
 local sta_node = find_node ( "STA", stations )
 
--- new class Node (NetIF x NetIF)
-local sta_wifi = NetIF:create("STA wifi", sta_node['wifi_if'], sta_node['wifi_ip'], sta_node['wifi_mon'])
-local sta_ctrl = NetIF:create("STA ctrl", sta_node['ctrl_if'], sta_node['ctrl_ip'], nil)
-local sta = { }
-sta['wifi'] = sta_wifi
-sta['ctrl'] = sta_ctrl
+local sta_ctrl = NetIF:create ("ctrl", sta_node['ctrl_if'], sta_node['ctrl_ip'] )
+local sta_ref = NodeRef:create ("STA", sta_ctrl )
+local sta = {}
 
-local ap_wifi = NetIF:create("AP wifi", ap_node['wifi_if'], ap_node['wifi_ip'], ap_node['wifi_mon'])
-local ap_ctrl = NetIF:create("AP ctrl", ap_node['ctrl_if'], ap_node['ctrl_ip'], nil)
-local ap = { }
-ap['wifi'] = ap_wifi
-ap['ctrl'] = ap_ctrl
+local ap_ctrl = NetIF:create ("ctrl", ap_node['ctrl_if'], ap_node['ctrl_ip'] )
+local ap_ref = NodeRef:create ("AP", ap_ctrl )
+local ap = {}
 
 -- print configuration
 print ("Configuration:")
 print ("==============")
 print ()
-print (sta_wifi)
-print (sta_ctrl)
-print (ap_wifi)
-print (ap_ctrl)
+print (sta_ref)
+print (ap_ref)
 print ()
 print ( "run udp: " .. tostring( args.tcp_only == false and args.tcp_only == false and args.multicast_only == false) )
 print ( "run tcp: " .. tostring( args.udp_only == false and args.tcp_only == false and args.multicast_only == false) )
@@ -457,8 +430,8 @@ end
 -- check reachability 
 local reached = {}
 if ( args.disable_reachable == false ) then
-    for _, node in ipairs ( { ap_node, sta_node } ) do
-        if reachable ( node.ctrl_ip ) then
+    for _, node in ipairs ( { ap_ref, sta_ref } ) do
+        if reachable ( node.ctrl.addr ) then
             reached[node.name] = true
             print ( node.name .. ": ONLINE" )
         else
@@ -472,15 +445,13 @@ print ()
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
-    for _, node in ipairs ( { ap_node, sta_node } ) do
+    for _, node in ipairs ( { ap_ref, sta_ref } ) do
         if ( reached[node.name] ) then
             local remote_cmd = "lua runNode.lua"
                         .. " --name " .. node.name 
-                        .. " --wifi_ip " .. node.wifi_ip
-                        .. " --ctrl_ip " .. node.ctrl_ip
                         .. " --log_ip " .. args.log_ip 
             print ( remote_cmd )
-            local ssh = spawn_pipe("ssh", "root@" .. node.ctrl_ip, remote_cmd)
+            local ssh = spawn_pipe("ssh", "root@" .. node.ctrl.addr, remote_cmd)
             close_proc_pipes ( ssh )
 --[[        local exit_code = ssh['proc']:wait()
             if (exit_code == 0) then
@@ -502,23 +473,41 @@ if rpc.mode ~= "tcpip" then
 end
 
 print ("connect to nodes")
-local ap_rpc = connect_node (ap_ctrl.addr, args.ctrl_port)
-local sta_rpc = connect_node (sta_ctrl.addr, args.ctrl_port)
+local ap_rpc = connect_node (ap_ref.ctrl.addr, args.ctrl_port)
+local sta_rpc = connect_node (sta_ref.ctrl.addr, args.ctrl_port)
 
 if ( ap_rpc == nil or sta_rpc == nil) then
     print ("connection failed!")
     os.exit(1)
 end
 
+ap_ref.rpc = ap_rpc
+sta_ref.rpc = sta_rpc
 print()
 
-local sta_mac = sta_rpc.get_mac ( sta_wifi.iface )
+local ap_phys = ap_rpc.wifi_devices()
+print ("AP wifi devices:")
+map ( print, ap_phys)
+ap_ref:add_wifi ( ap_phys[1] )
+
+local sta_phys = sta_rpc.wifi_devices()
+print ("STA wifi devices:")
+map ( print, sta_phys)
+sta_ref:add_wifi ( sta_phys[1] )
+local sta_mac = sta_rpc.get_mac ( sta_phys[1] )
+ap_ref:add_station ( sta_mac )
+print ()
+
+local ssid = ap_rpc.get_ssid( ap_phys[1] )
+print ("AP ssid: ".. ssid)
+print ()
+
 if ( sta_mac ~= nil) then
     print ("STA mac: " ..  sta_mac)
 else
     print ("STA mac: no ipv4 assigned?")
 end
-local sta_addr = sta_rpc.get_addr ( sta_wifi.iface )
+local sta_addr = sta_rpc.get_addr ( sta_phys[1] )
 if ( sta_addr ~= nil ) then
     print ("STA addr: " ..  sta_addr)
 else
@@ -532,13 +521,14 @@ else
 end
 print()
 
-local ap_mac = ap_rpc.get_mac ( "br-lan" )
+-- fixme: "br-lan" on bridged routers, instead
+local ap_mac = ap_rpc.get_mac ( ap_phys[1] )
 if ( ap_mac ~= nil) then
     print ("AP mac: " ..  ap_mac)
 else
     print ("AP mac: no ipv4 assigned")
 end
-local ap_addr = ap_rpc.get_addr ( "br-lan" )
+local ap_addr = ap_rpc.get_addr ( ap_phys[1] )
 if ( ap_addr ~= nil ) then
     print ("AP addr: " ..  ap_addr)
 else
@@ -546,37 +536,21 @@ else
 end
 print()
 
-local ap_phys = ap_rpc.wifi_devices()
-print ("AP wifi devices:")
-map ( print, ap_phys)
-
-local sta_phys = sta_rpc.wifi_devices()
-print ("STA wifi devices:")
-map ( print, sta_phys)
-print ()
-
-local ssid = ap_rpc.get_ssid( ap_node.wifi_if )
-print ("AP ssid: ".. ssid)
-print ()
-
-print ( "STATIONS on " .. ap_wifi.iface)
+print ( "STATIONS on " .. ap_phys[1])
 print ( "==================")
 local wifi_stations = ap_rpc.stations( ap_phys[1] )
-local wifi_stations_target = {}
-wifi_stations_target[1] = sta_mac
 map ( print, wifi_stations )
-print ("-----------------")
-print ( "STATIONS configured")
-print ( "==================")
-map ( print, wifi_stations_target )
 print ()
 
 -- check whether station is connected
 -- got the right station? query mac from STA
-if ( table_size ( wifi_stations_target ) < 1 ) then
-    print ("no station connected with access point")
-    os.exit(1)
-end
+--if ( table_size ( wifi_stations_target ) < 1 ) then
+--    print ("no station connected with access point")
+--    os.exit(1)
+--end
+
+print ( ap_ref:__tostring() )
+print ( sta_ref:__tostring() )
 
 if (args.dry_run) then 
     print ( "dry run is set, quit here" )
@@ -600,8 +574,7 @@ if ( args.tcp_only == false and args.udp_only == false and args.multicast_only =
     tx_rates[1] = 1
     tx_powers[1] = 25
     ap_stats, sta_stats 
-        = multicast_measurement( runs, wifi_stations_target, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc
-                               , args.interval, tx_rates, tx_powers )
+        = multicast_measurement( ap_ref, sta_ref, runs, args.interval, tx_rates, tx_powers )
     print ()
     if ( ap_stats ~= nil ) then
         print ( "AP stats" )
@@ -619,8 +592,7 @@ if ( args.tcp_only == true and args.udp_only == false and args.multicast_only ==
     local ap_stats
     local sta_stats
     ap_stats, sta_stats 
-        = tcp_measurement( runs, wifi_stations_target, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
-                           args.tcpdata )
+        = tcp_measurement( ap_ref, sta_ref, runs, args.tcpdata )
     print ()
     if ( ap_stats ~= nil ) then
         print ( "AP stats" )
@@ -638,8 +610,7 @@ if ( args.tcp_only == false and args.udp_only == true and args.multicast_only ==
     local ap_stats
     local sta_stats
     ap_stats, sta_stats 
-        = udp_measurement( runs, wifi_stations_target, sta_phys, ap_phys, sta_wifi, ap_wifi, ap_rpc, sta_rpc,
-                           args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+        = udp_measurement( ap_ref, sta_ref, runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
     print ()
     if ( ap_stats ~= nil ) then
         print ( "AP stats" )
@@ -664,8 +635,8 @@ rpc.close(sta_rpc)
 
 -- kill nodes if desired by the user
 if (args.disable_autostart == false) then
-    for i, node in ipairs ( { ap_node, sta_node } ) do -- fixme: zip nodes with pids
-        local ssh = spawn_pipe("ssh", "root@" .. node.ctrl_ip, "kill " .. pids[i])
+    for i, node in ipairs ( { ap_ref, sta_ref } ) do -- fixme: zip nodes with pids
+        local ssh = spawn_pipe("ssh", "root@" .. node.ctrl.addr, "kill " .. pids[i])
         local exit_code = ssh['proc']:wait()
         close_proc_pipes ( ssh )
     end

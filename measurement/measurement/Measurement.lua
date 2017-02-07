@@ -120,7 +120,7 @@ function Measurement:start ( phy, key )
     end
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. key .. ".pcap"
-    str = self.rpc_node.start_tcpdump( tcpdump_fname )
+    str = self.rpc_node.start_tcpdump( phy, tcpdump_fname )
     self.tcpdump_proc = parse_process ( str )
     -- rc stats
     self.rc_stats_procs = {}
@@ -156,7 +156,7 @@ function Measurement:stop ()
     end
 end
 
-function Measurement:fetch ( key )
+function Measurement:fetch ( phy, key )
     -- regmon
     self.regmon_stats [ key ] = self.rpc_node.get_regmon_stats()
     -- cpusage
@@ -168,7 +168,7 @@ function Measurement:fetch ( key )
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            local stats = self.rpc_node.get_rc_stats ( station )
+            local stats = self.rpc_node.get_rc_stats ( phy, station )
             self.rc_stats [ station ] [ key ] = stats 
         end
     end
