@@ -340,16 +340,18 @@ end
 
 local ctrl = ControlNode:create()
 
-local ap_node = find_node ( "lede-ap", aps )
-local sta_node = find_node ( "lede-sta", stations )
+local ap_config = find_node ( "lede-ap", aps )
+local sta_config = find_node ( "lede-sta", stations )
+local sta2_config = find_node ( "lede-ctrl", stations )
 
-local sta_ctrl = NetIF:create ("ctrl", sta_node['ctrl_if'], nil )
-local sta_ref = StationRef:create ("lede-sta", sta_ctrl, args.ctrl_port )
-local sta2_ctrl = NetIF:create ("ctrl", "eth0", nil )
-local sta2_ref = StationRef:create ("lede-ctrl", sta2_ctrl, args.ctrl_port )
+local sta_ctrl = NetIF:create ("ctrl", sta_config['ctrl_if'], nil )
+local sta_ref = StationRef:create (sta_config.name, sta_ctrl, args.ctrl_port )
 
-local ap_ctrl = NetIF:create ("ctrl", ap_node['ctrl_if'], nil )
-local ap_ref = AccessPointRef:create ("lede-ap", ap_ctrl, args.ctrl_port )
+local sta2_ctrl = NetIF:create ("ctrl", sta2_config['ctrl_if'], nil )
+local sta2_ref = StationRef:create (sta2_config.name, sta2_ctrl, args.ctrl_port )
+
+local ap_ctrl = NetIF:create ("ctrl", ap_config['ctrl_if'], nil )
+local ap_ref = AccessPointRef:create (ap_config.name, ap_ctrl, args.ctrl_port )
 
 ctrl:add_ap_ref ( ap_ref )
 ctrl:add_sta_ref ( sta_ref )
@@ -382,7 +384,7 @@ print ()
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
-    if (ctrl:start ( args.log_ip, args.log_port ) == false) then
+    if (ctrl:start ( args.log_ip, args.log_port, args.log_file ) == false) then
         print ("Error: Not all nodes started")
         os.exit(1)
     end
@@ -503,7 +505,7 @@ for _, sta_stats in ipairs ( stas_stats ) do
     print ()
 end
 
-ctrl:diconnect()
+ctrl:disconnect()
 
 -- kill nodes if desired by the user
 if ( args.disable_autostart == false ) then

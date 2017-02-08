@@ -21,6 +21,7 @@ require ('parsers/cpusage')
 require ('pcap')
 require ('misc')
 require ('Measurement')
+require ('Control')
 
 function reachable ( ip ) 
     local ping = spawn_pipe("ping", "-c1", ip)
@@ -104,14 +105,14 @@ if (args.config ~= nil) then
         print ( "Error: config file '" .. args.config .. "' have to contain one access point node description in var 'aps'. " .. count)
         os.exit()
     end
-    local ap = find_node( "AP", aps )
+    local ap = find_node( "lede-ap", aps )
     if (ap == nil) then
-        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'AP' in the 'nodes' table. " .. count)
+        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'lede-ap' in the 'nodes' table. " .. count)
         os.exit()
     end
-    local sta = find_node ( "STA", stations )
+    local sta = find_node ( "lede-sta", stations )
     if (sta == nil) then
-        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'STA' in the 'nodes' table. " .. count)
+        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'lede-sta' in the 'nodes' table. " .. count)
         os.exit()
     end
     -- overwrite config file setting with command line settings
@@ -147,38 +148,7 @@ else
     nodes[2] = stations[1]
 end
 
-function start_logger ( port )
-    local logger = spawn_pipe ( "lua", "bin/Logger.lua", args.log_file, "--port", port )
-    if ( logger ['err_msg'] ~= nil ) then
-        print("Logger not started" .. logger ['err_msg'] )
-    end
-    close_proc_pipes ( logger )
-    local str = logger['proc']:__tostring()
-    print ( str )
-    return parse_process ( str ) 
-end
-
-function stop_logger ( pid )
-    kill = spawn_pipe("kill", pid)
-    close_proc_pipes ( kill )
-end
-
-function connect_node ( addr, port )
-    function connect ()
-        local l, e = rpc.connect ( addr, port )
-        return l, e
-    end
-    local status, slave, err = pcall ( connect )
-    if (status == false) then
-        print ( "Err: Connection to node failed" )
-        print ( "Err: no node at address: " .. addr .. " on port: " .. port )
-        return nil
-    else
-        return slave
-    end
-end
-
-function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval, tx_rates, tx_powers )
+function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval )
 
     local ap_stats = Measurement:create( ap_ref.rpc )
     ap_stats:enable_rc_stats ( ap_ref.stations )
@@ -213,7 +183,7 @@ function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval, tx_rates, 
                 -- fixme: mon0 not created because of too many open files (~650/12505)
                 --   -- maybe mon0 already exists
                 sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
-                wait_linked ( sta_ref.rpc, sta_ref.wifis[1] )
+                wait_linked ( sta_ref, sta_ref.wifis[1] )
 
                 -- start measurement on STA and AP
                 ap_stats:start ( ap_ref.wifis[1], key )
@@ -226,7 +196,8 @@ function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval, tx_rates, 
                 -- start iperf client on AP
                 local addr = "224.0.67.0"
                 local ttl = 32
-                local iperf_c_proc_str = ap_ref.rpc.run_multicast( sta_wifi_addr, addr, ttl, udp_interval )
+                local size = "100M"
+                local iperf_c_proc_str = ap_ref.rpc.run_multicast( sta_wifi_addr, addr, size, ttl, udp_interval )
 
                 -- -------------------------------------------------------
 
@@ -267,7 +238,7 @@ function tcp_measurement ( ap_ref, sta_ref, runs, tcpdata )
         ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
         -- fixme: mon0 not created because of too many open files (~650/12505)
         sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
-        wait_linked ( sta_ref.rpc, sta_ref.wifis[1] )
+        wait_linked ( sta_ref, sta_ref.wifis[1] )
 
         -- start measurement on STA and AP
         ap_stats:start ( ap_ref.wifis[1], key )
@@ -328,7 +299,7 @@ function udp_measurement ( ap_ref, sta_ref, runs, packet_sizes, cct_intervals, p
                 -- add monitor on AP and STA
                 ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
                 sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
-                wait_linked ( sta_ref.rpc, sta_ref.wifis[1] )
+                wait_linked ( sta_ref, sta_ref.wifis[1] )
 
                 print ("start measurement")
 
@@ -366,86 +337,42 @@ function udp_measurement ( ap_ref, sta_ref, runs, packet_sizes, cct_intervals, p
 
 end
 
--- waits until all stations appears on ap
--- not precise, sta maybe not really connected afterwards
--- but two or three seconds later
--- not used
-function wait_station ( ap_ref )
-    repeat
-        print ("wait for stations to come up ... ")
-        os.sleep(1)
-        local wifi_stations_cur = ap_ref.rpc.stations( ap_phys[1] )
-        local miss = false
-        for _, str in ipairs ( wifi_stations ) do
-            if ( table.contains ( wifi_stations_cur, str ) == false ) then
-                miss = true
-                break
-            end
-        end
-    until miss
-end
-
--- wait for station is linked to ssid
-function wait_linked ( sta_rpc, phy )
-    local connected = false
-    repeat
-        local ssid = sta_rpc.get_linked_ssid ( phy )
-        if (ssid == nil) then 
-            print ("Waiting: station not connected")
-            os.sleep (1)
-        else
-            print ("station connected to " .. ssid)
-            connected = true
-        end
-    until connected
-end
 
 -- ---------------------------------------------------------------
 
+local ctrl = ControlNode:create()
 
-local ap_node = find_node ( "AP", aps )
-local sta_node = find_node ( "STA", stations )
+local ap_config = find_node ( "lede-ap", aps )
+local sta_config = find_node ( "lede-sta", stations )
 
-local sta_ctrl = NetIF:create ("ctrl", sta_node['ctrl_if'], sta_node['ctrl_ip'] )
-local sta_ref = StationRef:create ("STA", sta_ctrl )
-local sta = {}
+local sta_ctrl = NetIF:create ("ctrl", sta_config['ctrl_if'], sta_config['ctrl_ip'] )
+local sta_ref = StationRef:create ( sta_config.name, sta_ctrl )
 
-local ap_ctrl = NetIF:create ("ctrl", ap_node['ctrl_if'], ap_node['ctrl_ip'] )
-local ap_ref = AccessPointRef:create ("AP", ap_ctrl )
-local ap = {}
+local ap_ctrl = NetIF:create ("ctrl", ap_config['ctrl_if'], ap_config['ctrl_ip'] )
+local ap_ref = AccessPointRef:create ( ap_config.name , ap_ctrl )
+
+ctrl:add_ap_ref ( ap_ref )
+ctrl:add_sta_ref ( sta_ref )
 
 -- print configuration
 print ("Configuration:")
 print ("==============")
 print ()
-print (sta_ref)
-print (ap_ref)
+print ( ctrl:__tostring() )
 print ()
 print ( "run udp: " .. tostring( args.tcp_only == false and args.tcp_only == false and args.multicast_only == false) )
 print ( "run tcp: " .. tostring( args.udp_only == false and args.tcp_only == false and args.multicast_only == false) )
 print ( "run multicast: " .. tostring( args.udp_only == false and args.tcp_only == false and args.multicast_only == true) )
 print ()
 
--- autostart logger
-local logger_proc
-if ( args.disable_autostart == false ) then
-    logger_proc = start_logger ( args.log_port )
-    if ( logger_proc == nil ) then
-        print ("Logger not started.")
-        os.exit(1)
-    end
-end
-
 -- check reachability 
-local reached = {}
 if ( args.disable_reachable == false ) then
-    for _, node in ipairs ( { ap_ref, sta_ref } ) do
-        if reachable ( node.ctrl.addr ) then
-            reached[node.name] = true
-            print ( node.name .. ": ONLINE" )
+    local reached = ctrl:reachable()
+    for addr, reached in pairs ( reached ) do
+        if (reached) then
+            print ( addr .. ": ONLINE" )
         else
-            reached[node.name] = false
-            print ( tostring(node.name) .. ": OFFLINE" )
+            print ( addr .. ": OFFLINE" )
             os.exit(1)
         end
     end
@@ -454,60 +381,37 @@ print ()
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
-    for _, node in ipairs ( { ap_ref, sta_ref } ) do
-        if ( reached[node.name] ) then
-            local remote_cmd = "lua runNode.lua"
-                        .. " --name " .. node.name 
-                        .. " --log_ip " .. args.log_ip 
-            print ( remote_cmd )
-            local ssh = spawn_pipe("ssh", "root@" .. node.ctrl.addr, remote_cmd)
-            close_proc_pipes ( ssh )
---[[        local exit_code = ssh['proc']:wait()
-            if (exit_code == 0) then
-                print (node.name .. ": node started" )
-            else
-                print (node.name .. ": node not started, exit code: " .. exit_code)
-                print ( ssh['err']:read("*all") )
-                os.exit(1)
-            end --]]
-        end
+    if (ctrl:start ( args.log_ip, args.log_port, args.log_file ) == false) then
+        print ("Error: Not all nodes started")
+        os.exit(1)
     end
     print ("wait a second for nodes initialisation")
     os.sleep (4)
 end
 
-if rpc.mode ~= "tcpip" then
-    print ( "Err: rpc mode tcp/ip is supported only" )
-    os.exit(1)
-end
-
+-- and connect to nodes
 print ("connect to nodes")
-local ap_rpc = connect_node (ap_ref.ctrl.addr, args.ctrl_port)
-local sta_rpc = connect_node (sta_ref.ctrl.addr, args.ctrl_port)
-
-if ( ap_rpc == nil or sta_rpc == nil) then
+if (ctrl:connect ( args.ctrl_port ) == false) then
     print ("connection failed!")
     os.exit(1)
 end
 
-ap_ref.rpc = ap_rpc
-sta_ref.rpc = sta_rpc
 print()
 
-local ap_phys = ap_rpc.wifi_devices()
+local ap_phys = ap_ref.rpc.wifi_devices()
 print ("AP wifi devices:")
 map ( print, ap_phys)
 ap_ref:add_wifi ( ap_phys[1] )
 
-local sta_phys = sta_rpc.wifi_devices()
+local sta_phys = sta_ref.rpc.wifi_devices()
 print ("STA wifi devices:")
 map ( print, sta_phys)
 sta_ref:add_wifi ( sta_phys[1] )
-local sta_mac = sta_rpc.get_mac ( sta_phys[1] )
+local sta_mac = sta_ref.rpc.get_mac ( sta_phys[1] )
 ap_ref:add_station ( sta_mac )
 print ()
 
-local ssid = ap_rpc.get_ssid( ap_phys[1] )
+local ssid = ap_ref.rpc.get_ssid( ap_phys[1] )
 print ("AP ssid: ".. ssid)
 print ()
 
@@ -516,13 +420,13 @@ if ( sta_mac ~= nil) then
 else
     print ("STA mac: no ipv4 assigned?")
 end
-local sta_addr = sta_rpc.get_addr ( sta_phys[1] )
+local sta_addr = sta_ref.rpc.get_addr ( sta_phys[1] )
 if ( sta_addr ~= nil ) then
     print ("STA addr: " ..  sta_addr)
 else
     print ("STA addr: no ipv4 assigned")
     if ( sta_mac ~= nil ) then
-        local addr = ap_rpc.has_lease ( sta_mac )
+        local addr = ap_ref.rpc.has_lease ( sta_mac )
         if ( addr ~= nil ) then
             print ("STA addr (ap lease): " ..  sta_addr)
         end
@@ -531,13 +435,13 @@ end
 print()
 
 -- fixme: "br-lan" on bridged routers, instead
-local ap_mac = ap_rpc.get_mac ( ap_phys[1] )
+local ap_mac = ap_ref.rpc.get_mac ( ap_phys[1] )
 if ( ap_mac ~= nil) then
     print ("AP mac: " ..  ap_mac)
 else
     print ("AP mac: no ipv4 assigned")
 end
-local ap_addr = ap_rpc.get_addr ( ap_phys[1] )
+local ap_addr = ap_ref.rpc.get_addr ( ap_phys[1] )
 if ( ap_addr ~= nil ) then
     print ("AP addr: " ..  ap_addr)
 else
@@ -547,7 +451,7 @@ print()
 
 print ( "STATIONS on " .. ap_phys[1])
 print ( "==================")
-local wifi_stations = ap_rpc.stations( ap_phys[1] )
+local wifi_stations = ap_ref.rpc.stations( ap_phys[1] )
 map ( print, wifi_stations )
 print ()
 
@@ -558,8 +462,20 @@ print ()
 --    os.exit(1)
 --end
 
-print ( ap_ref:__tostring() )
-print ( sta_ref:__tostring() )
+print ( ctrl:__tostring() )
+
+if (args.dry_run) then 
+    print ( "dry run is set, quit here" )
+    if ( args.disable_autostart == false ) then
+        ctrl:stop()
+    end
+    os.exit(1)
+end
+
+for _, node_ref in ipairs ( ctrl:nodes() ) do
+    node_ref.rpc.set_ani ( ap_phys[1], not args.disable_ani )
+end
+
 
 if (args.dry_run) then 
     print ( "dry run is set, quit here" )
@@ -567,86 +483,40 @@ if (args.dry_run) then
     os.exit(1)
 end
 
-ap_rpc.add_monitor( ap_phys[1] )
-sta_rpc.add_monitor( sta_phys[1] )
-
-ap_rpc.set_ani ( ap_phys[1], not args.disable_ani )
-sta_rpc.set_ani ( sta_phys[1], not args.disable_ani )
-
 local runs = tonumber ( args.runs )
 
+local ap_stats
+local sta_stats
 if ( args.tcp_only == false and args.udp_only == false and args.multicast_only == true) then
-    local ap_stats
-    local sta_stats
     ap_stats, sta_stats 
         = multicast_measurement( ap_ref, sta_ref, runs, args.interval )
-    print ()
-    if ( ap_stats ~= nil ) then
-        print ( "AP stats" )
-        print ( ap_stats:__tostring() )
-        print ()
-    end
-    if ( sta_stats ~= nil ) then
-        print ( "STA stats" )
-        print ( sta_stats:__tostring() )
-        print ()
-    end
 end
 
 if ( args.tcp_only == true and args.udp_only == false and args.multicast_only == false) then
-    local ap_stats
-    local sta_stats
     ap_stats, sta_stats 
         = tcp_measurement( ap_ref, sta_ref, runs, args.tcpdata )
-    print ()
-    if ( ap_stats ~= nil ) then
-        print ( "AP stats" )
-        print ( ap_stats:__tostring() )
-        print ()
-    end
-    if ( sta_stats ~= nil ) then
-        print ( "STA stats" )
-        print ( sta_stats:__tostring() )
-        print ()
-    end
 end
 
 if ( args.tcp_only == false and args.udp_only == true and args.multicast_only == false) then
-    local ap_stats
-    local sta_stats
     ap_stats, sta_stats 
         = udp_measurement( ap_ref, sta_ref, runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
-    print ()
-    if ( ap_stats ~= nil ) then
-        print ( "AP stats" )
-        print ( ap_stats:__tostring() )
-        print ()
-    end
-    if ( sta_stats ~= nil ) then
-        print ( "STA stats" )
-        print ( sta_stats:__tostring() )
-        print ()
-    end
 end                 
 
--- query lua pid before closing rpc connection
--- maybe to kill nodes later
-local pids = {}
-pids[1] = ap_rpc.get_pid()
-pids[2] = sta_rpc.get_pid()
-
-rpc.close(ap_rpc)
-rpc.close(sta_rpc)
-
--- kill nodes if desired by the user
-if (args.disable_autostart == false) then
-    for i, node in ipairs ( { ap_ref, sta_ref } ) do -- fixme: zip nodes with pids
-        local ssh = spawn_pipe("ssh", "root@" .. node.ctrl.addr, "kill " .. pids[i])
-        local exit_code = ssh['proc']:wait()
-        close_proc_pipes ( ssh )
-    end
+print ()
+if ( ap_stats ~= nil ) then
+    print ( "AP stats" )
+    print ( ap_stats:__tostring() )
+    print ()
+end
+if ( sta_stats ~= nil ) then
+    print ( "STA stats" )
+    print ( sta_stats:__tostring() )
+    print ()
 end
 
+ctrl:disconnect()
+
+-- kill nodes if desired by the user
 if ( args.disable_autostart == false ) then
-    stop_logger ( logger_proc['pid'] )
+    ctrl:stop()
 end
