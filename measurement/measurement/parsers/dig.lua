@@ -1,5 +1,4 @@
 require ('parsers/parsers')
-require ('ex')
 
 -- single line comment starts with ';'
 -- resolved address for 'apfel' starts with 'apfel.'

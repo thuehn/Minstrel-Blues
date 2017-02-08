@@ -10,7 +10,7 @@ stations = {
     , radio = "radio0"
     , ctrl_if = "eth0"
     },
-    { name = "sta-ctrl"
+    { name = "lede-ctrl"
     , radio = "radio0"
     , ctrl_if = "eth0"
     }
