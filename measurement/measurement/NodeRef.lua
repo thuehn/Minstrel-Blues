@@ -64,3 +64,38 @@ function NodeRef:__tostring()
     end
     return out        
 end
+
+-- waits until all stations appears on ap
+-- not precise, sta maybe not really connected afterwards
+-- but two or three seconds later
+-- not used
+function NodeRef:wait_station ()
+    repeat
+        print ("wait for stations to come up ... ")
+        os.sleep(1)
+        local wifi_stations_cur = self.rpc.stations( ap_phys[1] )
+        local miss = false
+        for _, str in ipairs ( wifi_stations ) do
+            if ( table.contains ( wifi_stations_cur, str ) == false ) then
+                miss = true
+                break
+            end
+        end
+    until miss
+end
+
+-- wait for station is linked to ssid
+function NodeRef:wait_linked ( phy )
+    local connected = false
+    repeat
+        local ssid = self.rpc.get_linked_ssid ( phy )
+        if (ssid == nil) then 
+            print ("Waiting: Station " .. self.name .. " not connected")
+            os.sleep (1)
+        else
+            print ("Station " .. self.name .. " connected to " .. ssid)
+            connected = true
+        end
+    until connected
+end
+

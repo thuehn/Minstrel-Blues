@@ -96,40 +96,6 @@ function ControlNode:reachable ()
     return reached
 end
 
--- waits until all stations appears on ap
--- not precise, sta maybe not really connected afterwards
--- but two or three seconds later
--- not used
-function wait_station ( ap_ref )
-    repeat
-        print ("wait for stations to come up ... ")
-        os.sleep(1)
-        local wifi_stations_cur = ap_ref.rpc.stations( ap_phys[1] )
-        local miss = false
-        for _, str in ipairs ( wifi_stations ) do
-            if ( table.contains ( wifi_stations_cur, str ) == false ) then
-                miss = true
-                break
-            end
-        end
-    until miss
-end
-
--- wait for station is linked to ssid
-function wait_linked ( sta_ref, phy )
-    local connected = false
-    repeat
-        local ssid = sta_ref.rpc.get_linked_ssid ( phy )
-        if (ssid == nil) then 
-            print ("Waiting: Station " .. sta_ref.name .. " not connected")
-            os.sleep (1)
-        else
-            print ("Station " .. sta_ref.name .. " connected to " .. ssid)
-            connected = true
-        end
-    until connected
-end
-
 function ControlNode:start( log_addr, log_port, log_file )
 
     function start_logger ( addr, port, file )
@@ -197,8 +163,24 @@ end
 
 function ControlNode:disconnect()
     for _, node_ref in ipairs ( self:nodes() ) do 
-        rpc.close(node_ref.rpc)
+        rpc.close ( node_ref.rpc )
     end
+end
+
+function ControlNode:run_experiment ( exp, ap_ref, sta_refs )
+
+    local ap_stats
+    local stas_stats
+
+    status, ap_stats, stas_stats = pcall ( function () return exp ( ap_ref, sta_refs ) end )
+    if ( status == false ) then return false end
+
+    self.stats [ ap_ref.name ] = ap_stats
+    for i, sta_ref in ipairs ( sta_refs ) do
+        self.stats [ sta_ref.name ] = stas_stats [i]
+    end
+    return true
+
 end
 
 function ControlNode:stop()

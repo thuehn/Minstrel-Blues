@@ -22,7 +22,9 @@ require ('pcap')
 require ('misc')
 require ('Measurement')
 require ('Control')
-require ('Experiment')
+require ('tcpExperiment')
+require ('udpExperiment')
+require ('multicastExperiment')
 
 
 local parser = argparse("singleRun", "Run minstrel blues single AP/STA mesurement")
@@ -47,7 +49,7 @@ parser:option ("-l --log_file", "Logging to File", "/tmp/measurement.log" )
 parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
 
 parser:option ("--runs", "Number of iterations", "1" )
-parser:option ("-t --tcpdata", "Amount of TCP data", "500MB" )
+parser:option ("-t --tcpdata", "Amount of TCP data", "5MB" )
 parser:option ("-s --packet_sizes", "Amount of UDP data", "1500" )
 parser:option ("-r --packet_rates", "Rates of UDP data", "50,200,600,1200" )
 parser:option ("-i --cct_intervals", "send iperf traffic intervals in milliseconds", "20000,50,100,1000" )
@@ -134,277 +136,6 @@ else
                   }
     nodes[1] = aps[1]
     nodes[2] = stations[1]
-end
-
-function multicast_measurement ( ap_ref, sta_refs, runs, udp_interval )
-
-
-    local ap_stats = Measurement:create( ap_ref.rpc )
-    ap_stats:enable_rc_stats ( ap_ref.stations )
-    local stas_stats = {}
-    for i,sta_ref in ipairs ( sta_refs ) do
-        stas_stats[i] = Measurement:create( sta_ref.rpc )
-    end
-
-    local tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifis[1], ap_ref.stations[1] )
-    local tx_powers = {}
-    for i = 1, 25 do
-        tx_powers[1] = i
-    end
-    local size = "100M"
-
-    for run = 1, runs do
-
-        for _, tx_rate in ipairs ( tx_rates ) do
-            
-            for _, tx_power in ipairs ( tx_powers ) do
-
-                local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring(run)
-
-                ap_ref.rpc.set_tx_rate ( ap_ref.wifis[1], ap_ref.stations[1], tx_rate )
-                ap_ref.rpc.set_tx_power ( ap_ref.wifis[1], ap_ref.stations[1], tx_power )
-    
-                -- add monitor on AP
-                ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
-
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    -- restart wifi on STA
-                    sta_ref.rpc.restart_wifi()
-                    -- fixme: mon0 not created because of too many open files (~650/12505)
-                    --   - maybe mon0 already exists
-                    sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
-                end
-
-                -- wait for stations connect
-                for i,sta_ref in ipairs ( sta_refs ) do
-                    wait_linked ( sta_ref, sta_ref.wifis[1] )
-                end
-
-                -- start measurement on AP an STA
-                ap_stats:start ( ap_ref.wifis[1], key )
-                for i,sta_ref in ipairs ( sta_refs ) do
-                    stas_stats[i]:start ( sta_ref.wifis[1], key )
-                end
-
-                -- -------------------------------------------------------
-                -- Experiment
-                -- -------------------------------------------------------
-                local wait = true
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    -- start iperf client on AP
-                    local addr = "224.0.67.0"
-                    local ttl = 32
-                    ap_ref.rpc.run_multicast( sta_ref:get_addr ( sta_ref.wifis[1] ), addr, ttl, size, udp_interval, wait )
-                end
-                -- -------------------------------------------------------
-
-                -- stop measurement on AP an STAs
-                ap_stats:stop ()
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    stas_stats[i]:stop ()
-                end
-
-                -- collect traces
-                ap_stats:fetch ( ap_ref.wifis[1], key )
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    stas_stats[i]:fetch ( sta_ref.wifis[1], key )
-                end
-
-                ap_ref.rpc.remove_monitor ( ap_ref.wifis[1] )
-                -- del monitor on STAs
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    sta_ref.rpc.remove_monitor( sta_ref.wifis[1] )
-                end
-
-            end
-        end
-    end
-
-    return ap_stats, stas_stats
-end
-
-function tcp_measurement ( ap_ref, sta_refs, runs, tcpdata )
-    
-    local ap_stats = Measurement:create( ap_ref.rpc )
-    ap_stats:enable_rc_stats ( ap_ref.stations )
-    local stas_stats = {}
-    for i,sta_ref in ipairs ( sta_refs ) do
-        stas_stats[i] = Measurement:create( sta_ref.rpc )
-    end
-    local iperf_s_procs = {}
-    local iperf_c_pids = {}
-
-    for run = 1, runs do
-
-        local key = tostring ( run )
-
-        -- start tcp iperf server on STAs
-        for i, sta_ref in ipairs ( sta_refs ) do
-            local iperf_s_proc_str = sta_ref.rpc.start_tcp_iperf_s()
-            iperf_s_procs[i] = parse_process ( iperf_s_proc_str )
-        end
-
-        ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
-
-        -- restart wifi on STAs
-        -- add monitor on STAs
-        for i, sta_ref in ipairs ( sta_refs ) do
-            sta_ref.rpc.restart_wifi()
-            -- fixme: mon0 not created because of too many open files (~650/12505)
-            sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
-        end
-
-        for i, sta_ref in ipairs ( sta_refs ) do
-            wait_linked ( sta_ref, sta_ref.wifis[1] )
-        end
-
-        -- start measurement on STAs and AP
-        ap_stats:start ( ap_ref.wifis[1], key )
-        for i, sta_ref in ipairs ( sta_refs ) do
-            stas_stats[i]:start ( sta_ref.wifis[1], key )
-        end
-
-        -- -------------------------------------------------------
-        -- Experiment
-        -- -------------------------------------------------------
-        
-        -- start iperf clients on AP
-        for i, sta_ref in ipairs ( sta_refs ) do
-            local wait = false
-            local pid = ap_ref.rpc.run_tcp_iperf( sta_ref:get_addr ( sta_ref.wifis[1] ), tcpdata, wait )
-            iperf_c_pids[i] = pid 
-        end
-        -- wait for clients on AP
-        for i, sta_ref in ipairs ( sta_refs ) do
-            ap_ref.rpc.wait_iperf_c( iperf_c_pids[i] )
-        end
-        -- -------------------------------------------------------
-
-        -- stop measurement on STAs and AP
-        ap_stats:stop ()
-        for i, sta_ref in ipairs ( sta_refs ) do
-            stas_stats[i]:stop ()
-        end
-
-        -- stop iperf server on STAs
-        for i, sta_ref in ipairs ( sta_refs ) do
-            sta_ref.rpc.stop_iperf_server( iperf_s_procs[i]['pid'] )
-        end
-
-        -- collect traces
-        ap_stats:fetch ( ap_ref.wifis[1], key )
-        for i, sta_ref in ipairs ( sta_refs ) do
-            stas_stats[i]:fetch ( sta_ref.wifis[1], key )
-        end
-        
-        ap_ref.rpc.remove_monitor ( ap_ref.wifis[1] )
-        -- del monitor on STAs
-        for i, sta_ref in ipairs ( sta_refs ) do
-            sta_ref.rpc.remove_monitor( sta_ref.wifis[1] )
-        end
-
-    end
-
-    return ap_stats, stas_stats
-end
-
-
-function udp_measurement ( ap_ref, sta_refs, runs, packet_sizes, cct_intervals, packet_rates, udp_interval )
-
-    local ap_stats = Measurement:create( ap_ref.rpc )
-    ap_stats:enable_rc_stats ( ap_ref.stations )
-    local stas_stats = {}
-    for i,sta_ref in ipairs ( sta_refs ) do
-        stas_stats[i] = Measurement:create( sta_ref.rpc )
-    end
-    local iperf_s_procs = {}
-    local iperf_c_pids = {}
-
-    local size = head ( split ( packet_sizes, "," ) )
-    for _,interval in ipairs ( split( cct_intervals, ",") ) do
-
-        -- fixme: attenuate
-        -- https://github.com/thuehn/Labbrick_Digital_Attenuator
-
-        for _,rate in ipairs ( split ( packet_rates, ",") ) do
-
-            for run = 1, runs do
-
-                local key = tostring(rate) .. "-" .. tostring(interval) .. "-" .. tostring(run)
-
-                -- start udp iperf server on STAs
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    local iperf_s_proc_str = sta_ref.rpc.start_udp_iperf_s()
-                    iperf_s_procs[i] = parse_process ( iperf_s_proc_str )
-                end
-            
-                ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
-
-                -- restart wifi on STAs
-                -- add monitor on STAs
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    sta_ref.rpc.restart_wifi()
-                    sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
-                end
-
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    wait_linked ( sta_ref, sta_ref.wifis[1] )
-                end
-
-                -- start measurement on AP and STAs
-                ap_stats:start ( ap_ref.wifis[1], key )
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    stas_stats[i]:start ( sta_ref.wifis[1], key )
-                end
-
-                -- -------------------------------------------------------
-                -- Experiment
-                -- -------------------------------------------------------
-
-                -- start iperf client on AP
-                local wait = false
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    iperf_c_pids[i] = ap_ref.rpc.run_udp_iperf( sta_ref:get_addr ( sta_ref.wifis[1] ), size, rate, udp_interval )
-                end
-                -- wait for clients on AP
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    ap_ref.rpc.wait_iperf_c( iperf_c_pids[i] )
-                end
-
-                -- -------------------------------------------------------
-
-                -- stop measurement on AP and STA
-                ap_stats:stop ()
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    stas_stats[i]:stop ()
-                end
-
-                -- stop iperf server on STAs
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    sta_ref.rpc.stop_iperf_server( iperf_s_procs[i]['pid'] )
-                end
-
-                -- collect traces
-                ap_stats:fetch ( ap_ref.wifis[1], key )
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    stas_stats[i]:fetch ( sta_ref.wifis[1], key )
-                end
-
-                ap_ref.rpc.remove_monitor ( ap_ref.wifis[1] )
-                -- del monitor on STAs
-                for i, sta_ref in ipairs ( sta_refs ) do
-                    sta_ref.rpc.remove_monitor( sta_ref.wifis[1] )
-                end
-
-            end -- run
-        end -- rate
-
-        -- fixme: stop attenuate
-
-    end -- cct
-
-    return ap_stats, stas_stats
-
 end
 
 -- ---------------------------------------------------------------
@@ -543,40 +274,55 @@ end
 
 local runs = tonumber ( args.runs )
 
+-- -----------------------
+
 local sta_refs = {}
 sta_refs[1] = sta_ref
 sta_refs[2] = sta2_ref
 
-local ap_stats
-local stats_stats
+local tcp_exp = create_tcp_measurement ( runs, args.tcpdata )
+local multicast_exp = create_multicast_measurement ( runs, args.interval )
+local udp_exp = create_tcp_measurement ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+
+local status
 
 if ( args.tcp_only == false and args.udp_only == false and args.multicast_only == true) then
-    ap_stats, stas_stats 
-        = multicast_measurement( ap_ref, sta_refs, runs, args.interval )
+    status = ctrl:run_experiment ( multicast_exp, ap_ref, sta_refs ) 
+end
+
+if (status == true) then
+    for name, stats in pairs ( ctrl.stats ) do
+        print ( name )
+        print ( stats:__tostring() )
+        print ( )
+    end
 end
 
 if ( args.tcp_only == true and args.udp_only == false and args.multicast_only == false) then
-    ap_stats, stas_stats 
-        = tcp_measurement( ap_ref, sta_refs, runs, args.tcpdata )
+    status = ctrl:run_experiment ( tcp_exp, ap_ref, sta_refs ) 
+end
+
+if (status == true) then
+    for name, stats in pairs ( ctrl.stats ) do
+        print ( name )
+        print ( stats:__tostring() )
+        print ( )
+    end
 end
 
 if ( args.tcp_only == false and args.udp_only == true and args.multicast_only == false) then
-    ap_stats, stas_stats 
-        = udp_measurement( ap_ref, sta_refs, runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
-end 
-
-print ()
-if ( ap_stats ~= nil ) then
-    print ( "AP stats" )
-    print ( ap_stats:__tostring() )
-    print ()
+    status = ctrl:run_experiment ( udp_exp, ap_ref, sta_refs ) 
 end
 
-print ( "STAs stats" )
-for _, sta_stats in ipairs ( stas_stats ) do
-    print ( sta_stats:__tostring() )
-    print ()
+if (status == true) then
+    for name, stats in pairs ( ctrl.stats ) do
+        print ( name )
+        print ( stats:__tostring() )
+        print ( )
+    end
 end
+
+-- -----------------------
 
 ctrl:disconnect()
 
