@@ -27,7 +27,7 @@ require ('udpExperiment')
 require ('multicastExperiment')
 
 
-local parser = argparse("singleRun", "Run minstrel blues single AP/STA mesurement")
+local parser = argparse("apRun", "Run minstrel blues single AP/ multi STA mesurement")
 
 -- TODO: use networks instead of hosts, each ap
 
