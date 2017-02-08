@@ -164,7 +164,6 @@ end
 --   12505
 --   root@lede-sta:~# lsof | wc -l
 --   643
--- ix dev mon0 del
 function Node:add_monitor ( phy )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
@@ -190,6 +189,26 @@ function Node:add_monitor ( phy )
     end
     close_proc_pipes ( ifconfig )
 end
+
+-- iw dev mon0 info
+-- iv dev mon0 del
+function Node:remove_monitor ( phy )
+    local dev = self:find_wifi_device ( phy )
+    local mon = dev.mon
+    local iw_info = spawn_pipe("iw", "dev", mon, "info")
+    local exit_code = iw_info['proc']:wait()
+    close_proc_pipes ( iw_info )
+    if (exit_code == 0) then
+        self:send_info("Removing monitor " .. mon .. " from " .. phy)
+        local iw_add = spawn_pipe("iw", "dev", mon, "del")
+        local exit_code = iw_add['proc']:wait()
+        close_proc_pipes ( iw_add )
+        if (exit_code ~= 0) then
+            self:send_error("Remove monitor failed: " .. exit_code)
+        end
+    end
+end
+
 
 function list_phys ()
     local phys = {}

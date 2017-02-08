@@ -164,11 +164,8 @@ function multicast_measurement ( ap_ref, sta_refs, runs, udp_interval )
                 ap_ref.rpc.set_tx_rate ( ap_ref.wifis[1], ap_ref.stations[1], tx_rate )
                 ap_ref.rpc.set_tx_power ( ap_ref.wifis[1], ap_ref.stations[1], tx_power )
     
-                -- add monitor on AP and STA
+                -- add monitor on AP
                 ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
-
-                -- start measurement on AP
-                ap_stats:start ( ap_ref.wifis[1], key )
 
                 for i, sta_ref in ipairs ( sta_refs ) do
                     -- restart wifi on STA
@@ -183,6 +180,8 @@ function multicast_measurement ( ap_ref, sta_refs, runs, udp_interval )
                     wait_linked ( sta_ref, sta_ref.wifis[1] )
                 end
 
+                -- start measurement on AP an STA
+                ap_stats:start ( ap_ref.wifis[1], key )
                 for i,sta_ref in ipairs ( sta_refs ) do
                     stas_stats[i]:start ( sta_ref.wifis[1], key )
                 end
@@ -210,6 +209,13 @@ function multicast_measurement ( ap_ref, sta_refs, runs, udp_interval )
                 for i, sta_ref in ipairs ( sta_refs ) do
                     stas_stats[i]:fetch ( sta_ref.wifis[1], key )
                 end
+
+                ap_ref.rpc.remove_monitor ( ap_ref.wifis[1] )
+                -- del monitor on STAs
+                for i, sta_ref in ipairs ( sta_refs ) do
+                    sta_ref.rpc.remove_monitor( sta_ref.wifis[1] )
+                end
+
             end
         end
     end
@@ -238,6 +244,8 @@ function tcp_measurement ( ap_ref, sta_refs, runs, tcpdata )
             iperf_s_procs[i] = parse_process ( iperf_s_proc_str )
         end
 
+        ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
+
         -- restart wifi on STAs
         -- add monitor on STAs
         for i, sta_ref in ipairs ( sta_refs ) do
@@ -246,7 +254,6 @@ function tcp_measurement ( ap_ref, sta_refs, runs, tcpdata )
             sta_ref.rpc.add_monitor( sta_ref.wifis[1] )
         end
 
-        ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
         for i, sta_ref in ipairs ( sta_refs ) do
             wait_linked ( sta_ref, sta_ref.wifis[1] )
         end
@@ -289,6 +296,13 @@ function tcp_measurement ( ap_ref, sta_refs, runs, tcpdata )
         for i, sta_ref in ipairs ( sta_refs ) do
             stas_stats[i]:fetch ( sta_ref.wifis[1], key )
         end
+        
+        ap_ref.rpc.remove_monitor ( ap_ref.wifis[1] )
+        -- del monitor on STAs
+        for i, sta_ref in ipairs ( sta_refs ) do
+            sta_ref.rpc.remove_monitor( sta_ref.wifis[1] )
+        end
+
     end
 
     return ap_stats, stas_stats
@@ -324,6 +338,8 @@ function udp_measurement ( ap_ref, sta_refs, runs, packet_sizes, cct_intervals, 
                     iperf_s_procs[i] = parse_process ( iperf_s_proc_str )
                 end
             
+                ap_ref.rpc.add_monitor( ap_ref.wifis[1] )
+
                 -- restart wifi on STAs
                 -- add monitor on STAs
                 for i, sta_ref in ipairs ( sta_refs ) do
@@ -372,6 +388,12 @@ function udp_measurement ( ap_ref, sta_refs, runs, packet_sizes, cct_intervals, 
                 ap_stats:fetch ( ap_ref.wifis[1], key )
                 for i, sta_ref in ipairs ( sta_refs ) do
                     stas_stats[i]:fetch ( sta_ref.wifis[1], key )
+                end
+
+                ap_ref.rpc.remove_monitor ( ap_ref.wifis[1] )
+                -- del monitor on STAs
+                for i, sta_ref in ipairs ( sta_refs ) do
+                    sta_ref.rpc.remove_monitor( sta_ref.wifis[1] )
                 end
 
             end -- run

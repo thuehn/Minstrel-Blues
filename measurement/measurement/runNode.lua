@@ -46,6 +46,7 @@ function stop_cpusage(...) return node:stop_cpusage(...) end
 
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
 function add_monitor(...) return node:add_monitor(...) end
+function remove_monitor(...) return node:remove_monitor(...) end
 
 -- rc_stats
 function start_rc_stats(...) return node:start_rc_stats(...) end
