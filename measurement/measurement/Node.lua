@@ -160,10 +160,6 @@ end
 -- iw phy phy0 interface add wlan0 type monitor
 -- ifconfig wlan0 up
 -- fixme: command failed: Too many open files in system (-23)
---   root@lede-sta:~# cat /proc/sys/fs/file-max
---   12505
---   root@lede-sta:~# lsof | wc -l
---   643
 function Node:add_monitor ( phy )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
@@ -211,13 +207,6 @@ end
 
 
 function list_phys ()
-    local phys = {}
-    for file in lfs.dir( debugfs ) do
-        if (file ~= "." and file ~= "..") then
-            phys [ #phys + 1 ] = file
-        end
-    end
-    table.sort ( phys )
     local phys = {}
     for file in lfs.dir( debugfs ) do
         if (file ~= "." and file ~= "..") then
@@ -453,7 +442,7 @@ function Node:get_rc_stats ( phy, station )
     if ( self.rc_stats_procs [ station ] == nil) then return nil end
     local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
-    --close_proc_pipes ( self.rc_stats_procs [ station ] )
+    close_proc_pipes ( self.rc_stats_procs [ station ] )
     return content 
 end
 
