@@ -37,14 +37,9 @@ local parser = argparse("singleRun", "Run minstrel blues single AP/STA mesuremen
 parser:option ("-c --config", "config file name", nil)
 
 parser:option ("--sta_radio", "STA Wifi Interface name", "radio0")
-
-parser:option ("--sta_ctrl_ip", "STA Control IP-Address")
 parser:option ("--sta_ctrl_if", "STA Control Interface")
 
-
 parser:option ("--ap_radio", "AP Wifi Interface name", "radio0")
-
-parser:option ("--ap_ctrl_ip", "AP Control IP-Address")
 parser:option ("--ap_ctrl_if", "AP Control Monitor Interface")
 
 parser:option ("--ctrl_port", "Port for control RPC", "12346" )
@@ -118,30 +113,22 @@ if (args.config ~= nil) then
     -- overwrite config file setting with command line settings
     if (args.ap_radio ~= nil) then ap.radio = args.ap_radio end 
     if (args.ap_ctrl_if ~= nil) then ap.ctrl_if = args.ap_ctrl_if end 
-    if (args.ap_ctrl_ip ~= nil) then ap.ctrl_ip = args.ap_ctrl_ip end 
 
     if (args.sta_radio ~= nil) then sta.radio = args.sta_radio end 
     if (args.sta_ctrl_if ~= nil) then sta.ctrl_if = args.sta_ctrl_if end 
-    if (args.sta_ctrl_ip ~= nil) then sta.ctrl_ip = args.sta_ctrl_ip end 
 else
     if (args.ap_radio == nil) then show_config_error ( "ap_radio") end
     if (args.ap_ctrl_if == nil) then show_config_error ( "ap_ctrl_if") end
-    if (args.ap_ctrl_ip == nil) then show_config_error ( "ap_ctrl_ip") end
 
     if (args.sta_radio == nil) then show_config_error ( "sta_radio") end
     if (args.sta_ctrl_if == nil) then show_config_error ( "sta_ctrl_if") end
-    if (args.sta_ctrl_ip == nil) then show_config_error ( "sta_ctrl_ip") end
 
     aps[1] = { name = "AP"
              , radio = args.ap_radio
              , ctrl_if = args.ap_ctrl_if
-             , ctrl_ip = args.ap_ctrl_ip
-             , ctrl_if = args.ap_ctrl_if
              }
     stations[1] = { name = "STA"
                   , radio = args.sta_radio
-                  , ctrl_if = args.sta_ctrl_if
-                  , ctrl_ip = args.sta_ctrl_ip
                   , ctrl_if = args.sta_ctrl_if
                   }
     nodes[1] = aps[1]
@@ -197,7 +184,7 @@ function multicast_measurement ( ap_ref, sta_ref, runs, udp_interval )
                 local addr = "224.0.67.0"
                 local ttl = 32
                 local size = "100M"
-                local iperf_c_proc_str = ap_ref.rpc.run_multicast( sta_wifi_addr, addr, size, ttl, udp_interval )
+                ap_ref.rpc.run_multicast( sta_wifi_addr, addr, size, ttl, udp_interval, true )
 
                 -- -------------------------------------------------------
 
@@ -249,7 +236,7 @@ function tcp_measurement ( ap_ref, sta_ref, runs, tcpdata )
         -- -------------------------------------------------------
 
         -- start iperf client on AP
-        local iperf_c_proc_str = ap_ref.rpc.run_tcp_iperf( sta_wifi_addr, tcpdata )
+        ap_ref.rpc.run_tcp_iperf( sta_wifi_addr, tcpdata, true )
 
         -- stop measurement on STA and AP
         ap_stats:stop ()
@@ -312,7 +299,7 @@ function udp_measurement ( ap_ref, sta_ref, runs, packet_sizes, cct_intervals, p
                 -- -------------------------------------------------------
 
                 -- start iperf client on AP
-                local iperf_c_proc_str = ap_ref.rpc.run_udp_iperf( sta_wifi_addr, size, rate, udp_interval )
+                ap_ref.rpc.run_udp_iperf( sta_wifi_addr, size, rate, udp_interval, true )
 
                 -- -------------------------------------------------------
 
@@ -385,8 +372,8 @@ if ( args.disable_autostart == false ) then
         print ("Error: Not all nodes started")
         os.exit(1)
     end
-    print ("wait a second for nodes initialisation")
-    os.sleep (4)
+    print ("wait 5 seconds for nodes initialisation")
+    os.sleep (5)
 end
 
 -- and connect to nodes
@@ -474,13 +461,6 @@ end
 
 for _, node_ref in ipairs ( ctrl:nodes() ) do
     node_ref.rpc.set_ani ( ap_phys[1], not args.disable_ani )
-end
-
-
-if (args.dry_run) then 
-    print ( "dry run is set, quit here" )
-    stop_logger ( logger_proc['pid'] )
-    os.exit(1)
 end
 
 local runs = tonumber ( args.runs )

@@ -7,6 +7,7 @@ require ('misc')
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
+require ("parsers/ex_process")
 
 local iperf_bin = "iperf"
 local lease_fname = "/tmp/dhcp.leases"
@@ -22,7 +23,7 @@ Node = { name = nil, wifis = nil, ctrl = nil
        , regmon_proc = nil
        , rc_stats_procs = nil
        , iperf_sever_proc = nil
-       , iperf_client_proc = nil
+       , iperf_client_procs = nil
        }
 
 function Node:new (o)
@@ -36,6 +37,7 @@ function Node:create ( name, ctrl, iperf_port, log_ip, log_port )
     local o = Node:new({ name = name, ctrl = ctrl, wifis = {}
                        , iperf_port = iperf_port, log_ip = log_ip, log_port = log_port 
                        , rc_stats_procs = {}
+                       , iperf_client_procs = {}
                        })
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
@@ -585,9 +587,8 @@ function Node:start_udp_iperf_s ()
     return iperf['proc']:__tostring()
 end
 
--- TODO: lock / unlock
 -- iperf -c 192.168.1.240 -p 12000 -n 500MB
-function Node:run_tcp_iperf ( addr, tcpdata )
+function Node:run_tcp_iperf ( addr, tcpdata, wait )
     self:send_info("run TCP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with tcpdata " .. tcpdata)
@@ -596,33 +597,33 @@ function Node:run_tcp_iperf ( addr, tcpdata )
         self:send_error ( "tcp iperf client not started" )
         return nil 
     end
-    local exit_code = iperf['proc']:wait()
-    repeat
-        local line = iperf['out']:read("*l")
-        if line ~= nil then self:send_info ( line ) end
-    until line == nil
-    close_proc_pipes ( iperf )
-    return iperf['proc']:__tostring()
+    local iperf_str = iperf['proc']:__tostring()
+    iperf_proc = parse_process( iperf_str )
+    self.iperf_client_procs[ iperf_proc['pid'] ] = iperf
+    if ( wait == true) then
+        self:wait_iperf_c (iperf_proc['pid'])
+    end
+    return iperf_proc['pid']
 end
 
--- TODO: lock / unlock
 -- iperf -u -c 192.168.1.240 -p 12000 -l 1500B -b 600000 -t 240
-function Node:run_udp_iperf ( addr, size, rate, interval )
+function Node:run_udp_iperf ( addr, size, rate, interval, wait )
     self:send_info("run UDP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval)
     local bitspersec = size * 8 * rate
     local iperf = spawn_pipe ( iperf_bin, "-u", "-c", addr, "-p", self.iperf_port, "-l", size .. "B", "-b", bitspersec, "-t", interval)
     if ( iperf['proc'] == nil ) then
-        self:send_error ( "tcp iperf client not started" )
+        self:send_error ( "udp iperf client not started" )
+        return nil
     end
-    local exit_code = iperf['proc']:wait()
-    repeat
-        local line = iperf['out']:read("*l")
-        if line ~= nil then self:send_info ( line ) end
-    until line == nil
-    close_proc_pipes ( iperf )
-    return iperf['proc']:__tostring()
+    local iperf_str = iperf['proc']:__tostring()
+    iperf_proc = parse_process( iperf_str )
+    self.iperf_client_procs[ iperf_proc['pid'] ] = iperf
+    if ( wait == true) then
+        self:wait_iperf_c (iperf_proc['pid'])
+    end
+    return iperf_proc['pid']
 end
 
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
@@ -634,25 +635,27 @@ function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
     local iperf = spawn_pipe ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port
                              , "-T", ttl, "-t", interval, "-b", size, "-B", addr)
     if ( iperf['proc'] == nil ) then
-        self:send_error ( "tcp iperf client not started" )
+        self:send_error ( "udp multicast iperf client not started" )
+        return nil 
     end
-    self.iperf_client_proc = iperf
+    local iperf_str = iperf['proc']:__tostring()
+    iperf_proc = parse_process( iperf_str )
+    self.iperf_client_procs[ iperf_proc['pid'] ] = iperf
     if ( wait == true) then
-        self:wait_iperf_c ()
+        self:wait_iperf_c (iperf_proc['pid'])
     end
-    return iperf['proc']:__tostring()
-
+    return iperf_proc['pid']
 end
 
-function Node:wait_iperf_c ()
-    self:send_info("wait for UDP client iperf") 
-    local exit_code = self.iperf_client_proc['proc']:wait()
+function Node:wait_iperf_c ( pid )
+    self:send_info("wait for TCP/UDP client iperf") 
+    local exit_code = self.iperf_client_procs[ pid ]['proc']:wait()
     repeat
-        local line = self.iperf_client_proc['out']:read("*l")
+        local line = self.iperf_client_procs[ pid ]['out']:read("*l")
         if line ~= nil then self:send_info ( line ) end
     until line == nil
-    close_proc_pipes ( self.iperf_client_proc )
-    self.iperf_client_proc = nil
+    close_proc_pipes ( self.iperf_client_procs[ pid ] )
+    self.iperf_client_procs [ pid ] = nil
 end
 
 -- TODO: unlock
