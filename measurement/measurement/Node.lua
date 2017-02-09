@@ -7,7 +7,6 @@ require ('misc')
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
-require ("parsers/ex_process")
 
 local iperf_bin = "iperf"
 local lease_fname = "/tmp/dhcp.leases"
@@ -606,13 +605,11 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
         self:send_error ( "tcp iperf client not started" )
         return nil 
     end
-    local iperf_str = iperf['proc']:__tostring()
-    iperf_proc = parse_process( iperf_str )
-    self.iperf_client_procs[ iperf_proc['pid'] ] = iperf
+    self.iperf_client_procs[ addr ] = iperf
     if ( wait == true) then
-        self:wait_iperf_c (iperf_proc['pid'])
+        self:wait_iperf_c ( addr )
     end
-    return iperf_proc['pid']
+    return iperf['proc']:__tostring()
 end
 
 --fixme: return iperf_str and map from addr to iperf client pid
@@ -627,13 +624,11 @@ function Node:run_udp_iperf ( addr, size, rate, interval, wait )
         self:send_error ( "udp iperf client not started" )
         return nil
     end
-    local iperf_str = iperf['proc']:__tostring()
-    iperf_proc = parse_process( iperf_str )
-    self.iperf_client_procs[ iperf_proc['pid'] ] = iperf
+    self.iperf_client_procs[ addr ] = iperf
     if ( wait == true) then
-        self:wait_iperf_c (iperf_proc['pid'])
+        self:wait_iperf_c ( addr )
     end
-    return iperf_proc['pid']
+    return iperf['proc']:__tostring()
 end
 
 --fixme: return iperf_str and map from addr to iperf client pid
@@ -649,24 +644,22 @@ function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
         self:send_error ( "udp multicast iperf client not started" )
         return nil 
     end
-    local iperf_str = iperf['proc']:__tostring()
-    iperf_proc = parse_process( iperf_str )
-    self.iperf_client_procs[ iperf_proc['pid'] ] = iperf
+    self.iperf_client_procs [ addr ] = iperf
     if ( wait == true) then
-        self:wait_iperf_c (iperf_proc['pid'])
+        self:wait_iperf_c ( addr )
     end
-    return iperf_proc['pid']
+    return iperf['proc']:__tostring()
 end
 
-function Node:wait_iperf_c ( pid )
+function Node:wait_iperf_c ( addr )
     self:send_info("wait for TCP/UDP client iperf") 
-    local exit_code = self.iperf_client_procs[ pid ]['proc']:wait()
+    local exit_code = self.iperf_client_procs[ addr ]['proc']:wait()
     repeat
-        local line = self.iperf_client_procs[ pid ]['out']:read("*l")
+        local line = self.iperf_client_procs[ addr ]['out']:read("*l")
         if line ~= nil then self:send_info ( line ) end
     until line == nil
-    close_proc_pipes ( self.iperf_client_procs[ pid ] )
-    self.iperf_client_procs [ pid ] = nil
+    close_proc_pipes ( self.iperf_client_procs[ addr ] )
+    self.iperf_client_procs [ addr ] = nil
 end
 
 -- TODO: unlock

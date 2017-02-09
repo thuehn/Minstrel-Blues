@@ -9,7 +9,6 @@ function create_tcp_measurement ( runs, tcpdata )
                 stas_stats[i] = Measurement:create( sta_ref.rpc )
             end
             local iperf_s_procs = {}
-            local iperf_c_pids = {}
 
             for run = 1, runs do
 
@@ -47,13 +46,14 @@ function create_tcp_measurement ( runs, tcpdata )
                 
                 -- start iperf clients on AP
                 for i, sta_ref in ipairs ( sta_refs ) do
+                    local addr = sta_ref:get_addr ( sta_ref.wifis[1] )
                     local wait = false
-                    local pid = ap_ref.rpc.run_tcp_iperf( sta_ref:get_addr ( sta_ref.wifis[1] ), tcpdata, wait )
-                    iperf_c_pids[i] = pid 
+                    ap_ref.rpc.run_tcp_iperf( addr, tcpdata, wait )
                 end
                 -- wait for clients on AP
                 for i, sta_ref in ipairs ( sta_refs ) do
-                    ap_ref.rpc.wait_iperf_c( iperf_c_pids[i] )
+                    local addr = sta_ref:get_addr ( sta_ref.wifis[1] )
+                    ap_ref.rpc.wait_iperf_c( addr )
                 end
                 -- -------------------------------------------------------
 

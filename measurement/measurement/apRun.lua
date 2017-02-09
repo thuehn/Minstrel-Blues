@@ -103,7 +103,7 @@ local args = parser:parse()
 
 
 args.command = string.lower ( args.command )
-if ( args.command ~= "tcp" and args.command ~= "upd" and args.command ~= "mcast") then
+if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast") then
     show_config_error ( "command", false )
 end
 
@@ -356,9 +356,9 @@ local experiment
 if (args.command == "tcp") then
     experiment = create_tcp_measurement ( runs, args.tcpdata )
 elseif (args.command == "mcast") then
-    local multicast_exp = create_multicast_measurement ( runs, args.interval )
+    experiment = create_multicast_measurement ( runs, args.interval )
 elseif (args.command == "udp") then
-    local udp_exp = create_tcp_measurement ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+    experiment = create_tcp_measurement ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
 else
     show_config_error ( "command")
 end

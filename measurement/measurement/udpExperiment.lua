@@ -9,7 +9,6 @@ function create_udp_measurement ( runs, packet_sizes, cct_intervals, packet_rate
                 stas_stats[i] = Measurement:create( sta_ref.rpc )
             end
             local iperf_s_procs = {}
-            local iperf_c_pids = {}
 
             local size = head ( split ( packet_sizes, "," ) )
             for _,interval in ipairs ( split( cct_intervals, ",") ) do
@@ -55,11 +54,13 @@ function create_udp_measurement ( runs, packet_sizes, cct_intervals, packet_rate
                         -- start iperf client on AP
                         local wait = false
                         for i, sta_ref in ipairs ( sta_refs ) do
-                            iperf_c_pids[i] = ap_ref.rpc.run_udp_iperf( sta_ref:get_addr ( sta_ref.wifis[1] ), size, rate, udp_interval )
+                            local addr = sta_ref:get_addr ( sta_ref.wifis[1] )
+                            ap_ref.rpc.run_udp_iperf( addr, size, rate, udp_interval )
                         end
                         -- wait for clients on AP
                         for i, sta_ref in ipairs ( sta_refs ) do
-                            ap_ref.rpc.wait_iperf_c( iperf_c_pids[i] )
+                            local addr = sta_ref:get_addr ( sta_ref.wifis[1] )
+                            ap_ref.rpc.wait_iperf_c( addr )
                         end
 
                         -- -------------------------------------------------------
