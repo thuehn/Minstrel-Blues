@@ -595,6 +595,7 @@ function Node:start_udp_iperf_s ()
     return iperf['proc']:__tostring()
 end
 
+--fixme: return iperf_str and map from addr to iperf client pid
 -- iperf -c 192.168.1.240 -p 12000 -n 500MB
 function Node:run_tcp_iperf ( addr, tcpdata, wait )
     self:send_info("run TCP iperf at port " .. self.iperf_port 
@@ -614,6 +615,7 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
     return iperf_proc['pid']
 end
 
+--fixme: return iperf_str and map from addr to iperf client pid
 -- iperf -u -c 192.168.1.240 -p 12000 -l 1500B -b 600000 -t 240
 function Node:run_udp_iperf ( addr, size, rate, interval, wait )
     self:send_info("run UDP iperf at port " .. self.iperf_port 
@@ -634,6 +636,7 @@ function Node:run_udp_iperf ( addr, size, rate, interval, wait )
     return iperf_proc['pid']
 end
 
+--fixme: return iperf_str and map from addr to iperf client pid
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
 -- iperf -c 224.0.67.0 -u --ttl 1 -t 120 -b 100M -l 1500 -B 10.10.250.2
 function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )

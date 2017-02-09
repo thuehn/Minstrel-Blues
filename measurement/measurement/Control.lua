@@ -30,11 +30,12 @@ end
 
 
 function ControlNode:__tostring()
-    local out = "ControlNode"
+    local out = ""
     for i, ap_ref in ipairs ( self.ap_refs ) do
         out = out .. '\n'
         out = out .. ap_ref:__tostring()
     end
+    out = out .. '\n'
     for i, sta_ref in ipairs ( self.sta_refs ) do
         out = out .. '\n'
         out = out .. sta_ref:__tostring()
@@ -110,9 +111,13 @@ function ControlNode:start( log_addr, log_port, log_file )
     end
 
     function start_node ( node, log_addr )
+
         local remote_cmd = "lua runNode.lua"
                     .. " --name " .. node.name 
-                    .. " --log_ip " .. log_addr 
+
+        if ( log_addr ~= nil and log_port ~= nil and log_file ~= nil ) then
+        remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
+        end
         print ( remote_cmd )
         local ssh = spawn_pipe("ssh", "root@" .. node.ctrl.addr, remote_cmd)
         close_proc_pipes ( ssh )
@@ -126,10 +131,12 @@ function ControlNode:start( log_addr, log_port, log_file )
         end --]]
     end
 
-    self.pids['logger'] = start_logger ( log_addr, log_port, log_file ) ['pid']
-    if ( self.pids['logger'] == nil ) then
-        print ("Logger not started.")
-        return false
+    if ( log_addr ~= nil and log_port ~= nil and log_file ~= nil ) then
+        self.pids['logger'] = start_logger ( log_addr, log_port, log_file ) ['pid']
+        if ( self.pids['logger'] == nil ) then
+            print ("Logger not started.")
+            return false
+        end
     end
 
     for _, node in ipairs ( self:nodes() ) do
