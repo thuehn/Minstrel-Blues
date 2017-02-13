@@ -343,12 +343,30 @@ function Node:set_tx_power ( phy, station, tx_power )
     self:send_info("Set tx power level for station " .. station .. " at device " .. phy .. " to " .. tx_power)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/txpower"
+    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
     local file = io.open ( fname )
     if ( file ~= nil) then
         file:write ( tostring ( tx_power ) )
         file:flush()
         file:close()
+    else
+        self:send_error("Set tx power level for station " .. station .. " at device " .. phy .. " failed. Unsupported")
+    end
+end
+
+function Node:get_tx_power ( phy, station )
+    self:send_info("Get tx power level for station " .. station .. " from device " .. phy)
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
+    local file = io.open ( fname )
+    if ( file ~= nil) then
+        local content = file:read("*a")
+        local level = tonumber (content)
+        self:send_info(" tx power level for station " .. station .. " at device " .. phy .. " is " .. level)
+        file:close ()
+    else
+        self:send_error("Get tx power level for station " .. station .. " from device " .. phy .. " failed. Unsupported")
     end
 end
 
@@ -422,10 +440,11 @@ function Node:start_rc_stats ( phy, stations )
         local rc_stats = spawn_pipe ( "lua", "bin/fetch_file.lua", "-i", "50000", file )
         if ( rc_stats ['err_msg'] ~= nil ) then
             self:send_error("fetch_file: " .. rc_stats ['err_msg'] )
+        else
+            self.rc_stats_procs [ station ] = rc_stats
+            self:send_info("rc stats for station " .. station .. " started " .. rc_stats['proc']:__tostring())
+            out [ #out + 1 ] = rc_stats['proc']:__tostring()
         end
-        self.rc_stats_procs [ station ] = rc_stats
-        self:send_info("rc stats for station " .. station .. " started " .. rc_stats['proc']:__tostring())
-        out [ #out + 1 ] = rc_stats['proc']:__tostring()
     end
     return out
 end
@@ -497,7 +516,7 @@ end
 local cpusage_dump_fname = "/tmp/cpusage_dump"
 function Node:start_cpusage ()
     self:send_info("start cpusage")
-    local cpusage = spawn_pipe( "cpusage_single" )
+    local cpusage = spawn_pipe( "bin/cpusage_single" )
     self.cpusage_proc = cpusage
     return cpusage['proc']:__tostring()
 end
@@ -535,9 +554,12 @@ function Node:start_tcpdump ( phy, fname )
 --                                 { "tee", "-a", fname } )
     self.tcpdump_proc = tcpdump
 --    repeat
+    if ( tcpdump['err'] ~= nil ) then
+      --fixme:  attempt to use a closed file
         local line = tcpdump['err']:read('*line')
         if line then self:send_info(line) end
 --    until line == nil
+    end
     return tcpdump['proc']:__tostring()
 end
 
@@ -547,6 +569,8 @@ function Node:get_tcpdump_offline ( fname )
     if ( file == nil ) then return nil end
     local content = file:read("*a")
     file:close()
+    self:send_info("remove tcpump pcap file " .. fname)
+    os.remove ( fname )
     return content
 end
 
@@ -571,7 +595,9 @@ function Node:start_tcp_iperf_s ()
     end
     for i=1,4 do
         local msg = iperf['out']:read("*l")
-        self:send_info(msg)
+        if ( msg ~= nil ) then
+            self:send_info(msg)
+        end
     end
     return iperf['proc']:__tostring()
 end

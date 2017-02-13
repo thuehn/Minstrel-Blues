@@ -38,6 +38,7 @@ function has_lease(...) return node:has_lease(...) end
 function tx_rate_indices(...) return node:tx_rate_indices(...) end
 function set_tx_rate(...) return node:set_tx_rate(...) end
 function set_tx_power(...) return node:set_tx_power(...) end
+function get_tx_power(...) return node:get_tx_power(...) end
 
 -- cpuage
 function start_cpusage(...) return node:start_cpusage(...) end

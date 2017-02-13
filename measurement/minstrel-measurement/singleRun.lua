@@ -1,14 +1,5 @@
 -- run a single measurement between one station (STA) and one access point (AP)
 
--- TODO:
--- - openwrt package: split luarpc from measurement package 
--- - openwrt package: fetch sources for luarpc and lua-ex with git
--- - openwrt package for argparse
--- - rpc: transfer tcpdump binary lines/packages (broken)
--- - scp: store public ssh keys of all control devices on each ap/sta node
--- - analyse pcap
--- - create NodeCTRL, NodeAPRef, NodeSTARef
-
 require ('functional') -- head
 local argparse = require "argparse"
 require ('NetIF')
@@ -24,7 +15,8 @@ require ('Measurement')
 require ('Control')
 require ('tcpExperiment')
 require ('udpExperiment')
-require ('multicastExperiment')
+require ('mcastExperiment')
+require ('Config')
 
 function reachable ( ip ) 
     local ping = spawn_pipe("ping", "-c1", ip)
@@ -64,18 +56,11 @@ parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 
 parser:flag ("--dry_run", "Don't measure anything", false )
-parser:flag ("--udp_only", "Measure tcp", false )
-parser:flag ("--tcp_only", "Measure udp", false )
-parser:flag ("--multicast_only", "Measure multicast", false )
+parser:flag ("--udp_only", "Measure tcp only", false )
+parser:flag ("--tcp_only", "Measure udp only", false )
+parser:flag ("--mcast_only", "Measure multicast only", false )
 
 local args = parser:parse()
-
-function show_config_error( option )
-    print ( parser:get_usage() )
-    print ( )
-    print ( "Error: option '--" .. option .. "' missing and no config file specified")
-    os.exit()
-end
 
 stations = {}
 aps = {}
@@ -84,33 +69,33 @@ nodes = {}
 for _,v in ipairs(stations) do nodes [ #nodes + 1 ] = v end
 for _,v in ipairs(aps) do nodes [ #nodes + 1 ] = v end
 
-function find_node( name, nodes ) 
-    for _,node in ipairs(nodes) do 
-        if node.name == name then return node end 
-    end
-    return nil
-end
-
 -- load config from a file
 -- (loadfile, dofile, loadstring)  
 if (args.config ~= nil) then
+
+    if ( not isFile ( args.config ) ) then
+        print ( args.config .. " does not exists.")
+        os.exit (1)
+    end
+
     require(string.sub(args.config,1,#args.config-4))
-    if (table_size ( stations ) ~= 1) then
-        print ( "Error: config file '" .. args.config .. "' have to contain one station node description in var 'stations'. " .. count)
+
+    if (table_size ( stations ) < 1) then
+        print ( "Error: config file '" .. args.config .. "' have to contain at least one station node description in var 'stations'.")
         os.exit()
     end
-    if (table_size ( aps ) ~= 1) then
-        print ( "Error: config file '" .. args.config .. "' have to contain one access point node description in var 'aps'. " .. count)
+    if (table_size ( aps ) < 1) then
+        print ( "Error: config file '" .. args.config .. "' have to contain at least one access point node description in var 'aps'.")
         os.exit()
     end
     local ap = find_node( "lede-ap", aps )
     if (ap == nil) then
-        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'lede-ap' in the 'nodes' table. " .. count)
+        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'lede-ap' in the 'nodes' table.")
         os.exit()
     end
     local sta = find_node ( "lede-sta", stations )
     if (sta == nil) then
-        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'lede-sta' in the 'nodes' table. " .. count)
+        print ( "Error: config file '" .. args.config .. "' have to specify a node named 'lede-sta' in the 'nodes' table.")
         os.exit()
     end
     -- overwrite config file setting with command line settings
@@ -120,11 +105,11 @@ if (args.config ~= nil) then
     if (args.sta_radio ~= nil) then sta.radio = args.sta_radio end 
     if (args.sta_ctrl_if ~= nil) then sta.ctrl_if = args.sta_ctrl_if end 
 else
-    if (args.ap_radio == nil) then show_config_error ( "ap_radio") end
-    if (args.ap_ctrl_if == nil) then show_config_error ( "ap_ctrl_if") end
+    if (args.ap_radio == nil) then show_config_error ( parser, "ap_radio") end
+    if (args.ap_ctrl_if == nil) then show_config_error ( parser, "ap_ctrl_if") end
 
-    if (args.sta_radio == nil) then show_config_error ( "sta_radio") end
-    if (args.sta_ctrl_if == nil) then show_config_error ( "sta_ctrl_if") end
+    if (args.sta_radio == nil) then show_config_error ( parser, "sta_radio") end
+    if (args.sta_ctrl_if == nil) then show_config_error ( parser, "sta_ctrl_if") end
 
     aps[1] = { name = "AP"
              , radio = args.ap_radio
@@ -160,9 +145,9 @@ print ("==============")
 print ()
 print ( ctrl:__tostring() )
 print ()
-print ( "run udp: " .. tostring( args.tcp_only == false and args.tcp_only == false and args.multicast_only == false) )
-print ( "run tcp: " .. tostring( args.udp_only == false and args.tcp_only == false and args.multicast_only == false) )
-print ( "run multicast: " .. tostring( args.udp_only == false and args.tcp_only == false and args.multicast_only == true) )
+print ( "run udp: " .. tostring( args.tcp_only == false and args.mcast_only == false) )
+print ( "run tcp: " .. tostring( args.udp_only == false and args.mcast_only == false) )
+print ( "run multicast: " .. tostring( args.udp_only == false and args.tcp_only == false) )
 print ()
 
 -- check reachability 
@@ -202,13 +187,15 @@ local ap_phys = ap_ref.rpc.wifi_devices()
 print ("AP wifi devices:")
 map ( print, ap_phys)
 ap_ref:add_wifi ( ap_phys[1] )
+ap_ref:set_wifi ( ap_phys[1] )
 
 local sta_phys = sta_ref.rpc.wifi_devices()
 print ("STA wifi devices:")
 map ( print, sta_phys)
 sta_ref:add_wifi ( sta_phys[1] )
+sta_ref:set_wifi ( sta_phys[1] )
 local sta_mac = sta_ref.rpc.get_mac ( sta_phys[1] )
-ap_ref:add_station ( sta_mac )
+ap_ref:add_station ( sta_mac, sta_ref )
 print ()
 
 local ssid = ap_ref.rpc.get_ssid( ap_phys[1] )
@@ -279,20 +266,18 @@ end
 local runs = tonumber ( args.runs )
 
 -- -----------------------
-local sta_refs = {}
-sta_refs[1] = sta_ref
 
 local tcp_exp = create_tcp_measurement ( runs, args.tcpdata )
-local multicast_exp = create_multicast_measurement ( runs, args.interval )
-local udp_exp = create_tcp_measurement ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+local mcast_exp = create_mcast_measurement ( runs, args.interval )
+local udp_exp = create_udp_measurement ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
 
 local status
 
-if ( args.tcp_only == false and args.udp_only == false and args.multicast_only == true) then
-    status = ctrl:run_experiment ( multicast_exp, ap_ref, sta_refs ) 
+if ( args.tcp_only == false and args.udp_only == false) then
+    status = ctrl:run_experiment ( mcast_exp, ap_ref ) 
 end
 
-if (status == true) then
+if ( status == true ) then
     for name, stats in pairs ( ctrl.stats ) do
         print ( name )
         print ( stats:__tostring() )
@@ -300,11 +285,11 @@ if (status == true) then
     end
 end
 
-if ( args.tcp_only == true and args.udp_only == false and args.multicast_only == false) then
-    status = ctrl:run_experiment ( tcp_exp, ap_ref, sta_refs ) 
+if ( args.udp_only == false and args.mcast_only == false) then
+    status = ctrl:run_experiment ( tcp_exp, ap_ref ) 
 end
 
-if (status == true) then
+if ( status == true ) then
     for name, stats in pairs ( ctrl.stats ) do
         print ( name )
         print ( stats:__tostring() )
@@ -312,11 +297,11 @@ if (status == true) then
     end
 end
 
-if ( args.tcp_only == false and args.udp_only == true and args.multicast_only == false) then
-    status = ctrl:run_experiment ( udp_exp, ap_ref, sta_refs ) 
+if ( args.tcp_only == false and args.mcast_only == false) then
+    status = ctrl:run_experiment ( udp_exp, ap_ref ) 
 end
 
-if (status == true) then
+if ( status == true ) then
     for name, stats in pairs ( ctrl.stats ) do
         print ( name )
         print ( stats:__tostring() )

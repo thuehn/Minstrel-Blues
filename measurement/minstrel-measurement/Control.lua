@@ -156,6 +156,8 @@ function ControlNode:connect( ctrl_port )
         if ( node_ref.rpc == nil ) then
             print ("Connection to " .. node_ref.name .. " failed")
             return false
+        else 
+            print ("Connected to " .. node_ref.name)
         end
     end
 
@@ -174,17 +176,86 @@ function ControlNode:disconnect()
     end
 end
 
-function ControlNode:run_experiment ( exp, ap_ref, sta_refs )
+-- runs experiment 'exp' for all nodes 'ap_refs'
+-- in parallel
+-- see run_experiment in Experiment.lua for
+-- a sequential variant
+function ControlNode:run_experiments ( exp, ap_refs )
 
-    local ap_stats
-    local stas_stats
+    local ret = true
 
-    status, ap_stats, stas_stats = pcall ( function () return exp ( ap_ref, sta_refs ) end )
-    if ( status == false ) then return false end
+    for _, ap_ref in ipairs ( ap_refs ) do
+        exp:prepare_measurement ( ap_ref )
+    end
 
-    self.stats [ ap_ref.name ] = ap_stats
-    for i, sta_ref in ipairs ( sta_refs ) do
-        self.stats [ sta_ref.name ] = stas_stats [i]
+    local keys = {}
+    for i, ap_ref in ipairs ( ap_refs ) do
+        keys[i] = exp:keys ( ap_ref )
+    end
+
+    for _, key in ipairs ( keys[1] ) do -- fixme: smallest set of keys
+
+        for _, ap_ref in ipairs ( ap_refs ) do
+            exp:settle_measurement ( ap_ref, key )
+        end
+
+        -- -------------------------------------------------------
+        for _, ap_ref in ipairs ( ap_refs ) do
+            exp:start_measurement (ap_ref, key )
+        end
+
+        -- -------------------------------------------------------
+        -- Experiment
+        -- -------------------------------------------------------
+            
+        for _, ap_ref in ipairs ( ap_refs ) do
+            exp:start_experiment ( ap_ref )
+        end
+    
+        for _, ap_ref in ipairs ( ap_refs ) do
+            exp:wait_experiment ( ap_ref )
+        end
+
+        -- -------------------------------------------------------
+
+        for _, ap_ref in ipairs ( ap_refs ) do
+            exp:stop_measurement (ap_ref, key )
+        end
+
+        for _, ap_ref in ipairs ( ap_refs ) do
+            exp:unsettle_measurement ( ap_ref, key )
+        end
+
+    end
+
+    for _, ap_ref in ipairs ( ap_refs ) do
+        self.stats [ ap_ref.name ] = ap_ref.stats
+        for _, sta_ref in ipairs ( ap_ref.refs ) do
+            self.stats [ sta_ref.name ] = sta_ref.stats
+        end
+    end
+
+    return ret
+
+end
+
+-- runs experiment 'exp' for node 'ap_ref'
+-- sequentially
+-- see run_experiment in Experiment.lua
+function ControlNode:run_experiment ( exp, ap_ref )
+
+    local status
+    local err
+    status, err = pcall ( function () return exp ( ap_ref ) end )
+
+    if ( status == false ) then 
+        print ( "Error: experiment failed:\n" .. err )
+        return false 
+    end
+
+    self.stats [ ap_ref.name ] = ap_ref.stats
+    for _, sta_ref in ipairs ( ap_ref.refs ) do
+        self.stats [ sta_ref.name ] = sta_ref.stats
     end
     return true
 

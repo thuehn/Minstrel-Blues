@@ -16,11 +16,11 @@ PKG_LICENSE_FILES:=LICENSE
 include $(INCLUDE_DIR)/package.mk
 
 define Package/lua-ex
-	SECTION:=LuCI
-	CATEGORY:=LuCI
-	SUBMENU:=3. Applications
-	TITLE:=Minstrel (Blues) Measurement
-	DEPENDS:=+lua
+	SECTION:=Lua
+	CATEGORY:=lang
+	SUBMENU:=Languages
+	TITLE:=lua ex proposal
+	DEPENDS:=+liblua
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
 endef
@@ -44,9 +44,9 @@ define Build/Compile
 		linux
 
 endef
-#		CFLAGS="$(TARGET_CFLAGS)" \
-#		CC="$(TARGET_CC)" \
-#		$(MAKE_FLAGS) \
+##		CFLAGS="$(TARGET_CFLAGS)" \
+##		CC="$(TARGET_CC)" \
+##		$(MAKE_FLAGS) \
 
 
 define Package/lua-ex/install

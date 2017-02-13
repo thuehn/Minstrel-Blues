@@ -1,0 +1,8 @@
+root@lede-sta:~# udhcpc -p /var/run/udhcpc-wlan0.pid -s /lib/netifd/dhcp.script -f -t 0 -i wlan0 -C -O 121
+udhcpc: started, v1.25.1
+Command failed: Not found
+udhcpc: sending discover
+udhcpc: sending discover
+udhcpc: sending discover
+udhcpc: sending select for 192.168.1.240
+udhcpc: lease of 192.168.1.240 obtained, lease time 43200

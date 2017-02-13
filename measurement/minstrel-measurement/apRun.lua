@@ -1,14 +1,5 @@
 -- run a single measurement between one access point (AP) and stations
 
--- TODO:
--- - openwrt package: split luarpc from measurement package 
--- - openwrt package: fetch sources for luarpc and lua-ex with git
--- - openwrt package for argparse
--- - rpc: transfer tcpdump binary lines/packages (broken)
--- - scp: store public ssh keys of all control devices on each ap/sta node
--- - analyse pcap
--- - create NodeCTRL, NodeAPRef, NodeSTARef
-
 require ('functional') -- head
 local argparse = require "argparse"
 require ('NetIF')
@@ -24,39 +15,12 @@ require ('Measurement')
 require ('Control')
 require ('tcpExperiment')
 require ('udpExperiment')
-require ('multicastExperiment')
-
-
-function find_node( name, nodes ) 
-    for _,node in ipairs(nodes) do 
-        if node.name == name then return node end 
-    end
-    return nil
-end
-
-function cnode_to_string ( config )
-    return config.name .. "\t" .. config.radio .. "\t" .. config.ctrl_if
-end
-
-
-local parser = argparse("apRun", "Run minstrel blues single AP/ multi STA mesurement")
-
-function show_config_error( arg, option )
-    local str
-    if ( option == true) then
-        str = "option '--" .. arg .. "' missing or no config file specified"
-    else
-        str = "<".. arg .. "> missing"
-    end
-    print ( parser:get_usage() )
-    print ( )
-    print ( "Error: " .. str )
-    os.exit()
-end
-
+require ('mcastExperiment')
+require ('Config')
 
 -- ---------------------------------------------------------------
 
+local parser = argparse("apRun", "Run minstrel blues single AP/ multi STA mesurement")
 
 parser:argument("command", "tcp, udp, mcast")
 
@@ -64,14 +28,14 @@ parser:argument("command", "tcp, udp, mcast")
 
 parser:option ("-c --config", "config file name", nil)
 
-parser:option("--sta","Station host name"):count("*")
-parser:option("--ap","Access Point host name")
+parser:option("--sta", "Station host name"):count("*")
+parser:option("--ap", "Access Point host name")
 parser:option ("--sta_radio", "STA Wifi Interface name", "radio0")
 parser:option ("--sta_ctrl_if", "STA Control Interface", "eth0")
 
 
 parser:option ("--ap_radio", "AP Wifi Interface name", "radio0")
-parser:option ("--ap_ctrl_if", "AP Control Monitor Interface")
+parser:option ("--ap_ctrl_if", "AP Control Monitor Interface", "eth0")
 
 parser:option ("--ctrl_port", "Port for control RPC", "12346" )
 
@@ -93,9 +57,6 @@ parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 
 parser:flag ("--run_check", "No rpc connections, no meaurements", false )
 parser:flag ("--dry_run", "Don't measure anything", false )
-parser:flag ("--udp_only", "Measure tcp", false )
-parser:flag ("--tcp_only", "Measure udp", false )
-parser:flag ("--multicast_only", "Measure multicast", false )
 
 parser:flag ("-v --verbose", "", false )
 
@@ -104,29 +65,34 @@ local args = parser:parse()
 
 args.command = string.lower ( args.command )
 if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast") then
-    show_config_error ( "command", false )
+    show_config_error ( parser, "command", false )
 end
-
 
 stations = {} -- table in config file
 aps = {} -- table in config file
+nodes = {}
 
 local ap_config
 
 -- load config from a file
 if (args.config ~= nil) then
 
+    if ( not isFile ( args.config ) ) then
+        print ( args.config .. " does not exists.")
+        os.exit (1)
+    end
+
     -- (loadfile, dofile, loadstring)  
     require(string.sub(args.config,1,#args.config-4))
 
     if (table_size ( stations ) < 1) then
-        print ( "Error: config file '" .. args.config .. "' have to contain at least one station node description in var 'stations'. " .. count)
-        os.exit()
+        print ( "Error: config file '" .. args.config .. "' have to contain at least one station node description in var 'stations'.")
+        os.exit(1)
     end
 
     if (table_size ( aps ) < 1) then
-        print ( "Error: config file '" .. args.config .. "' have to contain one access point node description in var 'aps'. " .. count)
-        os.exit()
+        print ( "Error: config file '" .. args.config .. "' have to contain at least one access point node description in var 'aps'.")
+        os.exit(1)
     end
 
     -- overwrite config file setting with command line settings
@@ -147,6 +113,13 @@ if (args.config ~= nil) then
 
 else
 
+    if (args.ap == nil ) then
+        show_config_error ( parser, "ap", true)
+    end
+
+    if (args.sta == nil or table_size ( args.sta ) == 0 ) then
+        show_config_error ( parser, "sta", true)
+    end
     aps[1] = { name = args.ap
              , radio = args.ap_radio
              , ctrl_if = args.ap_ctrl_if
@@ -155,7 +128,7 @@ else
     ap_config = find_node( args.ap, aps )
 
     for i,sta_name in ipairs ( args.sta ) do
-         stations[1] = { name = sta_name
+         stations[i] = { name = sta_name
                       , radio = args.sta_radio
                       , ctrl_ip = args.sta_ctrl_ip
                       }
@@ -181,13 +154,25 @@ if ( args.verbose == true) then
     print ( )
 end
 
-nodes = {}
 for _,v in ipairs(stations) do nodes [ #nodes + 1 ] = v end
 for _,v in ipairs(aps) do nodes [ #nodes + 1 ] = v end
 
 local stas_config = {}
-for _, sta in ipairs ( args.sta ) do
-    stas_config [ #stas_config + 1 ] = find_node ( sta, stations )
+if ( table_size ( args.sta ) > 0 ) then
+    for _, sta in ipairs ( args.sta ) do
+        local node = find_node ( sta, stations )
+        if ( node == nil ) then
+            print ( "Error: no station with name '" .. sta .. "' found")
+            os.exit(1)
+        end
+        stas_config [ #stas_config + 1 ] = node 
+    end
+else
+    print ("No stations selected. Using all stations from setup")
+    print ()
+    for _, node in ipairs ( stations ) do
+        stas_config [ #stas_config + 1 ] = node 
+    end
 end
 
 
@@ -214,17 +199,17 @@ print ( )
 local ctrl = ControlNode:create()
 
 local ap_ref
-local sta_refs = {}
 
 local ap_ctrl = NetIF:create ("ctrl", ap_config['ctrl_if'] )
 local ap_ref = AccessPointRef:create (ap_config.name, ap_ctrl, args.ctrl_port )
 ctrl:add_ap_ref ( ap_ref )
 
-for _, sta in ipairs ( stas_config ) do
-    local sta_ctrl = NetIF:create ("ctrl", sta['ctrl_if'] )
-    local ref = StationRef:create ( sta.name, sta_ctrl, args.ctrl_port )
-    sta_refs [ #sta_refs + 1] = ref
-    ctrl:add_sta_ref ( ref )
+local sta_refs = {}
+for _, sta_config in ipairs ( stas_config ) do
+    local sta_ctrl = NetIF:create ("ctrl", sta_config['ctrl_if'] )
+    local sta_ref = StationRef:create ( sta_config.name, sta_ctrl, args.ctrl_port )
+    ctrl:add_sta_ref ( sta_ref )
+    sta_refs [ #sta_refs + 1 ] = sta_ref
 end
 
 if ( args.run_check == true ) then
@@ -254,7 +239,7 @@ end
 print ()
 
 if ( args.run_check == true ) then
-    print ( "all checks dome. quit here" )
+    print ( "all checks done. quit here" )
     os.exit (1)
 end
 
@@ -283,6 +268,7 @@ local ap_phys = ap_ref.rpc.wifi_devices()
 print (ap_ref.name .. " wifi devices:")
 map ( print, ap_phys)
 ap_ref:add_wifi ( ap_phys[1] )
+ap_ref:set_wifi ( ap_phys[1] )
 
 ap_ref:set_ssid( ap_ref.rpc.get_ssid( ap_phys[1] ) )
 print (ap_ref.name .. " ssid: ".. ap_ref:get_ssid())
@@ -306,13 +292,14 @@ print ()
 
 for _, sta_ref in ipairs ( sta_refs ) do
     local sta_phys = sta_ref.rpc.wifi_devices()
-    print ("STA wifi devices:")
+    print ( sta_ref.name .. " wifi devices:")
     map ( print, sta_phys)
     print ( )
     sta_ref:add_wifi ( sta_phys[1] )
+    sta_ref:set_wifi ( sta_phys[1] )
     local mac = sta_ref:get_mac ( sta_phys[1] )
     print (mac)
-    ap_ref:add_station ( mac )
+    ap_ref:add_station ( mac, sta_ref )
     -- local addr = ap_ref.rpc.has_lease ( mac )
     -- print ( "Address of " .. sta_ref.name .. ": " .. addr )
 end
@@ -356,14 +343,14 @@ local experiment
 if (args.command == "tcp") then
     experiment = create_tcp_measurement ( runs, args.tcpdata )
 elseif (args.command == "mcast") then
-    experiment = create_multicast_measurement ( runs, args.interval )
+    experiment = create_mcast_measurement ( runs, args.interval )
 elseif (args.command == "udp") then
-    experiment = create_tcp_measurement ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+    experiment = create_udp_measurement ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
 else
-    show_config_error ( "command")
+    show_config_error ( parser, "command")
 end
 
-local status = ctrl:run_experiment ( experiment, ap_ref, sta_refs )
+local status = ctrl:run_experiment ( experiment, ap_ref )
 
 if (status == true) then
     print ( )
