@@ -24,17 +24,14 @@ define Package/minstrel-measurement
 	SECTION:=lang
 	CATEGORY:=Languages
 	TITLE:=minstrel-measurement
-	DEPENDS:=+lua +lua-ex +luaposix +luafilesystem
+	DEPENDS:=+lua +lua-rpc +lua-argparse +lua-ex +luaposix +luafilesystem
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
-
 endef
-#	DEPENDS:=+lua +lua-rpc +lua-argparse +lua-ex +luaposix +luafilesystem
 #	DEPENDS:=+lua +libc +USE_UCLIBC:librpc
 
 define Package/minstrel-measurement/description
-Minstrel Blues Measurement
-
+  Minstrel Blues Measurement
 endef
 
 define Build/Prepare 
@@ -45,11 +42,9 @@ define Build/Prepare
 	$(CP) ./bin/* $(PKG_BUILD_DIR)/bin
 	$(CP) ./parsers/*.lua $(PKG_BUILD_DIR)/parsers
 	$(CP) ./tests/*.lua $(PKG_BUILD_DIR)/tests
-
 endef
 
 define Build/Compile
-
 endef
 
 define Package/minstrel-measurement/install

@@ -38,7 +38,7 @@ define Build/Compile
 endef
 
 
-define Package/lua-ex/install
+define Package/lua-argparse/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/argparse/src/argparse.lua $(1)/usr/lib/lua
 endef

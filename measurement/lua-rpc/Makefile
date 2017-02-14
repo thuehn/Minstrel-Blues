@@ -42,7 +42,7 @@ endef
 #		$(MAKE_FLAGS) \
 
 
-define Package/minstrel-measurement/install
+define Package/lua-rpc/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/luarpc/rpc.so $(1)/usr/lib/lua
 endef
