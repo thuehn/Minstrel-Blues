@@ -121,7 +121,7 @@ function is_char ( c )
         or c == 's' or c == 't' or c == 'u' or c == 'v' or c == 'w' or c == 'x'
         or c == 'y' or c == 'z'
         or c == 'A' or c == 'B' or c == 'C' or c == 'D' or c == 'E' or c == 'F'
-        or c == 'H' or c == 'H' or c == 'I' or c == 'J' or c == 'K' or c == 'L'
+        or c == 'G' or c == 'H' or c == 'I' or c == 'J' or c == 'K' or c == 'L'
         or c == 'M' or c == 'N' or c == 'O' or c == 'P' or c == 'Q' or c == 'R'
         or c == 'S' or c == 'T' or c == 'U' or c == 'V' or c == 'W' or c == 'X'
         or c == 'Y' or c == 'Z'

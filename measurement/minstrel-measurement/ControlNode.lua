@@ -3,11 +3,14 @@ require ('NetIF')
 require ('spawn_pipe')
 require ('parsers/ex_process')
 require ('parsers/dig')
+require ('parsers/ifconfig')
 require ('AccessPointRef')
 require ('StationRef')
 local unistd = require ('posix.unistd')
+require ('net')
 
 ControlNode = { name = name
+              , ctrl = ctrl
               , port = port
               , ap_refs = nil     -- list of access point nodes
               , sta_refs = nil    -- list of station nodes
@@ -26,8 +29,9 @@ function ControlNode:new (o)
     return o
 end
 
-function ControlNode:create ( name, port, log_ip, log_port )
+function ControlNode:create ( name, ctrl_if, port, log_ip, log_port )
     local o = ControlNode:new ( { name = name
+                                , ctrl_if = ctrl_if
                                 , ap_refs = {}
                                 , sta_refs = {}
                                 , stats = {}
@@ -41,7 +45,8 @@ end
 
 
 function ControlNode:__tostring()
-    local out = "port: " .. ( self.port or "none" ) .. "\n"
+    local out = "if: " .. ( self.ctrl_if or "none" ) .. "\n"
+    out = out .. "port: " .. ( self.port or "none" ) .. "\n"
     out = out .. "log ip: " .. ( self.log_ip or "none" ) .."\n"
     out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
@@ -65,6 +70,11 @@ function ControlNode:run( port )
     else
         self:send_error ( "Err: tcp/ip supported only" )
     end
+end
+
+
+function ControlNode:get_ctrl_addr ()
+    return get_addr ( self.ctrl_if )
 end
 
 function ControlNode:add_ap_ref ( ap_ref )
@@ -114,19 +124,6 @@ function ControlNode:reachable ()
         return exitcode == 0
     end
 
-    function lookup ( name ) 
-        local dig = spawn_pipe ( "dig", name )
-        if ( dig['err_msg'] ~= nil ) then 
-            self:send_error ( "dig: " .. dig['err_msg'] )
-            return nil
-        end
-        local exitcode = dig['proc']:wait()
-        local content = dig['out']:read("*a")
-        local answer = parse_dig ( content )
-        close_proc_pipes ( dig )
-        return answer.addr
-    end
-
     local reached = {}
     for _, node in ipairs ( self:nodes() ) do
         local addr = lookup ( node.name )
@@ -153,6 +150,18 @@ function ControlNode:start( log_addr, log_port, log_file )
         close_proc_pipes ( logger )
         local str = logger['proc']:__tostring()
         return parse_process ( str ) 
+    end
+
+    function start_logger_remote ( addr, port, file )
+        local remote_cmd = "lua bin/runLogger.lua " .. file
+                    .. " --port " .. port 
+ 
+        if ( addr ~= nil ) then
+            remote_cmd = remote_cmd .. " --log_ip " .. addr 
+        end
+        print ( remote_cmd )
+        local ssh = spawn_pipe("ssh", "root@" .. addr, remote_cmd)
+        close_proc_pipes ( ssh )
     end
 
     function start_node ( node, log_addr )
@@ -372,6 +381,13 @@ function ControlNode:connect_logger ()
     else
         return logger
     end
+end
+
+function ControlNode:get_logger_addr ()
+    local logger = self:connect_logger()
+    local addr = logger.get_addr() 
+    self:disconnect_logger ( logger )
+    return addr
 end
 
 function ControlNode:disconnect_logger ( logger )

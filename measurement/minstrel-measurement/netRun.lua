@@ -24,9 +24,14 @@ require ('tcpExperiment')
 require ('udpExperiment')
 require ('mcastExperiment')
 require ('Config')
+require ('net')
 
-function start_control ( log_addr, ctrl_port, log_port )
-    local ctrl = spawn_pipe ( "lua", "bin/runControl.lua", "--log_ip", log_addr, "--port", ctrl_port, "--log_port", log_port )
+function start_control ( ctrl_if, log_if, log_addr, ctrl_port, log_port )
+    local ctrl = spawn_pipe ( "lua", "bin/runControl.lua", "--log_ip", log_addr
+                            , "--port", ctrl_port, "--log_port", log_port 
+                            , "--ctrl_if", ctrl_if
+                            , "--log_if", log_if
+                            )
     if ( ctrl ['err_msg'] ~= nil ) then
         self:send_warning("Control not started" .. ctrl ['err_msg'] )
     end
@@ -35,9 +40,11 @@ function start_control ( log_addr, ctrl_port, log_port )
     return parse_process ( str ) 
 end
 
-function start_control_remote ( addr, log_addr, ctrl_port, log_port )
+function start_control_remote (ctrl_if, addr, log_if, log_addr, ctrl_port, log_port )
      local remote_cmd = "lua bin/runControl.lua"
                  .. " --port " .. ctrl_port 
+                 .. " --ctrl_if " .. ctrl_if
+                 .. " --log_if " .. log_if
 
      if ( log_addr ~= nil and log_port ~= nil ) then
         remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
@@ -87,11 +94,13 @@ parser:option ("--ap_ctrl_if", "AP Control Monitor Interface", "eth0")
 
 parser:option ("--ctrl", "Control node host name" )
 parser:option ("--ctrl_ip", "IP of Control node" )
+parser:option ("--ctrl_if", "RPC Interface of Control node" )
 parser:option ("-C --ctrl_port", "Port for control RPC", "12346" )
 parser:flag ("--ctrl_only", "Just connect with control node", false )
 
 parser:option ("--log", "Logger host name")
 parser:option ("--log_ip", "IP of Logging node" )
+parser:option ("--log_if", "RPC Interface of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "/tmp/measurement.log" )
 
@@ -182,7 +191,7 @@ else
         local k = i + j
         stations[k] = { name = sta_name
                       , radio = args.sta_radio
-                      , ctrl_ip = args.sta_ctrl_ip
+                      , ctrl_if = args.sta_ctrl_if
                      }
         nodes[ k + 1 ] = stations[k]
     end
@@ -262,11 +271,21 @@ end
 print ( )
 
 local ctrl_pid
+local addr = get_addr ( "eth0" )
+if ( addr == nil ) then
+    addr = get_addr ( "br-lan" )
+end
+
+local ctrl_ip = args.ctrl_ip 
+if ( args.ctrl ~= nil ) then
+    ctrl_ip = lookup ( args.ctrl )
+end
+
 if ( args.disable_autostart == false ) then
-    if (args.ctrl_ip ~= nil) then
-        start_control_remote ( args.ctrl_ip, args.log_ip, args.ctrl_port, args.log_port )
+    if ( args.ctrl_ip ~= nil and args.ctrl_ip ~= addr ) then
+        start_control_remote ( args.ctrl_if, args.ctrl_ip, args.log_if, args.log_ip, args.ctrl_port, args.log_port )
     else
-        local ctrl_proc = start_control ( args.log_ip, args.ctrl_port, args.log_port )
+        local ctrl_proc = start_control ( args.ctrl_if, args.log_if, args.log_ip, args.ctrl_port, args.log_port )
         ctrl_pid = ctrl_proc['pid']
     end
 end
@@ -280,10 +299,10 @@ if rpc.mode ~= "tcpip" then
     os.exit(1)
 end
 
-local ctrl_status, ctrl_rpc, err = connect_control ( args.ctrl_ip, args.ctrl_port )
+local ctrl_status, ctrl_rpc, err = connect_control ( ctrl_ip, args.ctrl_port )
 if ( ctrl_status == false ) then
     print ( "Err: Connection to control node failed" )
-    print ( "Err: no node at address: " .. args.ctrl_ip .. " on port: " .. args.ctrl_port )
+    print ( "Err: no node at address: " .. ctrl_ip .. " on port: " .. args.ctrl_port )
     os.exit(1)
 end
 if ( args.disable_autostart == false ) then
@@ -305,7 +324,12 @@ if ( args.run_check == true ) then
     args.log_port = nil
     args.Log_file = nil
 end
+
 ctrl_pid = ctrl_rpc.get_pid()
+
+print ( "Control node with IP: " .. ctrl_rpc.get_ctrl_addr () .. " connected" )
+print ( "Log node with IP: " .. ctrl_rpc.get_logger_addr () .. " connected" )
+print ()
 
 -- -------------------------------------------------------------------
 

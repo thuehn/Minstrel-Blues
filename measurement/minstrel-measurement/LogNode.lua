@@ -1,3 +1,4 @@
+
 -- module LogNode: This module is indented to be a
 -- base implementation of a message logging service
 -- for use in combination with RPC for network wide access
