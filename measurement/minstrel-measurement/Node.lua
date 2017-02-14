@@ -15,8 +15,11 @@ local lease_fname = "/tmp/dhcp.leases"
 -- - STA connect to AP
 -- - split Node into NodeAP, NodeSTA
 
-Node = { name = nil, wifis = nil, ctrl = nil 
-       , iperf_port = nil, tcpdump_proc = nil
+Node = { name = nil
+       , ctrl = nil 
+       , wifis = nil
+       , iperf_port = nil
+       , tcpdump_proc = nil
        , cpusage_proc = nil
        , log_port = nil
        , regmon_proc = nil
@@ -97,11 +100,11 @@ end
 -- fixme: try to catch address in use
 function Node:run( port )
     if rpc.mode == "tcpip" then
-        self:send_info("Service " .. self.name .. " started")
-        self:set_cut()
-        rpc.server(port);
+        self:send_info ( "Service " .. self.name .. " started" )
+        self:set_cut ()
+        rpc.server ( port )
     else
-        print ( "Err: tcp/ip supported only" )
+        self:send_error ( "Err: tcp/ip supported only" )
     end
 end
 
@@ -231,7 +234,10 @@ end
 
 function Node:wifi_devices ()
     self:send_info( "Send phy devices." )
-    local phys = list_phys()
+    local phys = {}
+    for _, wifi in ipairs ( self.wifis ) do
+        phys [ #phys + 1 ] = wifi.phy
+    end
     self:send_info(" phys: " .. foldr ( string.concat, "" , phys ) )
     return phys
 end

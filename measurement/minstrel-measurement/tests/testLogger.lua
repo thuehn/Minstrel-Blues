@@ -1,5 +1,5 @@
 -- test locally running logging node
--- see Logger.lua
+-- see bin/runLogger.lua
 
 require ('rpc')
 

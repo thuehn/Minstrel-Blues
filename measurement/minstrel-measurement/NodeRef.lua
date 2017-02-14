@@ -24,6 +24,13 @@ function NodeRef:create ( name, ctrl, port )
     local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {}, ssid = nil
                           , addrs = {}, macs = {}, ssid = nil, stations = {}
                           , refs = {} })
+    self.wifis = self.ref.rpc.wifi_devices()
+    for _, phy in ipairs ( self.wifis ) do
+        if (self.rpc ~= nil) then
+            self.addrs [ phy ] = self.rpc.get_addr ( phy )
+            self.macs [ phy ] = self.rpc.get_mac ( phy )
+        end
+    end
     return o
 end
 
@@ -42,11 +49,7 @@ function NodeRef:connect ( port )
 end
 
 function NodeRef:add_wifi ( phy )
-    self.wifis [ #self.wifis + 1 ] = phy
-    if (self.rpc ~= nil) then
-        self.addrs [ phy ] = self.rpc.get_addr ( phy )
-        self.macs [ phy ] = self.rpc.get_mac ( phy )
-    end
+    error ("deprecated")
 end
 
 function NodeRef:set_wifi ( phy )

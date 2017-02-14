@@ -9,7 +9,7 @@
 -- The complete message strings are stored in
 -- a file and printed to standard out
 --
--- For a runnable logging node see file Logger.lua
+-- For a runnable logging node see file bin/runLogger.lua
 -- 
 -- TOOD: what happens when lots of nodes try to connect
 -- the logger at the same time? do they wait for connection
@@ -93,4 +93,17 @@ end
 -- shortcut function for passing an error tagged message
 function LogNode:send_error( from, msg )
     self:send( "ERROR", from, msg )
+end
+
+function LogNode:run( port )
+    if ( port == nil ) then
+        self:send_error ( self.name, "Err: port number not set" )
+    elseif rpc.mode == "tcpip" then
+        self:send_info ( self.name, "Start Logging via RPC" )
+        self:send_info ( self.name, "" )
+        self:set_cut()
+        rpc.server(port)
+    else
+        self:send_error ( self.name, "Err: tcp/ip supported only" )
+    end
 end

@@ -19,12 +19,53 @@ require ('parsers/cpusage')
 require ('pcap')
 require ('misc')
 require ('Measurement')
-require ('Control')
+require ('ControlNode')
 require ('tcpExperiment')
 require ('udpExperiment')
 require ('mcastExperiment')
 require ('Config')
 
+function start_control ( log_addr, ctrl_port, log_port )
+    local ctrl = spawn_pipe ( "lua", "bin/runControl.lua", "--log_ip", log_addr, "--port", ctrl_port, "--log_port", log_port )
+    if ( ctrl ['err_msg'] ~= nil ) then
+        self:send_warning("Control not started" .. ctrl ['err_msg'] )
+    end
+    close_proc_pipes ( ctrl )
+    local str = ctrl['proc']:__tostring()
+    return parse_process ( str ) 
+end
+
+function start_control_remote ( addr, log_addr, ctrl_port, log_port )
+     local remote_cmd = "lua bin/runControl.lua"
+                 .. " --port " .. ctrl_port 
+
+     if ( log_addr ~= nil and log_port ~= nil ) then
+        remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
+                 .. " --log_port " .. log_port 
+     end
+     print ( remote_cmd )
+     local ssh = spawn_pipe("ssh", "root@" .. addr, remote_cmd)
+     close_proc_pipes ( ssh )
+end
+
+function connect_control ( ctrl_ip, ctrl_port )
+    function connect ()
+        local l, e = rpc.connect ( ctrl_ip, ctrl_port )
+        return l, e
+    end
+    return pcall ( connect )
+end
+
+function stop_control ( pid )
+    kill = spawn_pipe("kill", pid)
+    close_proc_pipes ( kill )
+end
+
+function stop_control_remote ( addr, pid )
+    local ssh = spawn_pipe("ssh", "root@" .. addr, "kill " .. pid )
+    local exit_code = ssh['proc']:wait()
+    close_proc_pipes ( ssh )
+end
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
@@ -37,15 +78,19 @@ parser:option ("-c --config", "config file name", nil)
 
 parser:option("--sta", "Station host name"):count("*")
 parser:option("--ap", "Access Point host name"):count("*")
+
 parser:option ("--sta_radio", "STA Wifi Interface name", "radio0")
 parser:option ("--sta_ctrl_if", "STA Control Interface", "eth0")
-
 
 parser:option ("--ap_radio", "AP Wifi Interface name", "radio0")
 parser:option ("--ap_ctrl_if", "AP Control Monitor Interface", "eth0")
 
-parser:option ("--ctrl_port", "Port for control RPC", "12346" )
+parser:option ("--ctrl", "Control node host name" )
+parser:option ("--ctrl_ip", "IP of Control node" )
+parser:option ("-C --ctrl_port", "Port for control RPC", "12346" )
+parser:flag ("--ctrl_only", "Just connect with control node", false )
 
+parser:option ("--log", "Logger host name")
 parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "/tmp/measurement.log" )
@@ -89,14 +134,16 @@ if (args.config ~= nil) then
     -- (loadfile, dofile, loadstring)  
     require(string.sub(args.config,1,#args.config-4))
 
-    if (table_size ( stations ) < 1) then
-        print ( "Error: config file '" .. args.config .. "' have to contain at least one station node description in var 'stations'.")
-        os.exit(1)
-    end
+    if ( args.ctrl_only == false ) then
+        if (table_size ( stations ) < 1) then
+            print ( "Error: config file '" .. args.config .. "' have to contain at least one station node description in var 'stations'.")
+            os.exit(1)
+        end
 
-    if (table_size ( aps ) < 1) then
-        print ( "Error: config file '" .. args.config .. "' have to contain at least one access point node description in var 'aps'.")
-        os.exit(1)
+        if (table_size ( aps ) < 1) then
+            print ( "Error: config file '" .. args.config .. "' have to contain at least one access point node description in var 'aps'.")
+            os.exit(1)
+        end
     end
 
     -- overwrite config file setting with command line settings
@@ -113,12 +160,14 @@ if (args.config ~= nil) then
 
 else
 
-    if (args.ap == nil or table_size ( args.ap ) == 0 ) then
-        show_config_error ( parser, "ap", true)
-    end
+    if ( args.ctrl_only == false ) then
+        if (args.ap == nil or table_size ( args.ap ) == 0 ) then
+            show_config_error ( parser, "ap", true)
+        end
 
-    if (args.sta == nil or table_size ( args.sta ) == 0 ) then
-        show_config_error ( parser, "sta", true)
+        if (args.sta == nil or table_size ( args.sta ) == 0 ) then
+            show_config_error ( parser, "sta", true)
+        end
     end
 
     for i,ap_name in ipairs ( args.ap ) do
@@ -212,33 +261,58 @@ for _, sta_config in ipairs ( stas_config ) do
 end
 print ( )
 
+local ctrl_pid
+if ( args.disable_autostart == false ) then
+    if (args.ctrl_ip ~= nil) then
+        start_control_remote ( args.ctrl_ip, args.log_ip, args.ctrl_port, args.log_port )
+    else
+        local ctrl_proc = start_control ( args.log_ip, args.ctrl_port, args.log_port )
+        ctrl_pid = ctrl_proc['pid']
+    end
+end
+
 -- ---------------------------------------------------------------
 
-local ctrl = ControlNode:create()
-local ap_refs = {}
-local sta_refs = {}
+-- connect to control
+
+if rpc.mode ~= "tcpip" then
+    print ( "Err: rpc mode tcp/ip is supported only" )
+    os.exit(1)
+end
+
+local ctrl_status, ctrl_rpc, err = connect_control ( args.ctrl_ip, args.ctrl_port )
+if ( ctrl_status == false ) then
+    print ( "Err: Connection to control node failed" )
+    print ( "Err: no node at address: " .. args.ctrl_ip .. " on port: " .. args.ctrl_port )
+    os.exit(1)
+end
+if ( args.disable_autostart == false ) then
+    print ( "Wait for 5 seconds for control node to come up")
+    os.sleep ( 5 )
+end
 
 for _, ap_config in ipairs ( aps_config ) do
-    local ap_ctrl = NetIF:create ("ctrl", ap_config['ctrl_if'] )
-    local ap_ref = AccessPointRef:create (ap_config.name, ap_ctrl, args.ctrl_port )
-    ctrl:add_ap_ref ( ap_ref )
-    ap_refs [ #ap_refs + 1 ] = ap_ref
+    ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], args.ctrl_port )
 end
 
 for _, sta_config in ipairs ( stas_config ) do
-    local sta_ctrl = NetIF:create ("ctrl", sta_config['ctrl_if'] )
-    local sta_ref = StationRef:create ( sta_config.name, sta_ctrl, args.ctrl_port )
-    ctrl:add_sta_ref ( sta_ref )
-    sta_refs [ #sta_refs + 1 ] = sta_ref
+    ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], args.ctrl_port )
 end
 
 if ( args.run_check == true ) then
+    args.log = nil
     args.log_ip = nil
     args.log_port = nil
     args.Log_file = nil
 end
+ctrl_pid = ctrl_rpc.get_pid()
 
 -- -------------------------------------------------------------------
+
+if ( table_size ( ctrl_rpc.nodes() ) == 0 ) then
+    error ("no nodes present")
+    os.exit(1)
+end
 
 print ( "Reachability:" )
 print ( "=============" )
@@ -246,13 +320,15 @@ print ( )
 
 -- check reachability 
 if ( args.disable_reachable == false ) then
-    local reached = ctrl:reachable()
+    local reached = ctrl_rpc.reachable()
+    if ( table_size ( reached ) == 0 ) then
+        os.exit (1)
+    end
     for addr, reached in pairs ( reached ) do
         if (reached) then
             print ( addr .. ": ONLINE" )
         else
             print ( addr .. ": OFFLINE" )
-            os.exit(1)
         end
     end
 end
@@ -265,7 +341,8 @@ end
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
-    if (ctrl:start ( args.log_ip, args.log_port, args.log_file ) == false) then
+    local log_ip = args.log_ip or get_addr()
+    if ( ctrl_rpc.start ( args.log_ip, args.log_port, args.log_file ) == false ) then
         print ("Error: Not all nodes started")
         os.exit(1)
     end
@@ -277,67 +354,60 @@ end
 
 -- and connect to nodes
 print ("connect to nodes")
-if (ctrl:connect ( args.ctrl_port ) == false) then
+if ( ctrl_rpc.connect ( args.ctrl_port ) == false ) then
     print ("connection failed!")
     os.exit(1)
 end
 
 print()
 
-local ap_ref_tmp
-local ap_phys_tmp
+for _, ap_ref in ipairs ( ctrl.ap_refs ) do
+    ap_ref:set_wifi ( ap_ref.wifis[1] )
 
-for _, ap_ref in ipairs ( ap_refs ) do
-    ap_ref_tmp = ap_ref -- fixme: configure aps and stations
-    local ap_phys = ap_ref.rpc.wifi_devices()
-    ap_phys_tmp = ap_phys
-    print (ap_ref.name .. " wifi devices:")
-    map ( print, ap_phys)
-    ap_ref:add_wifi ( ap_phys[1] )
-    ap_ref:set_wifi ( ap_phys[1] )
-
-    ap_ref:set_ssid( ap_ref.rpc.get_ssid( ap_phys[1] ) )
-    print (ap_ref.name .. " ssid: ".. ap_ref:get_ssid())
+    local ssid = ap_ref.rpc.get_ssid ( ap_ref.wifi_cur )
+    ap_ref:set_ssid ( ssid  )
+    print ( ap_ref.name .. " ssid: ".. ssid )
 
     -- fixme: "br-lan" on bridged routers, instead of eth0
-    local ap_mac = ap_ref.rpc.get_mac ( ap_phys[1] )
+    local ap_mac = ap_ref.rpc.get_mac ( "br-lan" )
     if ( ap_mac ~= nil) then
         print (ap_ref.name .. " mac: " ..  ap_mac)
     else
         print (ap_ref.name .. " mac: no ipv4 assigned")
     end
 
-    local ap_addr = ap_ref.rpc.get_addr ( ap_phys[1] )
+    local ap_addr = ap_ref.rpc.get_addr ( "br-lan" )
     if ( ap_addr ~= nil and ap_addr ~= "6..." ) then
         print ("AP addr: " ..  ap_addr)
     else
         print ("AP addr: no ipv4 assigned")
     end
 end
-ap_ref_tmp = ap_refs[1]
+
+-- fixme: configure aps and stations
+local ap_ref_tmp = ctrl.ap_refs[1]
 
 print ()
 
-for _, sta_ref in ipairs ( sta_refs ) do
-    local sta_phys = sta_ref.rpc.wifi_devices()
-    print (sta_ref.name .. " wifi devices:")
-    map ( print, sta_phys)
-    sta_ref:add_wifi ( sta_phys[1] )
-    sta_ref:set_wifi ( sta_phys[1] )
-    local mac = sta_ref:get_mac ( sta_phys[1] )
-    print ( sta_ref.name .. " mac: " .. mac)
+for _, sta_ref in ipairs ( ctrl.sta_refs ) do
+    sta_ref:set_wifi ( sta_ref.wifis[1] )
+
+    local mac = sta_ref:get_mac ( ap_ref.wifi_cut )
+    local addr = ap_ref.rpc.has_lease ( mac )
+    print ( sta_ref.name .. " mac: " .. mac .. " addr: " .. addr)
+
     ap_ref_tmp:add_station ( mac, sta_ref )
-    -- local addr = ap_ref.rpc.has_lease ( mac )
-    -- print ( "Address of " .. sta_ref.name .. ": " .. addr )
 end
 
 print()
 
-print ( "STATIONS on " .. ap_phys_tmp[1])
-print ( "==================")
-local wifi_stations = ap_ref_tmp.rpc.stations( ap_phys_tmp[1] )
-map ( print, wifi_stations )
-print ()
+for _, ap_ref in ipairs ( ctrl.ap_refs ) do
+    print ( "STATIONS on " .. ap_ref.wifi_cur )
+    print ( "==================")
+    local wifi_stations = ap_ref.rpc.stations ()
+    map ( print, wifi_stations )
+    print ()
+end
 
 -- check whether station is connected
 -- got the right station? query mac from STA
@@ -346,13 +416,13 @@ print ()
 --    os.exit(1)
 --end
 
-print ( ctrl:__tostring() )
+print ( ctrl_rpc.__tostring() )
 print ( )
 
 if (args.dry_run) then 
     print ( "dry run is set, quit here" )
     if ( args.disable_autostart == false ) then
-        ctrl:stop()
+        ctrl_rpc.stop()
     end
     os.exit(1)
 end
@@ -362,8 +432,8 @@ print ( )
 
 local runs = tonumber ( args.runs )
 
-for _, node_ref in ipairs ( ctrl:nodes() ) do
-    node_ref.rpc.set_ani ( ap_phys_tmp[1], not args.disable_ani ) --fixme: phy
+for _, node_ref in ipairs ( ctrl_rpc.nodes() ) do
+    node_ref.rpc.set_ani ( node_ref.wifi_cur, not args.disable_ani )
 end
 
 local experiment
@@ -377,7 +447,7 @@ else
     show_config_error ( parser, "command")
 end
 
-local status = ctrl:run_experiments ( experiment, ap_refs )
+local status = ctrl_rpc.run_experiments ( experiment, ctrl.ap_refs )
 
 if (status == true) then
     print ( )
@@ -390,9 +460,14 @@ end
 
 -- -----------------------
 
-ctrl:disconnect()
+ctrl_rpc.disconnect()
 
 -- kill nodes if desired by the user
 if ( args.disable_autostart == false ) then
-    ctrl:stop()
+    ctrl_rpc.stop()
+    if ( args.ctrl_ip ~= nil ) then
+        stop_control_remote ( ctrl_pid )
+    else
+        stop_control ( ctrl_pid )
+    end
 end
