@@ -106,6 +106,7 @@ end
 -- wait for station is linked to ssid
 function NodeRef:wait_linked ()
     local connected = false
+
     repeat
         local ssid = self.rpc.get_linked_ssid ( self.wifi_cur )
         if (ssid == nil) then 
@@ -119,7 +120,7 @@ function NodeRef:wait_linked ()
 end
 
 function NodeRef:create_measurement()
-    self.stats = Measurement:create ( self.rpc )
+    self.stats = Measurement:create ( self )
 end
 
 function NodeRef:restart_wifi( )

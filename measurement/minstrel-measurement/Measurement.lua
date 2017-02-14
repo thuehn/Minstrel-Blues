@@ -7,6 +7,7 @@
 require ("parsers/ex_process")
 
 Measurement = { rpc_node = nil
+              , node_ref = nil
               , regmon_stats = nil
               , tcpdump_pcaps = nil
               , cpusage_stats = nil
@@ -26,9 +27,10 @@ function Measurement:new (o)
     return o
 end
 
-function Measurement:create ( rpc_node )
-    if (rpc_node == nil) then error ( "rpc node unset" ) end
-    local o = Measurement:new( { rpc_node = rpc_node
+function Measurement:create ( node_ref )
+    if ( node_ref == nil ) then error ( "node reference unset" ) end
+    local o = Measurement:new( { rpc_node = node_ref.rpc
+                               , node_ref = node_ref
                                , regmon_stats = {}
                                , tcpdump_pcaps = {}
                                , cpusage_stats = {}
@@ -63,7 +65,7 @@ function Measurement:__tostring()
         out = out .. "tcpdump_pcap-" .. key .. ":\n"
         if (false) then
             out = out .. "timestamp, wirelen, #capdata\n"
-            local fname = "/tmp/" .. key .. ".pcap"
+            local fname = "/tmp/" .. self.node_ref.name .. "-" .. key .. ".pcap"
             local file = io.open(fname, "wb")
             file:write ( stats )
             file:close()
@@ -121,7 +123,7 @@ function Measurement:start ( phy, key )
         self.cpusage_proc = parse_process ( str )
     end
     -- tcpdump
-    local tcpdump_fname = "/tmp/" .. key .. ".pcap"
+    local tcpdump_fname = "/tmp/" .. self.node_ref.name .. "-" .. key .. ".pcap"
     str = self.rpc_node.start_tcpdump( phy, tcpdump_fname )
     self.tcpdump_proc = parse_process ( str )
     -- rc stats
@@ -164,7 +166,7 @@ function Measurement:fetch ( phy, key )
     -- cpusage
     self.cpusage_stats [ key ] = self.rpc_node.get_cpusage()
     -- tcpdump
-    local tcpdump_fname = "/tmp/" .. key .. ".pcap"
+    local tcpdump_fname = "/tmp/" .. self.node_ref.name .."-" .. key .. ".pcap"
     self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( tcpdump_fname )
     
     -- rc_stats

@@ -157,8 +157,8 @@ end
 
 -- iw dev mon0 info
 -- iw phy phy0 interface add wlan0 type monitor
--- ifconfig wlan0 up
 -- fixme: command failed: Too many open files in system (-23)
+-- ifconfig wlan0 up
 function Node:add_monitor ( phy )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
@@ -169,10 +169,13 @@ function Node:add_monitor ( phy )
         self:send_info("Adding monitor " .. mon .. " to " .. phy)
         local iw_add = spawn_pipe("iw", "phy", phy, "interface", "add", mon, "type", "monitor")
         local exit_code = iw_add['proc']:wait()
-        close_proc_pipes ( iw_add )
         if (exit_code ~= 0) then
-            self:send_error("Add monitor failed: " .. exit_code)
+            self:send_error("Add monitor failed")
         end
+        if ( iw_add['err'] ~= nil ) then 
+            self:send_error("Add monitor failed")
+        end
+        close_proc_pipes ( iw_add )
     else
         self:send_info("Monitor " .. mon .. " not added to " .. phy .. ": already exists")
     end
@@ -388,39 +391,45 @@ end
 -- returns the ssid when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_ssid ( phy )
+    self:send_info("Get linked ssid for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
     iwlink_proc['proc']:wait()
     local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
     close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil) then return nil end
+    if (iwlink == nil or iwlink.ssid == nil ) then return nil end
+    self:send_info(" linked ssid: " .. iwlink.ssid)
     return iwlink.ssid
 end
 
 -- returns the remote iface when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_iface ( phy )
+    self:send_info("Get linked interface for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
     iwlink_proc['proc']:wait()
     local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
     close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil) then return nil end
+    if (iwlink == nil or iwlink.iface == nil ) then return nil end
+    self:send_info(" linked iface: " .. iwlink.iface)
     return iwlink.iface
 end
 
 -- returns the remote mac when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_mac ( phy )
+    self:send_info("Get linked mac for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
     iwlink_proc['proc']:wait()
     local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
     close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil) then return nil end
+    if (iwlink == nil or iwlink.mac == nil) then return nil end
+    self:send_info(" linked mac: " .. iwlink.mac)
     return iwlink.mac
 end
 
@@ -557,7 +566,13 @@ function Node:start_tcpdump ( phy, fname )
     if ( tcpdump['err'] ~= nil ) then
       --fixme:  attempt to use a closed file
         local line = tcpdump['err']:read('*line')
-        if line then self:send_info(line) end
+        if ( line ~= nil ) then
+            if ( line == "tcpdump: " .. mon ..": No such device exists") then
+                self:send_error ( line )
+            else
+                self:send_info ( line )
+            end
+        end
 --    until line == nil
     end
     return tcpdump['proc']:__tostring()
@@ -678,7 +693,11 @@ function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
 end
 
 function Node:wait_iperf_c ( addr )
-    self:send_info("wait for TCP/UDP client iperf") 
+    if ( addr == nil ) then
+        self:send_error (" wait for iperf client failed, addr is not set.")
+        return
+    end
+    self:send_info("wait for TCP/UDP client iperf for address " .. addr ) 
     local exit_code = self.iperf_client_procs[ addr ]['proc']:wait()
     repeat
         local line = self.iperf_client_procs[ addr ]['out']:read("*l")

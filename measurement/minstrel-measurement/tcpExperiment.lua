@@ -55,6 +55,9 @@ function TcpExperiment:start_experiment ( ap_ref )
     -- start iperf clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do
         local addr = sta_ref:get_addr ( sta_ref.wifi_cur )
+        if ( addr == nil ) then
+            error ( "start_experiment: address is unset" )
+        end
         local wait = false
         ap_ref.rpc.run_tcp_iperf( addr, self.tcpdata, wait )
     end
@@ -64,6 +67,9 @@ function TcpExperiment:wait_experiment ( ap_ref )
     -- wait for clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do
         local addr = sta_ref:get_addr ( sta_ref.wifi_cur )
+        if ( addr == nil ) then
+            error ( "wait_experiment: address is unset" )
+        end
         ap_ref.rpc.wait_iperf_c( addr )
     end
 end
