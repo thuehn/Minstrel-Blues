@@ -87,7 +87,7 @@ end
 function AccessPointRef:stop_measurement( key )
     NodeRef.stop_measurement( self, key )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:stop_measurement (key )
+        sta_ref:stop_measurement ( key )
     end
 end
 

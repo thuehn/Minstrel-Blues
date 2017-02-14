@@ -92,7 +92,7 @@ function NodeRef:wait_station ()
     repeat
         print ("wait for stations to come up ... ")
         os.sleep(1)
-        local wifi_stations_cur = self.rpc.stations( ap_phys[1] )
+        local wifi_stations_cur = self.rpc.stations( self.wifi_cur )
         local miss = false
         for _, str in ipairs ( wifi_stations ) do
             if ( table.contains ( wifi_stations_cur, str ) == false ) then
@@ -104,7 +104,7 @@ function NodeRef:wait_station ()
 end
 
 -- wait for station is linked to ssid
-function NodeRef:wait_linked ( )
+function NodeRef:wait_linked ()
     local connected = false
     repeat
         local ssid = self.rpc.get_linked_ssid ( self.wifi_cur )

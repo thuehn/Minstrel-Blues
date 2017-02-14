@@ -65,14 +65,14 @@ function McastExperiment:start_experiment ( ap_ref )
         local addr = "224.0.67.0"
         local ttl = 32
         local size = "100M"
-        ap_ref.rpc.run_multicast( sta_ref:get_addr ( sta_ref.wifis[1] ), addr, ttl, size, self.udp_interval, wait )
+        ap_ref.rpc.run_multicast( sta_ref:get_addr ( sta_ref.wifi_cur ), addr, ttl, size, self.udp_interval, wait )
     end
 end
 
 function McastExperiment:wait_experiment ( ap_ref )
     -- wait for clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do
-        local addr = sta_ref:get_addr ( sta_ref.wifis[1] )
+        local addr = sta_ref:get_addr ( sta_ref.wifi_cur )
         ap_ref.rpc.wait_iperf_c( addr )
     end
 end
