@@ -16,14 +16,13 @@ PKG_LICENSE_FILES:=LICENSE
 include $(INCLUDE_DIR)/package.mk
 
 define Package/lua-argparse
-	SECTION:=Lua
-	CATEGORY:=lang
-	SUBMENU:=Languages
-	TITLE:=Lua command line arguments parser
-	DEPENDS:=+liblua
+	SUBMENU:=Lua
+	SECTION:=lang
+	CATEGORY:=Languages
+	TITLE:=lua-argparse
+	DEPENDS:=+lua
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
-
 endef
 
 define Package/lua-argparse/description
@@ -33,18 +32,15 @@ endef
 define Build/Prepare 
 	mkdir -p $(PKG_BUILD_DIR)/argparse
 	$(CP) -r ./argparse/* $(PKG_BUILD_DIR)/argparse
-
 endef
 
 define Build/Compile
-
 endef
 
 
 define Package/lua-ex/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/argparse/src/argparse.lua $(1)/usr/lib/lua
-
 endef
 
 $(eval $(call BuildPackage,lua-argparse))

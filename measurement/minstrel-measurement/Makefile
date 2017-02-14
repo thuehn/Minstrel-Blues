@@ -20,15 +20,16 @@ PKG_LICENSE_FILES:=LICENSE
 include $(INCLUDE_DIR)/package.mk
 
 define Package/minstrel-measurement
-	SECTION:=LuCI
-	CATEGORY:=LuCI
-	SUBMENU:=3. Applications
-	TITLE:=Minstrel (Blues) Measurement
-	DEPENDS:=+lua lua-rpc lua-argparse lua-ex luaposix luafilesystem
+	SUBMENU:=Lua
+	SECTION:=lang
+	CATEGORY:=Languages
+	TITLE:=minstrel-measurement
+	DEPENDS:=+lua +lua-ex +luaposix +luafilesystem
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
 
 endef
+#	DEPENDS:=+lua +lua-rpc +lua-argparse +lua-ex +luaposix +luafilesystem
 #	DEPENDS:=+lua +libc +USE_UCLIBC:librpc
 
 define Package/minstrel-measurement/description

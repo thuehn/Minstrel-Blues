@@ -11,25 +11,23 @@ PKG_LICENSE_FILES:=LICENSE
 include $(INCLUDE_DIR)/package.mk
 
 define Package/lua-rpc
-	SECTION:=Lua
-	CATEGORY:=lang
-	SUBMENU:=Languages
-	TITLE:=Lua remote procedure calls
-	DEPENDS:=+liblua
+	SUBMENU:=Lua
+	SECTION:=lang
+	CATEGORY:=Languages
+	TITLE:=lua-rpc
+	DEPENDS:=+lua
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
-
 endef
+#	PKG_BUILD_DEPENDS:=+lua/host
 
 define Package/lua-rpc/description
-Lua remote procedure calls
-
+  Lua remote procedure calls
 endef
 
 define Build/Prepare 
 	mkdir -p $(PKG_BUILD_DIR)/luarpc 
 	$(CP) ./luarpc/* $(PKG_BUILD_DIR)/luarpc
-
 endef
 
 define Build/Compile
@@ -38,7 +36,6 @@ define Build/Compile
 		PRECOMPILED_FILTER=1 \
 		STAGING_DIR="$(STAGING_DIR)" \
 		socket
-
 endef
 #		CFLAGS="$(TARGET_CFLAGS)" \
 #		CC="$(TARGET_CC)" \
@@ -48,7 +45,6 @@ endef
 define Package/minstrel-measurement/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/luarpc/rpc.so $(1)/usr/lib/lua
-
 endef
 
 $(eval $(call BuildPackage,lua-rpc))

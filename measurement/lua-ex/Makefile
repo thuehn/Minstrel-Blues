@@ -16,11 +16,11 @@ PKG_LICENSE_FILES:=LICENSE
 include $(INCLUDE_DIR)/package.mk
 
 define Package/lua-ex
-	SECTION:=Lua
-	CATEGORY:=lang
-	SUBMENU:=Languages
-	TITLE:=lua ex proposal
-	DEPENDS:=+liblua
+	SUBMENU:=Lua
+	SECTION:=lang
+	CATEGORY:=Languages
+	TITLE:=lua-ex
+	DEPENDS:=+lua
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
 endef
@@ -32,7 +32,6 @@ endef
 define Build/Prepare 
 	mkdir -p $(PKG_BUILD_DIR)/lua-ex 
 	$(CP) -r ./lua-ex/* $(PKG_BUILD_DIR)/lua-ex
-
 endef
 
 define Build/Compile
@@ -42,7 +41,6 @@ define Build/Compile
 		PRECOMPILED_FILTER=1 \
 		STAGING_DIR="$(STAGING_DIR)" \
 		linux
-
 endef
 ##		CFLAGS="$(TARGET_CFLAGS)" \
 ##		CC="$(TARGET_CC)" \
@@ -52,7 +50,6 @@ endef
 define Package/lua-ex/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lua-ex/posix/ex.so $(1)/usr/lib/lua
-
 endef
 
 $(eval $(call BuildPackage,lua-ex))
