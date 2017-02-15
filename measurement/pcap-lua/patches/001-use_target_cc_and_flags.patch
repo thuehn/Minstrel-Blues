@@ -1,0 +1,80 @@
+diff --git a/Linux.mak b/Linux.mak
+index f5ede51..3c25c44 100644
+--- a/Linux.mak
++++ b/Linux.mak
+@@ -1,7 +1,7 @@
+ # Linux
+-CC = gcc
+-LDFLAGS = -fPIC -fno-common -shared
+-LUA = lua5.1
++#CC = gcc
++#LDFLAGS = -fPIC -fno-common -shared
++LUA = lua
+ CLUA=$(shell pkg-config --cflags ${LUA})
+ LLUA=$(shell pkg-config --libs ${LUA})
+ 
+diff --git a/Makefile b/Makefile
+index bc7bead..be80ecd 100644
+--- a/Makefile
++++ b/Makefile
+@@ -12,17 +12,13 @@ BINDING=pcap.so
+ 
+ build: $(BINDING)
+ 
+-prefix=/usr/local
++prefix=/usr
+ 
+-SODIR = $(DESTDIR)/$(prefix)/lib/lua/5.1/
+-
+-LIBDIR = $(DESTDIR)/$(prefix)/share/lua/5.1/
++LIBDIR = $(DESTDIR)/$(prefix)/share/lua/
+ BINDIR = $(DESTDIR)/$(prefix)/bin/
+ 
+ .PHONY: install
+ install: $(BINDING)
+-	mkdir -p $(SODIR)
+-	install -t $(SODIR) $(BINDING)
+ 
+ .PHONY: install-all
+ install-all: install
+@@ -40,8 +36,8 @@ CWARNS = -Wall \
+   -Wwrite-strings
+ 
+ COPT=-O2 -DNDEBUG
+-CFLAGS=$(CWARNS) $(CDEFS) $(CLUA) $(LDFLAGS) $(shell pcap-config --cflags)
+-LDLIBS=$(LLUA) $(shell pcap-config --libs)
++CFLAGS=$(CWARNS) $(CDEFS) $(CLUA) $(LDFLAGS) -fPIC -fno-common -shared
++LDLIBS=$(LLUA) -fPIC -fno-common -shared
+ 
+ CC.SO := $(CC) $(COPT) $(CFLAGS)
+ 
+diff --git a/pcap-dump b/pcap-dump
+index f089553..c848ef7 100755
+--- a/pcap-dump
++++ b/pcap-dump
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env lua5.1
++#!/usr/bin/env lua
+ 
+ local pcap = require"pcap"
+ 
+diff --git a/pcap-split b/pcap-split
+index e970154..b7f1284 100755
+--- a/pcap-split
++++ b/pcap-split
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env lua5.1
++#!/usr/bin/env lua
+ 
+ local pcap = require"pcap"
+ 
+diff --git a/pcap-test b/pcap-test
+index d1ea2f3..bc190bc 100755
+--- a/pcap-test
++++ b/pcap-test
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env lua5.1
++#!/usr/bin/env lua
+ 
+ local pcap = require "pcap"
+ require "netutil"

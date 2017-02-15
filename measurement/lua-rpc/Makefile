@@ -22,7 +22,7 @@ endef
 #	PKG_BUILD_DEPENDS:=+lua/host
 
 define Package/lua-rpc/description
-  Lua remote procedure calls
+  LuaRPC for Lua 5.1.x 
 endef
 
 define Build/Prepare 

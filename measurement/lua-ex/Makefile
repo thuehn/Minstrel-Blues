@@ -26,7 +26,7 @@ define Package/lua-ex
 endef
 
 define Package/lua-ex/description
-Minstrel Blues Measurement
+  The Lua Extension API is a proposal for a standard set of functions to provide a more complete programming environment for Lua.
 endef
 
 define Build/Prepare 
