@@ -132,19 +132,29 @@ local has_config = load_config ( args.config )
 
 -- load config from a file
 if ( has_config ) then
+    if ( ctrl == nil ) then
+        print ( "Error: config file '" .. get_config_fname ( args.config ) 
+                    .. "' have to contain at least one station node description in var 'stations'.")
+        os.exit(1)
+    end
+
     if ( args.ctrl_only == false ) then
         if (table_size ( stations ) < 1) then
-            print ( "Error: config file '" .. args.config .. "' have to contain at least one station node description in var 'stations'.")
+            print ( "Error: config file '" .. get_config_fname ( args.config ) 
+                        .. "' have to contain at least one station node description in var 'stations'.")
             os.exit(1)
         end
 
         if (table_size ( aps ) < 1) then
-            print ( "Error: config file '" .. args.config .. "' have to contain at least one access point node description in var 'aps'.")
+            print ( "Error: config file '" .. get_config_fname ( args.config )
+                        .. "' have to contain at least one access point node description in var 'aps'.")
             os.exit(1)
         end
     end
 
     -- overwrite config file setting with command line settings
+    set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
+    set_config_from_arg ( log, 'ctrl_if', args.log_if )
 
     set_configs_from_arg ( aps, 'radio', args.ap_radio )
     set_configs_from_arg ( aps, 'ctrl_if', args.ap_ctrl_if )
@@ -152,6 +162,18 @@ if ( has_config ) then
     set_configs_from_arg ( stations, 'radio', args.sta_radio )
     set_configs_from_arg ( stations, 'ctrl_if', args.sta_ctrl_if )
 else
+    if ( args.log ~= nil ) then
+        create_config ( args.log, args.log_if ) 
+    else
+        show_config_error ( parser, "log", true)
+    end
+
+    if ( args.ctrl ~= nil ) then
+        create_config ( args.ctrl, args.ctrl_if ) 
+    else
+        show_config_error ( parser, "ctrl", true)
+    end
+
     if ( args.ctrl_only == false ) then
         if (args.ap == nil or table_size ( args.ap ) == 0 ) then
             show_config_error ( parser, "ap", true)
@@ -166,7 +188,6 @@ else
     create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
 end
 copy_config_nodes()
-
 
 if ( args.verbose == true) then
     print ( )
@@ -188,10 +209,15 @@ if ( aps_config == {} ) then os.exit(1) end
 local stas_config = select_configs ( stations, args.sta )
 if ( stas_config == {} ) then os.exit(1) end
 
+local ctrl_config = select_config ( ctrl, args.ctrl )
+local log_config = select_config ( log, args.log )
+
 print ( "Configuration:" )
 print ( "==============" )
 print ( )
 print ( "Command: " .. args.command )
+print ( "Control: " .. cnode_to_string ( ctrl_config ) )
+print ( "Logging: " .. cnode_to_string ( log_config ) )
 print ( )
 print ( "Access Points:" )
 print ( "--------------")
@@ -214,7 +240,10 @@ end
 
 local ctrl_ip = args.ctrl_ip 
 if ( args.ctrl ~= nil ) then
-    ctrl_ip = lookup ( args.ctrl )
+    local ctrl_ip_addr = lookup ( args.ctrl )
+    if ( ctrl_ip_addr ~= nil ) then
+        ctrl_ip = ctrl_ip_addr
+    end
 end
 
 if ( args.disable_autostart == false ) then
