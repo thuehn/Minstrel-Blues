@@ -175,7 +175,7 @@ function ControlNode:reachable ()
     return reached
 end
 
-function ControlNode:start( log_net, log_port )
+function ControlNode:start( log_addr, log_port )
 
     function start_node ( node, log_addr )
 
@@ -201,18 +201,20 @@ function ControlNode:start( log_net, log_port )
     print ( "start" )
 
     for _, node in ipairs ( self:nodes() ) do
-        start_node( node, self.log_net.addr )
+        start_node( node, log_addr )
     end
     return true
 end
 
-function ControlNode:connect ( ctrl_port )
+function ControlNode:connect_nodes ( ctrl_port )
+    
     if rpc.mode ~= "tcpip" then
         print ( "Err: rpc mode tcp/ip is supported only" )
         return false
     end
 
     for _, node_ref in ipairs ( self:nodes() ) do
+        print ( "Connect to " .. node_ref.name .. " ..." )
         node_ref:connect ( ctrl_port )
         if ( node_ref.rpc == nil ) then
             print ("Connection to " .. node_ref.name .. " failed")
@@ -231,7 +233,7 @@ function ControlNode:connect ( ctrl_port )
     return true
 end
 
-function ControlNode:disconnect()
+function ControlNode:disconnect_nodes()
     for _, node_ref in ipairs ( self:nodes() ) do 
         rpc.close ( node_ref.rpc )
     end

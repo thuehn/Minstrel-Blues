@@ -7,7 +7,8 @@ function find_node( name, nodes )
 end
 
 function cnode_to_string ( config )
-    return config.name .. "\t" .. ( config.radio or "none" ) .. "\t" .. config.ctrl_if
+    if ( config == nil ) then return "none" end
+    return ( config.name or "none") .. "\t" .. ( config.radio or "none" ) .. "\t" .. ( config.ctrl_if or "none" )
 end
 
 

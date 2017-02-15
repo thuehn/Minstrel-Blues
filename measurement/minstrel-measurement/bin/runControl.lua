@@ -33,8 +33,8 @@ function nodes ( ... ) return node:nodes ( ... ) end
 function find_node ( ... ) return node:find_node ( ... ) end
 function reachable ( ... ) return node:reachable ( ... ) end
 function start ( ... ) return node:start ( ... ) end
-function connect ( ... ) return node:connect ( ... ) end
-function disconnect ( ... ) return node:disconnect ( ... ) end
+function connect_nodes ( ... ) return node:connect_nodes ( ... ) end
+function disconnect_nodes ( ... ) return node:disconnect_nodes ( ... ) end
 function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function run_experiments ( ... ) return node:run_experiments ( ... ) end
 function stop ( ... ) return node:stop ( ... ) end
@@ -43,6 +43,9 @@ function get_pid ( ... ) return node:get_pid ( ... ) end
 function kill ( ... ) return node:kill ( ... ) end
 function get_logger_addr ( ...  ) return node:get_logger_addr ( ... ) end
 
+function foo ( ... ) return node:foo ( ... ) end
+
 -- make all functions available via RPC
 print ( node )
+print ( args.port )
 node:run ( args.port )

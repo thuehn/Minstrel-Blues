@@ -258,6 +258,7 @@ if ( ctrl_net.addr == nil) then
 end
 
 -- log node iface, log node (name) lookup
+-- fixme: log node is always at control node
 local log_net = NetIF:create ( "ctrl", log_config['ctrl_if'] )
 log_net.addr = args.log_ip
 if ( log_net.addr == nil) then
@@ -362,8 +363,8 @@ end
 -- ----------------------------------------------------------
 
 -- and connect to nodes
-print ("connect to nodes")
-if ( ctrl_rpc.connect ( args.ctrl_port ) == false ) then
+print ("connect to nodes at port " .. args.ctrl_port )
+if ( ctrl_rpc.connect_nodes ( args.ctrl_port ) == false ) then
     print ("connection failed!")
     os.exit(1)
 end
@@ -469,7 +470,7 @@ end
 
 -- -----------------------
 
-ctrl_rpc.disconnect()
+ctrl_rpc.disconnect_nodes()
 
 -- kill nodes if desired by the user
 if ( args.disable_autostart == false ) then
