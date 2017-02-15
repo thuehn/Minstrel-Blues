@@ -100,13 +100,6 @@ function parse_ifconfig ( ifconfig )
         rest = stail ( rest ) -- :
         rest = skip_layout ( rest )
         state, rest = parse_str ( rest, "flags=" )
-        if ( state == false ) then
-            local ide, rest = parse_ide ( rest )
-            if ( ide == "error" ) then
-                out.iface = iface
-                return out
-            end
-        end
         _, rest = parse_num ( rest )
         state, rest = parse_str ( rest, "<" )
         _, rest = parse_flags ( rest )

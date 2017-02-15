@@ -128,21 +128,10 @@ if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast"
     show_config_error ( parser, "command", false )
 end
 
-stations = {} -- table in config file
-aps = {} -- table in config file
-nodes = {}
+local has_config = load_config ( args.config ) 
 
 -- load config from a file
-if (args.config ~= nil) then
-
-    if ( not isFile ( args.config ) ) then
-        print ( args.config .. " does not exists.")
-        os.exit (1)
-    end
-
-    -- (loadfile, dofile, loadstring)  
-    require(string.sub(args.config,1,#args.config-4))
-
+if ( has_config ) then
     if ( args.ctrl_only == false ) then
         if (table_size ( stations ) < 1) then
             print ( "Error: config file '" .. args.config .. "' have to contain at least one station node description in var 'stations'.")
@@ -157,18 +146,12 @@ if (args.config ~= nil) then
 
     -- overwrite config file setting with command line settings
 
-    for i, ap_config in ipairs ( aps ) do
-        if (args.ap_radio ~= nil) then ap_config.radio = args.ap_radio end 
-        if (args.ap_ctrl_if ~= nil) then ap_config.ctrl_if = args.ap_ctrl_if end 
-    end
+    set_configs_from_arg ( aps, 'radio', args.ap_radio )
+    set_configs_from_arg ( aps, 'ctrl_if', args.ap_ctrl_if )
 
-    for i, sta_config in ipairs ( stations ) do
-        if (args.sta_radio ~= nil) then sta_config.radio = args.sta_radio end 
-        if (args.sta_ctrl_if ~= nil) then sta_config.ctrl_if = args.sta_ctrl_if end 
-    end
-
+    set_configs_from_arg ( stations, 'radio', args.sta_radio )
+    set_configs_from_arg ( stations, 'ctrl_if', args.sta_ctrl_if )
 else
-
     if ( args.ctrl_only == false ) then
         if (args.ap == nil or table_size ( args.ap ) == 0 ) then
             show_config_error ( parser, "ap", true)
@@ -179,24 +162,11 @@ else
         end
     end
 
-    for i,ap_name in ipairs ( args.ap ) do
-        aps[i] = { name = ap_name
-                 , radio = args.ap_radio
-                 , ctrl_if = args.ap_ctrl_if
-                 }
-        nodes[ i + 1 ] = aps[i]
-    end
-
-    for j, sta_name in ipairs ( args.sta ) do
-        local k = i + j
-        stations[k] = { name = sta_name
-                      , radio = args.sta_radio
-                      , ctrl_if = args.sta_ctrl_if
-                     }
-        nodes[ k + 1 ] = stations[k]
-    end
-
+    create_configs ( arg.ap, args.ap_radio, args.ap_ctrl_if )
+    create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
 end
+copy_config_nodes()
+
 
 if ( args.verbose == true) then
     print ( )
@@ -212,45 +182,11 @@ if ( args.verbose == true) then
     print ( )
 end
 
-for _,v in ipairs(stations) do nodes [ #nodes + 1 ] = v end
-for _,v in ipairs(aps) do nodes [ #nodes + 1 ] = v end
+local aps_config = select_configs ( aps, args.ap ) 
+if ( aps_config == {} ) then os.exit(1) end
 
-local aps_config = {}
-if ( table_size ( args.ap ) > 0 ) then
-    for _, ap_name in ipairs ( args.ap ) do
-        local node = find_node ( ap_name, aps )
-        if ( node == nil ) then
-            print ( "Error: no access point with name '" ..ap_name .. "' found")
-            os.exit(1)
-        end
-        aps_config [ #aps_config + 1 ] = node 
-    end
-else
-    print ("No access points selected. Using all access points from setup")
-    print ()
-    for _, node in ipairs ( aps ) do
-        aps_config [ #aps_config + 1 ] = node 
-    end
-end
-
-local stas_config = {}
-if ( table_size ( args.sta ) > 0 ) then
-    for _, sta_name in ipairs ( args.sta ) do
-        local node = find_node ( sta_name, stations )
-        if ( node == nil ) then
-            print ( "Error: no station with name '" .. sta_name .. "' found")
-            os.exit(1)
-        end
-        stas_config [ #stas_config + 1 ] = node 
-    end
-else
-    print ("No stations selected. Using all stations from setup")
-    print ()
-    for _, node in ipairs ( stations ) do
-        stas_config [ #stas_config + 1 ] = node 
-    end
-end
-
+local stas_config = select_configs ( stations, args.sta )
+if ( stas_config == {} ) then os.exit(1) end
 
 print ( "Configuration:" )
 print ( "==============" )

@@ -60,6 +60,7 @@ function Measurement:__tostring()
         end
     end
     -- tcpdump pcap
+    -- -- pcap.DLT = { EN10MB=DLT_EN10MB, [DLT_EN10MB] = "EN10MB", ... }
     out = out .. "pcaps: " .. table_size ( self.tcpdump_pcaps ) .. " stats\n"
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         out = out .. "tcpdump_pcap-" .. key .. ":\n"
