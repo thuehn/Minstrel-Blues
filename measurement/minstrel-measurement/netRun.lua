@@ -342,16 +342,16 @@ if ( args.run_check == true ) then
     os.exit (1)
 end
 
----- and auto start nodes
---if ( args.disable_autostart == false ) then
---    local log_ip = args.log_ip or get_addr()
---    if ( ctrl_rpc.start ( args.log_ip, args.log_port, args.log_file ) == false ) then
---        print ("Error: Not all nodes started")
---        os.exit(1)
---    end
---    print ("wait 5 seconds for nodes initialisation")
---    os.sleep (5)
---end
+-- and auto start nodes
+if ( args.disable_autostart == false ) then
+    local log_ip = args.log_ip or get_addr()
+    if ( ctrl_rpc.start ( args.log_ip, args.log_port, args.log_file ) == false ) then
+        print ("Error: Not all nodes started")
+        os.exit(1)
+    end
+    print ("wait 5 seconds for nodes initialisation")
+    os.sleep (5)
+end
 
 -- ----------------------------------------------------------
 
