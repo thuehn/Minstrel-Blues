@@ -307,7 +307,13 @@ end
 ctrl_pid = ctrl_rpc.get_pid()
 
 print ( "Control node with IP: " .. ( ctrl_rpc.get_ctrl_addr () or "unset" ) )
+if ( ctrl_net.addr == nil ) then
+    ctrl_net.addr = ctrl_rpc.get_ctrl_addr ()
+end
 print ( "Log node with IP: " .. ( ctrl_rpc.get_logger_addr () or "unset" ) )
+if ( log_net.addr == nil ) then
+    log_net.addr = ctrl_rpc.get_logger_addr ()
+end
 print ()
 
 -- -------------------------------------------------------------------
@@ -325,6 +331,7 @@ print ( )
 if ( args.disable_reachable == false ) then
     local reached = ctrl_rpc.reachable()
     if ( table_size ( reached ) == 0 ) then
+        print ( "No hosts reachables" )
         os.exit (1)
     end
     for addr, reached in pairs ( reached ) do
@@ -344,8 +351,7 @@ end
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
-    local log_ip = args.log_ip or get_addr()
-    if ( ctrl_rpc.start ( args.log_ip, args.log_port, args.log_file ) == false ) then
+    if ( ctrl_rpc.start ( log_net.addr, args.log_port ) == false ) then
         print ("Error: Not all nodes started")
         os.exit(1)
     end
