@@ -1,3 +1,5 @@
+require ('net')
+
 -- simple struct to store the name, the interface and the ip address of a host
 -- i.e. for pretty printing and have a named triple instead of unprintable
 -- table with keys
@@ -39,3 +41,9 @@ function NetIF:__tostring()
             .. "phy = " .. phy 
 end
 
+function NetIF:get_addr ()
+    if ( self.addr == nil) then
+        self.addr = get_addr ( self.iface )
+    end
+    return self.addr
+end

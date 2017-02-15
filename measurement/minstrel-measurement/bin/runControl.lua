@@ -7,11 +7,14 @@ local argparse = require ('argparse')
 
 local parser = argparse("runControl", "Run mintrel measurement control node.")
  
+parser:option ("--ctrl_if", "Control Interface name", "eth0" )
 parser:option ("-C --port", "RPC port", "12346" )
+
+parser:option ("--log_file", "Logging file name", "/tmp/minstrelm.log" )
+parser:option ("--log_if", "Logging Interface name", "eth0" )
 parser:option ("-L --log_port", "Logging port", "12347" )
 parser:option ("--log_ip", "Logging ip address" )
 
-parser:option ("--ctrl_if", "Control Interface name", "eth0" )
 
 local args = parser:parse ()
 
@@ -19,7 +22,9 @@ if ( args.log_ip == nil ) then
     print ( parser:get_usage() )
 end
 
-local node = ControlNode:create ( "Control", args.ctrl_if, args.port, args.log_ip, args.log_port )
+local net = NetIF:create ( "ctrl", args.ctrl_if )
+local log = NetIF:create ( "log", args.log_if, args.log_ip )
+local node = ControlNode:create ( "Control", net, args.port, log, args.log_port, args.log_file )
 
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 function add_ap ( ... ) return node:add_ap ( ... ) end

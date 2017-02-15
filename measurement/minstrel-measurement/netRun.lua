@@ -26,32 +26,38 @@ require ('mcastExperiment')
 require ('Config')
 require ('net')
 
-function start_control ( ctrl_if, log_if, log_addr, ctrl_port, log_port )
-    local ctrl = spawn_pipe ( "lua", "bin/runControl.lua", "--log_ip", log_addr
-                            , "--port", ctrl_port, "--log_port", log_port 
-                            , "--ctrl_if", ctrl_if
-                            , "--log_if", log_if
+function start_control ( ctrl_net, log_net, ctrl_port, log_port )
+    local ctrl = spawn_pipe ( "lua", "bin/runControl.lua"
+                            , "--port", ctrl_port
+                            , "--ctrl_if", ctrl_net.iface
+                            , "--log_if", log_net.iface
+                            , "--log_ip", log_net.addr
+                            , "--log_port", log_port 
                             )
     if ( ctrl ['err_msg'] ~= nil ) then
         self:send_warning("Control not started" .. ctrl ['err_msg'] )
     end
     close_proc_pipes ( ctrl )
     local str = ctrl['proc']:__tostring()
-    return parse_process ( str ) 
+    local proc = parse_process ( str ) 
+    print ( "Control: " .. str )
+    return proc
 end
 
-function start_control_remote (ctrl_if, addr, log_if, log_addr, ctrl_port, log_port )
+function start_control_remote ( ctrl_net, log_net, ctrl_port, log_port )
      local remote_cmd = "lua bin/runControl.lua"
                  .. " --port " .. ctrl_port 
-                 .. " --ctrl_if " .. ctrl_if
-                 .. " --log_if " .. log_if
+                 .. " --ctrl_if " .. ctrl_net.iface
+     if ( log_net.iface ~= nil ) then
+        remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
+     end
 
-     if ( log_addr ~= nil and log_port ~= nil ) then
-        remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
+     if ( log_net.addr ~= nil and log_port ~= nil ) then
+        remote_cmd = remote_cmd .. " --log_ip " .. log_net.addr 
                  .. " --log_port " .. log_port 
      end
      print ( remote_cmd )
-     local ssh = spawn_pipe("ssh", "root@" .. addr, remote_cmd)
+     local ssh = spawn_pipe("ssh", "root@" .. ctrl_net.addr, remote_cmd)
      close_proc_pipes ( ssh )
 end
 
@@ -233,29 +239,49 @@ end
 print ( )
 
 local ctrl_pid
-local addr = get_addr ( "eth0" )
-if ( addr == nil ) then
-    addr = get_addr ( "br-lan" )
+
+-- ctrl iface
+local net = NetIF:create ( "ctrl", "eth0" )
+if ( net:get_addr() == nil ) then
+    net = NetIF:create ( "ctrl", "br-lan" )
+    net:get_addr()
 end
 
-local ctrl_ip = args.ctrl_ip 
-if ( args.ctrl ~= nil ) then
-    local ctrl_ip_addr = lookup ( args.ctrl )
-    if ( ctrl_ip_addr ~= nil ) then
-        ctrl_ip = ctrl_ip_addr
-    end
+-- ctrl node iface, ctrl node (name) lookup
+local ctrl_net = NetIF:create ( "ctrl", ctrl_config['ctrl_if'] )
+ctrl_net.addr = args.ctrl_ip
+if ( ctrl_net.addr == nil) then
+    local ip_addr = lookup ( ctrl_config['name'] )
+    if ( ip_addr ~= nil ) then
+        ctrl_net.addr = ip_addr
+    end 
+end
+
+-- log node iface, log node (name) lookup
+local log_net = NetIF:create ( "ctrl", log_config['ctrl_if'] )
+log_net.addr = args.log_ip
+if ( log_net.addr == nil) then
+    local ip_addr = lookup ( log_config['name'] )
+    if ( ip_addr ~= nil ) then
+        log_net.addr = ip_addr
+    end 
 end
 
 if ( args.disable_autostart == false ) then
-    if ( args.ctrl_ip ~= nil and args.ctrl_ip ~= addr ) then
-        start_control_remote ( args.ctrl_if, args.ctrl_ip, args.log_if, args.log_ip, args.ctrl_port, args.log_port )
+    if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
+        start_control_remote ( ctrl_net, log_net, args.ctrl_port, args.log_port )
     else
-        local ctrl_proc = start_control ( args.ctrl_if, args.log_if, args.log_ip, args.ctrl_port, args.log_port )
+        local ctrl_proc = start_control ( ctrl_net, log_net, args.ctrl_port, args.log_port )
         ctrl_pid = ctrl_proc['pid']
     end
 end
 
 -- ---------------------------------------------------------------
+
+if ( args.disable_autostart == false ) then
+    print ( "Wait for 5 seconds for control node to come up")
+    os.sleep ( 5 )
+end
 
 -- connect to control
 
@@ -264,17 +290,12 @@ if rpc.mode ~= "tcpip" then
     os.exit(1)
 end
 
-local ctrl_status, ctrl_rpc, err = connect_control ( ctrl_ip, args.ctrl_port )
+local ctrl_status, ctrl_rpc, err = connect_control ( ctrl_net.addr, args.ctrl_port )
 if ( ctrl_status == false ) then
     print ( "Err: Connection to control node failed" )
-    print ( "Err: no node at address: " .. ctrl_ip .. " on port: " .. args.ctrl_port )
+    print ( "Err: no node at address: " .. ctrl_net.addr .. " on port: " .. args.ctrl_port )
     os.exit(1)
 end
-if ( args.disable_autostart == false ) then
-    print ( "Wait for 5 seconds for control node to come up")
-    os.sleep ( 5 )
-end
-
 for _, ap_config in ipairs ( aps_config ) do
     ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], args.ctrl_port )
 end
@@ -283,17 +304,10 @@ for _, sta_config in ipairs ( stas_config ) do
     ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], args.ctrl_port )
 end
 
-if ( args.run_check == true ) then
-    args.log = nil
-    args.log_ip = nil
-    args.log_port = nil
-    args.Log_file = nil
-end
-
 ctrl_pid = ctrl_rpc.get_pid()
 
-print ( "Control node with IP: " .. ctrl_rpc.get_ctrl_addr () .. " connected" )
-print ( "Log node with IP: " .. ctrl_rpc.get_logger_addr () .. " connected" )
+print ( "Control node with IP: " .. ( ctrl_rpc.get_ctrl_addr () or "unset" ) )
+print ( "Log node with IP: " .. ( ctrl_rpc.get_logger_addr () or "unset" ) )
 print ()
 
 -- -------------------------------------------------------------------
@@ -328,16 +342,16 @@ if ( args.run_check == true ) then
     os.exit (1)
 end
 
--- and auto start nodes
-if ( args.disable_autostart == false ) then
-    local log_ip = args.log_ip or get_addr()
-    if ( ctrl_rpc.start ( args.log_ip, args.log_port, args.log_file ) == false ) then
-        print ("Error: Not all nodes started")
-        os.exit(1)
-    end
-    print ("wait 5 seconds for nodes initialisation")
-    os.sleep (5)
-end
+---- and auto start nodes
+--if ( args.disable_autostart == false ) then
+--    local log_ip = args.log_ip or get_addr()
+--    if ( ctrl_rpc.start ( args.log_ip, args.log_port, args.log_file ) == false ) then
+--        print ("Error: Not all nodes started")
+--        os.exit(1)
+--    end
+--    print ("wait 5 seconds for nodes initialisation")
+--    os.sleep (5)
+--end
 
 -- ----------------------------------------------------------
 

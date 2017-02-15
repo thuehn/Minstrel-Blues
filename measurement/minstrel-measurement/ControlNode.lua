@@ -9,15 +9,15 @@ require ('StationRef')
 local unistd = require ('posix.unistd')
 require ('net')
 
-ControlNode = { name = name
-              , ctrl = ctrl
-              , port = port
+ControlNode = { name = nil
+              , ctrl_net = nil
+              , port = nil
               , ap_refs = nil     -- list of access point nodes
               , sta_refs = nil    -- list of station nodes
               , stats = nil   -- maps node name to statistics
               , pids = nil    -- maps node name to process id of lua node
               , logger_proc = nil
-              , log_ip = nil
+              , log_net = nil
               , log_port = nil
               }
 
@@ -29,25 +29,60 @@ function ControlNode:new (o)
     return o
 end
 
-function ControlNode:create ( name, ctrl_if, port, log_ip, log_port )
+function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file )
     local o = ControlNode:new ( { name = name
-                                , ctrl_if = ctrl_if
+                                , ctrl_net = ctrl_net
                                 , ap_refs = {}
                                 , sta_refs = {}
                                 , stats = {}
                                 , pids = {}
                                 , port = port
-                                , log_ip = log_ip
+                                , log_net = log_net
                                 , log_port = log_port
                                 } )
+
+    function start_logger ( log_net, port, file )
+        local logger = spawn_pipe ( "lua", "bin/runLogger.lua", file, "--port", port, "--log_if", log_net.iface )
+        if ( logger ['err_msg'] ~= nil ) then
+            self:send_warning("Logger not started" .. logger ['err_msg'] )
+        end
+        close_proc_pipes ( logger )
+        local str = logger['proc']:__tostring()
+        print ( "Logging sarted: " .. str )
+        return parse_process ( str ) 
+    end
+
+--    function start_logger_remote ( addr, port, file )
+--        local remote_cmd = "lua bin/runLogger.lua " .. file
+--                    .. " --port " .. port 
+-- 
+--        if ( addr ~= nil ) then
+--            remote_cmd = remote_cmd .. " --log_ip " .. addr 
+--        end
+--        print ( remote_cmd )
+--        local ssh = spawn_pipe("ssh", "root@" .. addr, remote_cmd)
+--        close_proc_pipes ( ssh )
+--    end
+
+    print ( "ctrl: start logger " )
+    
+    if ( log_net ~= nil and log_port ~= nil and log_file ~= nil ) then
+        local pid = start_logger ( log_net, log_port, log_file ) ['pid']
+        self.pids = {}
+        self.pids['logger'] = pid
+        if ( self.pids['logger'] == nil ) then
+            print ("Logger not started.")
+        end
+    end
+
     return o
 end
 
 
 function ControlNode:__tostring()
-    local out = "if: " .. ( self.ctrl_if or "none" ) .. "\n"
+    local out = "if: " .. ( self.ctrl_net.iface or "none" ) .. "\n"
     out = out .. "port: " .. ( self.port or "none" ) .. "\n"
-    out = out .. "log ip: " .. ( self.log_ip or "none" ) .."\n"
+    out = out .. "log: " .. ( self.log_net.addr or "none" ) .."\n"
     out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
         out = out .. '\n'
@@ -140,36 +175,14 @@ function ControlNode:reachable ()
     return reached
 end
 
-function ControlNode:start( log_addr, log_port, log_file )
-
-    function start_logger ( addr, port, file )
-        local logger = spawn_pipe ( "lua", "bin/runLogger.lua", file, "--port", port )
-        if ( logger ['err_msg'] ~= nil ) then
-            self:send_warning("Logger not started" .. logger ['err_msg'] )
-        end
-        close_proc_pipes ( logger )
-        local str = logger['proc']:__tostring()
-        return parse_process ( str ) 
-    end
-
-    function start_logger_remote ( addr, port, file )
-        local remote_cmd = "lua bin/runLogger.lua " .. file
-                    .. " --port " .. port 
- 
-        if ( addr ~= nil ) then
-            remote_cmd = remote_cmd .. " --log_ip " .. addr 
-        end
-        print ( remote_cmd )
-        local ssh = spawn_pipe("ssh", "root@" .. addr, remote_cmd)
-        close_proc_pipes ( ssh )
-    end
+function ControlNode:start( log_net, log_port )
 
     function start_node ( node, log_addr )
 
         local remote_cmd = "lua runNode.lua"
                     .. " --name " .. node.name 
 
-        if ( log_addr ~= nil and log_port ~= nil and log_file ~= nil ) then
+        if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
         print ( remote_cmd )
@@ -185,16 +198,10 @@ function ControlNode:start( log_addr, log_port, log_file )
         end --]]
     end
 
-    if ( log_addr ~= nil and log_port ~= nil and log_file ~= nil ) then
-        self.pids['logger'] = start_logger ( log_addr, log_port, log_file ) ['pid']
-        if ( self.pids['logger'] == nil ) then
-            print ("Logger not started.")
-            return false
-        end
-    end
+    print ( "start" )
 
     for _, node in ipairs ( self:nodes() ) do
-        start_node( node, log_addr )
+        start_node( node, self.log_net.addr )
     end
     return true
 end
@@ -369,14 +376,14 @@ end
 
 function ControlNode:connect_logger ()
     function connect ()
-        local l, e = rpc.connect (self.log_ip, self.log_port)
+        local l, e = rpc.connect ( "127.0.0.1", self.log_port)
         return l, e
     end
     local status, logger, err = pcall ( connect )
     -- TODO: print this message a single time only
     if (status == false) then
         print ( "Err: Connection to Logger failed" )
-        print ("Err: no logger at address: " .. self.log_ip .. " on port: " .. self.log_port)
+        print ("Err: no logger at address: " .. "127.0.0.1" .. " on port: " .. self.log_port)
         return nil
     else
         return logger
@@ -385,6 +392,7 @@ end
 
 function ControlNode:get_logger_addr ()
     local logger = self:connect_logger()
+    if ( logger == nil ) then return nil end
     local addr = logger.get_addr() 
     self:disconnect_logger ( logger )
     return addr
