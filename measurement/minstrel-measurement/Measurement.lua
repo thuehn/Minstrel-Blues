@@ -28,8 +28,13 @@ function Measurement:new (o)
 end
 
 function Measurement:create ( node_ref )
-    if ( node_ref == nil ) then error ( "node reference unset" ) end
-    local o = Measurement:new( { rpc_node = node_ref.rpc
+    local rpc
+    if ( node_ref == nil ) then 
+        --error ( "node reference unset" ) 
+    else
+        rpc = node_ref.rpc
+    end
+    local o = Measurement:new( { rpc_node = rpc
                                , node_ref = node_ref
                                , regmon_stats = {}
                                , tcpdump_pcaps = {}

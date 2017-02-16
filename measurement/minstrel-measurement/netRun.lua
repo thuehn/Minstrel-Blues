@@ -435,8 +435,13 @@ local status = ctrl_rpc.run_experiments ( args.command, data, ap_names )
 if (status == true) then
     print ( )
     for name, stats in pairs ( ctrl_rpc.get_stats() ) do
+        local measurement = Measurement:create ()
+        measurement.regmon_stats = stats [ 'regmon_stats' ]
+        measurement.tcpdump_pcaps = stats [ 'tcpdump_pcaps' ]
+        measurement.cpuage_stats = stats [ 'cpusage_stats' ]
+        measurement.rc_stats = stats [ 'rc_stats' ]
         print ( name )
-        print ( stats )
+        print ( measurement:__tostring() )
         print ( )
     end
 end

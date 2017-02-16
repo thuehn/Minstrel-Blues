@@ -279,7 +279,6 @@ function ControlNode:connect_nodes ( ctrl_port )
     end
 
     for _, node_ref in ipairs ( self:nodes() ) do
-        print ( "Connect to " .. node_ref.name .. " ..." )
         node_ref:connect ( ctrl_port )
         if ( node_ref.rpc == nil ) then
             print ("Connection to " .. node_ref.name .. " failed")
@@ -330,8 +329,6 @@ function ControlNode:run_experiments ( command, args, ap_names )
     end
 
     for _, ap_ref in ipairs ( ap_refs ) do
-        print ( ap_ref.name )
-        print ( exp ~= nil )
         exp:prepare_measurement ( ap_ref )
     end
 
@@ -377,19 +374,17 @@ function ControlNode:run_experiments ( command, args, ap_names )
 
     for _, ap_ref in ipairs ( ap_refs ) do
         self.stats [ ap_ref.name ] = {}
-        self.stats [ ap_ref.name ] [ 'regmon' ] = ap_ref.stats.regmon_stats
-        self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = ap_ref.stats.tcpdump_pcap
+        self.stats [ ap_ref.name ] [ 'regmon_stats' ] = ap_ref.stats.regmon_stats
+        self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = ap_ref.stats.tcpdump_pcaps
         self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = ap_ref.stats.cpusage_stats
         self.stats [ ap_ref.name ] [ 'rc_stats' ] = ap_ref.stats.rc_stats
         
-        --self.stats [ ap_ref.name ] = ap_ref.stats
         for _, sta_ref in ipairs ( ap_ref.refs ) do
             self.stats [ sta_ref.name ] = {} 
-            self.stats [ sta_ref.name ] [ 'regmon' ] = sta_ref.stats.regmon_stats
-            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = sta_ref.stats.tcpdump_pcap
+            self.stats [ sta_ref.name ] [ 'regmon_stats' ] = sta_ref.stats.regmon_stats
+            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = sta_ref.stats.tcpdump_pcaps
             self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = sta_ref.stats.cpusage_stats
             self.stats [ sta_ref.name ] [ 'rc_stats' ] = sta_ref.stats.rc_stats
-            --self.stats [ sta_ref.name ] = sta_ref.stats
         end
     end
 
