@@ -376,9 +376,20 @@ function ControlNode:run_experiments ( command, args, ap_names )
     end
 
     for _, ap_ref in ipairs ( ap_refs ) do
-        self.stats [ ap_ref.name ] = ap_ref.stats
+        self.stats [ ap_ref.name ] = {}
+        self.stats [ ap_ref.name ] [ 'regmon' ] = ap_ref.stats.regmon_stats
+        self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = ap_ref.stats.tcpdump_pcap
+        self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = ap_ref.stats.cpusage_stats
+        self.stats [ ap_ref.name ] [ 'rc_stats' ] = ap_ref.stats.rc_stats
+        
+        --self.stats [ ap_ref.name ] = ap_ref.stats
         for _, sta_ref in ipairs ( ap_ref.refs ) do
-            self.stats [ sta_ref.name ] = sta_ref.stats
+            self.stats [ sta_ref.name ] = {} 
+            self.stats [ sta_ref.name ] [ 'regmon' ] = sta_ref.stats.regmon_stats
+            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = sta_ref.stats.tcpdump_pcap
+            self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = sta_ref.stats.cpusage_stats
+            self.stats [ sta_ref.name ] [ 'rc_stats' ] = sta_ref.stats.rc_stats
+            --self.stats [ sta_ref.name ] = sta_ref.stats
         end
     end
 

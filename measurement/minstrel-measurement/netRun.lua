@@ -436,7 +436,7 @@ if (status == true) then
     print ( )
     for name, stats in pairs ( ctrl_rpc.get_stats() ) do
         print ( name )
-        print ( stats:__tostring() )
+        print ( stats )
         print ( )
     end
 end
