@@ -29,8 +29,6 @@ local node = ControlNode:create ( "Control", net, args.port, log, args.log_port,
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 function add_ap ( ... ) return node:add_ap ( ... ) end
 function add_sta ( ... ) return node:add_sta ( ... ) end
-function nodes ( ... ) return node:nodes ( ... ) end
-function find_node ( ... ) return node:find_node ( ... ) end
 function reachable ( ... ) return node:reachable ( ... ) end
 function start ( ... ) return node:start ( ... ) end
 function connect_nodes ( ... ) return node:connect_nodes ( ... ) end
@@ -43,9 +41,17 @@ function get_pid ( ... ) return node:get_pid ( ... ) end
 function kill ( ... ) return node:kill ( ... ) end
 function get_logger_addr ( ...  ) return node:get_logger_addr ( ... ) end
 
-function foo ( ... ) return node:foo ( ... ) end
+function list_nodes ( ... ) return node:list_nodes ( ... ) end
+function list_aps ( ... ) return node:list_aps ( ... ) end
+function list_stas ( ... ) return node:list_stas ( ... ) end
+function list_wifis ( ... ) return node:list_wifis ( ... ) end
+function set_wifi ( ... ) return node:set_wifi ( ... ) end
+function get_wifi ( ... ) return node:get_wifi ( ... ) end
+function set_ssid ( ... ) return node:set_ssid ( ... ) end
+function get_ssid ( ... ) return node:get_ssid ( ... ) end
+function add_station ( ... ) return node:add_station ( ... ) end
+function list_stations ( ... ) return node:list_stations ( ... ) end
+function set_ani ( ... ) return node:set_ani ( ... ) end
 
 -- make all functions available via RPC
-print ( node )
-print ( args.port )
 node:run ( args.port )

@@ -1,4 +1,5 @@
 require ('NetIF')
+require ('Measurement')
 
 NodeRef = { name = nil
           , ctrl = nil
@@ -24,11 +25,11 @@ function NodeRef:create ( name, ctrl, port )
     local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {}, ssid = nil
                           , addrs = {}, macs = {}, ssid = nil, stations = {}
                           , refs = {} })
-    self.wifis = self.ref.rpc.wifi_devices()
-    for _, phy in ipairs ( self.wifis ) do
-        if (self.rpc ~= nil) then
-            self.addrs [ phy ] = self.rpc.get_addr ( phy )
-            self.macs [ phy ] = self.rpc.get_mac ( phy )
+    o.wifis = o.rpc.wifi_devices()
+    for _, phy in ipairs ( o.wifis ) do
+        if (o.rpc ~= nil) then
+            o.addrs [ phy ] = o.rpc.get_addr ( phy )
+            o.macs [ phy ] = o.rpc.get_mac ( phy )
         end
     end
     return o

@@ -25,9 +25,9 @@ function show_config_error( parser, arg, option )
     os.exit()
 end
 
-stations = {} -- table in config file
-aps = {} -- table in config file
-nodes = {}
+ctrl = nil -- var in config file
+nodes = {} -- table in config file
+connections = {} -- table in config file
 
 function create_config ( name, ctrl_if, radio )
     return { name  = name
@@ -44,9 +44,8 @@ function create_configs ( names, ctrl, radio )
     return configs
 end
 
-function copy_config_nodes()
-    for _,v in ipairs(stations) do nodes [ #nodes + 1 ] = v end
-    for _,v in ipairs(aps) do nodes [ #nodes + 1 ] = v end
+function copy_config_nodes( src, dest )
+    for _,v in ipairs( src ) do dest [ #dest + 1 ] = v end
 end
 
 function get_config_fname ( fname )
@@ -97,18 +96,17 @@ function set_configs_from_arg ( configs, key, arg )
     end
 end
 
-function select_config ( config, name )
-    if ( config == nil ) then
+function select_config ( all_configs, name )
+    if ( arg == nil ) then  return nil end
+
+    local node = find_node ( name, all_configs )
+    
+    if ( node == nil ) then return nil end
+    if ( node.name ~= name ) then
+        print ( "Error: no configuration for node with name '" .. name .. "' found")
         return nil
-    elseif ( arg == nil ) then
-        return nil
-    else
-        if ( config.name ~= name ) then
-            print ( "Error: no configuration for node with name '" .. name .. "' found")
-            return nil
-        end
-        return config
     end
+    return node
 end
 
 function select_configs ( all_configs, names )

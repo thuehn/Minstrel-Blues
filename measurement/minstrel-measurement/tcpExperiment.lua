@@ -11,8 +11,8 @@ function TcpExperiment:new (o)
 end
 
 
-function TcpExperiment:create ( runs, tcpdata )
-    local o = TcpExperiment:new( { runs = runs, tcpdata = tcpdata } )
+function TcpExperiment:create ( data )
+    local o = TcpExperiment:new( { runs = data[1], tcpdata = data[2] } )
     return o
 end
 

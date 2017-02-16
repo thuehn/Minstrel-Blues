@@ -9,8 +9,8 @@ function McastExperiment:new (o)
 end
 
 
-function McastExperiment:create ( runs, udp_interval )
-    local o = McastExperiment:new( { runs = runs, udp_interval = udp_interval } )
+function McastExperiment:create ( data )
+    local o = McastExperiment:new( { runs = data[1], udp_interval = data[2] } )
     return o
 end
 

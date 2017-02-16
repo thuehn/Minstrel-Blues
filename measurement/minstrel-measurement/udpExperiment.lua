@@ -12,10 +12,13 @@ function UdpExperiment:new (o)
 end
 
 
-function UdpExperiment:create ( runs, tcpdata )
-    local o = TcpExperiment:new( { runs = runs, packet_sizes = packet_sizes
-                                 , cct_intervals = cct_intervals, packet_rates = packet_rates
-                                 , udp_interval = udp_interval } )
+function UdpExperiment:create ( data )
+    local o = UdpExperiment:new( { runs = data[1]
+                                 , packet_sizes = data[2]
+                                 , cct_intervals = data[3]
+                                 , packet_rates = data[4]
+                                 , udp_interval = data[5]
+                                 } )
     return o
 end
 

@@ -18,11 +18,7 @@ require ("parsers/ex_process")
 require ('parsers/cpusage')
 require ('pcap')
 require ('misc')
-require ('Measurement')
 require ('ControlNode')
-require ('tcpExperiment')
-require ('udpExperiment')
-require ('mcastExperiment')
 require ('Config')
 require ('net')
 
@@ -136,8 +132,12 @@ end
 
 local has_config = load_config ( args.config ) 
 
+local ap_setup
+local sta_setup
+
 -- load config from a file
 if ( has_config ) then
+
     if ( ctrl == nil ) then
         print ( "Error: config file '" .. get_config_fname ( args.config ) 
                     .. "' have to contain at least one station node description in var 'stations'.")
@@ -162,20 +162,18 @@ if ( has_config ) then
     set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
     set_config_from_arg ( log, 'ctrl_if', args.log_if )
 
-    set_configs_from_arg ( aps, 'radio', args.ap_radio )
-    set_configs_from_arg ( aps, 'ctrl_if', args.ap_ctrl_if )
+    ap_setups = accesspoints ( nodes, connections )
+    set_configs_from_arg ( ap_setups, 'radio', args.ap_radio )
+    set_configs_from_arg ( ap_setups, 'ctrl_if', args.ap_ctrl_if )
 
-    set_configs_from_arg ( stations, 'radio', args.sta_radio )
-    set_configs_from_arg ( stations, 'ctrl_if', args.sta_ctrl_if )
+    sta_setups = stations ( nodes, connections )
+    set_configs_from_arg ( sta_setups, 'radio', args.sta_radio )
+    set_configs_from_arg ( sta_setups, 'ctrl_if', args.sta_ctrl_if )
+
 else
-    if ( args.log ~= nil ) then
-        create_config ( args.log, args.log_if ) 
-    else
-        show_config_error ( parser, "log", true)
-    end
 
     if ( args.ctrl ~= nil ) then
-        create_config ( args.ctrl, args.ctrl_if ) 
+        ctrl = create_config ( args.ctrl, args.ctrl_if ) 
     else
         show_config_error ( parser, "ctrl", true)
     end
@@ -190,10 +188,14 @@ else
         end
     end
 
-    create_configs ( arg.ap, args.ap_radio, args.ap_ctrl_if )
-    create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
+    ap_setups = create_configs ( arg.ap, args.ap_radio, args.ap_ctrl_if )
+    sta_setups = create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
+    copy_config_nodes ( ap_setups, nodes )
+    copy_config_nodes ( sta_setups, nodes )
+    -- fixme: build connection list
+    -- i.e. --ap=A --sta=B --sta=C --ap=D --sta=E (use lua args to detect order [ap,sta,sta,ap,sta])
+    -- or --ap=A --ap=D --sta=B --sta=C --sta=E --connect=A:B,C --connect=D:E
 end
-copy_config_nodes()
 
 if ( args.verbose == true) then
     print ( )
@@ -209,21 +211,21 @@ if ( args.verbose == true) then
     print ( )
 end
 
-local aps_config = select_configs ( aps, args.ap ) 
+local aps_config = select_configs ( ap_setups, args.ap ) 
 if ( aps_config == {} ) then os.exit(1) end
 
-local stas_config = select_configs ( stations, args.sta )
+local stas_config = select_configs ( sta_setups, args.sta )
 if ( stas_config == {} ) then os.exit(1) end
 
-local ctrl_config = select_config ( ctrl, args.ctrl )
-local log_config = select_config ( log, args.log )
+local ctrl_config = select_config ( nodes, args.ctrl )
+if ( ctrl_config == nil ) then os.exit(1) end
 
 print ( "Configuration:" )
 print ( "==============" )
 print ( )
 print ( "Command: " .. args.command )
+print ( )
 print ( "Control: " .. cnode_to_string ( ctrl_config ) )
-print ( "Logging: " .. cnode_to_string ( log_config ) )
 print ( )
 print ( "Access Points:" )
 print ( "--------------")
@@ -257,22 +259,11 @@ if ( ctrl_net.addr == nil) then
     end 
 end
 
--- log node iface, log node (name) lookup
--- fixme: log node is always at control node
-local log_net = NetIF:create ( "ctrl", log_config['ctrl_if'] )
-log_net.addr = args.log_ip
-if ( log_net.addr == nil) then
-    local ip_addr = lookup ( log_config['name'] )
-    if ( ip_addr ~= nil ) then
-        log_net.addr = ip_addr
-    end 
-end
-
 if ( args.disable_autostart == false ) then
     if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
-        start_control_remote ( ctrl_net, log_net, args.ctrl_port, args.log_port )
+        start_control_remote ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
     else
-        local ctrl_proc = start_control ( ctrl_net, log_net, args.ctrl_port, args.log_port )
+        local ctrl_proc = start_control ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
         ctrl_pid = ctrl_proc['pid']
     end
 end
@@ -311,15 +302,11 @@ print ( "Control node with IP: " .. ( ctrl_rpc.get_ctrl_addr () or "unset" ) )
 if ( ctrl_net.addr == nil ) then
     ctrl_net.addr = ctrl_rpc.get_ctrl_addr ()
 end
-print ( "Log node with IP: " .. ( ctrl_rpc.get_logger_addr () or "unset" ) )
-if ( log_net.addr == nil ) then
-    log_net.addr = ctrl_rpc.get_logger_addr ()
-end
 print ()
 
 -- -------------------------------------------------------------------
 
-if ( table_size ( ctrl_rpc.nodes() ) == 0 ) then
+if ( table_size ( ctrl_rpc.list_nodes() ) == 0 ) then
     error ("no nodes present")
     os.exit(1)
 end
@@ -352,7 +339,7 @@ end
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
-    if ( ctrl_rpc.start ( log_net.addr, args.log_port ) == false ) then
+    if ( ctrl_rpc.start ( ctrl_net.addr, args.log_port ) == false ) then
         print ("Error: Not all nodes started")
         os.exit(1)
     end
@@ -367,57 +354,41 @@ print ("connect to nodes at port " .. args.ctrl_port )
 if ( ctrl_rpc.connect_nodes ( args.ctrl_port ) == false ) then
     print ("connection failed!")
     os.exit(1)
+else
+    print ("All nodes connected")
 end
 
-print()
-
--- fixme: ctrl.ap_refs aren't lua tables
--- no serialization with rpc
--- connect aps and stations on Control directly
-for _, ap_ref in ipairs ( ctrl.ap_refs ) do
-    ap_ref:set_wifi ( ap_ref.wifis[1] )
-
-    local ssid = ap_ref.rpc.get_ssid ( ap_ref.wifi_cur )
-    ap_ref:set_ssid ( ssid  )
-    print ( ap_ref.name .. " ssid: ".. ssid )
-
-    -- fixme: "br-lan" on bridged routers, instead of eth0
-    local ap_mac = ap_ref.rpc.get_mac ( "br-lan" )
-    if ( ap_mac ~= nil) then
-        print (ap_ref.name .. " mac: " ..  ap_mac)
-    else
-        print (ap_ref.name .. " mac: no ipv4 assigned")
-    end
-
-    local ap_addr = ap_ref.rpc.get_addr ( "br-lan" )
-    if ( ap_addr ~= nil and ap_addr ~= "6..." ) then
-        print ("AP addr: " ..  ap_addr)
-    else
-        print ("AP addr: no ipv4 assigned")
-    end
+print ( "Prepare APs" )
+local ap_names = ctrl_rpc.list_aps()
+for _, ap_name in ipairs (ap_names ) do
+    local wifis = ctrl_rpc.list_wifis ( ap_name )
+    ctrl_rpc.set_wifi ( ap_name, wifis[1] )
+    local ssid = ctrl_rpc.get_ssid ( ap_name )
+    ctrl_rpc.set_ssid ( ap_name, ssid )
 end
-
--- fixme: configure aps and stations
-local ap_ref_tmp = ctrl.ap_refs[1]
 
 print ()
 
-for _, sta_ref in ipairs ( ctrl.sta_refs ) do
-    sta_ref:set_wifi ( sta_ref.wifis[1] )
+print ( "Prepare STAs" )
+for _, sta_name in ipairs ( ctrl_rpc.list_stas() ) do
+    local wifis = ctrl_rpc.list_wifis ( sta_name )
+    ctrl_rpc.set_wifi ( sta_name, wifis[1] )
+end
 
-    local mac = sta_ref:get_mac ( ap_ref.wifi_cut )
-    local addr = ap_ref.rpc.has_lease ( mac )
-    print ( sta_ref.name .. " mac: " .. mac .. " addr: " .. addr)
-
-    ap_ref_tmp:add_station ( mac, sta_ref )
+print ( "Associate AP with STAs" )
+for ap, stas in pairs ( connections ) do
+    for _, sta in ipairs ( stas ) do
+        print ( " connect " .. ap .. " with " .. sta )
+        ctrl_rpc.add_station ( ap, sta )
+    end
 end
 
 print()
 
-for _, ap_ref in ipairs ( ctrl.ap_refs ) do
-    print ( "STATIONS on " .. ap_ref.wifi_cur )
+for _, ap_name in ipairs ( ap_names ) do
+    print ( "STATIONS on " .. ap_name )
     print ( "==================")
-    local wifi_stations = ap_ref.rpc.stations ()
+    local wifi_stations = ctrl_rpc.list_stations ( ap_name )
     map ( print, wifi_stations )
     print ()
 end
@@ -445,22 +416,21 @@ print ( )
 
 local runs = tonumber ( args.runs )
 
-for _, node_ref in ipairs ( ctrl_rpc.nodes() ) do
-    node_ref.rpc.set_ani ( node_ref.wifi_cur, not args.disable_ani )
+for _, node_name in ipairs ( ctrl_rpc.list_nodes() ) do
+    ctrl_rpc.set_ani ( node_name, not args.disable_ani )
 end
 
-local experiment
+local data
 if (args.command == "tcp") then
-    experiment = TcpExperiment:create ( runs, args.tcpdata )
+    data = { runs, args.tcpdata }
 elseif (args.command == "mcast") then
-    experiment = McastExperiment:create ( runs, args.interval )
+    data = { runs, args.interval }
 elseif (args.command == "udp") then
-    experiment = UdpExperiment:create ( runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval )
+    data = { runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval }
 else
     show_config_error ( parser, "command")
 end
-
-local status = ctrl_rpc.run_experiments ( experiment, ctrl.ap_refs )
+local status = ctrl_rpc.run_experiments ( args.command, data, ap_names )
 
 if (status == true) then
     print ( )

@@ -8,6 +8,9 @@ require ('AccessPointRef')
 require ('StationRef')
 local unistd = require ('posix.unistd')
 require ('net')
+require ('tcpExperiment')
+require ('udpExperiment')
+require ('mcastExperiment')
 
 ControlNode = { name = nil
               , ctrl_net = nil
@@ -134,6 +137,68 @@ function ControlNode:add_sta ( name, ctrl_if, ctrl_port )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
 end
 
+function ControlNode:list_aps ()
+    local names = {}
+    for _,v in ipairs ( self.ap_refs ) do names [ #names + 1 ] = v.name end
+    return names
+end
+
+function ControlNode:list_stas ()
+    local names = {}
+    for _,v in ipairs ( self.sta_refs ) do names [ #names + 1 ] = v.name end
+    return names
+end
+
+function ControlNode:list_nodes ()
+    local names = {}
+    for _,v in ipairs ( self:nodes() ) do names [ #names + 1 ] = v.name end
+    return names
+end
+
+function ControlNode:list_wifis ( name )
+    local node_ref = self:find_node_ref ( name )
+    if ( node_ref == nil ) then return {} end
+    return node_ref.rpc.wifi_devices ()
+end
+
+function ControlNode:set_wifi ( name, wifi )
+    local node_ref = self:find_node_ref ( name )
+    node_ref.wifi_cur = wifi
+end
+
+function ControlNode:get_wifi ( name )
+    local node_ref = self:find_node_ref ( name )
+    return node_ref.wifi_cur
+end
+
+function ControlNode:set_ssid ( name, ssid )
+    local node_ref = self:find_node_ref ( name )
+    node_ref:set_ssid ( ssid  )
+end
+
+function ControlNode:get_ssid ( name )
+    local node_ref = self:find_node_ref ( name )
+    return node_ref.rpc.get_ssid ( node_ref.wifi_cur )
+end
+
+function ControlNode:add_station ( ap, sta )
+    local ap_ref = self:find_node_ref ( ap )
+    local sta_ref = self:find_node_ref ( sta )
+    if ( ap_ref == nil or sta_ref == nil ) then return nil end
+    local mac = sta_ref.rpc.get_mac ( sta_ref.wifi_cur )
+    ap_ref:add_station ( mac, sta_ref )
+end
+
+function ControlNode:list_stations ( ap )
+    local ap_ref = self:find_node_ref ( ap )
+    return ap_ref.stations
+end
+
+function ControlNode:set_ani ( name, ani )
+    local node_ref = self:find_node_ref ( name )
+    node_ref.rpc.set_ani ( node_ref.wifi_cur, ani )
+end
+
 function ControlNode:nodes() 
     self:send_info ( " query nodes" )
     if ( self.node_refs == nil ) then
@@ -144,7 +209,7 @@ function ControlNode:nodes()
     return self.node_refs
 end
 
-function ControlNode:find_node( name ) 
+function ControlNode:find_node_ref( name ) 
     for _, node in ipairs ( self:nodes() ) do 
         if node.name == name then return node end 
     end
@@ -198,8 +263,6 @@ function ControlNode:start( log_addr, log_port )
         end --]]
     end
 
-    print ( "start" )
-
     for _, node in ipairs ( self:nodes() ) do
         start_node( node, log_addr )
     end
@@ -243,11 +306,30 @@ end
 -- in parallel
 -- see run_experiment in Experiment.lua for
 -- a sequential variant
-function ControlNode:run_experiments ( exp, ap_refs )
+-- fixme: exp userdata over rpc not possible
+function ControlNode:run_experiments ( command, args, ap_names )
+
+    local exp
+    if ( command == "tcp") then
+        exp = TcpExperiment:create ( args )
+    elseif ( command == "mcast") then
+        exp = McastExperiment:create ( args )
+    elseif ( command == "udp") then
+        exp = UdpExperiment:create ( args )
+    else
+        return false
+    end
 
     local ret = true
+    local ap_refs = {}
+    for _, name in ipairs ( ap_names ) do
+        local ap_ref = self:find_node_ref ( name )
+        ap_refs [ #ap_refs + 1 ] = ap_ref
+    end
 
     for _, ap_ref in ipairs ( ap_refs ) do
+        print ( ap_ref.name )
+        print ( exp ~= nil )
         exp:prepare_measurement ( ap_ref )
     end
 
@@ -305,7 +387,9 @@ end
 -- runs experiment 'exp' for node 'ap_ref'
 -- sequentially
 -- see run_experiment in Experiment.lua
-function ControlNode:run_experiment ( exp, ap_ref )
+function ControlNode:run_experiment ( exp, ap_name )
+
+    local ap_ref = find_node_ref ( ap_name )
 
     local status
     local err
