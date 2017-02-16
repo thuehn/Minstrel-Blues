@@ -13,7 +13,8 @@ local lease_fname = "/tmp/dhcp.leases"
 
 -- TODO: 
 -- - STA connect to AP
--- - split Node into NodeAP, NodeSTA
+-- - split Node into NodeAP, NodeSTA, NodeCTRL
+--  with get_date(), get_addr(), kill(), get_pid(), send_error()
 
 Node = { name = nil
        , ctrl = nil 

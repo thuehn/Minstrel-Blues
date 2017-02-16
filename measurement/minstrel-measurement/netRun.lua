@@ -145,15 +145,15 @@ if ( has_config ) then
     end
 
     if ( args.ctrl_only == false ) then
-        if (table_size ( stations ) < 1) then
+        if (table_size ( nodes ) < 2) then
             print ( "Error: config file '" .. get_config_fname ( args.config ) 
-                        .. "' have to contain at least one station node description in var 'stations'.")
+                        .. "' have to contain at least two node descriptions in var 'nodes'.")
             os.exit(1)
         end
 
-        if (table_size ( aps ) < 1) then
+        if (table_size ( connections ) < 1) then
             print ( "Error: config file '" .. get_config_fname ( args.config )
-                        .. "' have to contain at least one access point node description in var 'aps'.")
+                        .. "' have to contain at least one connection declaration in var 'connections'.")
             os.exit(1)
         end
     end
@@ -371,6 +371,9 @@ end
 
 print()
 
+-- fixme: ctrl.ap_refs aren't lua tables
+-- no serialization with rpc
+-- connect aps and stations on Control directly
 for _, ap_ref in ipairs ( ctrl.ap_refs ) do
     ap_ref:set_wifi ( ap_ref.wifis[1] )
 

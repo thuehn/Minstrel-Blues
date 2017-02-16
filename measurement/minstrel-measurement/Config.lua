@@ -29,10 +29,10 @@ stations = {} -- table in config file
 aps = {} -- table in config file
 nodes = {}
 
-function create_config ( name, ctrl, radio )
-    return { name = name
-           , ctrl = ctrl
-           , radio= radio
+function create_config ( name, ctrl_if, radio )
+    return { name  = name
+           , ctrl_if = ctrl_if
+           , radio = radio
            }
 end
 
@@ -97,24 +97,24 @@ function set_configs_from_arg ( configs, key, arg )
     end
 end
 
-function select_config ( config, arg )
+function select_config ( config, name )
     if ( config == nil ) then
         return nil
     elseif ( arg == nil ) then
         return nil
     else
-        if ( config.name ~= arg ) then
-            print ( "Error: no configuration for node with name '" .. arg .. "' found")
+        if ( config.name ~= name ) then
+            print ( "Error: no configuration for node with name '" .. name .. "' found")
             return nil
         end
         return config
     end
 end
 
-function select_configs ( all_configs, args )
+function select_configs ( all_configs, names )
     local configs = {}
-    if ( table_size ( args ) > 0 ) then
-        for _, name in ipairs ( args ) do
+    if ( table_size ( names ) > 0 ) then
+        for _, name in ipairs ( names ) do
             local node = find_node ( name, all_configs )
             if ( node == nil ) then
                 print ( "Error: no configuration for node with name '" .. name .. "' found")
@@ -128,4 +128,35 @@ function select_configs ( all_configs, args )
         end
     end
     return configs
+end
+
+function list_connections ( list )
+    local names = {}
+    for name, _ in pairs ( list ) do
+        names [ #names + 1 ] = name
+    end
+    return names
+end
+
+function get_connections ( list, name )
+    return list [ name ]
+end
+
+function accesspoints ( nodes, connections )
+    local names = list_connections ( connections )
+    local aps = {}
+    for _, name in ipairs ( names ) do
+        aps [ #aps  + 1] = find_node ( name, nodes )
+    end
+    return aps
+end
+
+function stations ( nodes, connections )
+    local stations = {}
+    for _, stas in pairs ( connections ) do
+        for _, name in ipairs ( stas ) do
+            stations [ #stations  + 1] = find_node ( name, nodes )
+        end
+    end
+    return stations
 end
