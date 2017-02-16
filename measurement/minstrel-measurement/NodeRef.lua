@@ -25,8 +25,8 @@ function NodeRef:create ( name, ctrl, port )
     local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {}, ssid = nil
                           , addrs = {}, macs = {}, ssid = nil, stations = {}
                           , refs = {} })
-    o.wifis = o.rpc.wifi_devices()
-    for _, phy in ipairs ( o.wifis ) do
+    o.phys = o.rpc.wifi_devices()
+    for _, phy in ipairs ( o.phys ) do
         if (o.rpc ~= nil) then
             o.addrs [ phy ] = o.rpc.get_addr ( phy )
             o.macs [ phy ] = o.rpc.get_mac ( phy )
@@ -58,7 +58,8 @@ function NodeRef:set_wifi ( phy )
 end
 
 function NodeRef:get_addr ()
-    return self.addrs [ self.wifi_cur ]
+    return self.rpc.get_addr ( self.wifi_cur )
+--    return self.addrs [ self.wifi_cur ]
 end
 
 function NodeRef:get_mac ( )

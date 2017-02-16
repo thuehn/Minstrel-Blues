@@ -67,8 +67,6 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
 --        close_proc_pipes ( ssh )
 --    end
 
-    print ( "ctrl: start logger " )
-    
     if ( log_net ~= nil and log_port ~= nil and log_file ~= nil ) then
         local pid = start_logger ( log_net, log_port, log_file ) ['pid']
         self.pids = {}
@@ -214,6 +212,10 @@ function ControlNode:find_node_ref( name )
         if node.name == name then return node end 
     end
     return nil
+end
+
+function ControlNode:get_stats()
+    return self.stats
 end
 
 function ControlNode:reachable ()

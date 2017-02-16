@@ -48,13 +48,13 @@ function Node:create ( name, ctrl, iperf_port, log_ip, log_port )
     local phys = list_phys()
     for i, phy in ipairs ( phys ) do
         local netif = NetIF:create ( "radio" .. i-1 )
-        o.wifis [ #o.wifis + 1 ] = netif
         netif.phy = phy
         -- mon: maybe obsolete, but some devices doesn't support default monitoring, they have prism monitors, i.e. prism0
         netif.mon = "mon" .. tostring(i-1)
         netif.iface = get_interface_name ( phy )
-        -- doesn't work in APs with bridged lan over switchdevice and wifi
+        -- fixme: doesn't work in APs with bridged lan over switchdevice and wifi
         netif.addr = get_ip_addr ( netif.iface )
+        o.wifis [ #o.wifis + 1 ] = netif
     end
     return o
 end
@@ -293,14 +293,22 @@ function Node:get_addr ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_info("send ipv4 addr for " .. iface )
-    local addr = get_ip_addr ( iface )
-    if ( addr == nil ) then
+    if ( dev.addr == nil ) then
         self:send_error(" interface " .. iface .. " has no ipv4 addr assigned")
         return nil 
     else
-        self:send_info(" addr for " .. iface .. ": " .. addr )
-        return addr
+        self:send_info(" addr for " .. iface .. ": " .. dev.addr )
+        return dev.addr
     end
+
+--    local addr = get_ip_addr ( iface )
+--    if ( addr == nil ) then
+--        self:send_error(" interface " .. iface .. " has no ipv4 addr assigned")
+--        return nil 
+--    else
+--        self:send_info(" addr for " .. iface .. ": " .. addr )
+--        return addr
+--    end
 end
 
 -- returns addr when host with mac has a dhcp lease else nil
