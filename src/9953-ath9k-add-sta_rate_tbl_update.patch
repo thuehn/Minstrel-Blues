@@ -1,0 +1,86 @@
+--- a/drivers/net/wireless/ath/ath9k/main.c
++++ b/drivers/net/wireless/ath/ath9k/main.c
+@@ -2666,6 +2666,31 @@ static int ath9k_get_txpower(struct ieee
+ 	return 0;
+ }
+ 
++static void
++ath9k_sta_rate_tbl_update (struct ieee80211_hw *hw, struct ieee80211_vif *vif,
++			   struct ieee80211_sta *sta)
++{
++	struct ath_node *an = (struct ath_node *)sta->drv_priv;
++	struct ieee80211_sta_rates *rates;
++	int i;
++
++	rcu_read_lock();
++	rates = rcu_dereference(sta->rates);
++
++	if (!rates) {
++	        goto out;
++	}
++
++	for ( i = 0; i<3; i++ ) {
++		an->rates[i].idx = rates->rate[i].idx;
++		an->rates[i].count = rates->rate[i].count;
++		an->rates[i].flags = rates->rate[i].flags;
++	}
++
++out:
++	rcu_read_unlock();
++}
++
+ struct ieee80211_ops ath9k_ops = {
+ 	.tx 		    = ath9k_tx,
+ 	.start 		    = ath9k_start,
+@@ -2694,6 +2719,7 @@ struct ieee80211_ops ath9k_ops = {
+ 	.get_stats	    = ath9k_get_stats,
+ 	.set_antenna	    = ath9k_set_antenna,
+ 	.get_antenna	    = ath9k_get_antenna,
++	.sta_rate_tbl_update = ath9k_sta_rate_tbl_update,
+ 
+ #ifdef CPTCFG_ATH9K_WOW
+ 	.suspend	    = ath9k_suspend,
+--- a/drivers/net/wireless/ath/ath9k/ath9k.h
++++ b/drivers/net/wireless/ath/ath9k/ath9k.h
+@@ -273,6 +273,9 @@ struct ath_node {
+ #endif
+ 	u8 key_idx[4];
+ 
++	struct ieee80211_tx_rate rates[4];
++	bool tx_rate_set;
++
+ 	u32 ackto;
+ 	struct list_head list;
+ };
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -192,6 +192,8 @@ static void ath_set_rates(struct ieee802
+ 			  struct ath_buf *bf, bool ps)
+ {
+ 	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(bf->bf_mpdu);
++	struct ath_node *an = (struct ath_node *)sta->drv_priv;
++	int i;
+ 
+ 	if (ps) {
+ 		/* Clear the first rate to avoid using a sample rate for PS frames */
+@@ -199,8 +201,18 @@ static void ath_set_rates(struct ieee802
+ 		info->control.rates[0].count = 0;
+ 	}
+ 
+-	ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
+-			       ARRAY_SIZE(bf->rates));
++	if (!an->tx_rate_set) {
++		ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
++				       ARRAY_SIZE(bf->rates));
++	}
++	for ( i = 0; i < 3; i++) {
++		bf->rates[i] = an->rates[i];
++	}
++
++	if (info->control.rates[0].idx < 0 || !info->control.rates[0].count ) {
++		bf->rates[0] = an->rates[0];
++	}
++
+ 	if (!ps)
+ 		return;
+ 
