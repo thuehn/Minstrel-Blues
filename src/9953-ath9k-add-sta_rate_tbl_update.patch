@@ -1,6 +1,6 @@
 --- a/drivers/net/wireless/ath/ath9k/main.c
 +++ b/drivers/net/wireless/ath/ath9k/main.c
-@@ -2666,6 +2666,31 @@ static int ath9k_get_txpower(struct ieee
+@@ -2666,6 +2666,30 @@ static int ath9k_get_txpower(struct ieee
  	return 0;
  }
  
@@ -9,21 +9,20 @@
 +			   struct ieee80211_sta *sta)
 +{
 +	struct ath_node *an = (struct ath_node *)sta->drv_priv;
-+	struct ieee80211_sta_rates *rates;
++	struct ieee80211_sta_rates *ratetbl;
 +	int i;
 +
 +	rcu_read_lock();
-+	rates = rcu_dereference(sta->rates);
++	ratetbl = rcu_dereference(sta->rates);
 +
-+	if (!rates) {
++	if (!ratetbl) {
 +	        goto out;
 +	}
 +
 +	for ( i = 0; i<3; i++ ) {
-+		an->rates[i].idx = rates->rate[i].idx;
-+		an->rates[i].count = rates->rate[i].count;
-+		an->rates[i].flags = rates->rate[i].flags;
++		an->ratetbl.rate[i] = ratetbl->rate[i];
 +	}
++	an->ratetbl_is_set = true;
 +
 +out:
 +	rcu_read_unlock();
@@ -32,7 +31,7 @@
  struct ieee80211_ops ath9k_ops = {
  	.tx 		    = ath9k_tx,
  	.start 		    = ath9k_start,
-@@ -2694,6 +2719,7 @@ struct ieee80211_ops ath9k_ops = {
+@@ -2694,6 +2718,7 @@ struct ieee80211_ops ath9k_ops = {
  	.get_stats	    = ath9k_get_stats,
  	.set_antenna	    = ath9k_set_antenna,
  	.get_antenna	    = ath9k_get_antenna,
@@ -46,8 +45,8 @@
  #endif
  	u8 key_idx[4];
  
-+	struct ieee80211_tx_rate rates[4];
-+	bool tx_rate_set;
++	struct ieee80211_sta_rates ratetbl;
++	bool ratetbl_is_set;
 +
  	u32 ackto;
  	struct list_head list;
@@ -63,22 +62,30 @@
  
  	if (ps) {
  		/* Clear the first rate to avoid using a sample rate for PS frames */
-@@ -199,8 +201,18 @@ static void ath_set_rates(struct ieee802
+@@ -199,8 +201,26 @@ static void ath_set_rates(struct ieee802
  		info->control.rates[0].count = 0;
  	}
  
 -	ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
 -			       ARRAY_SIZE(bf->rates));
-+	if (!an->tx_rate_set) {
++	if (likely(an->ratetbl_is_set)) {
++		if (likely(info->control.rates[0].idx < 0 ||
++		    !info->control.rates[0].count )) {
++			i = 0;
++		} else {
++			bf->rates[0] = info->control.rates[0];
++			i = 1;
++		}
++
++		for ( ; i < 3; i++) {
++			bf->rates[i].idx = an->ratetbl.rate[i].idx;
++			bf->rates[i].count = an->ratetbl.rate[i].count;
++			bf->rates[i].flags = an->ratetbl.rate[i].flags;
++		}
++
++	} else {
 +		ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
 +				       ARRAY_SIZE(bf->rates));
-+	}
-+	for ( i = 0; i < 3; i++) {
-+		bf->rates[i] = an->rates[i];
-+	}
-+
-+	if (info->control.rates[0].idx < 0 || !info->control.rates[0].count ) {
-+		bf->rates[0] = an->rates[0];
 +	}
 +
  	if (!ps)
