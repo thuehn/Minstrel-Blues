@@ -40,10 +40,10 @@ function McastExperiment:prepare_measurement ( ap_ref )
     ap_ref.stats:enable_rc_stats ( ap_ref.stations )
 end
 
-function McastExperiment:settle_measurement ( ap_ref, key )
+function McastExperiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:restart_wifi ()
     ap_ref:add_monitor ()
-    ap_ref:wait_linked ()
+    return ap_ref:wait_linked ( retrys )
 end
 
 function McastExperiment:start_measurement ( ap_ref, key )
@@ -58,7 +58,7 @@ function McastExperiment:unsettle_measurement ( ap_ref, key )
     ap_ref:remove_monitor ()
 end
 
-function McastExperiment:start_experiment ( ap_ref )
+function McastExperiment:start_experiment ( ap_ref, key )
     local wait = false
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         -- start iperf client on AP

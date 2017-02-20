@@ -71,9 +71,12 @@ function AccessPointRef:remove_monitor( )
     end
 end
 
-function AccessPointRef:wait_linked( )
+function AccessPointRef:wait_linked( retrys )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:wait_linked()
+        local res = sta_ref:wait_linked ( retrys )
+        if ( res == false ) then
+            break
+        end
     end
 end
 

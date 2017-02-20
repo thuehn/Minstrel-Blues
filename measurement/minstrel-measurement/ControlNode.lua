@@ -47,10 +47,11 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
     function start_logger ( log_net, port, file )
         local logger = spawn_pipe ( "lua", "bin/runLogger.lua", file, "--port", port, "--log_if", log_net.iface )
         if ( logger ['err_msg'] ~= nil ) then
-            o:send_warning("Logger not started" .. logger ['err_msg'] )
+            print ( "Logger not started" .. logger ['err_msg'] )
         end
         close_proc_pipes ( logger )
         local str = logger['proc']:__tostring()
+        os.sleep ( 5 )
         o:send_info ( "Logging sarted: " .. str )
         return parse_process ( str ) 
     end
@@ -72,7 +73,7 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
         o.pids = {}
         o.pids['logger'] = pid
         if ( o.pids['logger'] == nil ) then
-            osend_error ("Logger not started.")
+            print ("Logger not started.")
         end
     end
 
@@ -337,10 +338,14 @@ function ControlNode:run_experiments ( command, args, ap_names )
         keys[i] = exp:keys ( ap_ref )
     end
 
+    local stop = false
     for _, key in ipairs ( keys[1] ) do -- fixme: smallest set of keys
 
         for _, ap_ref in ipairs ( ap_refs ) do
-            exp:settle_measurement ( ap_ref, key )
+            if ( exp:settle_measurement ( ap_ref, key, 5 ) == false ) then
+                self:send_error ( "experiment aborted, settledment failed. please check the wifi connnections." )
+                return ret
+            end
         end
 
         -- -------------------------------------------------------
@@ -353,11 +358,11 @@ function ControlNode:run_experiments ( command, args, ap_names )
         -- -------------------------------------------------------
             
         for _, ap_ref in ipairs ( ap_refs ) do
-            exp:start_experiment ( ap_ref )
+            exp:start_experiment ( ap_ref, key )
         end
     
         for _, ap_ref in ipairs ( ap_refs ) do
-            exp:wait_experiment ( ap_ref )
+            exp:wait_experiment ( ap_ref, 5 )
         end
 
         -- -------------------------------------------------------

@@ -1,5 +1,6 @@
 
 require ('Experiment')
+require ('misc')
 
 UdpExperiment = { runs = nil, packet_sizes = nil, cct_intervals = nil, packet_rates = nil, udp_interval = nil }
 
@@ -24,11 +25,11 @@ end
 
 function UdpExperiment:keys ( ap_ref )
     local keys = {}
-    for _, interval in ipairs ( split( cct_intervals, ",") ) do
+    for _, interval in ipairs ( split( self.cct_intervals, ",") ) do
         -- fixme: attenuate
         -- https://github.com/thuehn/Labbrick_Digital_Attenuator
-        for _, rate in ipairs ( split ( packet_rates, ",") ) do
-            for run = 1, runs do
+        for _, rate in ipairs ( split ( self.packet_rates, ",") ) do
+            for run = 1, self.runs do
                 local key = tostring(rate) .. "-" .. tostring(interval) .. "-" .. tostring(run)
                 keys [ #keys + 1 ] = key
             end
@@ -42,10 +43,10 @@ function UdpExperiment:prepare_measurement ( ap_ref )
     ap_ref.stats:enable_rc_stats ( ap_ref.stations )
 end
 
-function UdpExperiment:settle_measurement ( ap_ref, key )
+function UdpExperiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:restart_wifi ()
     ap_ref:add_monitor ()
-    ap_ref:wait_linked ()
+    return ap_ref:wait_linked ( retrys )
 end
 
 function UdpExperiment:start_measurement ( ap_ref, key )
@@ -62,10 +63,10 @@ function UdpExperiment:unsettle_measurement ( ap_ref, key )
     ap_ref:remove_monitor ()
 end
 
-function UdpExperiment:start_experiment ( ap_ref )
+function UdpExperiment:start_experiment ( ap_ref, key )
     -- start iperf client on AP
     local wait = false
-    local size = head ( split ( packet_sizes, "," ) )
+    local size = head ( split ( self.packet_sizes, "," ) )
     local rate = split ( key, "-") [1]
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         local addr = sta_ref:get_addr ( sta_ref.wifi_cur )

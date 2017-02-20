@@ -95,7 +95,7 @@ end
 -- not used
 function NodeRef:wait_station ()
     repeat
-        print ("wait for stations to come up ... ")
+        self:send_info ("wait for stations to come up ... ")
         os.sleep(1)
         local wifi_stations_cur = self.rpc.stations( self.wifi_cur )
         local miss = false
@@ -109,19 +109,21 @@ function NodeRef:wait_station ()
 end
 
 -- wait for station is linked to ssid
-function NodeRef:wait_linked ()
+function NodeRef:wait_linked ( retrys )
     local connected = false
 
     repeat
         local ssid = self.rpc.get_linked_ssid ( self.wifi_cur )
         if (ssid == nil) then 
-            print ("Waiting: Station " .. self.name .. " not connected")
+            self:send_info ( "Waiting: Station " .. self.name .. " not connected")
             os.sleep (1)
         else
-            print ("Station " .. self.name .. " connected to " .. ssid)
+            self:send_info ("Station " .. self.name .. " connected to " .. ssid)
             connected = true
         end
-    until connected
+        retrys = retrys - 1
+    until connected or retrys == 0
+    return retrys ~= 0
 end
 
 function NodeRef:create_measurement()

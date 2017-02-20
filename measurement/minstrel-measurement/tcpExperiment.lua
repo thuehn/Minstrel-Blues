@@ -30,10 +30,10 @@ function TcpExperiment:prepare_measurement ( ap_ref )
     ap_ref.stats:enable_rc_stats ( ap_ref.stations )
 end
 
-function TcpExperiment:settle_measurement ( ap_ref, key )
+function TcpExperiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:restart_wifi ()
     ap_ref:add_monitor ()
-    ap_ref:wait_linked ()
+    return ap_ref:wait_linked ( retrys )
 end
 
 function TcpExperiment:start_measurement ( ap_ref, key )
@@ -51,7 +51,7 @@ function TcpExperiment:unsettle_measurement ( ap_ref, key )
 end
 
 -- fixme: wait
-function TcpExperiment:start_experiment ( ap_ref )
+function TcpExperiment:start_experiment ( ap_ref, key )
     -- start iperf clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do
         local addr = sta_ref:get_addr ()

@@ -432,6 +432,7 @@ elseif (args.command == "udp") then
 else
     show_config_error ( parser, "command")
 end
+
 local status = ctrl_rpc.run_experiments ( args.command, data, ap_names )
 
 if (status == true) then

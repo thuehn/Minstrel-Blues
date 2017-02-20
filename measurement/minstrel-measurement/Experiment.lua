@@ -5,14 +5,16 @@ function run_experiment ( exp, ap_ref )
 
     for _, key in ipairs ( keys ) do
 
-        exp:settle_measurement ( ap_ref, key )
+        if ( exp:settle_measurement ( ap_ref, key, 5 ) == false ) then
+            break
+        end
         exp:start_measurement (ap_ref, key )
 
         -- -------------------------------------------------------
         -- Experiment
         -- -------------------------------------------------------
             
-        exp:start_experiment ( ap_ref )
+        exp:start_experiment ( ap_ref, key )
         exp:wait_experiment ( ap_ref )
 
         -- -------------------------------------------------------
