@@ -42,7 +42,7 @@ function init ( rpc )
     end
 end
 
-function NodeRef:set_wifi ( phy )
+function NodeRef:set_phy ( phy )
     self.wifi_cur = phy
 end
 

@@ -168,12 +168,12 @@ function ControlNode:list_phys ( name )
     return node_ref.rpc.phy_devices ()
 end
 
-function ControlNode:set_wifi ( name, wifi )
+function ControlNode:set_phy ( name, wifi )
     local node_ref = self:find_node_ref ( name )
     node_ref.wifi_cur = wifi
 end
 
-function ControlNode:get_wifi ( name )
+function ControlNode:get_phy ( name )
     local node_ref = self:find_node_ref ( name )
     return node_ref.wifi_cur
 end

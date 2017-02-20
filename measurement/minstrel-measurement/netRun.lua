@@ -369,7 +369,7 @@ print ( "Prepare APs" )
 local ap_names = ctrl_rpc.list_aps()
 for _, ap_name in ipairs (ap_names ) do
     local wifis = ctrl_rpc.list_phys ( ap_name )
-    ctrl_rpc.set_wifi ( ap_name, wifis[1] )
+    ctrl_rpc.set_phy ( ap_name, wifis[1] )
     local ssid = ctrl_rpc.get_ssid ( ap_name )
     ctrl_rpc.set_ssid ( ap_name, ssid )
 end
@@ -379,7 +379,7 @@ print ()
 print ( "Prepare STAs" )
 for _, sta_name in ipairs ( ctrl_rpc.list_stas() ) do
     local wifis = ctrl_rpc.list_phys ( sta_name )
-    ctrl_rpc.set_wifi ( sta_name, wifis[1] )
+    ctrl_rpc.set_phy ( sta_name, wifis[1] )
 end
 
 print ( "Associate AP with STAs" )

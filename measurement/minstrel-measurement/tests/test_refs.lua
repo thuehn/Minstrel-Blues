@@ -3,7 +3,7 @@ require ('AccessPointRef')
 
 -- see tests/NodeRef.lua
 local nRef = AccessPointRef:create("AP", nil)
-nRef:set_wifi ( "phy0" )
+nRef:set_phy ( "phy0" )
 nRef:add_station ( "00:00:00:11:11:11", nil )
 print ( nRef:__tostring() )
 

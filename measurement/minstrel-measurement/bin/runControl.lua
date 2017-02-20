@@ -45,8 +45,8 @@ function list_nodes ( ... ) return node:list_nodes ( ... ) end
 function list_aps ( ... ) return node:list_aps ( ... ) end
 function list_stas ( ... ) return node:list_stas ( ... ) end
 function list_phys ( ... ) return node:list_phys ( ... ) end
-function set_wifi ( ... ) return node:set_wifi ( ... ) end
-function get_wifi ( ... ) return node:get_wifi ( ... ) end
+function set_phy ( ... ) return node:set_phy ( ... ) end
+function get_phy ( ... ) return node:get_phy ( ... ) end
 function set_ssid ( ... ) return node:set_ssid ( ... ) end
 function get_ssid ( ... ) return node:get_ssid ( ... ) end
 function add_station ( ... ) return node:add_station ( ... ) end
