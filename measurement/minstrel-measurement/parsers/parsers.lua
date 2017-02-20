@@ -52,6 +52,19 @@ function parse_num ( str )
      return parse ( str, "")
 end
 
+function parse_hex_num ( str )
+    function parse ( str, num )
+        local rest = str
+        local ft = shead ( rest )
+        if ( is_hexdigit ( ft ) ) then
+            return parse ( stail ( rest ), num .. ft )
+        else
+            return num, rest
+        end
+     end
+     return parse ( str, "")
+end
+
 -- parse real number from begin of str
 -- return: real, rest
 function parse_real ( str )
@@ -219,4 +232,20 @@ function parse_ipv4 ( str )
     state, rest = parse_str( rest, "." )
     num4, rest = parse_num( rest )
     return num1 .. "." .. num2 .. "." .. num3 .. "." .. num4, rest
+end
+
+function parse_ipv6 ( str )
+    local rest = str
+    local num
+    local state
+    local result = ""
+    repeat
+        num, rest = parse_hex_num ( rest )
+        result = result .. num
+        state, rest = parse_str( rest, ":" )
+        if ( state == true ) then 
+            result = result .. ":"
+        end
+    until state == false
+    return result, rest
 end

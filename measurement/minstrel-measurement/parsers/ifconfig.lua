@@ -13,7 +13,7 @@ require ('parsers/parsers')
 -- wlan0: error fetching interface information: Device not found
  
 
-IfConfig = { iface = nil, encap = nil, mac = nil, addr = nil }
+IfConfig = { iface = nil, encap = nil, mac = nil, addr = nil, addr6 = nil }
 function IfConfig:new (o)
     local o = o or {}
     setmetatable(o, self)
@@ -35,14 +35,17 @@ function IfConfig:__tostring()
     if (self.mac ~= nil) then mac = self.mac end
     local iface = "nil"
     if (self.iface ~= nil) then iface = self.iface end
-    return "IfConfig encap: " .. encap
-            .. " mac: " .. mac
-            .. " iface: " .. iface
-            .. " addr: " .. addr
+    return "IfConfig encap: " .. ( self.encap or "none" )
+            .. " mac: " .. ( self.mac or "none" )
+            .. " iface: " .. ( self.iface or "none" )
+            .. " addr: " .. ( self.addr or "none" )
+            .. " addr6: " .. ( self.addr6 or "none" )
 end
 
 function parse_ifconfig ( ifconfig )
 
+    -- lede has a variant of ifconfig installed (maybe busybox)
+    -- install package net-tools-ifconfig for linux variant
     function parse_ifconfig_lede ( iface, ifconfig )
 
         local rest = ifconfig
@@ -96,6 +99,8 @@ function parse_ifconfig ( ifconfig )
         local state = true
         local mac = nil
         local encap = nil
+        local addr = nil
+        local addr6 = nil
 
         rest = stail ( rest ) -- :
         rest = skip_layout ( rest )
@@ -110,16 +115,40 @@ function parse_ifconfig ( ifconfig )
         _, rest = parse_num ( rest )
         rest = skip_layout ( rest )
         state, rest = parse_str ( rest, "inet" )
+        if ( state == true ) then
+            rest = skip_layout ( rest )
+            addr, rest = parse_ipv4 ( rest )
+            rest = skip_layout ( rest )
+            state, rest = parse_str ( rest, "netmask" )
+            rest = skip_layout ( rest )
+            _, rest = parse_ipv4 ( rest )
+            rest = skip_layout ( rest )
+            state, rest = parse_str ( rest, "broadcast" )
+            rest = skip_layout ( rest )
+            _, rest = parse_ipv4 ( rest )
+        end
         rest = skip_layout ( rest )
-        addr, rest = parse_ipv4 ( rest )
+        state, rest = parse_str ( rest, "inet6" )
+        if ( state == true ) then
+            rest = skip_layout ( rest )
+            addr6, rest = parse_ipv6 ( rest )
+        end
         rest = skip_layout ( rest )
-        state, rest = parse_str ( rest, "netmask" )
+        state, rest = parse_str ( rest, "prefixlen" )
         rest = skip_layout ( rest )
-        _, rest = parse_ipv4 ( rest )
+        _, rest = parse_num ( rest )
         rest = skip_layout ( rest )
-        state, rest = parse_str ( rest, "broadcast" )
+        state, rest = parse_str ( rest, "scopeid" )
         rest = skip_layout ( rest )
-        _, rest = parse_ipv4 ( rest )
+        state, rest = parse_str ( rest, "0x" )
+        _, rest = parse_hex_num ( rest )
+        state, rest = parse_str ( rest, "<" )
+        _, rest = parse_ide ( rest )
+        state, rest = parse_str ( rest, ">" )
+        rest = skip_layout ( rest )
+        state, rest = parse_str ( rest, "ether" )
+        rest = skip_layout ( rest )
+        mac, rest = parse_mac ( rest )
         -- ...
     
         out.iface = iface
@@ -128,6 +157,7 @@ function parse_ifconfig ( ifconfig )
             out.mac = string.lower ( mac )
         end
         out.addr = addr
+        out.addr6 = addr6
         return out
     end
 
