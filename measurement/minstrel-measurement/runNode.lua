@@ -9,9 +9,7 @@ local parser = argparse("runNode", "Run measurement node")
 
 parser:option ("-n --name", "Node Name" )
 
--- TODO: try to get ip address from interface with lua socket
-
-parser:option ("--log_ip", "IP of Logging node", "192.168.1.141" ) -- "192.168.2.211"
+parser:option ("--log_ip", "IP of Logging node", "192.168.1.141" )
 
 parser:option ("-P --port", "Control RPC port", "12346" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
@@ -22,7 +20,7 @@ local args = parser:parse()
 local ctrl = NetIF:create()
 local node = Node:create(args.name, ctrl, args.iperf_port, args.log_ip, args.log_port )
 
-function wifi_devices(...) return node:wifi_devices(...) end
+function phy_devices(...) return node:phy_devices(...) end
 function restart_wifi(...) return node:restart_wifi(...) end
 function get_ssid (...) return node:get_ssid(...) end
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems

@@ -3,7 +3,7 @@ require ('NodeRef')
 StationRef = NodeRef:new()
 
 function StationRef:create ( name, ctrl, port )
-    local o = StationRef:new{ name = name, ctrl = ctrl, wifis = {}, addrs = {}, macs = {}, refs = {} }
+    local o = StationRef:new{ name = name, ctrl = ctrl, phys = {}, addrs = {}, macs = {}, refs = {} }
     return o
 end
 

@@ -1,9 +1,10 @@
 require ('Measurement')
+require ('NetIF')
 
 NodeRef = { name = nil
           , ctrl = nil
           , rpc = nil
-          , wifis = nil
+          , phys = nil
           , wifi_cur = nil
           , addrs = nil
           , macs = nil
@@ -21,21 +22,24 @@ function NodeRef:new (o)
 end
 
 function NodeRef:create ( name, ctrl, port )
-    local o = NodeRef:new({ name = name, ctrl = ctrl, wifis = {}, ssid = nil
-                          , addrs = {}, macs = {}, ssid = nil, stations = {}
-                          , refs = {} })
-    o.phys = o.rpc.wifi_devices()
-    for _, phy in ipairs ( o.phys ) do
-        if (o.rpc ~= nil) then
-            o.addrs [ phy ] = o.rpc.get_addr ( phy )
-            o.macs [ phy ] = o.rpc.get_mac ( phy )
-        end
-    end
+    local o = NodeRef:new( { name = name, ctrl = ctrl, phys = {}, ssid = nil
+                           , addrs = {}, macs = {}, ssid = nil, stations = {}
+                           , refs = {} 
+                           } )
     return o
 end
 
-function NodeRef:add_wifi ( phy )
-    error ("deprecated")
+-- pre: connected to node
+-- post: phys set, macs set, addrs.set
+function init ( rpc )
+    self.rpc = rpc
+    if (self.rpc ~= nil) then
+        self.phys = self.rpc.phy_devices()
+        for _, phy in ipairs ( self.phys ) do
+            self.addrs [ phy ] = self.rpc.get_addr ( phy )
+            self.macs [ phy ] = self.rpc.get_mac ( phy )
+        end
+    end
 end
 
 function NodeRef:set_wifi ( phy )
@@ -43,8 +47,8 @@ function NodeRef:set_wifi ( phy )
 end
 
 function NodeRef:get_addr ()
-    return self.rpc.get_addr ( self.wifi_cur )
---    return self.addrs [ self.wifi_cur ]
+--    return self.rpc.get_addr ( self.wifi_cur )
+    return self.addrs [ self.wifi_cur ]
 end
 
 function NodeRef:get_mac ( )
@@ -60,11 +64,11 @@ function NodeRef:__tostring()
     else
         out = out .. "rpc not connected\n\t"
     end
-    out = out .. "wifis: "
-    if ( self.wifis == {} ) then
+    out = out .. "phys: "
+    if ( self.phys == {} ) then
         out = out .. " none"
     else
-        for i, wifi in ipairs ( self.wifis ) do
+        for i, wifi in ipairs ( self.phys ) do
             if ( i ~= 1 ) then out = out .. ", " end
             local addr = self.addrs [ wifi ]
             if ( addr == nil ) then addr = "none" end

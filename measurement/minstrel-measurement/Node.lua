@@ -246,7 +246,7 @@ function get_interface_name ( phy )
     return nil
 end
 
-function Node:wifi_devices ()
+function Node:phy_devices ()
     self:send_info( "Send phy devices." )
     local phys = {}
     for _, wifi in ipairs ( self.wifis ) do

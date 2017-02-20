@@ -162,10 +162,10 @@ function ControlNode:list_nodes ()
     return names
 end
 
-function ControlNode:list_wifis ( name )
+function ControlNode:list_phys ( name )
     local node_ref = self:find_node_ref ( name )
     if ( node_ref == nil ) then return {} end
-    return node_ref.rpc.wifi_devices ()
+    return node_ref.rpc.phy_devices ()
 end
 
 function ControlNode:set_wifi ( name, wifi )
@@ -296,7 +296,7 @@ function ControlNode:connect_nodes ( ctrl_port )
         local rpc
         local err
         local status, rpc = pcall ( connect_rpc )
-        node_ref.rpc = rpc
+        node_ref:init( rpc )
         if ( status == false or rpc == nil ) then
             self:send_error ("Connection to " .. node_ref.name .. " failed: ")
             self:send_error ( "Err: no node at address: " .. node_ref.ctrl.addr .. " on port: " .. ctrl_port )
