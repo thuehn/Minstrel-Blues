@@ -45,7 +45,7 @@
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	/* use fixed index if set */
  	if (mp->fixed_rate_idx != -1) {
-@@ -747,12 +739,6 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -723,12 +715,6 @@ minstrel_ht_tx_status(void *priv, struct
  	mi->ampdu_packets++;
  	mi->ampdu_len += info->status.ampdu_len;
  
@@ -58,7 +58,7 @@
  	if (info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
  		mi->sample_packets += info->status.ampdu_len;
  
-@@ -994,96 +980,76 @@ minstrel_get_duration(int index)
+@@ -970,96 +956,76 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -199,7 +199,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1101,10 +1067,9 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1077,10 +1043,9 @@ minstrel_ht_get_rate(void *priv, struct
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
  	if (mp->hw->max_rates == 1 &&
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
@@ -212,7 +212,7 @@
  	mi->total_packets++;
  
  	/* wraparound */
-@@ -1113,25 +1078,116 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1089,25 +1054,116 @@ minstrel_ht_get_rate(void *priv, struct
  		mi->sample_packets = 0;
  	}
  
@@ -345,7 +345,7 @@
  }
  
  static void
-@@ -1206,16 +1262,6 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1182,16 +1238,6 @@ minstrel_ht_update_caps(void *priv, stru
  
  	mi->avg_ampdu_len = MINSTREL_FRAC(1, 1);
  
@@ -362,7 +362,7 @@
  	if (!use_vht) {
  		stbc = (ht_cap & IEEE80211_HT_CAP_RX_STBC) >>
  			IEEE80211_HT_CAP_RX_STBC_SHIFT;
-@@ -1330,7 +1376,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1306,7 +1352,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
