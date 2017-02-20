@@ -58,11 +58,17 @@ function start_control_remote ( ctrl_net, log_net, ctrl_port, log_port )
 end
 
 function connect_control ( ctrl_ip, ctrl_port )
-    function connect ()
+    function connect_rpc ()
         local l, e = rpc.connect ( ctrl_ip, ctrl_port )
         return l, e
     end
-    return pcall ( connect )
+    local status, slave, err = pcall ( connect_rpc )
+    if (status == false) then
+        print ( "Err: Connection to control node failed" )
+        print ( "Err: no node at address: " .. ctrl_ip .. " on port: " .. ctrl_port )
+        return nil
+    end
+    return slave
 end
 
 function stop_control ( pid )
@@ -133,8 +139,8 @@ end
 
 local has_config = load_config ( args.config ) 
 
-local ap_setup
-local sta_setup
+local ap_setups
+local sta_setups
 
 -- load config from a file
 if ( has_config ) then
@@ -188,8 +194,9 @@ else
             show_config_error ( parser, "sta", true)
         end
     end
+    nodes [1] = ctrl
 
-    ap_setups = create_configs ( arg.ap, args.ap_radio, args.ap_ctrl_if )
+    ap_setups = create_configs ( args.ap, args.ap_radio, args.ap_ctrl_if )
     sta_setups = create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
     copy_config_nodes ( ap_setups, nodes )
     copy_config_nodes ( sta_setups, nodes )
@@ -283,10 +290,9 @@ if rpc.mode ~= "tcpip" then
     os.exit(1)
 end
 
-local ctrl_status, ctrl_rpc, err = connect_control ( ctrl_net.addr, args.ctrl_port )
-if ( ctrl_status == false ) then
-    print ( "Err: Connection to control node failed" )
-    print ( "Err: no node at address: " .. ctrl_net.addr .. " on port: " .. args.ctrl_port )
+local ctrl_rpc = connect_control ( ctrl_net.addr, args.ctrl_port )
+if ( ctrl_rpc == nil) then
+    print ( "Connection to control node faild" )
     os.exit(1)
 end
 for _, ap_config in ipairs ( aps_config ) do

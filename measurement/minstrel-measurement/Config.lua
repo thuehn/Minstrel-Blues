@@ -19,10 +19,11 @@ function show_config_error( parser, arg, option )
     else
         str = "<".. arg .. "> missing"
     end
-    print ( parser:get_usage() )
-    print ( )
-    print ( "Error: " .. str )
-    os.exit()
+    parser:error (str)
+    --print ( parser:get_usage() )
+    --print ( )
+    --print ( "Error: " .. str )
+    --os.exit()
 end
 
 ctrl = nil -- var in config file

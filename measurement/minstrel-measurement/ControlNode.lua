@@ -82,9 +82,17 @@ end
 
 
 function ControlNode:__tostring()
-    local out = "if: " .. ( self.ctrl_net.iface or "none" ) .. "\n"
+    local net = "node"
+    if ( self.ctrl_net ~= nil ) then
+        net = self.ctrl_net:__tostring()
+    end
+    local log = "node"
+    if ( self.log_net ~= nil ) then
+        log = self.log_net:__tostring()
+    end
+    local out = "if: " .. net .. "\n"
     out = out .. "port: " .. ( self.port or "none" ) .. "\n"
-    out = out .. "log: " .. ( self.log_net.addr or "none" ) .."\n"
+    out = out .. "log: " .. log .."\n"
     out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
         out = out .. '\n'
@@ -280,9 +288,18 @@ function ControlNode:connect_nodes ( ctrl_port )
     end
 
     for _, node_ref in ipairs ( self:nodes() ) do
-        node_ref:connect ( ctrl_port )
-        if ( node_ref.rpc == nil ) then
-            self:send_info ("Connection to " .. node_ref.name .. " failed")
+        function connect_rpc ()
+            local l, e = rpc.connect ( node_ref.ctrl.addr, ctrl_port )
+            return l, e
+        end
+        local status
+        local rpc
+        local err
+        local status, rpc = pcall ( connect_rpc )
+        node_ref.rpc = rpc
+        if ( status == false or rpc == nil ) then
+            self:send_error ("Connection to " .. node_ref.name .. " failed: ")
+            self:send_error ( "Err: no node at address: " .. node_ref.ctrl.addr .. " on port: " .. ctrl_port )
             return false
         else 
             self:send_info ("Connected to " .. node_ref.name)
@@ -488,7 +505,7 @@ function ControlNode:connect_logger ()
     -- TODO: print this message a single time only
     if (status == false) then
         print ( "Err: Connection to Logger failed" )
-        print ("Err: no logger at address: " .. "127.0.0.1" .. " on port: " .. self.log_port)
+        print ( "Err: no logger at address: " .. "127.0.0.1" .. " on port: " .. self.log_port)
         return nil
     else
         return logger

@@ -34,20 +34,6 @@ function NodeRef:create ( name, ctrl, port )
     return o
 end
 
-function NodeRef:connect ( port )
-    function connect_rpc ()
-        local l, e = rpc.connect ( self.ctrl.addr, port )
-        return l, e
-    end
-    local status, slave, err = pcall ( connect_rpc )
-    if (status == false) then
-        print ( "Err: Connection to node failed" )
-        print ( "Err: no node at address: " .. self.ctrl.addr .. " on port: " .. port )
-        return
-    end
-    self.rpc = slave
-end
-
 function NodeRef:add_wifi ( phy )
     error ("deprecated")
 end
