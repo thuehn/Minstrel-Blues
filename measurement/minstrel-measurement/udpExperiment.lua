@@ -69,7 +69,7 @@ function UdpExperiment:start_experiment ( ap_ref, key )
     local size = head ( split ( self.packet_sizes, "," ) )
     local rate = split ( key, "-") [1]
     for i, sta_ref in ipairs ( ap_ref.refs ) do
-        local addr = sta_ref:get_addr ( sta_ref.wifi_cur )
+        local addr = sta_ref:get_addr ()
         ap_ref.rpc.run_udp_iperf( addr, size, rate, self.udp_interval )
     end
 end
@@ -77,7 +77,7 @@ end
 function UdpExperiment:wait_experiment ( ap_ref )
     -- wait for clients on AP
     for i, sta_ref in ipairs ( ap_ref.refs ) do
-        local addr = sta_ref:get_addr ( sta_ref.wifi_cur )
+        local addr = sta_ref:get_addr ()
         ap_ref.rpc.wait_iperf_c( addr )
     end
 end

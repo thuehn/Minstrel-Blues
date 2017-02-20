@@ -31,7 +31,7 @@ end
 
 -- pre: connected to node
 -- post: phys set, macs set, addrs.set
-function init ( rpc )
+function NodeRef:init ( rpc )
     self.rpc = rpc
     if (self.rpc ~= nil) then
         self.phys = self.rpc.phy_devices()

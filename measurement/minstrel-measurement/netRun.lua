@@ -268,8 +268,6 @@ if ( ctrl_net.addr == nil) then
     end 
 end
 
-print ( ctrl_net:__tostring() )
-
 if ( args.disable_autostart == false ) then
     if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
         start_control_remote ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )

@@ -30,6 +30,11 @@ end
 -- fixme: map by phy0, phy1
 function AccessPointRef:add_station ( mac, ref )
     --self.stations [ mac ] = ref
+    for _, ref2 in ipairs ( self.refs ) do
+        if ( ref2.name == ref.name ) then
+            return
+        end
+    end
     self.stations [ #self.stations + 1 ] = mac
     self.refs [ #self.refs + 1 ] = ref
 end

@@ -17,6 +17,7 @@ ControlNode = { name = nil
               , port = nil
               , ap_refs = nil     -- list of access point nodes
               , sta_refs = nil    -- list of station nodes
+              , node_refs = nil   -- list of all nodes
               , stats = nil   -- maps node name to statistics
               , pids = nil    -- maps node name to process id of lua node
               , logger_proc = nil
@@ -157,6 +158,7 @@ function ControlNode:list_stas ()
 end
 
 function ControlNode:list_nodes ()
+    self:send_info ( " query nodes" )
     local names = {}
     for _,v in ipairs ( self:nodes() ) do names [ #names + 1 ] = v.name end
     return names
@@ -207,7 +209,6 @@ function ControlNode:set_ani ( name, ani )
 end
 
 function ControlNode:nodes() 
-    self:send_info ( " query nodes" )
     if ( self.node_refs == nil ) then
         self.node_refs = {}
         for _,v in ipairs(self.sta_refs) do self.node_refs [ #self.node_refs + 1 ] = v end
@@ -257,6 +258,7 @@ function ControlNode:start( log_addr, log_port )
 
         local remote_cmd = "lua runNode.lua"
                     .. " --name " .. node.name 
+                    .. " --ctrl_if " .. node.ctrl.iface
 
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
@@ -296,13 +298,13 @@ function ControlNode:connect_nodes ( ctrl_port )
         local rpc
         local err
         local status, rpc = pcall ( connect_rpc )
-        node_ref:init( rpc )
         if ( status == false or rpc == nil ) then
             self:send_error ("Connection to " .. node_ref.name .. " failed: ")
             self:send_error ( "Err: no node at address: " .. node_ref.ctrl.addr .. " on port: " .. ctrl_port )
             return false
         else 
             self:send_info ("Connected to " .. node_ref.name)
+            node_ref:init( rpc )
         end
     end
 

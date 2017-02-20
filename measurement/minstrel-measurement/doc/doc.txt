@@ -49,6 +49,7 @@ control
 =======
 - lua rpc nodes via control network interface
 - transfer stats
+- needs a running name server or a resolv.conf pointing to
 
 setup
 =====

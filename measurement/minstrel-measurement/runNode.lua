@@ -8,6 +8,7 @@ local argparse = require "argparse"
 local parser = argparse("runNode", "Run measurement node")
 
 parser:option ("-n --name", "Node Name" )
+parser:option ("--ctrl_if", "RPC Interface of Control node" )
 
 parser:option ("--log_ip", "IP of Logging node", "192.168.1.141" )
 
@@ -17,7 +18,7 @@ parser:option ("-I --iperf_port", "Port for iperf", "12000" )
 
 local args = parser:parse()
 
-local ctrl = NetIF:create()
+local ctrl = NetIF:create( args.ctrl_if )
 local node = Node:create(args.name, ctrl, args.iperf_port, args.log_ip, args.log_port )
 
 function phy_devices(...) return node:phy_devices(...) end
