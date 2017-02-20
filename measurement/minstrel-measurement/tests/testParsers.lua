@@ -21,11 +21,6 @@ ide, rest = parse_ide ( "G,M" )
 assert ( ide == "G" )
 assert ( rest == ",M" )
 
-
-
-
-
-
 state, rest = parse_str ("aebc", "ab")
 assert(state == false)
 assert(rest == "aebc")

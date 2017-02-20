@@ -15,8 +15,6 @@ node = Node:create("TestNode", ctrl)
 -- these tests may differ on each system
 
 local ctrl_addr = get_addr ( "eth0" ) 
-assert ( ctrl_addr ~= "..." ) -- fixme: return nil
-assert ( ctrl_addr ~= "6..." )
 
 assert ( node ~= nil )
 assert ( node.ctrl ~= nil )
@@ -30,8 +28,7 @@ assert ( table_size ( node.wifis ) > 0 )
 
 if ( get_hostname () == "sinope" ) then
     local wlan_addr = get_addr ( "wlan1" ) 
-    assert ( wlan_addr ~= "..." ) -- fixme: return nil
-    assert ( wlan_addr ~= "6..." )
+    print ( node:__tostring() )
     assert ( node.wifis[1].iface == "wlan1" )
     assert ( node.wifis[1].addr == wlan_addr )
     assert ( node.wifis[1].mon == "mon1" )

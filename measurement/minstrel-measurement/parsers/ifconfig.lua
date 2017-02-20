@@ -52,6 +52,8 @@ function parse_ifconfig ( ifconfig )
         local state = true
         local mac = nil
         local encap = nil
+        local addr
+        local addr6
     
         rest = skip_layout( rest )
         state, rest = parse_str ( rest, "Link encap:" )
@@ -62,8 +64,27 @@ function parse_ifconfig ( ifconfig )
         mac, rest = parse_mac ( rest )
         rest = skip_layout( rest )
         state, rest = parse_str ( rest, "inet addr:" )
-        addr, rest = parse_ipv4 ( rest )
-        -- ...
+        if ( state == true ) then
+            addr, rest = parse_ipv4 ( rest )
+            rest = skip_layout( rest )
+        end
+        state, rest = parse_str ( rest, "Bcast:" )
+        if ( state == true ) then
+            _, rest = parse_ipv4 ( rest )
+            rest = skip_layout( rest )
+        end
+        state, rest = parse_str ( rest, "Mask:" )
+        if ( state == true ) then
+            _, rest = parse_ipv4 ( rest )
+            rest = skip_layout( rest )
+        end
+        state, rest = parse_str ( rest, "inet6 addr:" )
+        if ( state == true ) then
+            rest = skip_layout( rest )
+            addr6, rest = parse_ipv6 ( rest )
+            rest = skip_layout( rest )
+        end
+        -- ... / scopeid fby Scope:Link
     
         local out = IfConfig:create()
         out.encap = encap
@@ -72,6 +93,7 @@ function parse_ifconfig ( ifconfig )
         end
         out.iface = iface
         out.addr = addr
+        out.addr6 = addr6
         return out
     end
 

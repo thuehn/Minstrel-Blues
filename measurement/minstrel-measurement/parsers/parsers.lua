@@ -20,15 +20,17 @@ end
 
 -- parse string 'key' from begin of string 'str'
 -- return: true, rest when matches else false, str
--- fixme: eats 'str' when not matching key completely
 function parse_str ( str, key )
-    local parsed = str
-    if ( key == "" ) then return true, parsed end
-    if ( shead ( parsed ) == shead ( key ) ) then
-        return parse_str ( stail ( parsed ), stail ( key ) )
-    else
-        return false, str
+    function parse ( str, key, ide )
+        local rest = str
+        if ( key == "" ) then return true, rest end
+        if ( shead ( rest ) == shead ( key ) ) then
+            return parse ( stail ( rest ), stail ( key ), ide .. shead ( rest ) )
+        else
+            return false, ide .. rest
+        end
     end
+    return parse ( str, key, "" )
 end
 
 -- checks whether string 'num' is a number
