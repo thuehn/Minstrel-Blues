@@ -1,6 +1,6 @@
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -892,7 +892,12 @@ struct ieee80211_tx_info {
+@@ -895,7 +895,12 @@ struct ieee80211_tx_info {
  					u8 use_cts_prot:1;
  					u8 short_preamble:1;
  					u8 skip_table:1;
@@ -14,7 +14,7 @@
  				};
  				/* only needed before rate control */
  				unsigned long jiffies;
-@@ -1710,13 +1715,14 @@ enum ieee80211_sta_rx_bandwidth {
+@@ -1716,13 +1721,14 @@ enum ieee80211_sta_rx_bandwidth {
   * struct ieee80211_sta_rates - station rate selection table
   *
   * @rcu_head: RCU head used for freeing the table on update
@@ -74,7 +74,7 @@
  
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -945,12 +945,20 @@ static void
+@@ -921,12 +921,20 @@ static void
  minstrel_ht_update_rates(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
  {
  	struct ieee80211_sta_rates *rates;

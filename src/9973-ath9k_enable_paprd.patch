@@ -1,6 +1,6 @@
 --- a/drivers/net/wireless/ath/ath9k/init.c
 +++ b/drivers/net/wireless/ath/ath9k/init.c
-@@ -967,6 +967,11 @@ static void ath_get_initial_entropy(stru
+@@ -977,6 +977,11 @@ static void ath_get_initial_entropy(stru
  	add_device_randomness(buf, sizeof(buf));
  }
  
@@ -12,7 +12,7 @@
  int ath9k_init_device(u16 devid, struct ath_softc *sc,
  		    const struct ath_bus_ops *bus_ops)
  {
-@@ -1032,6 +1037,7 @@ int ath9k_init_device(u16 devid, struct
+@@ -1042,6 +1047,7 @@ int ath9k_init_device(u16 devid, struct
  			goto debug_cleanup;
  	}
  
