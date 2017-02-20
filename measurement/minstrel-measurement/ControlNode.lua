@@ -51,7 +51,7 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
         end
         close_proc_pipes ( logger )
         local str = logger['proc']:__tostring()
-        print ( "Logging sarted: " .. str )
+        o:send_info ( "Logging sarted: " .. str )
         return parse_process ( str ) 
     end
 
@@ -62,7 +62,7 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
 --        if ( addr ~= nil ) then
 --            remote_cmd = remote_cmd .. " --log_ip " .. addr 
 --        end
---        print ( remote_cmd )
+--        o:send_info ( remote_cmd )
 --        local ssh = spawn_pipe("ssh", "root@" .. addr, remote_cmd)
 --        close_proc_pipes ( ssh )
 --    end
@@ -252,15 +252,15 @@ function ControlNode:start( log_addr, log_port )
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
-        print ( remote_cmd )
+        self:send_info ( remote_cmd )
         local ssh = spawn_pipe("ssh", "root@" .. node.ctrl.addr, remote_cmd)
         close_proc_pipes ( ssh )
 --[[    local exit_code = ssh['proc']:wait()
         if (exit_code == 0) then
-            print (node.name .. ": node started" )
+            self:send_info (node.name .. ": node started" )
         else
-            print (node.name .. ": node not started, exit code: " .. exit_code)
-            print ( ssh['err']:read("*all") )
+            self:send_info (node.name .. ": node not started, exit code: " .. exit_code)
+            self:send_info ( ssh['err']:read("*all") )
             os.exit(1)
         end --]]
     end
@@ -274,17 +274,17 @@ end
 function ControlNode:connect_nodes ( ctrl_port )
     
     if rpc.mode ~= "tcpip" then
-        print ( "Err: rpc mode tcp/ip is supported only" )
+        self:send_info ( "Err: rpc mode tcp/ip is supported only" )
         return false
     end
 
     for _, node_ref in ipairs ( self:nodes() ) do
         node_ref:connect ( ctrl_port )
         if ( node_ref.rpc == nil ) then
-            print ("Connection to " .. node_ref.name .. " failed")
+            self:send_info ("Connection to " .. node_ref.name .. " failed")
             return false
         else 
-            print ("Connected to " .. node_ref.name)
+            self:send_info ("Connected to " .. node_ref.name)
         end
     end
 
@@ -404,7 +404,7 @@ function ControlNode:run_experiment ( exp, ap_name )
     status, err = pcall ( function () return exp ( ap_ref ) end )
 
     if ( status == false ) then 
-        print ( "Error: experiment failed:\n" .. err )
+        self:send_info ( "Error: experiment failed:\n" .. err )
         return false 
     end
 
