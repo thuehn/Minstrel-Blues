@@ -407,6 +407,7 @@ print ( )
 if (args.dry_run) then 
     print ( "dry run is set, quit here" )
     if ( args.disable_autostart == false ) then
+        print ("stop control")
         ctrl_rpc.stop()
     end
     os.exit(1)
@@ -452,7 +453,9 @@ end
 ctrl_rpc.disconnect_nodes()
 
 -- kill nodes if desired by the user
+-- fixme: logger not destroyed
 if ( args.disable_autostart == false ) then
+    print ("stop control")
     ctrl_rpc.stop()
     if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
         stop_control_remote ( ctrl_net.addr, ctrl_pid )

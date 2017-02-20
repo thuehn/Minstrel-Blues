@@ -47,7 +47,7 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
     function start_logger ( log_net, port, file )
         local logger = spawn_pipe ( "lua", "bin/runLogger.lua", file, "--port", port, "--log_if", log_net.iface )
         if ( logger ['err_msg'] ~= nil ) then
-            self:send_warning("Logger not started" .. logger ['err_msg'] )
+            o:send_warning("Logger not started" .. logger ['err_msg'] )
         end
         close_proc_pipes ( logger )
         local str = logger['proc']:__tostring()
@@ -69,10 +69,10 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
 
     if ( log_net ~= nil and log_port ~= nil and log_file ~= nil ) then
         local pid = start_logger ( log_net, log_port, log_file ) ['pid']
-        self.pids = {}
-        self.pids['logger'] = pid
-        if ( self.pids['logger'] == nil ) then
-            print ("Logger not started.")
+        o.pids = {}
+        o.pids['logger'] = pid
+        if ( o.pids['logger'] == nil ) then
+            osend_error ("Logger not started.")
         end
     end
 
@@ -419,11 +419,17 @@ end
 function ControlNode:stop()
 
     function stop_logger ( pid )
-        kill = spawn_pipe("kill", pid)
-        close_proc_pipes ( kill )
+        if ( pid == nil ) then
+            self:send_error ( "logger not stopped: pid is not set" )
+        else
+            self:send_info ( "stop logger with pid " .. pid )
+            kill = spawn_pipe( "kill", pid )
+            close_proc_pipes ( kill )
+        end
     end
 
     for i, node_ref in ipairs ( self:nodes() ) do
+        self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
         local ssh = spawn_pipe("ssh", "root@" .. node_ref.ctrl.addr, "kill " .. self.pids [ node_ref.name ] )
         local exit_code = ssh['proc']:wait()
         close_proc_pipes ( ssh )
