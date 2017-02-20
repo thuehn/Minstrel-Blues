@@ -71,6 +71,7 @@ function stop_control ( pid )
 end
 
 function stop_control_remote ( addr, pid )
+    print ( addr )
     local ssh = spawn_pipe("ssh", "root@" .. addr, "kill " .. pid )
     local exit_code = ssh['proc']:wait()
     close_proc_pipes ( ssh )
@@ -453,8 +454,8 @@ ctrl_rpc.disconnect_nodes()
 -- kill nodes if desired by the user
 if ( args.disable_autostart == false ) then
     ctrl_rpc.stop()
-    if ( args.ctrl_ip ~= nil ) then
-        stop_control_remote ( ctrl_pid )
+    if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
+        stop_control_remote ( ctrl_net.addr, ctrl_pid )
     else
         stop_control ( ctrl_pid )
     end
