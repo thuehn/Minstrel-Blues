@@ -192,6 +192,7 @@ function parse_ifconfig ( ifconfig )
 
     local add_chars = {}
     add_chars[1] = '-'
+    add_chars[2] = '.'
     iface, rest = parse_ide ( rest, add_chars )
     
     if ( shead ( rest ) == ':' ) then

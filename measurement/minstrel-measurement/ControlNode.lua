@@ -51,7 +51,7 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
         end
         close_proc_pipes ( logger )
         local str = logger['proc']:__tostring()
-        os.sleep ( 5 )
+        os.sleep ( 3 )
         o:send_info ( "Logging sarted: " .. str )
         return parse_process ( str ) 
     end
@@ -119,7 +119,7 @@ end
 
 
 function ControlNode:get_ctrl_addr ()
-    return get_addr ( self.ctrl_if )
+    return get_addr ( self.ctrl_net.iface )
 end
 
 function ControlNode:add_ap_ref ( ap_ref )

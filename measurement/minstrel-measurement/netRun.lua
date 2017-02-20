@@ -21,6 +21,7 @@ require ('misc')
 require ('ControlNode')
 require ('Config')
 require ('net')
+require ('rpc')
 
 function start_control ( ctrl_net, log_net, ctrl_port, log_port )
     local ctrl = spawn_pipe ( "lua", "bin/runControl.lua"
@@ -58,11 +59,11 @@ function start_control_remote ( ctrl_net, log_net, ctrl_port, log_port )
 end
 
 function connect_control ( ctrl_ip, ctrl_port )
-    function connect_rpc ()
+    function connect_control_rpc ()
         local l, e = rpc.connect ( ctrl_ip, ctrl_port )
         return l, e
     end
-    local status, slave, err = pcall ( connect_rpc )
+    local status, slave, err = pcall ( connect_control_rpc )
     if (status == false) then
         print ( "Err: Connection to control node failed" )
         print ( "Err: no node at address: " .. ctrl_ip .. " on port: " .. ctrl_port )
@@ -95,11 +96,11 @@ parser:option ("-c --config", "config file name", nil)
 parser:option("--sta", "Station host name"):count("*")
 parser:option("--ap", "Access Point host name"):count("*")
 
-parser:option ("--sta_radio", "STA Wifi Interface name", "radio0")
-parser:option ("--sta_ctrl_if", "STA Control Interface", "eth0")
+parser:option ("--sta_radio", "STA Wifi Interface name")
+parser:option ("--sta_ctrl_if", "STA Control Interface")
 
-parser:option ("--ap_radio", "AP Wifi Interface name", "radio0")
-parser:option ("--ap_ctrl_if", "AP Control Monitor Interface", "eth0")
+parser:option ("--ap_radio", "AP Wifi Interface name")
+parser:option ("--ap_ctrl_if", "AP Control Monitor Interface")
 
 parser:option ("--ctrl", "Control node host name" )
 parser:option ("--ctrl_ip", "IP of Control node" )
@@ -250,15 +251,15 @@ print ( )
 
 local ctrl_pid
 
--- ctrl iface
-local net = NetIF:create ( "ctrl", "eth0" )
+-- local ctrl iface
+local net = NetIF:create ( "eth0" )
 if ( net:get_addr() == nil ) then
-    net = NetIF:create ( "ctrl", "br-lan" )
+    net = NetIF:create ( "br-lan" )
     net:get_addr()
 end
 
 -- ctrl node iface, ctrl node (name) lookup
-local ctrl_net = NetIF:create ( "ctrl", ctrl_config['ctrl_if'] )
+local ctrl_net = NetIF:create ( ctrl_config['ctrl_if'] )
 ctrl_net.addr = args.ctrl_ip
 if ( ctrl_net.addr == nil) then
     local ip_addr = lookup ( ctrl_config['name'] )
@@ -266,6 +267,8 @@ if ( ctrl_net.addr == nil) then
         ctrl_net.addr = ip_addr
     end 
 end
+
+print ( ctrl_net:__tostring() )
 
 if ( args.disable_autostart == false ) then
     if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
