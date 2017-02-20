@@ -144,3 +144,7 @@ end
 function NodeRef:stop_iperf_server()
     self.rpc.stop_iperf_server( self.iperf_server_proc['pid'] )
 end
+
+function NodeRef:set_nameserver ( nameserver )
+    self.rpc.set_nameserver ( nameserver )
+end

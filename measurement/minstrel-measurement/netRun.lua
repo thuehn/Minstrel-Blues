@@ -129,6 +129,8 @@ parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 parser:flag ("--run_check", "No rpc connections, no meaurements", false )
 parser:flag ("--dry_run", "Don't measure anything", false )
 
+parser:option ("--nameserver", "local nameserver" )
+
 parser:flag ("-v --verbose", "", false )
 
 local args = parser:parse()
@@ -311,6 +313,10 @@ if ( ctrl_net.addr == nil ) then
     ctrl_net.addr = ctrl_rpc.get_ctrl_addr ()
 end
 print ()
+
+if ( nameserver ~= nil or args.nameserver ~= nil ) then
+    ctrl_net.set_nameserver ( args.nameserver or nameserver )
+end
 
 -- -------------------------------------------------------------------
 

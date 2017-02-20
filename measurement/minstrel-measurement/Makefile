@@ -24,10 +24,11 @@ define Package/minstrel-measurement
 	SECTION:=lang
 	CATEGORY:=Languages
 	TITLE:=minstrel-measurement
-	DEPENDS:=+lua +lua-rpc +lua-argparse +lua-ex +luaposix +luafilesystem +pcap-lua +cpusage +bind-dig +net-tools-hostname
+	DEPENDS:=+lua +lua-rpc +lua-argparse +lua-ex +luaposix +luafilesystem +pcap-lua +cpusage +bind-dig
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
 endef
+# tests +net-tools-hostname
 #	DEPENDS:=+lua +libc +USE_UCLIBC:librpc
 
 define Package/minstrel-measurement/description

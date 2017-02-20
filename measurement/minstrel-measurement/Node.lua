@@ -7,6 +7,7 @@ require ('misc')
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
+require ('Uci')
 
 local iperf_bin = "iperf"
 local lease_fname = "/tmp/dhcp.leases"
@@ -777,6 +778,12 @@ function kill ( pid, signal )
         return nil
     end
     -- TODO: creates zombies
+end
+
+-- -------------------------
+
+function Node:set_nameserver ( nameserver )
+    set_resolvconf ( nameserver )
 end
 
 -- -------------------------

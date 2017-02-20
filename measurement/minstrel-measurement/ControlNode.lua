@@ -224,12 +224,19 @@ function ControlNode:find_node_ref( name )
     return nil
 end
 
+function ControlNode:set_nameserver (  nameserver )
+    set_resolvconf ( nameserver )
+    for _, node_ref in ipairs ( self:nodes() ) do
+        node_ref.setnameserver ( nameserver )
+    end
+end
+
 function ControlNode:get_stats()
     return self.stats
 end
 
 function ControlNode:reachable ()
-    function reachable_ ( ip ) 
+    function node_reachable ( ip )
         local ping = spawn_pipe("ping", "-c1", ip)
         local exitcode = ping['proc']:wait()
         close_proc_pipes ( ping )
@@ -243,7 +250,7 @@ function ControlNode:reachable ()
             break
         end
         node.ctrl.addr = addr
-        if reachable_ ( addr ) then
+        if node_reachable ( addr ) then
             reached [ node.name ] = true
         else
             reached [ node.name ] = false
