@@ -22,8 +22,8 @@ if ( args.log_ip == nil ) then
     print ( parser:get_usage() )
 end
 
-local net = NetIF:create ( "ctrl", args.ctrl_if )
-local log = NetIF:create ( "log", args.log_if, args.log_ip )
+local net = NetIF:create ( args.ctrl_if )
+local log = NetIF:create ( args.log_if, args.log_ip )
 local node = ControlNode:create ( "Control", net, args.port, log, args.log_port, args.log_file )
 
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end

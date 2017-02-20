@@ -1,6 +1,8 @@
 
 require ('functional')
 require ('Node')
+require ('NetIF')
+
 local argparse = require "argparse"
 -- parse command line arguments
 local parser = argparse("runNode", "Run measurement node")
@@ -17,7 +19,7 @@ parser:option ("-I --iperf_port", "Port for iperf", "12000" )
 
 local args = parser:parse()
 
-local ctrl = NetIF:create("ctrl")
+local ctrl = NetIF:create()
 local node = Node:create(args.name, ctrl, args.iperf_port, args.log_ip, args.log_port )
 
 function wifi_devices(...) return node:wifi_devices(...) end

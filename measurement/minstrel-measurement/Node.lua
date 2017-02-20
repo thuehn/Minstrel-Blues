@@ -47,7 +47,7 @@ function Node:create ( name, ctrl, iperf_port, log_ip, log_port )
     end
     local phys = list_phys()
     for i, phy in ipairs ( phys ) do
-        local netif = NetIF:create ( "radio" .. i-1 )
+        local netif = NetIF:create ()
         netif.phy = phy
         -- mon: maybe obsolete, but some devices doesn't support default monitoring, they have prism monitors, i.e. prism0
         netif.mon = "mon" .. tostring(i-1)

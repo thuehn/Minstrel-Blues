@@ -130,10 +130,10 @@ local ctrl = ControlNode:create()
 local ap_config = find_node ( "lede-ap", aps )
 local sta_config = find_node ( "lede-sta", stations )
 
-local sta_ctrl = NetIF:create ("ctrl", sta_config['ctrl_if'], sta_config['ctrl_ip'] )
+local sta_ctrl = NetIF:create (sta_config['ctrl_if'], sta_config['ctrl_ip'] )
 local sta_ref = StationRef:create ( sta_config.name, sta_ctrl )
 
-local ap_ctrl = NetIF:create ("ctrl", ap_config['ctrl_if'], ap_config['ctrl_ip'] )
+local ap_ctrl = NetIF:create (ap_config['ctrl_if'], ap_config['ctrl_ip'] )
 local ap_ref = AccessPointRef:create ( ap_config.name , ap_ctrl )
 
 ctrl:add_ap_ref ( ap_ref )

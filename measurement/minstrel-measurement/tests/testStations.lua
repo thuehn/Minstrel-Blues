@@ -5,8 +5,8 @@ require ('misc')
 require ('NetIF')
 require ('Node')
 
-local wifi = NetIF.create("AP wifi", "wlan0", "192.168.1.1", nil)
-local ctrl = NetIF.create("AP ctrl", "eth0" , "192.168.2.218", nil)
+local wifi = NetIF.create("wlan0", "192.168.1.1", nil)
+local ctrl = NetIF.create("eth0" , "192.168.2.218", nil)
 local ap_node = Node:create('Node', wifi, ctrl )
 
 print ( wifi )

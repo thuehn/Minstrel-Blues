@@ -124,14 +124,14 @@ end
 
 function ControlNode:add_ap ( name, ctrl_if, ctrl_port )
     self:send_info ( " add access point " .. name )
-    local ctrl = NetIF:create ( "ctrl", ctrl_if )
+    local ctrl = NetIF:create ( ctrl_if )
     local ref = AccessPointRef:create ( name, ctrl, ctrl_port )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
 end
 
 function ControlNode:add_sta ( name, ctrl_if, ctrl_port )
     self:send_info ( " add station " .. name )
-    local ctrl = NetIF:create ( "ctrl", ctrl_if )
+    local ctrl = NetIF:create ( ctrl_if )
     local ref = StationRef:create ( name, ctrl, ctrl_port )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
 end

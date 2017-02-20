@@ -1,10 +1,10 @@
 require ('net')
 
--- simple struct to store the name, the interface and the ip address of a host
+-- simple struct to store the interface and the ip address of a host
 -- i.e. for pretty printing and have a named triple instead of unprintable
 -- table with keys
 
-NetIF = { name = nil, iface = nil, addr = nil, mon = nil, phy = nil }
+NetIF = { iface = nil, addr = nil, mon = nil, phy = nil }
 function NetIF:new (o)
     local o = o or {}
     setmetatable(o, self)
@@ -12,8 +12,8 @@ function NetIF:new (o)
     return o
 end
 
-function NetIF:create ( name, iface, addr, mon, phy )
-    local o = NetIF:new({ name = name, iface = iface, addr = addr, mon = mon, phy = phy })
+function NetIF:create ( iface, addr, mon, phy )
+    local o = NetIF:new( { iface = iface, addr = addr, mon = mon, phy = phy } )
     return o
 end
 
@@ -34,8 +34,7 @@ function NetIF:__tostring()
     if (self.phy ~= nil) then
         phy = tostring(self.phy)
     end
-    return self.name .. " :: " 
-            .. "iface = " .. iface .. ", " 
+    return "iface = " .. iface .. ", " 
             .. "addr = " .. addr .. ", "
             .. "mon = " .. mon .. ", " 
             .. "phy = " .. phy 

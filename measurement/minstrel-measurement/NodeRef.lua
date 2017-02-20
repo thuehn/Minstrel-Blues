@@ -1,4 +1,3 @@
-require ('NetIF')
 require ('Measurement')
 
 NodeRef = { name = nil
@@ -95,7 +94,6 @@ end
 -- not used
 function NodeRef:wait_station ()
     repeat
-        self:send_info ("wait for stations to come up ... ")
         os.sleep(1)
         local wifi_stations_cur = self.rpc.stations( self.wifi_cur )
         local miss = false
@@ -115,10 +113,8 @@ function NodeRef:wait_linked ( retrys )
     repeat
         local ssid = self.rpc.get_linked_ssid ( self.wifi_cur )
         if (ssid == nil) then 
-            self:send_info ( "Waiting: Station " .. self.name .. " not connected")
             os.sleep (1)
         else
-            self:send_info ("Station " .. self.name .. " connected to " .. ssid)
             connected = true
         end
         retrys = retrys - 1

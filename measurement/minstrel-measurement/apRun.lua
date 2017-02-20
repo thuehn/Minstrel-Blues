@@ -200,13 +200,13 @@ local ctrl = ControlNode:create()
 
 local ap_ref
 
-local ap_ctrl = NetIF:create ("ctrl", ap_config['ctrl_if'] )
+local ap_ctrl = NetIF:create ( ap_config['ctrl_if'] )
 local ap_ref = AccessPointRef:create (ap_config.name, ap_ctrl, args.ctrl_port )
 ctrl:add_ap_ref ( ap_ref )
 
 local sta_refs = {}
 for _, sta_config in ipairs ( stas_config ) do
-    local sta_ctrl = NetIF:create ("ctrl", sta_config['ctrl_if'] )
+    local sta_ctrl = NetIF:create ( sta_config['ctrl_if'] )
     local sta_ref = StationRef:create ( sta_config.name, sta_ctrl, args.ctrl_port )
     ctrl:add_sta_ref ( sta_ref )
     sta_refs [ #sta_refs + 1 ] = sta_ref
