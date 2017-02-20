@@ -1,6 +1,14 @@
 --- a/drivers/net/wireless/ath/ath9k/main.c
 +++ b/drivers/net/wireless/ath/ath9k/main.c
-@@ -2666,6 +2666,30 @@ static int ath9k_get_txpower(struct ieee
+@@ -1339,6 +1339,7 @@ static int ath9k_add_interface(struct ie
+ 	an->sta = NULL;
+ 	an->vif = vif;
+ 	an->no_ps_filter = true;
++	an->ratetbl_is_set = false;
+ 	ath_tx_node_init(sc, an);
+ 
+ 	mutex_unlock(&sc->mutex);
+@@ -2707,6 +2708,35 @@ static int ath9k_get_txpower(struct ieee
  	return 0;
  }
  
@@ -19,8 +27,13 @@
 +	        goto out;
 +	}
 +
-+	for ( i = 0; i<3; i++ ) {
-+		an->ratetbl.rate[i] = ratetbl->rate[i];
++	/* fetch mac80211 ratetbl into local copy */
++	for ( i = 0; i < IEEE80211_TX_MAX_RATES; i++ ) {
++		an->ratetbl[i].idx = ratetbl->rate[i].idx;
++		an->ratetbl[i].count = ratetbl->rate[i].count;
++		an->ratetbl[i].count_cts = ratetbl->rate[i].count_cts;
++		an->ratetbl[i].count_rts = ratetbl->rate[i].count_rts;
++		an->ratetbl[i].flags = ratetbl->rate[i].flags;
 +	}
 +	an->ratetbl_is_set = true;
 +
@@ -31,7 +44,7 @@
  struct ieee80211_ops ath9k_ops = {
  	.tx 		    = ath9k_tx,
  	.start 		    = ath9k_start,
-@@ -2694,6 +2718,7 @@ struct ieee80211_ops ath9k_ops = {
+@@ -2735,6 +2765,7 @@ struct ieee80211_ops ath9k_ops = {
  	.get_stats	    = ath9k_get_stats,
  	.set_antenna	    = ath9k_set_antenna,
  	.get_antenna	    = ath9k_get_antenna,
@@ -41,11 +54,18 @@
  	.suspend	    = ath9k_suspend,
 --- a/drivers/net/wireless/ath/ath9k/ath9k.h
 +++ b/drivers/net/wireless/ath/ath9k/ath9k.h
-@@ -273,6 +273,9 @@ struct ath_node {
+@@ -283,6 +283,16 @@ struct ath_node {
  #endif
  	u8 key_idx[4];
  
-+	struct ieee80211_sta_rates ratetbl;
++	/* ath9k's local copy of mac80211 ratetbl */
++	struct {
++		s8 idx;
++		u8 count;
++		u8 count_cts;
++		u8 count_rts;
++		u16 flags;
++	} ratetbl[IEEE80211_TX_MAX_RATES];
 +	bool ratetbl_is_set;
 +
  	u32 ackto;
@@ -53,36 +73,56 @@
  };
 --- a/drivers/net/wireless/ath/ath9k/xmit.c
 +++ b/drivers/net/wireless/ath/ath9k/xmit.c
-@@ -192,6 +192,8 @@ static void ath_set_rates(struct ieee802
+@@ -188,10 +188,36 @@ static void ath_send_bar(struct ath_atx_
+ 			   seqno << IEEE80211_SEQ_SEQ_SHIFT);
+ }
+ 
++static void ath_merge_ratetbl(struct ath_node *an, struct ath_buf *bf,
++			      struct ieee80211_tx_info *info)
++{
++	int i;
++
++	if (likely(info->control.rates[0].idx < 0 ||
++	    !info->control.rates[0].count )) {
++		i = 0;
++	} else {
++		bf->rates[0] = info->control.rates[0];
++		i = 1;
++	}
++
++	for ( ; i < IEEE80211_TX_MAX_RATES; i++) {
++		bf->rates[i].idx = an->ratetbl[i].idx;
++		bf->rates[i].flags = an->ratetbl[i].flags;
++		if (info->control.use_rts)
++			bf->rates[i].count = an->ratetbl[i].count_rts;
++		else if (info->control.use_cts_prot)
++			bf->rates[i].count = an->ratetbl[i].count_cts;
++		else
++			bf->rates[i].count = an->ratetbl[i].count;
++	}
++}
++
+ static void ath_set_rates(struct ieee80211_vif *vif, struct ieee80211_sta *sta,
  			  struct ath_buf *bf, bool ps)
  {
  	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(bf->bf_mpdu);
-+	struct ath_node *an = (struct ath_node *)sta->drv_priv;
-+	int i;
++	struct ath_node *an = NULL;
  
  	if (ps) {
  		/* Clear the first rate to avoid using a sample rate for PS frames */
-@@ -199,8 +201,26 @@ static void ath_set_rates(struct ieee802
+@@ -199,8 +225,18 @@ static void ath_set_rates(struct ieee802
  		info->control.rates[0].count = 0;
  	}
  
 -	ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
 -			       ARRAY_SIZE(bf->rates));
-+	if (likely(an->ratetbl_is_set)) {
-+		if (likely(info->control.rates[0].idx < 0 ||
-+		    !info->control.rates[0].count )) {
-+			i = 0;
-+		} else {
-+			bf->rates[0] = info->control.rates[0];
-+			i = 1;
-+		}
-+
-+		for ( ; i < 3; i++) {
-+			bf->rates[i].idx = an->ratetbl.rate[i].idx;
-+			bf->rates[i].count = an->ratetbl.rate[i].count;
-+			bf->rates[i].flags = an->ratetbl.rate[i].flags;
-+		}
-+
++	if (sta) {
++		an = (struct ath_node *)sta->drv_priv;
++		if  (likely(an->ratetbl_is_set))
++			ath_merge_ratetbl(an, bf, info);
++		else
++			ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
++					       ARRAY_SIZE(bf->rates));
 +	} else {
 +		ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
 +				       ARRAY_SIZE(bf->rates));
