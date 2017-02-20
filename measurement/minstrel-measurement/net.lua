@@ -22,3 +22,10 @@ function lookup ( name )
     close_proc_pipes ( dig )
     return answer.addr
 end
+
+function get_hostname ()
+    local hostname_proc = spawn_pipe( "hostname", "-s" )
+    hostname_proc['proc']:wait()
+    local line = hostname_proc['out']:read("*l")
+    return line
+end

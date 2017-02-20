@@ -1,6 +1,24 @@
 dependencies
 ============
 
+kernel
+------
+ATH9K_DEBUGFS
+   Atheros ath9k debugging 
+   CONFIG_ATH9K_DEBUGFS
+   Prompt: Atheros ath9k debugging
+     Location:
+       -> Device Drivers
+         -> Network device support (NETDEVICES [=y])
+           -> Wireless LAN (WLAN [=y])
+             -> Atheros/Qualcomm devices (WLAN_VENDOR_ATH [=y])
+               -> Atheros 802.11n wireless cards support (ATH9K [=y])
+system
+------
+We use informations from kernel debug filesystem. To run some test cases as
+user access to the debugfs is needed which is allowed root user by default
+only. To run these test cases as user remount the debugfs with mode=1777.
+
 build
 -----
 lua: measurement runtime [+openwrt]

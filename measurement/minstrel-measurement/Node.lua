@@ -45,16 +45,26 @@ function Node:create ( name, ctrl, iperf_port, log_ip, log_port )
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
     end
-    local phys = list_phys()
+    local phys, err = list_phys()
+    if ( phys == nil ) then
+        o:send_error ( err )
+        return o
+    end
+    if ( ctrl ~= nil and ctrl.addr == nil ) then
+        ctrl.addr = get_ip_addr ( ctrl.iface )
+    end
     for i, phy in ipairs ( phys ) do
         local netif = NetIF:create ()
         netif.phy = phy
         -- mon: maybe obsolete, but some devices doesn't support default monitoring, they have prism monitors, i.e. prism0
         netif.mon = "mon" .. tostring(i-1)
         netif.iface = get_interface_name ( phy )
-        -- fixme: doesn't work in APs with bridged lan over switchdevice and wifi
-        netif.addr = get_ip_addr ( netif.iface )
-        o.wifis [ #o.wifis + 1 ] = netif
+        if ( netif.iface == nil ) then
+            o:send_error ( "Empty ieee80211 debugfs: please check permissions and kernel config, i.e. ATH9K_DEBUGFS" )
+        else
+            netif.addr = get_ip_addr ( netif.iface )
+            o.wifis [ #o.wifis + 1 ] = netif
+        end
     end
     return o
 end
@@ -214,6 +224,9 @@ end
 
 function list_phys ()
     local phys = {}
+    if ( lfs.attributes ( debugfs ) == nil ) then
+        return nil, "Permission denied to access debugfs"
+    end
     for file in lfs.dir( debugfs ) do
         if (file ~= "." and file ~= "..") then
             phys [ #phys + 1 ] = file
@@ -779,7 +792,8 @@ function Node:connect_logger ()
     -- TODO: print this message a single time only
     if (status == false) then
         print ( "Err: Connection to Logger failed" )
-        print ("Err: no logger at address: " .. self.log_ip .. " on port: " .. self.log_port)
+        print ("Err: no logger at address: " .. ( self.log_ip or "none" ) 
+                                             .. " on port: " .. ( self.log_port or "none" ) )
         return nil
     else
         return logger
