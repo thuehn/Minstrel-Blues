@@ -262,17 +262,17 @@ end
 
 function ControlNode:start( log_addr, log_port )
 
-    function start_node ( node, log_addr )
+    function start_node ( node_ref, log_addr )
 
         local remote_cmd = "lua runNode.lua"
-                    .. " --name " .. node.name 
-                    .. " --ctrl_if " .. node.ctrl.iface
+                    .. " --name " .. node_ref.name 
+                    .. " --ctrl_if " .. node_ref.ctrl.iface
 
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
         self:send_info ( remote_cmd )
-        local ssh = spawn_pipe("ssh", "-i", node.rsa_key, "root@" .. node.ctrl.addr, remote_cmd)
+        local ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, "root@" .. node_ref.ctrl.addr, remote_cmd)
         close_proc_pipes ( ssh )
 --[[    local exit_code = ssh['proc']:wait()
         if (exit_code == 0) then
@@ -284,8 +284,8 @@ function ControlNode:start( log_addr, log_port )
         end --]]
     end
 
-    for _, node in ipairs ( self:nodes() ) do
-        start_node( node, log_addr )
+    for _, node_ref in ipairs ( self:nodes() ) do
+        start_node( node_ref, log_addr )
     end
     return true
 end
@@ -462,7 +462,7 @@ function ControlNode:stop()
 
     for i, node_ref in ipairs ( self:nodes() ) do
         self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
-        local ssh = spawn_pipe("ssh", "root@" .. node_ref.ctrl.addr, "kill " .. self.pids [ node_ref.name ] )
+        local ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, "root@" .. node_ref.ctrl.addr, "kill " .. self.pids [ node_ref.name ] )
         local exit_code = ssh['proc']:wait()
         close_proc_pipes ( ssh )
     end
