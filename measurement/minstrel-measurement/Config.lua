@@ -11,6 +11,17 @@ function cnode_to_string ( config )
     return ( config.name or "none") .. "\t" .. ( config.radio or "none" ) .. "\t" .. ( config.ctrl_if or "none" )
 end
 
+function connections_tostring ( connections )
+    local str = ""
+    for ap, stas in pairs ( connections ) do
+        str = str .. ap .. ": "
+        for i, sta in pairs ( stas ) do
+            if ( i ~= 1 ) then str = str .. ", " end
+            str = str .. sta
+        end
+    end
+    return str
+end
 
 function show_config_error( parser, arg, option )
     local str

@@ -78,7 +78,6 @@ function stop_control ( pid )
 end
 
 function stop_control_remote ( addr, pid )
-    print ( addr )
     local ssh = spawn_pipe("ssh", "root@" .. addr, "kill " .. pid )
     local exit_code = ssh['proc']:wait()
     close_proc_pipes ( ssh )
@@ -171,7 +170,7 @@ if ( has_config ) then
     -- overwrite config file setting with command line settings
     set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
     set_config_from_arg ( log, 'ctrl_if', args.log_if )
-
+    
     ap_setups = accesspoints ( nodes, connections )
     set_configs_from_arg ( ap_setups, 'radio', args.ap_radio )
     set_configs_from_arg ( ap_setups, 'ctrl_if', args.ap_ctrl_if )
@@ -389,11 +388,24 @@ for _, sta_name in ipairs ( ctrl_rpc.list_stas() ) do
     ctrl_rpc.set_phy ( sta_name, wifis[1] )
 end
 
+--fixme: connections may contain more stations than args.sta
+
 print ( "Associate AP with STAs" )
 for ap, stas in pairs ( connections ) do
     for _, sta in ipairs ( stas ) do
         print ( " connect " .. ap .. " with " .. sta )
         ctrl_rpc.add_station ( ap, sta )
+    end
+end
+
+print ( "Connect STAs to APs SSID" )
+-- set mode of AP to 'ap'
+-- set mode of STA to 'sta'
+-- set ssid of AP and STA to ssid
+for ap, stas in pairs ( connections ) do
+    local ssid = ctrl_rpc.get_ssid ( ap )
+    for _, sta in ipairs ( stas ) do
+        ctrl_rpc.link_to_ssid ( sta, ssid ) 
     end
 end
 
@@ -469,7 +481,6 @@ ctrl_rpc.disconnect_nodes()
 -- kill nodes if desired by the user
 -- fixme: logger not destroyed
 if ( args.disable_autostart == false ) then
-    print ("stop control")
     ctrl_rpc.stop()
     if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
         stop_control_remote ( ctrl_net.addr, ctrl_pid )

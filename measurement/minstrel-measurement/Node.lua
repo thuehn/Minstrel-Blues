@@ -417,6 +417,10 @@ function Node:set_tx_rate ( phy, station, tx_rate_idx )
     end
 end
 
+function Node:link_to_ssid ( ssid, phy )
+    uci_link_to_ssid ( ssid, phy )
+end
+
 -- returns the ssid when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_ssid ( phy )

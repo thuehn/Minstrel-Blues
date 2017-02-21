@@ -8,6 +8,14 @@ function table_size ( tbl )
     return count
 end
 
+function table_tostring ( tbl )
+    local str = ""
+    for i, elem in ipairs ( tbl ) do
+        if ( i ~= 1 ) then str = str .. ", " end
+        str = str .. elem
+    end
+    return str
+end
 
 -- https://stackoverflow.com/questions/1426954/split-string-in-lua
 function split(s, delimiter)

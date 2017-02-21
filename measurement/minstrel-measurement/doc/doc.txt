@@ -132,6 +132,11 @@ folder of the lede build environment
 
 ensure file permissions are set properly, i.e. 600
 
+Curve25519 support DROPBEAR_CURVE25519=y
+Elliptic curve cryptograph DROPBEAR_ECC=n
+Pututline support DROPBEAR_PUTUTLINE=n
+Utmp support DROPBEAR_UTMP=n
+
 tcpdump
 -------
 

@@ -1,4 +1,5 @@
 require ('spawn_pipe')
+require ('misc')
 
 -- dig cannot handle resolv.conf files other than /etc/resolv.conf
 --
@@ -34,5 +35,38 @@ function set_resolvconf ( nameserver )
         file:write ( "nameserver " .. nameserver )
         file:flush()
         file:close()
+    end
+end
+
+--  uci set wireless.@wifi-iface[1].ssid='LEDE'
+function uci_link_to_ssid ( ssid, phy )
+    local uci_bin = "/sbin/uci" 
+    if ( isFile ( uci_bin ) ) then
+        local phy_idx = tonumber ( string.sub ( phy, 4, 5 ) ) + 1
+        local var = "wireless.@wifi-iface[" .. phy_idx .. "].ssid"
+        local proc = spawn_pipe( uci_bin, "set", var .. "=" .. ssid )
+        local exit_code = proc['proc']:wait()
+        if ( exit_code > 0 ) then
+            -- device id does not exists
+            return false
+        end
+        return true
+    end
+end
+
+-- uci set wireless.@wifi-iface[1].mode='sta'
+-- mode: 'sta', 'ap'
+function uci_set_wifi_mode ( mode, phy )
+    local uci_bin = "/sbin/uci" 
+    if ( isFile ( uci_bin ) ) then
+        local phy_idx = tonumber ( string.sub ( phy, 4, 5 ) ) + 1
+        local var = "wireless.@wifi-iface[" .. phy_idx .. "].mode"
+        local proc = spawn_pipe( uci_bin, "set", var .. "=" .. mode )
+        local exit_code = proc['proc']:wait()
+        if ( exit_code > 0 ) then
+            -- device id does not exists
+            return false
+        end
+        return true
     end
 end

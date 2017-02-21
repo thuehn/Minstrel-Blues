@@ -28,6 +28,7 @@ function get_ssid (...) return node:get_ssid(...) end
 function stations(...) return node:stations(...) end
 function set_ani (...) return node:set_ani(...) end
 
+function link_to_ssid ( ... ) return node:link_to_ssid ( ... ) end
 function get_linked_ssid(...) return node:get_linked_ssid(...) end
 function get_linked_iface(...) return node:get_linked_iface(...) end
 function get_linked_mac(...) return node:get_linked_mac(...) end

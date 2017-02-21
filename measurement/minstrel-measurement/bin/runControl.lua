@@ -47,6 +47,7 @@ function list_stas ( ... ) return node:list_stas ( ... ) end
 function list_phys ( ... ) return node:list_phys ( ... ) end
 function set_phy ( ... ) return node:set_phy ( ... ) end
 function get_phy ( ... ) return node:get_phy ( ... ) end
+function link_to_ssid ( ... ) return node:link_to_ssid ( ... ) end
 function set_ssid ( ... ) return node:set_ssid ( ... ) end
 function get_ssid ( ... ) return node:get_ssid ( ... ) end
 function add_station ( ... ) return node:add_station ( ... ) end

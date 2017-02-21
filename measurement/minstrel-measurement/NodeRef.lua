@@ -96,6 +96,10 @@ function NodeRef:wait_station ()
     until miss
 end
 
+function NodeRef:link_to_ssid ( ssid, phy )
+   self.rpc.link_to_ssid ( ssid, phy )
+end
+
 -- wait for station is linked to ssid
 function NodeRef:wait_linked ( retrys )
     local connected = false

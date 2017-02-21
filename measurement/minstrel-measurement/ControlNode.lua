@@ -39,6 +39,7 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
                                 , ctrl_net = ctrl_net
                                 , ap_refs = {}
                                 , sta_refs = {}
+                                , node_refs = {}
                                 , stats = {}
                                 , pids = {}
                                 , port = port
@@ -92,8 +93,8 @@ function ControlNode:__tostring()
     if ( self.log_net ~= nil ) then
         log = self.log_net:__tostring()
     end
-    local out = "if: " .. net .. "\n"
-    out = out .. "port: " .. ( self.port or "none" ) .. "\n"
+    local out = "control if: " .. net .. "\n"
+    out = out .. "control port: " .. ( self.port or "none" ) .. "\n"
     out = out .. "log: " .. log .."\n"
     out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
@@ -124,19 +125,12 @@ function ControlNode:get_ctrl_addr ()
     return get_addr ( self.ctrl_net.iface )
 end
 
-function ControlNode:add_ap_ref ( ap_ref )
-    self.ap_refs [ #self.ap_refs + 1 ] = ap_ref
-end
-
-function ControlNode:add_sta_ref ( sta_ref )
-    self.sta_refs [ #self.sta_refs + 1 ] = sta_ref
-end
-
 function ControlNode:add_ap ( name, ctrl_if, ctrl_port, rsa_key )
     self:send_info ( " add access point " .. name )
     local ctrl = NetIF:create ( ctrl_if )
     local ref = AccessPointRef:create ( name, ctrl, ctrl_port, rsa_key )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
+    self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
 function ControlNode:add_sta ( name, ctrl_if, ctrl_port, rsa_key )
@@ -144,6 +138,7 @@ function ControlNode:add_sta ( name, ctrl_if, ctrl_port, rsa_key )
     local ctrl = NetIF:create ( ctrl_if )
     local ref = StationRef:create ( name, ctrl, ctrl_port, rsa_key )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
+    self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
 function ControlNode:list_aps ()
@@ -161,7 +156,7 @@ end
 function ControlNode:list_nodes ()
     self:send_info ( " query nodes" )
     local names = {}
-    for _,v in ipairs ( self:nodes() ) do names [ #names + 1 ] = v.name end
+    for _,v in ipairs ( self.node_refs ) do names [ #names + 1 ] = v.name end
     return names
 end
 
@@ -181,13 +176,26 @@ function ControlNode:get_phy ( name )
     return node_ref.wifi_cur
 end
 
+function ControlNode:link_to_ssid ( name, ssid )
+    self:send_info ( "link to ssid " .. (name or "none" ) )
+    local node_ref = self:find_node_ref ( name )
+    if ( node_ref ~= nil ) then
+        self:send_info ( "link to ssid " .. (node_ref.name or "none" ) )
+    end
+    node_ref:link_to_ssid ( ssid, node_ref.wifi_cur )
+end
+
 function ControlNode:set_ssid ( name, ssid )
     local node_ref = self:find_node_ref ( name )
     node_ref:set_ssid ( ssid  )
 end
 
 function ControlNode:get_ssid ( name )
+    self:send_info ( "get ssid " .. (name or "none" ) )
     local node_ref = self:find_node_ref ( name )
+    if ( node_ref ~= nil ) then
+        self:send_info ( "get ssid node_ref " .. (node_ref.name or "none" ) )
+    end
     return node_ref.rpc.get_ssid ( node_ref.wifi_cur )
 end
 
@@ -209,17 +217,8 @@ function ControlNode:set_ani ( name, ani )
     node_ref.rpc.set_ani ( node_ref.wifi_cur, ani )
 end
 
-function ControlNode:nodes() 
-    if ( self.node_refs == nil ) then
-        self.node_refs = {}
-        for _,v in ipairs(self.sta_refs) do self.node_refs [ #self.node_refs + 1 ] = v end
-        for _,v in ipairs(self.ap_refs) do self.node_refs [ #self.node_refs + 1 ] = v end
-    end
-    return self.node_refs
-end
-
 function ControlNode:find_node_ref( name ) 
-    for _, node in ipairs ( self:nodes() ) do 
+    for _, node in ipairs ( self.node_refs ) do 
         if node.name == name then return node end 
     end
     return nil
@@ -227,7 +226,7 @@ end
 
 function ControlNode:set_nameserver (  nameserver )
     set_resolvconf ( nameserver )
---    for _, node_ref in ipairs ( self:nodes() ) do
+--    for _, node_ref in ipairs ( self.node_refs ) do
 --        node_ref.set_nameserver ( nameserver )
 --    end
 end
@@ -245,7 +244,7 @@ function ControlNode:reachable ()
     end
 
     local reached = {}
-    for _, node in ipairs ( self:nodes() ) do
+    for _, node in ipairs ( self.node_refs ) do
         local addr = lookup ( node.name )
         if ( addr == nil ) then
             break
@@ -284,7 +283,7 @@ function ControlNode:start( log_addr, log_port )
         end --]]
     end
 
-    for _, node_ref in ipairs ( self:nodes() ) do
+    for _, node_ref in ipairs ( self.node_refs ) do
         start_node( node_ref, log_addr )
     end
     return true
@@ -297,7 +296,7 @@ function ControlNode:connect_nodes ( ctrl_port )
         return false
     end
 
-    for _, node_ref in ipairs ( self:nodes() ) do
+    for _, node_ref in ipairs ( self.node_refs ) do
         function connect_rpc ()
             local l, e = rpc.connect ( node_ref.ctrl.addr, ctrl_port )
             return l, e
@@ -318,7 +317,7 @@ function ControlNode:connect_nodes ( ctrl_port )
 
     -- query lua pid before closing rpc connection
     -- maybe to kill nodes later
-    for _, node_ref in ipairs ( self:nodes() ) do 
+    for _, node_ref in ipairs ( self.node_refs ) do 
         self.pids[ node_ref.name ] = node_ref.rpc.get_pid()
     end
 
@@ -326,7 +325,7 @@ function ControlNode:connect_nodes ( ctrl_port )
 end
 
 function ControlNode:disconnect_nodes()
-    for _, node_ref in ipairs ( self:nodes() ) do 
+    for _, node_ref in ipairs ( self.node_refs ) do 
         rpc.close ( node_ref.rpc )
     end
 end
@@ -460,7 +459,7 @@ function ControlNode:stop()
         end
     end
 
-    for i, node_ref in ipairs ( self:nodes() ) do
+    for i, node_ref in ipairs ( self.node_refs ) do
         self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
         local ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, "root@" .. node_ref.ctrl.addr, "kill " .. self.pids [ node_ref.name ] )
         local exit_code = ssh['proc']:wait()
