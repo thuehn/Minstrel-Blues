@@ -11,6 +11,7 @@ require ('net')
 require ('tcpExperiment')
 require ('udpExperiment')
 require ('mcastExperiment')
+require ('Uci')
 
 ControlNode = { name = nil
               , ctrl_net = nil
@@ -131,17 +132,17 @@ function ControlNode:add_sta_ref ( sta_ref )
     self.sta_refs [ #self.sta_refs + 1 ] = sta_ref
 end
 
-function ControlNode:add_ap ( name, ctrl_if, ctrl_port )
+function ControlNode:add_ap ( name, ctrl_if, ctrl_port, rsa_key )
     self:send_info ( " add access point " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = AccessPointRef:create ( name, ctrl, ctrl_port )
+    local ref = AccessPointRef:create ( name, ctrl, ctrl_port, rsa_key )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
 end
 
-function ControlNode:add_sta ( name, ctrl_if, ctrl_port )
+function ControlNode:add_sta ( name, ctrl_if, ctrl_port, rsa_key )
     self:send_info ( " add station " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = StationRef:create ( name, ctrl, ctrl_port )
+    local ref = StationRef:create ( name, ctrl, ctrl_port, rsa_key )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
 end
 
@@ -226,9 +227,9 @@ end
 
 function ControlNode:set_nameserver (  nameserver )
     set_resolvconf ( nameserver )
-    for _, node_ref in ipairs ( self:nodes() ) do
-        node_ref.setnameserver ( nameserver )
-    end
+--    for _, node_ref in ipairs ( self:nodes() ) do
+--        node_ref.set_nameserver ( nameserver )
+--    end
 end
 
 function ControlNode:get_stats()
@@ -271,7 +272,7 @@ function ControlNode:start( log_addr, log_port )
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
         self:send_info ( remote_cmd )
-        local ssh = spawn_pipe("ssh", "root@" .. node.ctrl.addr, remote_cmd)
+        local ssh = spawn_pipe("ssh", "-i", node.rsa_key, "root@" .. node.ctrl.addr, remote_cmd)
         close_proc_pipes ( ssh )
 --[[    local exit_code = ssh['proc']:wait()
         if (exit_code == 0) then

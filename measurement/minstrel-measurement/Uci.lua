@@ -15,9 +15,9 @@ require ('spawn_pipe')
 --    dhcp.@dnsmasq[0].server='192.168.1.1'
 function set_resolvconf ( nameserver )
     local uci_bin = "/sbin/uci" 
+    local fname = "/etc/resolv.conf"
     if ( isFile ( uci_bin ) ) then
         local var = "dhcp.@dnsmasq[0].resolvfile"
-        local fname = "/etc/resolv.conf"
         local proc = spawn_pipe( uci_bin, "get", var )
         proc['proc']:wait()
         local line = proc['out']:read("*l")
@@ -32,5 +32,7 @@ function set_resolvconf ( nameserver )
     if ( nameserver ~= nil ) then
         local file = io.open ( fname, "w" )
         file:write ( "nameserver " .. nameserver )
+        file:flush()
+        file:close()
     end
 end

@@ -7,7 +7,7 @@ function get_addr ( iface )
     ifconfig_proc['proc']:wait()
     local lines = ifconfig_proc['out']:read("*a")
     local ifconfig = parse_ifconfig ( lines )
-    close_proc_pipes ( ifconfig )
+    close_proc_pipes ( ifconfig_proc )
     return ifconfig.addr
 end
 

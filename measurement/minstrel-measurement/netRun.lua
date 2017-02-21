@@ -255,9 +255,9 @@ local ctrl_pid
 
 -- local ctrl iface
 local net = NetIF:create ( "eth0" )
-if ( net:get_addr() == nil ) then
+if ( net:get_addr( net.iface ) == nil ) then
     net = NetIF:create ( "br-lan" )
-    net:get_addr()
+    net:get_addr( net.iface )
 end
 
 -- ctrl node iface, ctrl node (name) lookup
@@ -299,11 +299,11 @@ if ( ctrl_rpc == nil) then
     os.exit(1)
 end
 for _, ap_config in ipairs ( aps_config ) do
-    ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], args.ctrl_port )
+    ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], args.ctrl_port, ap_config['rsa_key'] )
 end
 
 for _, sta_config in ipairs ( stas_config ) do
-    ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], args.ctrl_port )
+    ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], args.ctrl_port, sta_config['rsa_key'] )
 end
 
 ctrl_pid = ctrl_rpc.get_pid()
@@ -313,10 +313,6 @@ if ( ctrl_net.addr == nil ) then
     ctrl_net.addr = ctrl_rpc.get_ctrl_addr ()
 end
 print ()
-
-if ( nameserver ~= nil or args.nameserver ~= nil ) then
-    ctrl_net.set_nameserver ( args.nameserver or nameserver )
-end
 
 -- -------------------------------------------------------------------
 
@@ -328,6 +324,10 @@ end
 print ( "Reachability:" )
 print ( "=============" )
 print ( )
+
+if ( nameserver ~= nil or args.nameserver ~= nil ) then
+    ctrl_rpc.set_nameserver ( args.nameserver or nameserver )
+end
 
 -- check reachability 
 if ( args.disable_reachable == false ) then

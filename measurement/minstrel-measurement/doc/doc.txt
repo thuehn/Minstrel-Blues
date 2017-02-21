@@ -84,8 +84,6 @@ print pub key:
     dropbearkey -y -f /etc/dropbear/id_rsa  | grep ssh-rsa
 connect:
     ssh -i /etc/dropbear/id_rsa lede-sta
-    Enter passphrase for key '/etc/dropbear/id_rsa':
-    (which had never been asked for by dropbearkey ... fails)
 alternatively use hostkey from:
     /etc/dropbear/dropbear_rsa_host_key
  which doesn't have a password set
@@ -127,6 +125,12 @@ ctrl depends on:
 ap, sta depends on:
 + openssh-keygen or dropbearkey
 to change roles of all stations install all three packages on all hosts
+
+for a permanent storage of files
+/etc/dropbear/{authorized_keys,dropbear_rsa_host_key,id_rsa} place then in 'files'
+folder of the lede build environment
+
+ensure file permissions are set properly, i.e. 600
 
 tcpdump
 -------

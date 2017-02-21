@@ -3,6 +3,7 @@ require ('NetIF')
 
 NodeRef = { name = nil
           , ctrl = nil
+          , rsa_key = nil
           , rpc = nil
           , phys = nil
           , wifi_cur = nil
@@ -21,8 +22,8 @@ function NodeRef:new (o)
     return o
 end
 
-function NodeRef:create ( name, ctrl, port )
-    local o = NodeRef:new( { name = name, ctrl = ctrl, phys = {}, ssid = nil
+function NodeRef:create ( name, ctrl, port, rsa_key )
+    local o = NodeRef:new( { name = name, ctrl = ctrl, rsa_key = rsa_key, phys = {}, ssid = nil
                            , addrs = {}, macs = {}, ssid = nil, stations = {}
                            , refs = {} 
                            } )
