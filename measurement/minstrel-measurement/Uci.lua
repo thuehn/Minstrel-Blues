@@ -7,8 +7,12 @@ require ('spawn_pipe')
 --
 -- add static nameserver from config file if any
 --
--- uci set dhcp.@dnsmasq[0].resolvfile
+-- uci get dhcp.@dnsmasq[0].resolvfile
 -- uci set dhcp.@dnsmasq[0].resolvfile=/etc/resolv.conf
+-- fixme: allow name without domain (+search)
+-- dhcp.@dnsmasq[0].domainneeded='1'
+-- fixme: use dns forwarding from uci
+--    dhcp.@dnsmasq[0].server='192.168.1.1'
 function set_resolvconf ( nameserver )
     local uci_bin = "/sbin/uci" 
     if ( isFile ( uci_bin ) ) then
@@ -25,7 +29,6 @@ function set_resolvconf ( nameserver )
         end
     end
     -- overwrite resolv.conf
-    -- fixme: use dns forwarding
     if ( nameserver ~= nil ) then
         local file = io.open ( fname, "w" )
         file:write ( "nameserver " .. nameserver )

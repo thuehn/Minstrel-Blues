@@ -80,8 +80,7 @@ end
 
 -- waits until all stations appears on ap
 -- not precise, sta maybe not really connected afterwards
--- but two or three seconds later
--- not used
+-- waits until station is reachable (not mandatorymandatory  connected)
 function NodeRef:wait_station ()
     repeat
         os.sleep(1)

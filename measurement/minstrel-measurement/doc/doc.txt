@@ -40,6 +40,7 @@ iw, ifconfig: add monitor
 tee: split tcpdump output
 ssh-add, ssh-agent: local ssh authorizer for remote command execution (~/.ssh# ssh-add id_rsa)
 bind-dig: optain ip addresses
+hostname: query hostname ( testing only )
 
 logging
 =======
@@ -72,6 +73,60 @@ access points
 
 utils
 =====
+
+ssh
+---
+generate keys:
+    dropbearkey -t rsa -f /etc/dropbear/id_rsa
+auth-file:
+    /etc/dropbear/authorized_keys
+print pub key:
+    dropbearkey -y -f /etc/dropbear/id_rsa  | grep ssh-rsa
+connect:
+    ssh -i /etc/dropbear/id_rsa lede-sta
+    Enter passphrase for key '/etc/dropbear/id_rsa':
+    (which had never been asked for by dropbearkey ... fails)
+alternatively use hostkey from:
+    /etc/dropbear/dropbear_rsa_host_key
+ which doesn't have a password set
+ connect:
+        ssh -i /etc/dropbear/dropbear_rsa_host_key lede-sta
+to connect to machines other than openwrt ed25519 keys are required which are
+not supported by openwrts dropbear installation
+
+alternatively use openssh with passphrase and ssh-agent:
+    ssh-keygen -t rsa -f id_rsa -C noname
+    ssh-keygen -t ed25519 -f id_ed25519 -C noname
+move keys to permanent location
+    mv id_rsa* lede-sta:/etc/dropbear
+put id_rsa.pub into /etc/dropbear/authorized_keys on all other hosts
+or use ssh-copy-id (which isn't available in openssh-client-utils)
+    ssh-copy-id root@192.168.1.1
+add to /etc/profile (for ash):
+    if [ -z "$SSH_AUTH_SOCK" ] ; then
+        eval `ssh-agent -s`
+    fi
+this will start a new ssh-agent on every new shell
+alternatively add keychain to /etc/profile to keep ssh-agent running after
+logout and avoid restarting after new or second login (which is not available
+in openssh-client-utils)
+    eval `keychain --eval id_rsa`
+when ssh-agent is running there will be a line like "Agent pid 1337" after login
+run ssh-add and enter passphrase
+    ssh-add
+befor starting measurements
+config:
+    Network->SSH->
+        * openssh-client (ssh) overwrites dropbear ssh client
+        * openssh-client-utils (ssh-add ssh-agent ssh-keyscan ssh-keysign)
+        * openssh-keygen (ssh-keygen)
+    (optional) rssh restricted shell for use with OpenSSH
+ctrl depends on:
++ openssh-keygen
++ openssh-client-utils which selects openssh-utils
+ap, sta depends on:
++ openssh-keygen or dropbearkey
+to change roles of all stations install all three packages on all hosts
 
 tcpdump
 -------
