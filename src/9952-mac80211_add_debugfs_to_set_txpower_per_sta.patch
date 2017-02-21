@@ -25,7 +25,7 @@
 +	struct dentry *dbg_fixed_txpower;
 +	struct dentry *dbg_fixed_txrate;
 +	u8 fixed_txpower;
-+	u32 fixed_txrate;
++	u8 fixed_txrate;
  #endif
  };
  
