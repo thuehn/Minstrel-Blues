@@ -19,7 +19,7 @@ end
 function TcpExperiment:keys ( ap_ref )
     local keys = {}
     for run = 1, self.runs do
-        keys [ #keys + 1 ] = run
+        keys [ #keys + 1 ] = tostring ( run )
     end
     return keys
 end
