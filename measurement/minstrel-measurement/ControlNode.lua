@@ -267,7 +267,7 @@ function ControlNode:start( log_addr, log_port )
 
     function start_node ( node_ref, log_addr )
 
-        local remote_cmd = "lua runNode.lua"
+        local remote_cmd = "lua bin/runNode.lua"
                     .. " --name " .. node_ref.name 
                     .. " --ctrl_if " .. node_ref.ctrl.iface
 
