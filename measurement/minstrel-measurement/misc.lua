@@ -17,6 +17,14 @@ function table_tostring ( tbl )
     return str
 end
 
+function copy_map ( from )
+    to = {}
+    for key, data in pairs ( from ) do
+        to [ key ] = data
+    end
+    return to
+end
+
 -- https://stackoverflow.com/questions/1426954/split-string-in-lua
 function split(s, delimiter)
     local result = {};

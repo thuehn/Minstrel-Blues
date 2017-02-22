@@ -7,6 +7,7 @@
 -- sample rate from luci-regmon
 -- syncronize time (date MMDDhhmm[[CC]YY][.ss])
 
+pprint = require ('pprint')
 require ('functional') -- head
 local argparse = require "argparse"
 require ('NetIF')
@@ -479,12 +480,21 @@ local status = ctrl_rpc.run_experiments ( args.command, data, ap_names )
 
 if (status == true) then
     print ( )
-    for name, stats in pairs ( ctrl_rpc.get_stats() ) do
-        local measurement = Measurement:create ( name )
-        measurement.regmon_stats = stats [ 'regmon_stats' ]
-        measurement.tcpdump_pcaps = stats [ 'tcpdump_pcaps' ]
-        measurement.cpuage_stats = stats [ 'cpusage_stats' ]
-        measurement.rc_stats = stats [ 'rc_stats' ]
+    local all_stats = ctrl_rpc.get_stats()
+    for name, stats in pairs ( all_stats ) do
+
+        local measurement = Measurement:create ( name, nil )
+        measurement.regmon_stats = copy_map ( stats.regmon_stats )
+        measurement.tcpdump_pcaps = copy_map ( stats.tcpdump_pcaps )
+        measurement.cpusage_stats = copy_map ( stats.cpusage_stats )
+
+        local stations = {}
+        for station, _ in pairs ( stats.rc_stats ) do
+            stations [ #stations + 1 ] = station
+        end
+        measurement:enable_rc_stats ( stations ) -- resets rc_stats
+        measurement.rc_stats = copy_map ( stats.rc_stats )
+
         print ( name )
         print ( measurement:__tostring() )
         print ( )

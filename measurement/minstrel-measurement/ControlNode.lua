@@ -12,6 +12,7 @@ require ('tcpExperiment')
 require ('udpExperiment')
 require ('mcastExperiment')
 require ('Uci')
+require ('misc')
 
 ControlNode = { name = nil
               , ctrl_net = nil
@@ -55,7 +56,7 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
         close_proc_pipes ( logger )
         local str = logger['proc']:__tostring()
         os.sleep ( 3 )
-        o:send_info ( "Logging sarted: " .. str )
+        o:send_info ( "Logging started: " .. str )
         return parse_process ( str ) 
     end
 
@@ -406,17 +407,19 @@ function ControlNode:run_experiments ( command, args, ap_names )
 
     self:send_info ( "Copy stats from nodes." )
     for _, ap_ref in ipairs ( ap_refs ) do
-        self.stats [ ap_ref.name ] = {}
-        self.stats [ ap_ref.name ] [ 'regmon_stats' ] = ap_ref.stats.regmon_stats
-        self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = ap_ref.stats.tcpdump_pcaps
-        self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = ap_ref.stats.cpusage_stats
-        self.stats [ ap_ref.name ] [ 'rc_stats' ] = ap_ref.stats.rc_stats
+
+        self.stats [ ap_ref.name ] = {} 
+        self.stats [ ap_ref.name ] [ 'regmon_stats' ] = copy_map ( ap_ref.stats.regmon_stats )
+        self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( ap_ref.stats.tcpdump_pcaps )
+        self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = copy_map ( ap_ref.stats.cpusage_stats )
+        self.stats [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
+
         for _, sta_ref in ipairs ( ap_ref.refs ) do
             self.stats [ sta_ref.name ] = {} 
-            self.stats [ sta_ref.name ] [ 'regmon_stats' ] = sta_ref.stats.regmon_stats
-            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = sta_ref.stats.tcpdump_pcaps
-            self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = sta_ref.stats.cpusage_stats
-            self.stats [ sta_ref.name ] [ 'rc_stats' ] = sta_ref.stats.rc_stats
+            self.stats [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
+            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
+            self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
+            self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
         end
     end
 
@@ -439,18 +442,18 @@ function ControlNode:run_experiment ( exp, ap_name )
         self:send_info ( "Error: experiment failed:\n" .. err )
         return false 
     end
-
+    
     self.stats [ ap_ref.name ] = {}
-    self.stats [ ap_ref.name ] [ 'regmon_stats' ] = ap_ref.stats.regmon_stats
-    self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = ap_ref.stats.tcpdump_pcaps
-    self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = ap_ref.stats.cpusage_stats
-    self.stats [ ap_ref.name ] [ 'rc_stats' ] = ap_ref.stats.rc_stats
+    self.stats [ ap_ref.name ] [ 'regmon_stats' ] = copy_map ( ap_ref.stats.regmon_stats )
+    self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( ap_ref.stats.tcpdump_pcaps )
+    self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = copy_map ( ap_ref.stats.cpusage_stats )
+    self.stats [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
     for _, sta_ref in ipairs ( ap_ref.refs ) do
         self.stats [ sta_ref.name ] = {} 
-        self.stats [ sta_ref.name ] [ 'regmon_stats' ] = sta_ref.stats.regmon_stats
-        self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = sta_ref.stats.tcpdump_pcaps
-        self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = sta_ref.stats.cpusage_stats
-        self.stats [ sta_ref.name ] [ 'rc_stats' ] = sta_ref.stats.rc_stats
+        self.stats [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
+        self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
+        self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
+        self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
     end
     return true
 
