@@ -2,10 +2,10 @@
 
 -- TODO:
 -- - openwrt package: fetch sources for argparse, luarpc and lua-ex with git
--- - rpc: transfer tcpdump binary lines/packages
--- - luci: store public ssh keys of all control devices on each ap/sta node
+-- - rpc: transfer tcpdump binary lines/packages online
 -- - analyse pcap
 -- sample rate from luci-regmon
+-- syncronize time (date MMDDhhmm[[CC]YY][.ss])
 
 require ('functional') -- head
 local argparse = require "argparse"
@@ -15,7 +15,7 @@ require ('StationRef')
 require ("rpc")
 require ("spawn_pipe")
 require ("parsers/ex_process")
-require ('parsers/cpusage')
+require ('parsers/argparse_con')
 require ('pcap')
 require ('misc')
 require ('ControlNode')
@@ -94,6 +94,7 @@ parser:option ("-c --config", "config file name", nil)
 
 parser:option("--sta", "Station host name"):count("*")
 parser:option("--ap", "Access Point host name"):count("*")
+parser:option("--con", "Connection between APs and STAs, format: ap_name=sta_name1,sta_name2"):count("*")
 
 parser:option ("--sta_radio", "STA Wifi Interface name")
 parser:option ("--sta_ctrl_if", "STA Control Interface")
@@ -168,6 +169,7 @@ if ( has_config ) then
     end
 
     -- overwrite config file setting with command line settings
+
     set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
     set_config_from_arg ( log, 'ctrl_if', args.log_if )
     
@@ -202,9 +204,23 @@ else
     sta_setups = create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
     copy_config_nodes ( ap_setups, nodes )
     copy_config_nodes ( sta_setups, nodes )
-    -- fixme: build connection list
-    -- i.e. --ap=A --sta=B --sta=C --ap=D --sta=E (use lua args to detect order [ap,sta,sta,ap,sta])
-    -- or --ap=A --ap=D --sta=B --sta=C --sta=E --connect=A:B,C --connect=D:E
+end
+
+if ( args.con ~= nil and args.con ~= {} ) then
+   connections = {}
+end
+for _, con in ipairs ( args.con ) do
+    local ap, stas, err = parse_argparse_con ( con )
+    if ( err == nil ) then
+        connections [ ap ] = stas
+    else
+        print ( err )
+    end
+end
+
+if ( table_size ( connections ) == 0 ) then
+    print ( "Error: no connections specified" )
+    os.exit (1)
 end
 
 if ( args.verbose == true) then
