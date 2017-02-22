@@ -102,7 +102,7 @@ function Measurement:__tostring()
 end
 
 function Measurement:enable_rc_stats ( stations )
-    if ( stations == nil ) then
+    if ( stations == nil or stations == {} ) then
         error ( "stations unset" )
     end
     self.rc_stats_enabled = true

@@ -1,11 +1,12 @@
 -- run a single measurement between access points (APs) and stations (STAs)
 
 -- TODO:
--- - openwrt package: fetch sources for argparse, luarpc and lua-ex with git
+-- - openwrt package: fetch sources for argparse, luarpc, pcap-lua, pprint-lua and lua-ex with git
 -- - rpc: transfer tcpdump binary lines/packages online
 -- - analyse pcap
 -- sample rate from luci-regmon
 -- syncronize time (date MMDDhhmm[[CC]YY][.ss])
+-- kill lua with two times sigint
 
 pprint = require ('pprint')
 require ('functional') -- head
