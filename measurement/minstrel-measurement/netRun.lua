@@ -5,7 +5,6 @@
 -- - rpc: transfer tcpdump binary lines/packages online
 -- - analyse pcap
 -- sample rate from luci-regmon
--- syncronize time (date MMDDhhmm[[CC]YY][.ss])
 -- kill lua with two times sigint
 
 pprint = require ('pprint')
@@ -315,6 +314,17 @@ if ( ctrl_rpc == nil) then
     print ( "Connection to control node faild" )
     os.exit(1)
 end
+
+local err
+local time = os.date("*t", os.time() )
+local cur_time, err = ctrl_rpc.set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+if ( err == nil ) then
+    print ( "Set date/time to " .. cur_time )
+else
+    print ( "Set date/time failed: " .. err )
+    print ( "Time is: " .. cur_time )
+end
+
 for _, ap_config in ipairs ( aps_config ) do
     ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], args.ctrl_port, ap_config['rsa_key'] )
 end

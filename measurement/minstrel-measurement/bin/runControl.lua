@@ -37,6 +37,7 @@ function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function run_experiments ( ... ) return node:run_experiments ( ... ) end
 function stop ( ... ) return node:stop ( ... ) end
 function __tostring ( ... ) return node:__tostring ( ... ) end
+function set_date ( ... ) return node:set_date ( ... ) end
 function get_pid ( ... ) return node:get_pid ( ... ) end
 function kill ( ... ) return node:kill ( ... ) end
 function get_logger_addr ( ...  ) return node:get_logger_addr ( ... ) end
