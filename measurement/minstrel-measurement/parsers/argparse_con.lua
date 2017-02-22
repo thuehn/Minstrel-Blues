@@ -15,7 +15,7 @@ function parse_argparse_con ( str )
     add_chars[2] = '.'
 
     ap, rest = parse_ide ( rest, add_chars )
-    if ( ap == nil ) then return nil, {}, "Error: --con argument have to start with an hostname: '" .. rest .. "'" end
+    if ( ap == nil ) then return nil, {}, "Error: --con argument have to start with a hostname: '" .. rest .. "'" end
     state, rest = parse_str( rest, '=' )
     if (state ==  false ) then return nil, {}, "Error: --con missing '=' after hostname " .. ap .. ": '" .. rest .. "'" end
     local sep = '='

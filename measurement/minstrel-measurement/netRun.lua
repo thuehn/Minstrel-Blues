@@ -451,6 +451,7 @@ if (args.dry_run) then
         print ("stop control")
         ctrl_rpc.stop()
     end
+    rpc.close ( ctrl_rpc )
     os.exit(1)
 end
 print ( )
@@ -479,7 +480,7 @@ local status = ctrl_rpc.run_experiments ( args.command, data, ap_names )
 if (status == true) then
     print ( )
     for name, stats in pairs ( ctrl_rpc.get_stats() ) do
-        local measurement = Measurement:create ()
+        local measurement = Measurement:create ( name )
         measurement.regmon_stats = stats [ 'regmon_stats' ]
         measurement.tcpdump_pcaps = stats [ 'tcpdump_pcaps' ]
         measurement.cpuage_stats = stats [ 'cpusage_stats' ]
@@ -504,3 +505,4 @@ if ( args.disable_autostart == false ) then
         stop_control ( ctrl_pid )
     end
 end
+rpc.close ( ctrl_rpc )

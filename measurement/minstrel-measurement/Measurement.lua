@@ -7,7 +7,7 @@
 require ("parsers/ex_process")
 
 Measurement = { rpc_node = nil
-              , node_ref = nil
+              , node_name = nil
               , regmon_stats = nil
               , tcpdump_pcaps = nil
               , cpusage_stats = nil
@@ -27,15 +27,9 @@ function Measurement:new (o)
     return o
 end
 
-function Measurement:create ( node_ref )
-    local rpc
-    if ( node_ref == nil ) then 
-        --error ( "node reference unset" ) 
-    else
-        rpc = node_ref.rpc
-    end
+function Measurement:create ( name, rpc )
     local o = Measurement:new( { rpc_node = rpc
-                               , node_ref = node_ref
+                               , node_name = name
                                , regmon_stats = {}
                                , tcpdump_pcaps = {}
                                , cpusage_stats = {}
@@ -69,24 +63,26 @@ function Measurement:__tostring()
     out = out .. "pcaps: " .. table_size ( self.tcpdump_pcaps ) .. " stats\n"
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         out = out .. "tcpdump_pcap-" .. key .. ":\n"
-        if (false) then
-            out = out .. "timestamp, wirelen, #capdata\n"
-            local fname = "/tmp/" .. self.node_ref.name .. "-" .. key .. ".pcap"
-            local file = io.open(fname, "wb")
-            file:write ( stats )
-            file:close()
-            local cap = pcap.open_offline( fname )
-            if (cap ~= nil) then
-                -- cap:set_filter(filter, nooptimize)
-
-                for capdata, timestamp, wirelen in cap.next, cap do
+        out = out .. "timestamp, wirelen, #capdata\n"
+        local fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
+        local file = io.open(fname, "wb")
+        file:write ( stats )
+        file:close()
+        local cap = pcap.open_offline( fname )
+        if (cap ~= nil) then
+            -- cap:set_filter(filter, nooptimize)
+            local count = 0
+            for capdata, timestamp, wirelen in cap.next, cap do
+                if (false) then
                     out = out .. tostring(timestamp) .. ", " .. tostring(wirelen) .. ", " .. tostring(#capdata) .. "\n"
+                else
+                    count = count + 1
                 end
-    
-                cap:close()
-            else
-                print ("pcap open failed: " .. fname)
             end
+            out = out .. tostring(count)
+            cap:close()
+        else
+            print ("pcap open failed: " .. fname)
         end
     end
     -- rc_stats
@@ -129,7 +125,7 @@ function Measurement:start ( phy, key )
         self.cpusage_proc = parse_process ( str )
     end
     -- tcpdump
-    local tcpdump_fname = "/tmp/" .. self.node_ref.name .. "-" .. key .. ".pcap"
+    local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
     str = self.rpc_node.start_tcpdump( phy, tcpdump_fname )
     self.tcpdump_proc = parse_process ( str )
     -- rc stats
@@ -172,7 +168,7 @@ function Measurement:fetch ( phy, key )
     -- cpusage
     self.cpusage_stats [ key ] = self.rpc_node.get_cpusage()
     -- tcpdump
-    local tcpdump_fname = "/tmp/" .. self.node_ref.name .."-" .. key .. ".pcap"
+    local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
     self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( tcpdump_fname )
     
     -- rc_stats
