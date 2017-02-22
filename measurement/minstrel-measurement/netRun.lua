@@ -389,6 +389,9 @@ else
     print ("All nodes connected")
 end
 
+-- set nameserver on all nodes
+ctrl_rpc.set_nameservers( args.nameserver or nameserver )
+
 print ( "Prepare APs" )
 local ap_names = ctrl_rpc.list_aps()
 for _, ap_name in ipairs (ap_names ) do

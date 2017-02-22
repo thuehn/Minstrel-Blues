@@ -225,11 +225,14 @@ function ControlNode:find_node_ref( name )
     return nil
 end
 
+function ControlNode:set_nameservers ( nameserver )
+    for _, node_ref in ipairs ( self.node_refs ) do
+        node_ref:set_nameserver ( nameserver )
+    end
+end
+
 function ControlNode:set_nameserver (  nameserver )
     set_resolvconf ( nameserver )
---    for _, node_ref in ipairs ( self.node_refs ) do
---        node_ref.set_nameserver ( nameserver )
---    end
 end
 
 function ControlNode:get_stats()
