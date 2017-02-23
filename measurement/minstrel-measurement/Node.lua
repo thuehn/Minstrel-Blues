@@ -7,6 +7,7 @@ require ('misc')
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
+require ('parsers/proc_version')
 require ('Uci')
 
 local iperf_bin = "iperf"
@@ -28,6 +29,7 @@ Node = { name = nil
        , rc_stats_procs = nil
        , iperf_sever_proc = nil
        , iperf_client_procs = nil
+       , proc_version = nil
        }
 
 function Node:new (o)
@@ -113,6 +115,12 @@ end
 function Node:run( port )
     if rpc.mode == "tcpip" then
         self:send_info ( "Service " .. self.name .. " started" )
+        local fname = "/proc/version"
+        local file = io.open ( fname )
+        local line = file:read("*l")
+        self.proc_version = parse_proc_version ( line )
+        file:close()
+        self:send_info ( self.proc_version:__tostring() )
         self:set_cut ()
         rpc.server ( port )
     else
@@ -171,7 +179,7 @@ function Node:restart_wifi()
 end
 
 -- iw dev mon0 info
--- iw phy phy0 interface add wlan0 type monitor
+-- iw phy phy0 interface add mon0 type monitor
 -- fixme: command failed: Too many open files in system (-23)
 -- ifconfig wlan0 up
 function Node:add_monitor ( phy )
@@ -756,13 +764,13 @@ end
 -- date
 -- -------------------------
 -- fixme: lede use different format
---[[
-Recognized TIME formats:
-	hh:mm[:ss]
-	[YYYY.]MM.DD-hh:mm[:ss]
-	YYYY-MM-DD hh:mm[:ss]
-	[[[[[YY]YY]MM]DD]hh]mm[.ss]
---]]
+--
+--Recognized TIME formats:
+--	hh:mm[:ss]
+--	[YYYY.]MM.DD-hh:mm[:ss]
+--	YYYY-MM-DD hh:mm[:ss]
+--	[[[[[YY]YY]MM]DD]hh]mm[.ss]
+--
 -- syncronize time (date MMDDhhmm[[CC]YY][.ss])
 function Node:set_date ( year, month, day, hour, min, second )
     local date = string.format ( "%02d", month )
