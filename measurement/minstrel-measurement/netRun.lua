@@ -13,6 +13,7 @@
 --   use luac to speed up node initialisation
 -- implement experiments with streams
 -- cleanup create in node ref classes, base class for nodes
+-- try to call connect in a loop instead of waiting for a fixed amount of time
 
 pprint = require ('pprint')
 require ('functional') -- head

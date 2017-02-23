@@ -45,8 +45,9 @@ end
 
 function UdpExperiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:restart_wifi ()
+    local ret = ap_ref:wait_linked ( retrys )
     ap_ref:add_monitor ()
-    return ap_ref:wait_linked ( retrys )
+    return ret
 end
 
 function UdpExperiment:start_measurement ( ap_ref, key )

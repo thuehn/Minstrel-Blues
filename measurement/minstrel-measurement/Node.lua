@@ -180,8 +180,7 @@ end
 
 -- iw dev mon0 info
 -- iw phy phy0 interface add mon0 type monitor
--- fixme: command failed: Too many open files in system (-23)
--- ifconfig wlan0 up
+-- ifconfig mon0 up
 function Node:add_monitor ( phy )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
@@ -193,10 +192,11 @@ function Node:add_monitor ( phy )
         local iw_add = spawn_pipe("iw", "phy", phy, "interface", "add", mon, "type", "monitor")
         local exit_code = iw_add['proc']:wait()
         if (exit_code ~= 0) then
-            self:send_error("Add monitor failed")
+            local err = iw_add['err']:read("*l")
+            self:send_error("Add monitor failed: " .. ( err or "" ) )
         end
-        if ( iw_add['err'] ~= nil ) then 
-            self:send_error("Add monitor failed")
+        if ( iw_add['err_msg'] ~= nil ) then 
+            self:send_error("Add monitor failed: " .. iw_add['err_msg'] )
         end
         close_proc_pipes ( iw_add )
     else
@@ -598,23 +598,15 @@ end
 function Node:start_tcpdump ( phy, fname )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
-    self:send_info("start tcpdump for " .. mon)
+    self:send_info("start tcpdump for " .. mon .. " writing to " .. fname)
     local tcpdump = spawn_pipe( "tcpdump", "-i", mon, "-s", "150", "-U", "-w", fname)
 --    local tcpdump, _ = spawn_pipe2( { "tcpdump", "-i", mon, "-s", "150", "-U", "-w", "-" },
 --                                 { "tee", "-a", fname } )
     self.tcpdump_proc = tcpdump
---    repeat
-    if ( tcpdump['err'] ~= nil ) then
-      --fixme:  attempt to use a closed file
-        local line = tcpdump['err']:read('*line')
-        if ( line ~= nil ) then
-            if ( line == "tcpdump: " .. mon ..": No such device exists") then
-                self:send_error ( line )
-            else
-                self:send_info ( line )
-            end
-        end
---    until line == nil
+    local line = tcpdump['err']:read('*line')
+    self:send_info ( line )
+    if ( tcpdump['err_msg'] ~= nil ) then
+        self:send_error ( tcpdump['err_msg'] )
     end
     return tcpdump['proc']:__tostring()
 end

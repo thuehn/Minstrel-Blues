@@ -367,19 +367,22 @@ function ControlNode:run_experiments ( command, args, ap_names )
         ap_refs [ #ap_refs + 1 ] = ap_ref
     end
 
+    self:send_info ("Prepare measurement")
     for _, ap_ref in ipairs ( ap_refs ) do
         exp:prepare_measurement ( ap_ref )
     end
 
+    self:send_info ("Generate measurement keys")
     local keys = {}
     for i, ap_ref in ipairs ( ap_refs ) do
         keys[i] = exp:keys ( ap_ref )
     end
 
-    self:send_info ( "Start experiment." )
+    self:send_info ( "Run experiment." )
     local stop = false
     for _, key in ipairs ( keys[1] ) do -- fixme: smallest set of keys
 
+        self:send_info ("Settle measurement")
         for _, ap_ref in ipairs ( ap_refs ) do
             if ( exp:settle_measurement ( ap_ref, key, 5 ) == false ) then
                 self:send_error ( "experiment aborted, settledment failed. please check the wifi connnections." )
@@ -387,6 +390,7 @@ function ControlNode:run_experiments ( command, args, ap_names )
             end
         end
 
+        self:send_info ("Start Measurement")
         -- -------------------------------------------------------
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:start_measurement (ap_ref, key )
@@ -396,20 +400,24 @@ function ControlNode:run_experiments ( command, args, ap_names )
         -- Experiment
         -- -------------------------------------------------------
             
+        self:send_info ("Start Experiment")
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:start_experiment ( ap_ref, key )
         end
     
+        self:send_info ("Wait Experiment")
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:wait_experiment ( ap_ref, 5 )
         end
 
         -- -------------------------------------------------------
 
+        self:send_info ("Start Measurement")
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:stop_measurement (ap_ref, key )
         end
 
+        self:send_info ("Unsettle measurement")
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:unsettle_measurement ( ap_ref, key )
         end
@@ -434,6 +442,7 @@ function ControlNode:run_experiments ( command, args, ap_names )
         end
     end
 
+    self:send_info ("Transfer Measurement Result")
     return ret
 
 end
