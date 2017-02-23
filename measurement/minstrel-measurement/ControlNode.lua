@@ -316,7 +316,12 @@ function ControlNode:connect_nodes ( ctrl_port )
         local status
         local rpc
         local err
-        local status, rpc = pcall ( connect_rpc )
+        local retrys = 5
+        repeat
+            os.sleep (1)
+            status, rpc = pcall ( connect_rpc )
+            retrys = retrys -1
+        until status == true or retrys == 0
         if ( status == false or rpc == nil ) then
             self:send_error ("Connection to " .. node_ref.name .. " failed: ")
             self:send_error ( "Err: no node at address: " .. node_ref.ctrl.addr .. " on port: " .. ctrl_port )

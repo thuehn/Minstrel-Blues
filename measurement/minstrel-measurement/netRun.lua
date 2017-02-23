@@ -72,7 +72,15 @@ function connect_control ( ctrl_ip, ctrl_port )
         local l, e = rpc.connect ( ctrl_ip, ctrl_port )
         return l, e
     end
-    local status, slave, err = pcall ( connect_control_rpc )
+    local status
+    local err
+    local slave
+    local retrys = 5
+    repeat
+        os.sleep (1)
+        status, slave, err = pcall ( connect_control_rpc )
+        retrys = retrys -1
+    until status == true or retrys == 0
     if (status == false) then
         print ( "Err: Connection to control node failed" )
         print ( "Err: no node at address: " .. ctrl_ip .. " on port: " .. ctrl_port )
@@ -305,11 +313,6 @@ end
 
 -- ---------------------------------------------------------------
 
-if ( args.disable_autostart == false ) then
-    print ( "Wait for 5 seconds for control node to come up")
-    os.sleep ( 5 )
-end
-
 -- connect to control
 
 if rpc.mode ~= "tcpip" then
@@ -393,8 +396,6 @@ if ( args.disable_autostart == false ) then
         print ("Error: Not all nodes started")
         os.exit(1)
     end
-    print ("wait 5 seconds for nodes initialisation")
-    os.sleep (5)
 end
 
 -- ----------------------------------------------------------
