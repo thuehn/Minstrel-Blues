@@ -13,7 +13,6 @@
 --   use luac to speed up node initialisation
 -- implement experiments with streams
 -- cleanup create in node ref classes, base class for nodes
--- try to call connect in a loop instead of waiting for a fixed amount of time
 
 pprint = require ('pprint')
 require ('functional') -- head
@@ -287,10 +286,7 @@ local ctrl_pid
 
 -- local ctrl iface
 local net = NetIF:create ( "eth0" )
-if ( net:get_addr( net.iface ) == nil ) then
-    net = NetIF:create ( "br-lan" )
-    net:get_addr( net.iface )
-end
+net:get_addr( net.iface )
 
 -- ctrl node iface, ctrl node (name) lookup
 local ctrl_net = NetIF:create ( ctrl_config['ctrl_if'] )
@@ -440,6 +436,12 @@ for ap, stas in pairs ( connections ) do
         print ( " connect " .. ap .. " with " .. sta )
         ctrl_rpc.add_station ( ap, sta )
     end
+end
+
+-- check bridges
+local all_bridgeless = ctrl_rpc.check_bridges()
+if ( not all_bridge_less ) then
+    print ( "Some nodes have a bridged setup, stop here. See log for details." )
 end
 
 print ( "Connect STAs to APs SSID" )

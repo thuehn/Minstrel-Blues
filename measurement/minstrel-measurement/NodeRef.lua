@@ -157,3 +157,7 @@ end
 function NodeRef:set_date ( year, month, day, hour, minute, second )
     return self.rpc.set_date (  year, month, day, hour, minute, second )
 end
+
+function NodeRef:check_bridge ()
+    return self.rpc.check_bridge ( self.wifi_cur )
+end

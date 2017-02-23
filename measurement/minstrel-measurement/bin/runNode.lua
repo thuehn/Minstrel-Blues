@@ -82,6 +82,7 @@ function stop_iperf_server(...) return node:stop_iperf_server(...) end
 function get_pid(...) return node:get_pid(...) end
 function set_date(...) return node:set_date(...) end
 function set_nameserver (...) return node:set_nameserver (...) end
+function check_bridge (...) return node:check_bridge (...) end
 
 print(node)
 node:run( args.port )

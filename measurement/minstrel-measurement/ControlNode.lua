@@ -243,6 +243,19 @@ function ControlNode:set_nameserver (  nameserver )
     set_resolvconf ( nameserver )
 end
 
+function ControlNode:check_bridges ()
+    local no_bridges = true
+    for _, node_ref in ipairs ( self.node_refs ) do
+        local has_bridge = node_ref:check_bridge ()
+        self:send_info ( node_ref.name .. " has no bridged setup" )
+        no_bridges = no_bridges and not has_bridge
+    end
+    if ( no_bridges == false ) then
+        self:send_error ( "One or more nodes have a bridged setup" )
+    end
+    return no_bridges
+end
+
 function ControlNode:get_stats()
     return self.stats
 end

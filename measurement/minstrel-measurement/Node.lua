@@ -804,6 +804,10 @@ function Node:set_nameserver ( nameserver )
     set_resolvconf ( nameserver )
 end
 
+function Node:check_bridge ( phy )
+    return uci_check_bridge ( phy )
+end
+
 -- -------------------------
 -- Logging
 -- -------------------------

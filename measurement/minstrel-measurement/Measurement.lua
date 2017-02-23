@@ -79,7 +79,7 @@ function Measurement:__tostring()
                     count = count + 1
                 end
             end
-            out = out .. tostring(count)
+            out = out .. tostring(count) .. "\n"
             cap:close()
         else
             print ("pcap open failed: " .. fname)
