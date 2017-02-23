@@ -6,6 +6,13 @@
 -- - analyse pcap
 -- sample rate from luci-regmon
 -- kill lua with two times sigint
+-- built test client with command line arg which router should run the test
+--   -- unit test (rpc in init of the unit tests base class)
+-- net/mac80211/rc80211_minstrel_debugfs.c tx_power mit max_power aus hw initialisieren
+-- auto-tools, Makefile, luac, configue ifconfig, date, ...
+--   use luac to speed up node initialisation
+-- implement experiments with streams
+-- cleanup create in node ref classes, base class for nodes
 
 pprint = require ('pprint')
 require ('functional') -- head
@@ -315,6 +322,7 @@ if ( ctrl_rpc == nil) then
     os.exit(1)
 end
 
+--synchronize time
 local err
 local time = os.date("*t", os.time() )
 local cur_time, err = ctrl_rpc.set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
@@ -399,6 +407,9 @@ else
     print ("All nodes connected")
 end
 
+-- synchonize time
+ctrl_rpc.set_dates ()
+
 -- set nameserver on all nodes
 ctrl_rpc.set_nameservers( args.nameserver or nameserver )
 
@@ -433,6 +444,8 @@ print ( "Connect STAs to APs SSID" )
 -- set mode of AP to 'ap'
 -- set mode of STA to 'sta'
 -- set ssid of AP and STA to ssid
+-- fixme: set interface static address
+-- fixme: setup dhcp server for wlan0
 for ap, stas in pairs ( connections ) do
     local ssid = ctrl_rpc.get_ssid ( ap )
     for _, sta in ipairs ( stas ) do

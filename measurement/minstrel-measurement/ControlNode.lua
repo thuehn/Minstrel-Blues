@@ -4,6 +4,7 @@ require ('spawn_pipe')
 require ('parsers/ex_process')
 require ('parsers/dig')
 require ('parsers/ifconfig')
+require ('parsers/proc_version')
 require ('AccessPointRef')
 require ('StationRef')
 local unistd = require ('posix.unistd')
@@ -25,6 +26,7 @@ ControlNode = { name = nil
               , logger_proc = nil
               , log_net = nil
               , log_port = nil
+              , proc_version = nil
               }
 
 
@@ -114,6 +116,12 @@ function ControlNode:run( port )
     self.port = port
     if rpc.mode == "tcpip" then
         self:send_info ( "Service Control started" )
+        local fname = "/proc/version"
+        local file = io.open ( fname )
+        local line = file:read("*l")
+        self.proc_version = parse_proc_version ( line )
+        file:close()
+        self:send_info ( self.proc_version:__tostring() )
         self:set_cut ()
         rpc.server ( port )
     else
@@ -487,24 +495,29 @@ end
 -- date
 -- -------------------------
 
--- syncronize time (date MMDDhhmm[[CC]YY][.ss])
 function ControlNode:set_date ( year, month, day, hour, min, second )
-    local date = string.format ( "%02d", month )
-                 .. string.format ( "%02d", day )
-                 .. string.format ( "%02d", hour )
-                 .. string.format ( "%02d", min )
-                 .. string.format ( "%04d", year )
-                 .. string.format ( "%02d", second )
-    local proc = spawn_pipe ( "date", date )
-    local proc = spawn_pipe( "date", iface )
-    local exit_code = proc['proc']:wait()
-    local err = nil
-    if ( exit_code ~= 0 ) then
-        err = proc ['err']:read("*l")
+    if ( self.proc_version.system == "LEDE" ) then
+        -- use busybox date
+        return set_date_bb ( year, month, day, hour, min, second )
+    else
+        -- use coreutile date
+        return set_date_core ( year, month, day, hour, min, second )
     end
-    local date = proc['out']:read("*l")
-    close_proc_pipes ( proc )
-    return date, err
+end
+
+function ControlNode:set_dates ()
+    local time = os.date("*t", os.time() )
+    for _, node_ref in ipairs ( self.node_refs ) do
+        local cur_time
+        local err
+        cur_time, err = node_ref:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+        if ( err == nil ) then
+            self:send_info ( "Set date/time to " .. cur_time )
+        else
+            self:send_error ( "Set date/time failed: " .. err )
+            self:send_error ( "Time is: " .. cur_time )
+        end
+    end
 end
 
 -- -------------------------

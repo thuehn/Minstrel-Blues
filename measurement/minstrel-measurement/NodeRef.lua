@@ -153,3 +153,7 @@ end
 function NodeRef:set_nameserver ( nameserver )
     self.rpc.set_nameserver ( nameserver )
 end
+
+function NodeRef:set_date ( year, month, day, hour, minute, second )
+    return self.rpc.set_date (  year, month, day, hour, minute, second )
+end

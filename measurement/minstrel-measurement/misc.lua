@@ -1,6 +1,6 @@
 
-require("lfs")
-
+require ('lfs')
+require ('spawn_pipe')
 
 function table_size ( tbl )
     local count = 0
@@ -99,4 +99,42 @@ end
 
 function string.concat ( a, b )
     return a .. b
+end
+
+-- syncronize time (date MMDDhhmm[[CC]YY][.ss])
+function set_date_core ( year, month, day, hour, min, second )
+    local date = string.format ( "%02d", month )
+                 .. string.format ( "%02d", day )
+                 .. string.format ( "%02d", hour )
+                 .. string.format ( "%02d", min )
+                 .. string.format ( "%04d", year )
+                 .. string.format ( "%02d", second )
+    local proc = spawn_pipe ( "date", date )
+    local exit_code = proc['proc']:wait()
+    local err = nil
+    if ( exit_code ~= 0 ) then
+        err = proc ['err']:read("*l")
+    end
+    local date = proc['out']:read("*l")
+    close_proc_pipes ( proc )
+    return date, err
+end
+
+-- syncronize time (date [YYYY.]MM.DD-hh:mm[:ss])
+function set_date_bb ( year, month, day, hour, min, second )
+    local date = string.format ( "%04d", year ) .. "."
+                 .. string.format ( "%02d", month ) .. "."
+                 .. string.format ( "%02d", day ) .. "-"
+                 .. string.format ( "%02d", hour ) .. ":"
+                 .. string.format ( "%02d", min ) .. ":"
+                 .. string.format ( "%02d", second )
+    local proc = spawn_pipe ( "date", date )
+    local exit_code = proc['proc']:wait()
+    local err = nil
+    if ( exit_code ~= 0 ) then
+        err = proc ['err']:read("*l")
+    end
+    local date = proc['out']:read("*l")
+    close_proc_pipes ( proc )
+    return date, err
 end

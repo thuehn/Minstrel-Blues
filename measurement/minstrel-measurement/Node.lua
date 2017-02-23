@@ -763,32 +763,15 @@ end
 -- -------------------------
 -- date
 -- -------------------------
--- fixme: lede use different format
---
---Recognized TIME formats:
---	hh:mm[:ss]
---	[YYYY.]MM.DD-hh:mm[:ss]
---	YYYY-MM-DD hh:mm[:ss]
---	[[[[[YY]YY]MM]DD]hh]mm[.ss]
---
--- syncronize time (date MMDDhhmm[[CC]YY][.ss])
+
 function Node:set_date ( year, month, day, hour, min, second )
-    local date = string.format ( "%02d", month )
-                 .. string.format ( "%02d", day )
-                 .. string.format ( "%02d", hour )
-                 .. string.format ( "%02d", min )
-                 .. string.format ( "%04d", year )
-                 .. string.format ( "%02d", second )
-    local proc = spawn_pipe ( "date", date )
-    local proc = spawn_pipe( "date", iface )
-    local exit_code = proc['proc']:wait()
-    local err = nil
-    if ( exit_code ~= 0 ) then
-        err = proc ['err']:read("*l")
+    if ( self.proc_version.system == "LEDE" ) then
+        -- use busybox date
+        return set_date_bb ( year, month, day, hour, min, second )
+    else
+        -- use coreutile date
+        return set_date_core ( year, month, day, hour, min, second )
     end
-    local date = proc['out']:read("*l")
-    close_proc_pipes ( proc )
-    return date, err
 end
 
 -- -------------------------

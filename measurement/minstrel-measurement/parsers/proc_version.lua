@@ -25,9 +25,9 @@ end
 
 function ProcVersion:__tostring() 
     return "ProcVersion ::"
-        .. " lx version: " .. ( self.lx_version or "none" )
-        .. " lx build user: " .. ( self.lx_build_user or "none" )
-        .. " gcc version: " .. ( self.gcc_version or "none" )
+        .. " lx_version: " .. ( self.lx_version or "none" )
+        .. " lx_build_user: " .. ( self.lx_build_user or "none" )
+        .. " gcc_version: " .. ( self.gcc_version or "none" )
         .. " system: " .. ( self.system or "none" )
         .. "\n"
         .. " num_cpu: " .. ( tostring ( self.num_cpu ) or "none" )
