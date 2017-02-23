@@ -94,6 +94,20 @@ function skip_layout ( str )
     return rest
 end
 
+function skip_until ( str, char )
+    local state = false
+    local rest = str
+    repeat
+        local c = shead( rest )
+        if ( c == char ) then
+            state = true
+        else
+            rest = stail ( rest )
+        end
+    until state
+    return rest
+end
+
 function skip_line_comment ( str, cc )
     local state = false
     local rest = str
