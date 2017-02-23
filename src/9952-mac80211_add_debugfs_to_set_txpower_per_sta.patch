@@ -25,7 +25,7 @@
 +	struct dentry *dbg_fixed_txpower;
 +	struct dentry *dbg_fixed_txrate;
 +	u8 fixed_txpower;
-+	u8 fixed_txrate;
++	u32 fixed_txrate;
  #endif
  };
  
@@ -39,7 +39,7 @@
 +	mi->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
 +			S_IRUGO | S_IWUGO, dir, &mi->fixed_txpower);
 +	mi->fixed_txrate = -1;
-+	mi->dbg_fixed_txrate = debugfs_create_u8("fixed_txrate",
++	mi->dbg_fixed_txrate = debugfs_create_u32("fixed_txrate",
 +			S_IRUGO | S_IWUGO, dir, &mi->fixed_txrate);
  }
  
@@ -90,7 +90,7 @@
 +	struct dentry *dbg_fixed_txpower;
 +	struct dentry *dbg_fixed_txrate;
 +	u8 fixed_txpower;
-+	u8 fixed_txrate;
++	u32 fixed_txrate;
  #endif
  	void *ratelist;
  	void *sample_table;
@@ -104,7 +104,7 @@
 +	msp->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
 +			S_IRUGO | S_IWUGO, dir, &msp->fixed_txpower);
 +	msp->fixed_txrate = -1;
-+	msp->dbg_fixed_txrate = debugfs_create_u8("fixed_txrate",
++	msp->dbg_fixed_txrate = debugfs_create_u32("fixed_txrate",
 +			S_IRUGO | S_IWUGO, dir, &msp->fixed_txrate);
  }
  
