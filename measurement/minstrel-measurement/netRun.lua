@@ -15,7 +15,7 @@
 -- cleanup create in node ref classes, base class for nodes
 -- cleanup nodes before os.exit
 
-pprint = require ('pprint')
+--pprint = require ('pprint')
 require ('functional') -- head
 local argparse = require "argparse"
 require ('NetIF')
@@ -335,11 +335,11 @@ else
 end
 
 for _, ap_config in ipairs ( aps_config ) do
-    ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], args.ctrl_port, ap_config['rsa_key'] )
+    ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], ap_config['rsa_key'] )
 end
 
 for _, sta_config in ipairs ( stas_config ) do
-    ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], args.ctrl_port, sta_config['rsa_key'] )
+    ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], sta_config['rsa_key'] )
 end
 
 ctrl_pid = ctrl_rpc.get_pid()

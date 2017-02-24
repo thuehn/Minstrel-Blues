@@ -624,7 +624,7 @@ function Node:get_tcpdump_offline ( fname )
     local content = file:read("*a")
     file:close()
     self:send_info("remove tcpump pcap file " .. fname)
-    --os.remove ( fname )
+    os.remove ( fname )
     return content
 end
 

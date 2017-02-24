@@ -18,16 +18,13 @@ NodeRef = { name = nil
 
 function NodeRef:new (o)
     local o = o or {}
+    o.phys = {}
+    o.addrs = {}
+    o.macs = {}
+    o.stats = {}
+    o.refs = {}
     setmetatable(o, self)
     self.__index = self
-    return o
-end
-
-function NodeRef:create ( name, ctrl, port, rsa_key )
-    local o = NodeRef:new( { name = name, ctrl = ctrl, rsa_key = rsa_key, phys = {}, ssid = nil
-                           , addrs = {}, macs = {}, ssid = nil, stations = {}
-                           , refs = {} 
-                           } )
     return o
 end
 

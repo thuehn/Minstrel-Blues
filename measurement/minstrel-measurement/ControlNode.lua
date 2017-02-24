@@ -134,18 +134,18 @@ function ControlNode:get_ctrl_addr ()
     return get_addr ( self.ctrl_net.iface )
 end
 
-function ControlNode:add_ap ( name, ctrl_if, ctrl_port, rsa_key )
+function ControlNode:add_ap ( name, ctrl_if, rsa_key )
     self:send_info ( " add access point " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = AccessPointRef:create ( name, ctrl, ctrl_port, rsa_key )
+    local ref = AccessPointRef:create ( name, ctrl, rsa_key )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
-function ControlNode:add_sta ( name, ctrl_if, ctrl_port, rsa_key )
+function ControlNode:add_sta ( name, ctrl_if, rsa_key )
     self:send_info ( " add station " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = StationRef:create ( name, ctrl, ctrl_port, rsa_key )
+    local ref = StationRef:create ( name, ctrl, rsa_key )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end

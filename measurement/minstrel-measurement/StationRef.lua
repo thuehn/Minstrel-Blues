@@ -2,9 +2,8 @@ require ('NodeRef')
 
 StationRef = NodeRef:new()
 
-function StationRef:create ( name, ctrl, port, rsa_key )
-    --fixme: try NodeRef:create
-    local o = StationRef:new{ name = name, ctrl = ctrl, rsa_key = rsa_key, phys = {}, addrs = {}, macs = {}, refs = {} }
+function StationRef:create ( name, ctrl, rsa_key )
+    local o = StationRef:new{ name = name, ctrl = ctrl, rsa_key = rsa_key }
     return o
 end
 
