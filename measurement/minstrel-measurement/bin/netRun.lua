@@ -12,19 +12,21 @@
 --   use luac to speed up node initialisation
 -- implement experiments with streams
 -- cleanup nodes before os.exit
+-- erease debug table in production ( debug = nil )
 
 --pprint = require ('pprint')
 
 local argparse = require "argparse"
-
-require ('NetIF')
 require ('parsers/argparse_con')
-require ('pcap')
+
 require ('misc')
+
 require ('Config')
-require ('Net')
+require ('NetIF')
 require ('ControlNodeRef')
 require ('Measurement')
+
+require ('pcap')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
