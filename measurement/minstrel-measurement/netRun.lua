@@ -12,7 +12,6 @@
 -- auto-tools, Makefile, luac, configue ifconfig, date, ...
 --   use luac to speed up node initialisation
 -- implement experiments with streams
--- cleanup create in node ref classes, base class for nodes
 -- cleanup nodes before os.exit
 
 --pprint = require ('pprint')

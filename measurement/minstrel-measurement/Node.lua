@@ -1,50 +1,35 @@
-require ('rpc')
-require ('spawn_pipe')
-require ('parentpid')
-local unistd = require ('posix.unistd')
+
+require ('NodeBase')
+
 require ('NetIF')
 require ('misc')
+require ('Uci')
+
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
-require ('parsers/proc_version')
-require ('Uci')
 
 local iperf_bin = "iperf"
 local lease_fname = "/tmp/dhcp.leases"
+local debugfs = "/sys/kernel/debug/ieee80211"
 
--- TODO: 
--- - STA connect to AP
--- - split Node into NodeAP, NodeSTA, NodeCTRL
---  with get_date(), get_addr(), kill(), get_pid(), send_error()
+Node = NodeBase:new()
 
-Node = { name = nil
-       , ctrl = nil 
-       , wifis = nil
-       , iperf_port = nil
-       , tcpdump_proc = nil
-       , cpusage_proc = nil
-       , log_port = nil
-       , regmon_proc = nil
-       , rc_stats_procs = nil
-       , iperf_sever_proc = nil
-       , iperf_client_procs = nil
-       , proc_version = nil
-       }
+function Node:create ( name, ctrl, iperf_port, log_ctrl, log_port )
+    local o = Node:new( { name = name
+                        , ctrl = ctrl
+                        , wifis = {}
+                        , log_ctrl = log_ctrl
+                        , log_port = log_port 
+                        , iperf_port = iperf_port
+                        , tcpdump_proc = nil
+                        , cpusage_proc = nil
+                        , regmon_proc = nil
+                        , rc_stats_procs = {}
+                        , iperf_client_procs = {}
+                        , iperf_server_procs = {}
+                        } )
 
-function Node:new (o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    return o
-end
-
-function Node:create ( name, ctrl, iperf_port, log_ip, log_port )
-    local o = Node:new({ name = name, ctrl = ctrl, wifis = {}
-                       , iperf_port = iperf_port, log_ip = log_ip, log_port = log_port 
-                       , rc_stats_procs = {}
-                       , iperf_client_procs = {}
-                       })
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
     end
@@ -110,25 +95,6 @@ function Node:find_wifi_device ( phy )
     end
     return nil
 end
-
--- fixme: try to catch address in use
-function Node:run( port )
-    if rpc.mode == "tcpip" then
-        self:send_info ( "Service " .. self.name .. " started" )
-        local fname = "/proc/version"
-        local file = io.open ( fname )
-        local line = file:read("*l")
-        self.proc_version = parse_proc_version ( line )
-        file:close()
-        self:send_info ( self.proc_version:__tostring() )
-        self:set_cut ()
-        rpc.server ( port )
-    else
-        self:send_error ( "Err: tcp/ip supported only" )
-    end
-end
-
-local debugfs = "/sys/kernel/debug/ieee80211"
 
 -- --------------------------
 -- wifi
@@ -759,52 +725,6 @@ function Node:stop_iperf_server ( pid )
 end
 
 -- -------------------------
--- date
--- -------------------------
-
-function Node:set_date ( year, month, day, hour, min, second )
-    if ( self.proc_version.system == "LEDE" ) then
-        -- use busybox date
-        return set_date_bb ( year, month, day, hour, min, second )
-    else
-        -- use coreutile date
-        return set_date_core ( year, month, day, hour, min, second )
-    end
-end
-
--- -------------------------
--- posix
--- -------------------------
-
-function Node:get_pid()
-    local lua_pid = unistd.getpid()
-    return lua_pid
-end
-
--- kill child process of lua by pid
--- if process with pid is not a child of lua
--- then return nil
--- otherwise the exit code of kill is returned
-function Node:kill ( pid, signal )
-    local lua_pid = unistd.getpid()
-    if (parent_pid ( pid ) == lua_pid) then
-        local kill
-        if (signal ~= nil) then
-            kill = spawn_pipe("kill", "-" .. signal, pid)
-        else
-            kill = spawn_pipe("kill", pid)
-        end
-        local exit_code = kill['proc']:wait()
-        close_proc_pipes ( kill )
-        return exit_code
-    else 
-        self:send_warning("try to kill pid " .. pid)
-        return nil
-    end
-    -- TODO: creates zombies
-end
-
--- -------------------------
 
 function Node:set_nameserver ( nameserver )
     set_resolvconf ( nameserver )
@@ -812,79 +732,4 @@ end
 
 function Node:check_bridge ( phy )
     return uci_check_bridge ( phy )
-end
-
--- -------------------------
--- Logging
--- -------------------------
-
-function Node:connect_logger ()
-    function connect ()
-        local l, e = rpc.connect (self.log_ip, self.log_port)
-        return l, e
-    end
-    local status
-    local logger
-    local err
-    local retrys = 5
-    repeat
-        status, logger, err = pcall ( connect )
-        retrys = retrys -1
-        if ( status == false ) then os.sleep (1) end
-    until status == true or retrys == 0
-    -- TODO: print this message a single time only
-    if (status == false) then
-        print ( "Err: Connection to Logger failed" )
-        print ("Err: no logger at address: " .. ( self.log_ip or "none" ) 
-                                             .. " on port: " .. ( self.log_port or "none" ) )
-        return nil
-    else
-        return logger
-    end
-end
-
-function Node:disconnect_logger ( logger )
-    if (logger ~= nil) then
-        rpc.close (logger)
-    end
-end
-
-function Node:set_cut ()
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.set_cut ()    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function Node:send_error( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_error( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function Node:send_info( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_info( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function Node:send_warning( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_warning( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function Node:send_debug( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_debug( self.name, msg )
-    end
-    self:disconnect_logger ( logger )
 end

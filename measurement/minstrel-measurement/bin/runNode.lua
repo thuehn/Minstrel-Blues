@@ -19,7 +19,8 @@ parser:option ("-I --iperf_port", "Port for iperf", "12000" )
 local args = parser:parse()
 
 local ctrl = NetIF:create( args.ctrl_if )
-local node = Node:create(args.name, ctrl, args.iperf_port, args.log_ip, args.log_port )
+local log = NetIF:create ( args.ctrl_if, args.log_ip )
+local node = Node:create(args.name, ctrl, args.iperf_port, log, args.log_port )
 
 function phy_devices(...) return node:phy_devices(...) end
 function restart_wifi(...) return node:restart_wifi(...) end

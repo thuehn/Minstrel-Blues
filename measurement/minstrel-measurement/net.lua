@@ -1,6 +1,8 @@
 
 require ("spawn_pipe")
+
 require ('parsers/ifconfig')
+require ('parsers/dig')
 
 function get_addr ( iface )
     local ifconfig_proc = spawn_pipe( "ifconfig", iface )

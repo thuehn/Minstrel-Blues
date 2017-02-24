@@ -1,58 +1,39 @@
 
 --pprint = require ('pprint')
+require ('NodeBase')
+
 require ('NetIF')
-require ('spawn_pipe')
+require ('net')
+require ('misc')
+require ('Uci')
+
 require ('parsers/ex_process')
-require ('parsers/dig')
-require ('parsers/ifconfig')
-require ('parsers/proc_version')
+
 require ('AccessPointRef')
 require ('StationRef')
-local unistd = require ('posix.unistd')
-require ('net')
+
 require ('tcpExperiment')
 require ('udpExperiment')
 require ('mcastExperiment')
-require ('Uci')
-require ('misc')
 
-ControlNode = { name = nil
-              , ctrl_net = nil
-              , port = nil
-              , ap_refs = nil     -- list of access point nodes
-              , sta_refs = nil    -- list of station nodes
-              , node_refs = nil   -- list of all nodes
-              , stats = nil   -- maps node name to statistics
-              , pids = nil    -- maps node name to process id of lua node
-              , logger_proc = nil
-              , log_net = nil
-              , log_port = nil
-              , proc_version = nil
-              }
+ControlNode = NodeBase:new()
 
-
-function ControlNode:new (o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    return o
-end
-
-function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file )
+function ControlNode:create ( name, ctrl, port, log_ctrl, log_port, log_file )
     local o = ControlNode:new ( { name = name
-                                , ctrl_net = ctrl_net
-                                , ap_refs = {}
-                                , sta_refs = {}
-                                , node_refs = {}
-                                , stats = {}
-                                , pids = {}
+                                , ctrl = ctrl
                                 , port = port
-                                , log_net = log_net
+                                , ap_refs = {}     -- list of access point nodes
+                                , sta_refs = {}    -- list of station nodes
+                                , node_refs = {}   -- list of all nodes
+                                , stats = {}   -- maps node name to statistics
+                                , pids = {}    -- maps node name to process id of lua node
+                                , logger_proc = nil
+                                , log_ctrl = log_ctrl
                                 , log_port = log_port
                                 } )
 
-    function start_logger ( log_net, port, file )
-        local logger = spawn_pipe ( "lua", "bin/runLogger.lua", file, "--port", port, "--log_if", log_net.iface )
+    function start_logger ( log_ctrl, port, file )
+        local logger = spawn_pipe ( "lua", "bin/runLogger.lua", file, "--port", port, "--log_if", log_ctrl.iface )
         if ( logger ['err_msg'] ~= nil ) then
             print ( "Logger not started" .. logger ['err_msg'] )
         end
@@ -74,8 +55,8 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
 --        close_proc_pipes ( ssh )
 --    end
 
-    if ( log_net ~= nil and log_port ~= nil and log_file ~= nil ) then
-        local pid = start_logger ( log_net, log_port, log_file ) ['pid']
+    if ( log_ctrl ~= nil and log_port ~= nil and log_file ~= nil ) then
+        local pid = start_logger ( log_ctrl, log_port, log_file ) ['pid']
         o.pids = {}
         o.pids['logger'] = pid
         if ( o.pids['logger'] == nil ) then
@@ -89,12 +70,12 @@ end
 
 function ControlNode:__tostring()
     local net = "node"
-    if ( self.ctrl_net ~= nil ) then
-        net = self.ctrl_net:__tostring()
+    if ( self.ctrl ~= nil ) then
+        net = self.ctrl:__tostring()
     end
     local log = "node"
-    if ( self.log_net ~= nil ) then
-        log = self.log_net:__tostring()
+    if ( self.log_ctrl ~= nil ) then
+        log = self.log_ctrl:__tostring()
     end
     local out = "control if: " .. net .. "\n"
     out = out .. "control port: " .. ( self.port or "none" ) .. "\n"
@@ -112,26 +93,8 @@ function ControlNode:__tostring()
     return out
 end
 
-function ControlNode:run( port )
-    self.port = port
-    if rpc.mode == "tcpip" then
-        self:send_info ( "Service Control started" )
-        local fname = "/proc/version"
-        local file = io.open ( fname )
-        local line = file:read("*l")
-        self.proc_version = parse_proc_version ( line )
-        file:close()
-        self:send_info ( self.proc_version:__tostring() )
-        self:set_cut ()
-        rpc.server ( port )
-    else
-        self:send_error ( "Err: tcp/ip supported only" )
-    end
-end
-
-
 function ControlNode:get_ctrl_addr ()
-    return get_addr ( self.ctrl_net.iface )
+    return get_addr ( self.ctrl.iface )
 end
 
 function ControlNode:add_ap ( name, ctrl_if, rsa_key )
@@ -525,16 +488,6 @@ end
 -- date
 -- -------------------------
 
-function ControlNode:set_date ( year, month, day, hour, min, second )
-    if ( self.proc_version.system == "LEDE" ) then
-        -- use busybox date
-        return set_date_bb ( year, month, day, hour, min, second )
-    else
-        -- use coreutile date
-        return set_date_core ( year, month, day, hour, min, second )
-    end
-end
-
 function ControlNode:set_dates ()
     local time = os.date("*t", os.time() )
     for _, node_ref in ipairs ( self.node_refs ) do
@@ -548,119 +501,4 @@ function ControlNode:set_dates ()
             self:send_error ( "Time is: " .. cur_time )
         end
     end
-end
-
--- -------------------------
--- posix
--- -------------------------
-
-function ControlNode:get_pid()
-    local lua_pid = unistd.getpid()
-    return lua_pid
-end
-
--- kill child process of lua by pid
--- if process with pid is not a child of lua
--- then return nil
--- otherwise the exit code of kill is returned
-function ControlNode:kill ( pid, signal )
-    local lua_pid = unistd.getpid()
-    if (parent_pid ( pid ) == lua_pid) then
-        local kill
-        if (signal ~= nil) then
-            kill = spawn_pipe("kill", "-" .. signal, pid)
-        else
-            kill = spawn_pipe("kill", pid)
-        end
-        local exit_code = kill['proc']:wait()
-        close_proc_pipes ( kill )
-        return exit_code
-    else 
-        self:send_warning("try to kill pid " .. pid)
-        return nil
-    end
-    -- TODO: creates zombies
-end
-
-
--- -------------------------
--- Logging
--- -------------------------
-
-function ControlNode:connect_logger ()
-    function connect ()
-        local l, e = rpc.connect ( "127.0.0.1", self.log_port)
-        return l, e
-    end
-    local status
-    local logger
-    local err
-    local retrys = 5
-    repeat
-        status, logger, err = pcall ( connect )
-        retrys = retrys -1
-        if ( status == false ) then os.sleep (1) end
-    until status == true or retrys == 0
-    -- TODO: print this message a single time only
-    if (status == false) then
-        print ( "Err: Connection to Logger failed" )
-        print ( "Err: no logger at address: " .. "127.0.0.1" .. " on port: " .. self.log_port)
-        return nil
-    else
-        return logger
-    end
-end
-
-function ControlNode:get_logger_addr ()
-    local logger = self:connect_logger()
-    if ( logger == nil ) then return nil end
-    local addr = logger.get_addr() 
-    self:disconnect_logger ( logger )
-    return addr
-end
-
-function ControlNode:disconnect_logger ( logger )
-    if (logger ~= nil) then
-        rpc.close (logger)
-    end
-end
-
-function ControlNode:set_cut ()
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.set_cut ()    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function ControlNode:send_error( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_error( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function ControlNode:send_info( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_info( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function ControlNode:send_warning( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_warning( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
-end
-
-function ControlNode:send_debug( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_debug( self.name, msg )
-    end
-    self:disconnect_logger ( logger )
 end
