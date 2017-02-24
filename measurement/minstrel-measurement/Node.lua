@@ -823,7 +823,15 @@ function Node:connect_logger ()
         local l, e = rpc.connect (self.log_ip, self.log_port)
         return l, e
     end
-    local status, logger, err = pcall ( connect )
+    local status
+    local logger
+    local err
+    local retrys = 5
+    repeat
+        status, logger, err = pcall ( connect )
+        retrys = retrys -1
+        if ( status == false ) then os.sleep (1) end
+    until status == true or retrys == 0
     -- TODO: print this message a single time only
     if (status == false) then
         print ( "Err: Connection to Logger failed" )

@@ -77,9 +77,9 @@ function connect_control ( ctrl_ip, ctrl_port )
     local slave
     local retrys = 5
     repeat
-        os.sleep (1)
         status, slave, err = pcall ( connect_control_rpc )
         retrys = retrys -1
+        if ( status == false ) then os.sleep (1) end
     until status == true or retrys == 0
     if (status == false) then
         print ( "Err: Connection to control node failed" )

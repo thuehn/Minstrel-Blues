@@ -58,7 +58,6 @@ function ControlNode:create ( name, ctrl_net, port, log_net, log_port, log_file 
         end
         close_proc_pipes ( logger )
         local str = logger['proc']:__tostring()
-        os.sleep ( 3 )
         o:send_info ( "Logging started: " .. str )
         return parse_process ( str ) 
     end
@@ -332,9 +331,9 @@ function ControlNode:connect_nodes ( ctrl_port )
         local err
         local retrys = 5
         repeat
-            os.sleep (1)
             status, rpc = pcall ( connect_rpc )
             retrys = retrys -1
+            if ( status == false ) then os.sleep (1) end
         until status == true or retrys == 0
         if ( status == false or rpc == nil ) then
             self:send_error ("Connection to " .. node_ref.name .. " failed: ")
@@ -593,7 +592,15 @@ function ControlNode:connect_logger ()
         local l, e = rpc.connect ( "127.0.0.1", self.log_port)
         return l, e
     end
-    local status, logger, err = pcall ( connect )
+    local status
+    local logger
+    local err
+    local retrys = 5
+    repeat
+        status, logger, err = pcall ( connect )
+        retrys = retrys -1
+        if ( status == false ) then os.sleep (1) end
+    until status == true or retrys == 0
     -- TODO: print this message a single time only
     if (status == false) then
         print ( "Err: Connection to Logger failed" )
