@@ -4,6 +4,7 @@ require ('spawn_pipe')
 local unistd = require ('posix.unistd')
 require ('parentpid')
 require ('parsers/proc_version')
+require ('Uci')
 
 NodeBase = { name = nil
            , ctrl = nil
@@ -36,6 +37,9 @@ function NodeBase:run( port )
     end
 end
 
+function NodeBase:set_nameserver (  nameserver )
+    set_resolvconf ( nameserver )
+end
 
 -- -------------------------
 -- date

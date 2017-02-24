@@ -202,10 +202,6 @@ function ControlNode:set_nameservers ( nameserver )
     end
 end
 
-function ControlNode:set_nameserver (  nameserver )
-    set_resolvconf ( nameserver )
-end
-
 function ControlNode:check_bridges ()
     local no_bridges = true
     for _, node_ref in ipairs ( self.node_refs ) do

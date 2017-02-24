@@ -18,8 +18,6 @@
 require ('functional') -- head
 local argparse = require "argparse"
 require ('NetIF')
-require ('AccessPointRef')
-require ('StationRef')
 require ("rpc")
 require ("spawn_pipe")
 require ("parsers/ex_process")
@@ -29,7 +27,6 @@ require ('misc')
 require ('ControlNode')
 require ('Config')
 require ('net')
-require ('rpc')
 
 function start_control ( ctrl_net, log_net, ctrl_port, log_port )
     local ctrl = spawn_pipe ( "lua", "bin/runControl.lua"
