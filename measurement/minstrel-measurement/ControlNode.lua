@@ -459,6 +459,8 @@ function ControlNode:copy_stats ( ap_ref )
 
 end
 
+-- kill all running nodes with two times sigint(2)
+-- (default kill signal is sigterm(15) )
 function ControlNode:stop()
 
     function stop_logger ( pid )
@@ -466,15 +468,24 @@ function ControlNode:stop()
             self:send_error ( "logger not stopped: pid is not set" )
         else
             self:send_info ( "stop logger with pid " .. pid )
-            kill = spawn_pipe( "kill", pid )
+            kill = spawn_pipe( "kill", "-2", pid )
+            close_proc_pipes ( kill )
+            kill = spawn_pipe( "kill", "-2", pid )
             close_proc_pipes ( kill )
         end
     end
 
     for i, node_ref in ipairs ( self.node_refs ) do
         self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
-        local ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, "root@" .. node_ref.ctrl.addr, "kill " .. self.pids [ node_ref.name ] )
-        local exit_code = ssh['proc']:wait()
+        local ssh
+        local exit_code
+        local remote = "root@" .. node_ref.ctrl.addr
+        local remote_cmd = "kill -2 " .. self.pids [ node_ref.name ]
+        ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
+        exit_code = ssh['proc']:wait()
+        close_proc_pipes ( ssh )
+        ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
+        exit_code = ssh['proc']:wait()
         close_proc_pipes ( ssh )
     end
     stop_logger ( self.pids['logger'] )

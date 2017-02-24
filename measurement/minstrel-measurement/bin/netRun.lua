@@ -5,7 +5,6 @@
 -- - rpc: transfer tcpdump binary lines/packages online
 -- - analyse pcap
 -- sample rate from luci-regmon
--- kill lua with two times sigint
 -- built test client with command line arg which router should run the test
 --   -- unit test (rpc in init of the unit tests base class)
 -- net/mac80211/rc80211_minstrel_debugfs.c tx_power mit max_power aus hw initialisieren
@@ -86,7 +85,7 @@ function connect_control ( ctrl_ip, ctrl_port )
 end
 
 function stop_control ( pid )
-    kill = spawn_pipe("kill", pid)
+    kill = spawn_pipe("kill", "-2", pid)
     close_proc_pipes ( kill )
 end
 
