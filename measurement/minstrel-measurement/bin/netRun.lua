@@ -14,8 +14,9 @@
 -- cleanup nodes before os.exit
 
 --pprint = require ('pprint')
-require ('functional') -- head
+
 local argparse = require "argparse"
+
 require ('NetIF')
 require ('parsers/argparse_con')
 require ('pcap')
@@ -25,7 +26,6 @@ require ('net')
 require ('ControlNodeRef')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
-
 
 parser:argument("command", "tcp, udp, mcast")
 
@@ -213,23 +213,13 @@ local ctrl_pid
 local net = NetIF:create ( "eth0" )
 net:get_addr( net.iface )
 
--- ctrl node iface, ctrl node (name) lookup
-local ctrl_net = NetIF:create ( ctrl_config['ctrl_if'] )
-ctrl_net.addr = args.ctrl_ip
-if ( ctrl_net.addr == nil) then
-    local ip_addr = Net.lookup ( ctrl_config['name'] )
-    if ( ip_addr ~= nil ) then
-        ctrl_net.addr = ip_addr
-    end 
-end
-
-local ctrl_ref = ControlNodeRef:create()
+local ctrl_ref = ControlNodeRef:create( ctrl_config['name'], ctrl_config['ctrl_if'], args.ctrl_ip )
 
 if ( args.disable_autostart == false ) then
-    if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
-        ctrl_ref:start_remote ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
+    if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
+        ctrl_ref:start_remote ( ctrl_ref.ctrl, args.ctrl_port, args.log_port )
     else
-        local ctrl_proc = ctrl_ref:start ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
+        local ctrl_proc = ctrl_ref:start ( ctrl_ref.ctrl, args.ctrl_port, args.log_port )
         ctrl_pid = ctrl_proc['pid']
     end
 end
@@ -238,7 +228,7 @@ end
 
 -- connect to control
 
-local ctrl_rpc = ctrl_ref:connect ( ctrl_net.addr, args.ctrl_port )
+local ctrl_rpc = ctrl_ref:connect ( args.ctrl_port )
 if ( ctrl_rpc == nil) then
     print ( "Connection to control node faild" )
     os.exit(1)
@@ -266,8 +256,8 @@ end
 ctrl_pid = ctrl_rpc.get_pid()
 
 print ( "Control node with IP: " .. ( ctrl_rpc.get_ctrl_addr () or "unset" ) )
-if ( ctrl_net.addr == nil ) then
-    ctrl_net.addr = ctrl_rpc.get_ctrl_addr ()
+if ( ctrl_ref.ctrl.addr == nil ) then
+    ctrl_ref.ctrl.addr = ctrl_rpc.get_ctrl_addr ()
 end
 print ()
 
@@ -310,7 +300,7 @@ end
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
-    if ( ctrl_rpc.start ( ctrl_net.addr, args.log_port ) == false ) then
+    if ( ctrl_rpc.start ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
         print ("Error: Not all nodes started")
         os.exit(1)
     end
@@ -463,8 +453,8 @@ ctrl_rpc.disconnect_nodes()
 -- fixme: logger not destroyed
 if ( args.disable_autostart == false ) then
     ctrl_rpc.stop()
-    if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
-        ctrl_ref:stop_remote ( ctrl_net.addr, ctrl_pid )
+    if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
+        ctrl_ref:stop_remote ( ctrl_ref.ctrl.addr, ctrl_pid )
     else
         ctrl_ref:stop ( ctrl_pid )
     end

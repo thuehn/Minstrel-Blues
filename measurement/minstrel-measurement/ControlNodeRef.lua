@@ -2,8 +2,11 @@
 require ("rpc")
 require ("spawn_pipe")
 require ("parsers/ex_process")
+require ('net')
+require ('NetIF')
 
-ControlNodeRef = {
+ControlNodeRef = { name
+                 , ctrl
                  }
 
 function ControlNodeRef:new (o)
@@ -13,15 +16,25 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create()
-    local o = ControlNodeRef:new ()
+function ControlNodeRef:create( name, ctrl_if, ctrl_ip )
+    -- ctrl node iface, ctrl node (name) lookup
+    local ctrl_net = NetIF:create ( ctrl_if )
+    ctrl_net.addr = ctrl_ip
+    if ( ctrl_net.addr == nil) then
+        local ip_addr = Net.lookup ( name )
+        if ( ip_addr ~= nil ) then
+            ctrl_net.addr = ip_addr
+        end 
+    end
+
+    local o = ControlNodeRef:new ( { name = name, ctrl = ctrl_net } )
     return o
 end
 
-function ControlNodeRef:start ( ctrl_net, log_net, ctrl_port, log_port )
+function ControlNodeRef:start ( log_net, ctrl_port, log_port )
     local ctrl = spawn_pipe ( "lua", "bin/runControl.lua"
                             , "--port", ctrl_port
-                            , "--ctrl_if", ctrl_net.iface
+                            , "--ctrl_if", self.ctrl.iface
                             , "--log_if", log_net.iface
                             , "--log_ip", log_net.addr
                             , "--log_port", log_port 
@@ -36,10 +49,10 @@ function ControlNodeRef:start ( ctrl_net, log_net, ctrl_port, log_port )
     return proc
 end
 
-function ControlNodeRef:start_remote ( ctrl_net, log_net, ctrl_port, log_port )
+function ControlNodeRef:start_remote ( log_net, ctrl_port, log_port )
      local remote_cmd = "lua bin/runControl.lua"
                  .. " --port " .. ctrl_port 
-                 .. " --ctrl_if " .. ctrl_net.iface
+                 .. " --ctrl_if " .. self.ctrl.iface
      if ( log_net.iface ~= nil ) then
         remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
      end
@@ -49,14 +62,14 @@ function ControlNodeRef:start_remote ( ctrl_net, log_net, ctrl_port, log_port )
                  .. " --log_port " .. log_port 
      end
      print ( remote_cmd )
-     local ssh = spawn_pipe("ssh", "root@" .. ctrl_net.addr, remote_cmd)
+     local ssh = spawn_pipe("ssh", "root@" .. self.ctrl.addr, remote_cmd)
      close_proc_pipes ( ssh )
 end
 
-function ControlNodeRef:connect ( ctrl_ip, ctrl_port )
+function ControlNodeRef:connect ( ctrl_port )
 
     function connect_control_rpc ()
-        local l, e = rpc.connect ( ctrl_ip, ctrl_port )
+        local l, e = rpc.connect ( self.ctrl.addr, ctrl_port )
         return l, e
     end
 
@@ -76,7 +89,7 @@ function ControlNodeRef:connect ( ctrl_ip, ctrl_port )
     until status == true or retrys == 0
     if (status == false) then
         print ( "Err: Connection to control node failed" )
-        print ( "Err: no node at address: " .. ctrl_ip .. " on port: " .. ctrl_port )
+        print ( "Err: no node at address: " .. self.ctrl.addr .. " on port: " .. ctrl_port )
         return nil
     end
     return slave
@@ -92,4 +105,3 @@ function ControlNodeRef:stop_remote ( addr, pid )
     local exit_code = ssh['proc']:wait()
     close_proc_pipes ( ssh )
 end
-

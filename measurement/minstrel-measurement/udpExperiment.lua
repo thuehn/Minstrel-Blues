@@ -1,4 +1,5 @@
 
+require ('functional') -- head
 require ('Experiment')
 require ('misc')
 
