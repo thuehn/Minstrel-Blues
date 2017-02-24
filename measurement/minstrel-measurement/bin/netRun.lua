@@ -17,83 +17,12 @@
 require ('functional') -- head
 local argparse = require "argparse"
 require ('NetIF')
-require ("rpc")
-require ("spawn_pipe")
-require ("parsers/ex_process")
 require ('parsers/argparse_con')
 require ('pcap')
 require ('misc')
-require ('ControlNode')
 require ('Config')
 require ('net')
-
-function start_control ( ctrl_net, log_net, ctrl_port, log_port )
-    local ctrl = spawn_pipe ( "lua", "bin/runControl.lua"
-                            , "--port", ctrl_port
-                            , "--ctrl_if", ctrl_net.iface
-                            , "--log_if", log_net.iface
-                            , "--log_ip", log_net.addr
-                            , "--log_port", log_port 
-                            )
-    if ( ctrl ['err_msg'] ~= nil ) then
-        self:send_warning("Control not started" .. ctrl ['err_msg'] )
-    end
-    close_proc_pipes ( ctrl )
-    local str = ctrl['proc']:__tostring()
-    local proc = parse_process ( str ) 
-    print ( "Control: " .. str )
-    return proc
-end
-
-function start_control_remote ( ctrl_net, log_net, ctrl_port, log_port )
-     local remote_cmd = "lua bin/runControl.lua"
-                 .. " --port " .. ctrl_port 
-                 .. " --ctrl_if " .. ctrl_net.iface
-     if ( log_net.iface ~= nil ) then
-        remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
-     end
-
-     if ( log_net.addr ~= nil and log_port ~= nil ) then
-        remote_cmd = remote_cmd .. " --log_ip " .. log_net.addr 
-                 .. " --log_port " .. log_port 
-     end
-     print ( remote_cmd )
-     local ssh = spawn_pipe("ssh", "root@" .. ctrl_net.addr, remote_cmd)
-     close_proc_pipes ( ssh )
-end
-
-function connect_control ( ctrl_ip, ctrl_port )
-    function connect_control_rpc ()
-        local l, e = rpc.connect ( ctrl_ip, ctrl_port )
-        return l, e
-    end
-    local status
-    local err
-    local slave
-    local retrys = 5
-    repeat
-        status, slave, err = pcall ( connect_control_rpc )
-        retrys = retrys -1
-        if ( status == false ) then os.sleep (1) end
-    until status == true or retrys == 0
-    if (status == false) then
-        print ( "Err: Connection to control node failed" )
-        print ( "Err: no node at address: " .. ctrl_ip .. " on port: " .. ctrl_port )
-        return nil
-    end
-    return slave
-end
-
-function stop_control ( pid )
-    kill = spawn_pipe("kill", "-2", pid)
-    close_proc_pipes ( kill )
-end
-
-function stop_control_remote ( addr, pid )
-    local ssh = spawn_pipe("ssh", "root@" .. addr, "kill " .. pid )
-    local exit_code = ssh['proc']:wait()
-    close_proc_pipes ( ssh )
-end
+require ('ControlNodeRef')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
@@ -294,11 +223,13 @@ if ( ctrl_net.addr == nil) then
     end 
 end
 
+local ctrl_ref = ControlNodeRef:create()
+
 if ( args.disable_autostart == false ) then
     if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
-        start_control_remote ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
+        ctrl_ref:start_remote ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
     else
-        local ctrl_proc = start_control ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
+        local ctrl_proc = ctrl_ref:start ( ctrl_net, ctrl_net, args.ctrl_port, args.log_port )
         ctrl_pid = ctrl_proc['pid']
     end
 end
@@ -307,12 +238,7 @@ end
 
 -- connect to control
 
-if rpc.mode ~= "tcpip" then
-    print ( "Err: rpc mode tcp/ip is supported only" )
-    os.exit(1)
-end
-
-local ctrl_rpc = connect_control ( ctrl_net.addr, args.ctrl_port )
+local ctrl_rpc = ctrl_ref:connect ( ctrl_net.addr, args.ctrl_port )
 if ( ctrl_rpc == nil) then
     print ( "Connection to control node faild" )
     os.exit(1)
@@ -538,9 +464,9 @@ ctrl_rpc.disconnect_nodes()
 if ( args.disable_autostart == false ) then
     ctrl_rpc.stop()
     if ( ctrl_net.addr ~= nil and ctrl_net.addr ~= net.addr ) then
-        stop_control_remote ( ctrl_net.addr, ctrl_pid )
+        ctrl_ref:stop_remote ( ctrl_net.addr, ctrl_pid )
     else
-        stop_control ( ctrl_pid )
+        ctrl_ref:stop ( ctrl_pid )
     end
 end
 rpc.close ( ctrl_rpc )
