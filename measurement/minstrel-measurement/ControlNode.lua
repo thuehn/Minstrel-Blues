@@ -94,7 +94,7 @@ function ControlNode:__tostring()
 end
 
 function ControlNode:get_ctrl_addr ()
-    return get_addr ( self.ctrl.iface )
+    return Net.get_addr ( self.ctrl.iface )
 end
 
 function ControlNode:add_ap ( name, ctrl_if, rsa_key )
@@ -229,7 +229,7 @@ function ControlNode:reachable ()
 
     local reached = {}
     for _, node in ipairs ( self.node_refs ) do
-        local addr = lookup ( node.name )
+        local addr = Net.lookup ( node.name )
         if ( addr == nil ) then
             break
         end

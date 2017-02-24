@@ -1,4 +1,5 @@
 require ('Node')
+require ('net')
 
 local iface = NetIF:create("lo0" , "127.0.0.1", nil)
 node = Node:create("TestNode", iface, iface)
@@ -14,7 +15,7 @@ node = Node:create("TestNode", ctrl)
 
 -- these tests may differ on each system
 
-local ctrl_addr = get_addr ( "eth0" ) 
+local ctrl_addr = Net.get_addr ( "eth0" ) 
 
 assert ( node ~= nil )
 assert ( node.ctrl ~= nil )
@@ -26,8 +27,8 @@ assert ( node.ctrl.phy == nil )
 assert ( node.wifis ~= nil )
 assert ( table_size ( node.wifis ) > 0 )
 
-if ( get_hostname () == "sinope" ) then
-    local wlan_addr = get_addr ( "wlan1" ) 
+if ( Net.get_hostname () == "sinope" ) then
+    local wlan_addr = Net.get_addr ( "wlan1" ) 
     print ( node:__tostring() )
     assert ( node.wifis[1].iface == "wlan1" )
     assert ( node.wifis[1].addr == wlan_addr )

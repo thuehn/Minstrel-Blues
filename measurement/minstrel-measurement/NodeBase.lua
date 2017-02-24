@@ -108,7 +108,9 @@ function NodeBase:connect_logger ()
     -- TODO: print this message a single time only
     if (status == false) then
         print ( "Err: Connection to Logger failed" )
-        print ( "Err: no logger at address: " .. ( self.log_ctrl.addr or "none" ) 
+        local addr = "none"
+        if ( self.log_ctrl ~= nil and self.log_ctrl.addr ~= nil ) then addr = self.log_ctrl.addr end
+        print ( "Err: no logger at address: " .. addr
                                               .. " on port: " .. ( self.log_port or "none" ) )
         return nil
     else

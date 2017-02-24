@@ -40,7 +40,7 @@ function set_cut () node:set_cut () end
 
 function LogNode:get_addr() 
     if ( args.log_if ~= nil ) then
-        return get_addr( args.log_if ) 
+        return Net.get_addr( args.log_if ) 
     else
         return nil
     end

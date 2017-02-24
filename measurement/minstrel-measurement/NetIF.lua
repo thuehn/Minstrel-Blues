@@ -42,7 +42,7 @@ end
 
 function NetIF:get_addr ()
     if ( self.addr == nil) then
-        self.addr = get_addr ( self.iface )
+        self.addr = Net.get_addr ( self.iface )
     end
     return self.addr
 end

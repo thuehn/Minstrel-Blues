@@ -288,7 +288,7 @@ net:get_addr( net.iface )
 local ctrl_net = NetIF:create ( ctrl_config['ctrl_if'] )
 ctrl_net.addr = args.ctrl_ip
 if ( ctrl_net.addr == nil) then
-    local ip_addr = lookup ( ctrl_config['name'] )
+    local ip_addr = Net.lookup ( ctrl_config['name'] )
     if ( ip_addr ~= nil ) then
         ctrl_net.addr = ip_addr
     end 
