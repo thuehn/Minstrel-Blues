@@ -1,4 +1,4 @@
-require ('net')
+require ('Net')
 
 -- simple struct to store the interface and the ip address of a host
 -- i.e. for pretty printing and have a named triple instead of unprintable

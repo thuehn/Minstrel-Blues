@@ -9,7 +9,7 @@
 require ('LogNode')
 require ('rpc')
 local argparse = require "argparse"
-require ('net')
+require ('Net')
 
 local parser = argparse("runLogger", "Run a minimalistic RPC enabled message logging node")
 

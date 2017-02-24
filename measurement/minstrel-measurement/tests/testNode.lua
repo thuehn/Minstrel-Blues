@@ -1,5 +1,5 @@
 require ('Node')
-require ('net')
+require ('Net')
 
 local iface = NetIF:create("lo0" , "127.0.0.1", nil)
 node = Node:create("TestNode", iface, iface)

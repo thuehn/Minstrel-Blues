@@ -1,17 +1,24 @@
 
-function find_node( name, nodes ) 
+-- globals
+ctrl = nil -- var in config file
+nodes = {} -- table in config file
+connections = {} -- table in config file
+
+Config = {}
+
+Config.find_node = function ( name, nodes ) 
     for _, node in ipairs ( nodes ) do 
         if ( node.name == name ) then return node end 
     end
     return nil
 end
 
-function cnode_to_string ( config )
+Config.cnode_to_string = function ( config )
     if ( config == nil ) then return "none" end
     return ( config.name or "none") .. "\t" .. ( config.radio or "none" ) .. "\t" .. ( config.ctrl_if or "none" )
 end
 
-function connections_tostring ( connections )
+Config.connections_tostring = function ( connections )
     local str = ""
     for ap, stas in pairs ( connections ) do
         str = str .. ap .. ": "
@@ -23,7 +30,7 @@ function connections_tostring ( connections )
     return str
 end
 
-function show_config_error( parser, arg, option )
+Config.show_config_error = function ( parser, arg, option )
     local str
     if ( option == true) then
         str = "option '--" .. arg .. "' missing or no config file specified"
@@ -37,30 +44,26 @@ function show_config_error( parser, arg, option )
     --os.exit()
 end
 
-ctrl = nil -- var in config file
-nodes = {} -- table in config file
-connections = {} -- table in config file
-
-function create_config ( name, ctrl_if, radio )
+Config.create_config = function ( name, ctrl_if, radio )
     return { name  = name
            , ctrl_if = ctrl_if
            , radio = radio
            }
 end
 
-function create_configs ( names, ctrl, radio )
+Config.create_configs = function ( names, ctrl, radio )
     local configs = {}
     for i, name in ipairs ( names ) do
-        configs [i] = create_config ( name, ctrl, radio )
+        configs [i] = Config.create_config ( name, ctrl, radio )
     end
     return configs
 end
 
-function copy_config_nodes( src, dest )
+Config.copy_config_nodes = function ( src, dest )
     for _,v in ipairs( src ) do dest [ #dest + 1 ] = v end
 end
 
-function get_config_fname ( fname )
+Config.get_config_fname = function ( fname )
     local rc_fname = os.getenv("HOME") .. "/.minstrelmrc"
     local has_rcfile = isFile ( rc_fname )
     local has_config_arg = fname ~= nil
@@ -72,7 +75,7 @@ function get_config_fname ( fname )
     end
 end
 
-function load_config ( fname )
+Config.load_config = function ( fname )
     local rc_fname = os.getenv("HOME") .. "/.minstrelmrc"
     local has_rcfile = isFile ( rc_fname )
     local has_config_arg = fname ~= nil
@@ -98,20 +101,20 @@ function load_config ( fname )
     return false
 end
 
-function set_config_from_arg ( config, key, arg )
+Config.set_config_from_arg = function ( config, key, arg )
     if ( arg ~= nil ) then config [ key ] = arg end 
 end
 
-function set_configs_from_arg ( configs, key, arg )
+Config.set_configs_from_arg = function ( configs, key, arg )
     for _, config in ipairs ( configs ) do
-        set_config_from_arg ( config, key, arg )
+        Config.set_config_from_arg ( config, key, arg )
     end
 end
 
-function select_config ( all_configs, name )
+Config.select_config = function ( all_configs, name )
     if ( arg == nil ) then  return nil end
 
-    local node = find_node ( name, all_configs )
+    local node = Config.find_node ( name, all_configs )
     
     if ( node == nil ) then return nil end
     if ( node.name ~= name ) then
@@ -121,11 +124,11 @@ function select_config ( all_configs, name )
     return node
 end
 
-function select_configs ( all_configs, names )
+Config.select_configs = function ( all_configs, names )
     local configs = {}
     if ( table_size ( names ) > 0 ) then
         for _, name in ipairs ( names ) do
-            local node = find_node ( name, all_configs )
+            local node = Config.find_node ( name, all_configs )
             if ( node == nil ) then
                 print ( "Error: no configuration for node with name '" .. name .. "' found")
                 return {}
@@ -140,7 +143,7 @@ function select_configs ( all_configs, names )
     return configs
 end
 
-function list_connections ( list )
+Config.list_connections = function ( list )
     local names = {}
     for name, _ in pairs ( list ) do
         names [ #names + 1 ] = name
@@ -148,24 +151,24 @@ function list_connections ( list )
     return names
 end
 
-function get_connections ( list, name )
+Config.get_connections = function ( list, name )
     return list [ name ]
 end
 
-function accesspoints ( nodes, connections )
-    local names = list_connections ( connections )
+Config.accesspoints = function ( nodes, connections )
+    local names = Config.list_connections ( connections )
     local aps = {}
     for _, name in ipairs ( names ) do
-        aps [ #aps  + 1] = find_node ( name, nodes )
+        aps [ #aps  + 1] = Config.find_node ( name, nodes )
     end
     return aps
 end
 
-function stations ( nodes, connections )
+Config.stations = function ( nodes, connections )
     local stations = {}
     for _, stas in pairs ( connections ) do
         for _, name in ipairs ( stas ) do
-            stations [ #stations  + 1] = find_node ( name, nodes )
+            stations [ #stations  + 1] = Config.find_node ( name, nodes )
         end
     end
     return stations

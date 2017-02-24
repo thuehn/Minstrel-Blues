@@ -22,8 +22,9 @@ require ('parsers/argparse_con')
 require ('pcap')
 require ('misc')
 require ('Config')
-require ('net')
+require ('Net')
 require ('ControlNodeRef')
+require ('Measurement')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
@@ -81,7 +82,7 @@ if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast"
     show_config_error ( parser, "command", false )
 end
 
-local has_config = load_config ( args.config ) 
+local has_config = Config.load_config ( args.config ) 
 
 local ap_setups
 local sta_setups
@@ -90,20 +91,20 @@ local sta_setups
 if ( has_config ) then
 
     if ( ctrl == nil ) then
-        print ( "Error: config file '" .. get_config_fname ( args.config ) 
+        print ( "Error: config file '" .. Config.get_config_fname ( args.config ) 
                     .. "' have to contain at least one station node description in var 'stations'.")
         os.exit(1)
     end
 
     if ( args.ctrl_only == false ) then
         if (table_size ( nodes ) < 2) then
-            print ( "Error: config file '" .. get_config_fname ( args.config ) 
+            print ( "Error: config file '" .. Config.get_config_fname ( args.config ) 
                         .. "' have to contain at least two node descriptions in var 'nodes'.")
             os.exit(1)
         end
 
         if (table_size ( connections ) < 1) then
-            print ( "Error: config file '" .. get_config_fname ( args.config )
+            print ( "Error: config file '" .. Config.get_config_fname ( args.config )
                         .. "' have to contain at least one connection declaration in var 'connections'.")
             os.exit(1)
         end
@@ -111,40 +112,40 @@ if ( has_config ) then
 
     -- overwrite config file setting with command line settings
 
-    set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
-    set_config_from_arg ( log, 'ctrl_if', args.log_if )
+    Config.set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
+    Config.set_config_from_arg ( log, 'ctrl_if', args.log_if )
     
-    ap_setups = accesspoints ( nodes, connections )
-    set_configs_from_arg ( ap_setups, 'radio', args.ap_radio )
-    set_configs_from_arg ( ap_setups, 'ctrl_if', args.ap_ctrl_if )
+    ap_setups = Config.accesspoints ( nodes, connections )
+    Config.set_configs_from_arg ( ap_setups, 'radio', args.ap_radio )
+    Config.set_configs_from_arg ( ap_setups, 'ctrl_if', args.ap_ctrl_if )
 
-    sta_setups = stations ( nodes, connections )
-    set_configs_from_arg ( sta_setups, 'radio', args.sta_radio )
-    set_configs_from_arg ( sta_setups, 'ctrl_if', args.sta_ctrl_if )
+    sta_setups = Config.stations ( nodes, connections )
+    Config.set_configs_from_arg ( sta_setups, 'radio', args.sta_radio )
+    Config.set_configs_from_arg ( sta_setups, 'ctrl_if', args.sta_ctrl_if )
 
 else
 
     if ( args.ctrl ~= nil ) then
-        ctrl = create_config ( args.ctrl, args.ctrl_if ) 
+        ctrl = Config.create_config ( args.ctrl, args.ctrl_if ) 
     else
-        show_config_error ( parser, "ctrl", true)
+        Config.show_config_error ( parser, "ctrl", true)
     end
 
     if ( args.ctrl_only == false ) then
         if (args.ap == nil or table_size ( args.ap ) == 0 ) then
-            show_config_error ( parser, "ap", true)
+            Config.show_config_error ( parser, "ap", true)
         end
 
         if (args.sta == nil or table_size ( args.sta ) == 0 ) then
-            show_config_error ( parser, "sta", true)
+            Config.show_config_error ( parser, "sta", true)
         end
     end
     nodes [1] = ctrl
 
-    ap_setups = create_configs ( args.ap, args.ap_radio, args.ap_ctrl_if )
-    sta_setups = create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
-    copy_config_nodes ( ap_setups, nodes )
-    copy_config_nodes ( sta_setups, nodes )
+    ap_setups = Config.create_configs ( args.ap, args.ap_radio, args.ap_ctrl_if )
+    sta_setups = Config.create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
+    Config.copy_config_nodes ( ap_setups, nodes )
+    Config.copy_config_nodes ( sta_setups, nodes )
 end
 
 if ( args.con ~= nil and args.con ~= {} ) then
@@ -178,13 +179,13 @@ if ( args.verbose == true) then
     print ( )
 end
 
-local aps_config = select_configs ( ap_setups, args.ap ) 
+local aps_config = Config.select_configs ( ap_setups, args.ap ) 
 if ( aps_config == {} ) then os.exit(1) end
 
-local stas_config = select_configs ( sta_setups, args.sta )
+local stas_config = Config.select_configs ( sta_setups, args.sta )
 if ( stas_config == {} ) then os.exit(1) end
 
-local ctrl_config = select_config ( nodes, args.ctrl )
+local ctrl_config = Config.select_config ( nodes, args.ctrl )
 if ( ctrl_config == nil ) then os.exit(1) end
 
 print ( "Configuration:" )
@@ -192,18 +193,18 @@ print ( "==============" )
 print ( )
 print ( "Command: " .. args.command )
 print ( )
-print ( "Control: " .. cnode_to_string ( ctrl_config ) )
+print ( "Control: " .. Config.cnode_to_string ( ctrl_config ) )
 print ( )
 print ( "Access Points:" )
 print ( "--------------")
 for _, ap in ipairs ( aps_config ) do
-    print ( cnode_to_string ( ap ) )
+    print ( Config.cnode_to_string ( ap ) )
 end
 print ( )
 print ( "Stations:")
 print ( "---------")
 for _, sta_config in ipairs ( stas_config ) do
-    print ( cnode_to_string ( sta_config ) )
+    print ( Config.cnode_to_string ( sta_config ) )
 end
 print ( )
 

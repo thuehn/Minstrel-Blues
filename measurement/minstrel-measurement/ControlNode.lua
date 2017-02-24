@@ -3,7 +3,7 @@
 require ('NodeBase')
 
 require ('NetIF')
-require ('net')
+require ('Net')
 require ('misc')
 require ('Uci')
 

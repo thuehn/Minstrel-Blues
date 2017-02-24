@@ -2,7 +2,7 @@
 require ("rpc")
 require ("spawn_pipe")
 require ("parsers/ex_process")
-require ('net')
+require ('Net')
 require ('NetIF')
 
 ControlNodeRef = { name
