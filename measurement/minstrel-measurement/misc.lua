@@ -54,13 +54,21 @@ end
 -- no function checks for errors.
 -- you should check for them
 
-function isFile(name)
-    if type(name)~="string" then return false end
-    if not isDir(name) then
-        return os.rename(name,name) and true or false
-        -- note that the short evaluation is to
-        -- return false instead of a possible nil
+function isFile ( name )
+    if type ( name ) ~= "string" then 
+        io.stderr:write ( "Error: filename argument should be a string\n" )
+        return false 
     end
+    if not isDir ( name ) then
+        local exists = os.rename ( name, name )
+        if ( exists ~= nil and exists == true ) then
+            return true
+        else 
+            io.stderr:write ( "Error: file doesn't exists " .. name .. "\n" )
+            return false
+        end
+    end
+    io.stderr:write ( "Error: not a file but a directory " .. name .. "\n" )
     return false
 end
 

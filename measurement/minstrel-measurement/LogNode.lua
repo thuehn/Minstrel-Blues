@@ -56,7 +56,7 @@ end
 -- param from: name of the sender
 -- param msg: the message string to pass to logger
 function LogNode:send ( msgtype, from, msg )
-    local ret = os.time() .. " " .. msgtype .. " : " .. from .. " : " .. msg
+    local ret = os.time() .. " " .. msgtype .. " : " .. from .. " : " .. ( msg or "" )
     if ( self.use_stdout == true ) then
         print ( ret )
     end
@@ -94,6 +94,10 @@ end
 -- shortcut function for passing an error tagged message
 function LogNode:send_error( from, msg )
     self:send( "ERROR", from, msg )
+end
+
+function LogNode:send_debug( from, msg )
+    self:send( "DEBUG", from, msg )
 end
 
 function LogNode:run( port )

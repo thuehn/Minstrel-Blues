@@ -13,6 +13,7 @@
 --   use luac to speed up node initialisation
 -- implement experiments with streams
 -- cleanup create in node ref classes, base class for nodes
+-- cleanup nodes before os.exit
 
 pprint = require ('pprint')
 require ('functional') -- head
@@ -440,8 +441,9 @@ end
 
 -- check bridges
 local all_bridgeless = ctrl_rpc.check_bridges()
-if ( not all_bridge_less ) then
+if ( not all_bridgeless ) then
     print ( "Some nodes have a bridged setup, stop here. See log for details." )
+    os.exit (1)
 end
 
 print ( "Connect STAs to APs SSID" )

@@ -40,6 +40,25 @@ function AccessPointRef:add_station ( mac, ref )
     self.refs [ #self.refs + 1 ] = ref
 end
 
+-- waits until all stations appears on ap
+-- not precise, sta maybe not really connected afterwards
+-- waits until station is reachable (not mandatory  connected)
+function AccessPointRef:wait_station ( retrys )
+    repeat
+        os.sleep(1)
+        local wifi_stations_cur = self.rpc.visible_stations( self.wifi_cur )
+        local miss = false
+        for _, str in ipairs ( self.stations ) do
+            if ( table.contains ( wifi_stations_cur, str ) == false ) then
+                miss = true
+                break
+            end
+        end
+        retrys = retrys - 1
+    until not miss or retrys == 0
+    return retrys ~= 0
+end
+
 function AccessPointRef:set_ssid ( ssid )
     self.ssid = ssid 
 end

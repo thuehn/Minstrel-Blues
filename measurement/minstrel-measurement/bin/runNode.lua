@@ -25,7 +25,7 @@ function phy_devices(...) return node:phy_devices(...) end
 function restart_wifi(...) return node:restart_wifi(...) end
 function get_ssid (...) return node:get_ssid(...) end
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
-function stations(...) return node:stations(...) end
+function visible_stations(...) return node:visible_stations(...) end
 function set_ani (...) return node:set_ani(...) end
 
 function link_to_ssid ( ... ) return node:link_to_ssid ( ... ) end

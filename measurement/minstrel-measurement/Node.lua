@@ -278,7 +278,7 @@ function Node:list_stations ( phy )
     return out
 end
 
-function Node:stations ( phy )
+function Node:visible_stations ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local list = self:list_stations ( phy )
@@ -487,10 +487,15 @@ function Node:start_rc_stats ( phy, stations )
         self:send_info ( " start collecting rc_stats stations: " .. station )
         local file = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
                         .. station .. "/rc_stats_csv"
-        local rc_stats = spawn_pipe ( "lua", "bin/fetch_file.lua", "-i", "50000", file )
+        -- for _, name in ipairs ( scandir ( debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" ) ) do
+        --     self:send_debug ( "proc station: " .. name )
+        -- end
+        -- self:send_debug( file .. " exists: " .. tostring ( isFile ( file ) ) )
+        local rc_stats = spawn_pipe ( "lua", "bin/fetch_file.lua", "-i", "500000", file )
         if ( rc_stats ['err_msg'] ~= nil ) then
             self:send_error("fetch_file: " .. rc_stats ['err_msg'] )
         else
+            --self:send_error ( rc_stats['err']:read("*l") )
             self.rc_stats_procs [ station ] = rc_stats
             self:send_info("rc stats for station " .. station .. " started " .. rc_stats['proc']:__tostring())
             out [ #out + 1 ] = rc_stats['proc']:__tostring()
@@ -508,6 +513,7 @@ function Node:get_rc_stats ( phy, station )
     end
     self:send_info("send rc-stats for " .. iface ..  ", station " .. station)
     if ( self.rc_stats_procs [ station ] == nil) then return nil end
+    self:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ] [ 'proc' ]:__tostring() )
     local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
     close_proc_pipes ( self.rc_stats_procs [ station ] )
@@ -520,7 +526,7 @@ function Node:stop_rc_stats ( pid )
         return nil
     end
     self:send_info("stop collecting rc stats with pid " .. pid)
-    return kill ( pid )
+    return self:kill ( pid )
 end
 
 -- --------------------------
@@ -556,7 +562,7 @@ end
 
 function Node:stop_regmon_stats ( pid )
     self:send_info("stop collecting regmon stats with pid " .. pid)
-    return kill ( pid )
+    return self:kill ( pid )
 end
 
 -- --------------------------
@@ -583,7 +589,7 @@ end
 function Node:stop_cpusage ( pid )
     self:send_info("stop cpusage with pid " .. pid)
     -- self.cpusage_proc = nil -- needed to read pipe
-    return kill ( pid )
+    return self:kill ( pid )
 end
 
 -- --------------------------
@@ -618,14 +624,14 @@ function Node:get_tcpdump_offline ( fname )
     local content = file:read("*a")
     file:close()
     self:send_info("remove tcpump pcap file " .. fname)
-    os.remove ( fname )
+    --os.remove ( fname )
     return content
 end
 
 -- TODO: unlock
 function Node:stop_tcpdump ( pid )
     self:send_info("stop tcpdump with pid " .. pid)
-    return kill ( pid )
+    return self:kill ( pid )
 end
 
 -- --------------------------
@@ -743,7 +749,7 @@ end
 -- TODO: unlock
 function Node:stop_iperf_server ( pid )
     self:send_info("stop iperf server with pid " .. pid)
-    local exit_code = kill ( pid )
+    local exit_code = self:kill ( pid )
     repeat
         local line = self.iperf_server_proc['out']:read("*l")
         if line ~= nil then self:send_info ( line ) end
@@ -779,12 +785,12 @@ end
 -- if process with pid is not a child of lua
 -- then return nil
 -- otherwise the exit code of kill is returned
-function kill ( pid, signal )
+function Node:kill ( pid, signal )
     local lua_pid = unistd.getpid()
     if (parent_pid ( pid ) == lua_pid) then
         local kill
         if (signal ~= nil) then
-            kill = spawn_pipe("kill","-"..signal,pid)
+            kill = spawn_pipe("kill", "-" .. signal, pid)
         else
             kill = spawn_pipe("kill", pid)
         end
@@ -863,6 +869,14 @@ function Node:send_warning( msg )
     local logger = self:connect_logger()
     if (logger ~= nil) then
         logger.send_warning( self.name, msg )    
+    end
+    self:disconnect_logger ( logger )
+end
+
+function Node:send_debug( msg )
+    local logger = self:connect_logger()
+    if (logger ~= nil) then
+        logger.send_debug( self.name, msg )
     end
     self:disconnect_logger ( logger )
 end

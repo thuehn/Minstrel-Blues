@@ -18,12 +18,21 @@ if (args.binary) then
     mode = mode .. "b"
 end
 
+local fname = args.filename or ""
+--fname = string.gsub ( fname, ":", "\\:" )
+
 -- note: line reads can result in broken lines
 while (true) do
-    if ( isFile ( args.filename ) == false ) then os.exit(1) end
-    local file = io.open ( args.filename, mode )
-    if ( file == nil ) then os.exit(1) end
-    if (args.line) then
+    if ( isFile ( fname ) == false ) then 
+        io.stderr:write ( "Error: Not a File: " .. fname .. "\n")
+        os.exit ( 1 ) 
+    end
+    local file = io.open ( fname, mode )
+    if ( file == nil ) then 
+        io.stderr:write ( "Error: Open file failed: " .. fname .. ", mode: " .. mode .. "\n" )
+        os.exit ( 1 )
+    end
+    if ( args.line ) then
         local line = file:read ("*l")
         if (line ~= nil) then print ( line ) end
     else

@@ -33,6 +33,9 @@ function send_warning ( from, msg ) node:send_warning ( from, msg) end
 function send_error ( from, msg) node:send_error ( from, msg ) end
 
 -- shortcut to logger instance to simplify access
+function send_debug ( from, msg) node:send_debug ( from, msg ) end
+
+-- shortcut to logger instance to simplify access
 function set_cut () node:set_cut () end
 
 function LogNode:get_addr() 

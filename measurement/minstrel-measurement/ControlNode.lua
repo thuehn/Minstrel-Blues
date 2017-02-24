@@ -1,4 +1,5 @@
 
+--pprint = require ('pprint')
 require ('NetIF')
 require ('spawn_pipe')
 require ('parsers/ex_process')
@@ -402,11 +403,21 @@ function ControlNode:run_experiments ( command, args, ap_names )
 
         self:send_info ("Settle measurement")
         for _, ap_ref in ipairs ( ap_refs ) do
+            -- self:send_debug ( ap_ref:__tostring() )
+            -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
+            --     self:send_debug ( "station: " .. station )
+            -- end
             if ( exp:settle_measurement ( ap_ref, key, 5 ) == false ) then
                 self:send_error ( "experiment aborted, settledment failed. please check the wifi connnections." )
                 return ret
             end
+            -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
+            --     self:send_debug ( "station: " .. station )
+            -- end
         end
+
+        self:send_info ("Waiting one extra second for initialised debugfs")
+        os.sleep (1)
 
         self:send_info ("Start Measurement")
         -- -------------------------------------------------------
@@ -444,20 +455,7 @@ function ControlNode:run_experiments ( command, args, ap_names )
 
     self:send_info ( "Copy stats from nodes." )
     for _, ap_ref in ipairs ( ap_refs ) do
-
-        self.stats [ ap_ref.name ] = {} 
-        self.stats [ ap_ref.name ] [ 'regmon_stats' ] = copy_map ( ap_ref.stats.regmon_stats )
-        self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( ap_ref.stats.tcpdump_pcaps )
-        self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = copy_map ( ap_ref.stats.cpusage_stats )
-        self.stats [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
-
-        for _, sta_ref in ipairs ( ap_ref.refs ) do
-            self.stats [ sta_ref.name ] = {} 
-            self.stats [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
-            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
-            self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
-            self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
-        end
+        self:copy_stats ( ap_ref )
     end
 
     self:send_info ("Transfer Measurement Result")
@@ -481,11 +479,18 @@ function ControlNode:run_experiment ( exp, ap_name )
         return false 
     end
     
+    self:copy_stats ( ap_ref )
+
+end
+
+function ControlNode:copy_stats ( ap_ref )
+
     self.stats [ ap_ref.name ] = {}
     self.stats [ ap_ref.name ] [ 'regmon_stats' ] = copy_map ( ap_ref.stats.regmon_stats )
     self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( ap_ref.stats.tcpdump_pcaps )
     self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = copy_map ( ap_ref.stats.cpusage_stats )
     self.stats [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
+
     for _, sta_ref in ipairs ( ap_ref.refs ) do
         self.stats [ sta_ref.name ] = {} 
         self.stats [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
@@ -493,7 +498,6 @@ function ControlNode:run_experiment ( exp, ap_name )
         self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
         self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
     end
-    return true
 
 end
 
@@ -560,12 +564,12 @@ end
 -- if process with pid is not a child of lua
 -- then return nil
 -- otherwise the exit code of kill is returned
-function kill ( pid, signal )
+function ControlNode:kill ( pid, signal )
     local lua_pid = unistd.getpid()
     if (parent_pid ( pid ) == lua_pid) then
         local kill
         if (signal ~= nil) then
-            kill = spawn_pipe("kill","-"..signal,pid)
+            kill = spawn_pipe("kill", "-" .. signal, pid)
         else
             kill = spawn_pipe("kill", pid)
         end
@@ -642,6 +646,14 @@ function ControlNode:send_warning( msg )
     local logger = self:connect_logger()
     if (logger ~= nil) then
         logger.send_warning( self.name, msg )    
+    end
+    self:disconnect_logger ( logger )
+end
+
+function ControlNode:send_debug( msg )
+    local logger = self:connect_logger()
+    if (logger ~= nil) then
+        logger.send_debug( self.name, msg )
     end
     self:disconnect_logger ( logger )
 end
