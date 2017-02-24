@@ -14,7 +14,44 @@
  				};
  				/* only needed before rate control */
  				unsigned long jiffies;
-@@ -1716,13 +1721,14 @@ enum ieee80211_sta_rx_bandwidth {
+@@ -1277,6 +1282,7 @@ enum ieee80211_conf_flags {
+  * @IEEE80211_CONF_CHANGE_SMPS: Spatial multiplexing powersave mode changed
+  *	Note that this is only valid if channel contexts are not used,
+  *	otherwise each channel context has the number of chains listed.
++ * @IEEE80211_CONF_CHANGE_ACK_TX_POWER: TX power in dBm for ACK packets changed
+  */
+ enum ieee80211_conf_changed {
+ 	IEEE80211_CONF_CHANGE_SMPS		= BIT(1),
+@@ -1287,6 +1293,7 @@ enum ieee80211_conf_changed {
+ 	IEEE80211_CONF_CHANGE_CHANNEL		= BIT(6),
+ 	IEEE80211_CONF_CHANGE_RETRY_LIMITS	= BIT(7),
+ 	IEEE80211_CONF_CHANGE_IDLE		= BIT(8),
++	IEEE80211_CONF_CHANGE_ACK_TX_POWER	= BIT(9),
+ };
+ 
+ /**
+@@ -1342,6 +1349,11 @@ enum ieee80211_smps_mode {
+  *	configured for an HT channel.
+  *	Note that this is only valid if channel contexts are not used,
+  *	otherwise each channel context has the number of chains listed.
++ *
++ * @min_tx_power: minimum tx power level in dBm, that is configured for the
++ *	hardware. Negative values are possible (e.g. -5 dBm).
++ *
++ * @ack_tx_power: tx power level in dBm of mac layer ACK packets.
+  */
+ struct ieee80211_conf {
+ 	u32 flags;
+@@ -1356,6 +1368,8 @@ struct ieee80211_conf {
+ 	struct cfg80211_chan_def chandef;
+ 	bool radar_enabled;
+ 	enum ieee80211_smps_mode smps_mode;
++	s8 min_tx_power;
++	s8 ack_tx_power;
+ };
+ 
+ /**
+@@ -1716,13 +1730,14 @@ enum ieee80211_sta_rx_bandwidth {
   * struct ieee80211_sta_rates - station rate selection table
   *
   * @rcu_head: RCU head used for freeing the table on update
@@ -30,6 +67,51 @@
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
+@@ -2048,6 +2063,16 @@ struct ieee80211_txq {
+  * @IEEE80211_HW_NEEDS_ALIGNED4_SKBS: Driver need aligned skbs to four-byte.
+  *	Padding will be added after ieee80211_hdr, before IV/LLC.
+  *
++ * @IEEE80211_HW_SUPPORTS_TPC_PER_PACKET: The hardware/driver supports transmit
++ *	power control (TPC) with one power level per data packet.
++ *
++ * @IEEE80211_HW_SUPPORTS_TPC_PER_MRR: The hardware/driver supports transmit
++ *	power control (TPC) with individual power levels for each
++ *	multi-rate-retry (mrr) stage per data packet.
++ *
++ * @IEEE80211_HW_SUPPORTS_TPC_FOR_ACK_PACKETS: The hardware/driver supports
++ *	transmit power control (TPC) for ACK packets.
++ *
+  * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
+  */
+ enum ieee80211_hw_flags {
+@@ -2091,6 +2116,9 @@ enum ieee80211_hw_flags {
+ 	IEEE80211_HW_REPORTS_LOW_ACK,
+ 	IEEE80211_HW_SUPPORTS_TX_FRAG,
+ 	IEEE80211_HW_NEEDS_ALIGNED4_SKBS,
++	IEEE80211_HW_SUPPORTS_TPC_PER_PACKET,
++	IEEE80211_HW_SUPPORTS_TPC_PER_MRR,
++	IEEE80211_HW_SUPPORTS_TPC_FOR_ACK_PACKETS,
+ 
+ 	/* keep last, obviously */
+ 	NUM_IEEE80211_HW_FLAGS
+@@ -2206,6 +2234,9 @@ enum ieee80211_hw_flags {
+  *	supported by HW.
+  * @max_nan_de_entries: maximum number of NAN DE functions supported by the
+  *	device.
++ *
++ * @min_tx_power: minimum tx power level in dBm, that is supported by the
++ *	hardware. Negative values are possible (e.g. -5 dBm).
+  */
+ struct ieee80211_hw {
+ 	struct ieee80211_conf conf;
+@@ -2241,6 +2272,7 @@ struct ieee80211_hw {
+ 	u8 n_cipher_schemes;
+ 	const struct ieee80211_cipher_scheme *cipher_schemes;
+ 	u8 max_nan_de_entries;
++	s8 min_tx_power;
+ };
+ 
+ static inline bool _ieee80211_hw_check(struct ieee80211_hw *hw,
 --- a/net/mac80211/rate.c
 +++ b/net/mac80211/rate.c
 @@ -848,6 +848,8 @@ void rate_control_get_rate(struct ieee80
