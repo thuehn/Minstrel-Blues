@@ -41,8 +41,11 @@ Feel free to send pull requests or open a new issue via GitHub.
 ### Supporters and Developers
 - Stefan Venz from TU-Berlin
 - Felix Fietkau (aka nbd) from OpenWrt
-- Bastian Bittorf from Freifunk Weimar
+
+
+### former contributors
 - Alina Friedrichsen
+- Bastian Bittorf from Freifunk Weimar
 
 ### How to reference to  Minstrel-Blues ?
 Just use the following bibtex :
