@@ -39,9 +39,9 @@ Feel free to send pull requests or open a new issue via GitHub.
 - reviewing kernel patches (get your hands on QUILT to work with patch series)
 
 ### Supporters and Developers
-- Stefan Venz from TU-Berlin
-- Felix Fietkau (aka nbd) from OpenWrt
-
+- Felix Fietkau (aka nbd) from OpenWrt/LEDE
+- Dennis Roeper
+- Stefan Venz from HFT Berlin
 
 ### former contributors
 - Alina Friedrichsen
