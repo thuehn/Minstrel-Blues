@@ -177,3 +177,38 @@
  	/* Start with max_tp_rate[0] */
  	minstrel_ht_set_rate(mp, mi, rates, i++, mi->max_tp_rate[0]);
  
+--- a/net/mac80211/debugfs.c
++++ b/net/mac80211/debugfs.c
+@@ -212,6 +212,9 @@ static const char *hw_flag_names[] = {
+ 	FLAG(REPORTS_LOW_ACK),
+ 	FLAG(SUPPORTS_TX_FRAG),
+ 	FLAG(NEEDS_ALIGNED4_SKBS),
++	FLAG(SUPPORTS_TPC_PER_PACKET),
++	FLAG(SUPPORTS_TPC_PER_MRR),
++	FLAG(SUPPORTS_TPC_FOR_ACK_PACKETS),
+ #undef FLAG
+ };
+ 
+--- a/net/mac80211/main.c
++++ b/net/mac80211/main.c
+@@ -159,6 +159,7 @@ static u32 ieee80211_hw_conf_chan(struct
+ 	if (local->hw.conf.power_level != power) {
+ 		changed |= IEEE80211_CONF_CHANGE_POWER;
+ 		local->hw.conf.power_level = power;
++		local->hw.conf.ack_tx_power = power;
+ 	}
+ 
+ 	return changed;
+@@ -1080,6 +1081,12 @@ int ieee80211_register_hw(struct ieee802
+ 
+ 	local->dynamic_ps_forced_timeout = -1;
+ 
++	/*
++	 * if the driver doesn't specify a min_tx_power we
++	 * use 0dBm which should be a safe default
++	 */
++	local->hw.conf.min_tx_power = local->hw.min_tx_power = 0;
++
+ 	if (!local->hw.max_nan_de_entries)
+ 		local->hw.max_nan_de_entries = IEEE80211_MAX_NAN_INSTANCE_ID;
+ 
