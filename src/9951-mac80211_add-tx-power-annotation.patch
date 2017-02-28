@@ -133,7 +133,7 @@
  #include "rate.h"
  #include "rc80211_minstrel.h"
  
-@@ -151,12 +152,20 @@ static void
+@@ -151,12 +152,21 @@ static void
  minstrel_update_rates(struct minstrel_priv *mp, struct minstrel_sta_info *mi)
  {
  	struct ieee80211_sta_rates *ratetbl;
@@ -150,13 +150,14 @@
  
 +	for (i = 0; i < ARRAY_SIZE(ratetbl->rate); i++)
 +		ratetbl->rate[i].txpower = txpower;
++	i = 0;
 +
  	/* Start with max_tp_rate */
  	minstrel_set_rate(mi, ratetbl, i++, mi->max_tp_rate[0]);
  
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -921,12 +921,20 @@ static void
+@@ -921,12 +921,21 @@ static void
  minstrel_ht_update_rates(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
  {
  	struct ieee80211_sta_rates *rates;
@@ -173,6 +174,7 @@
  
 +	for (i = 0; i < ARRAY_SIZE(rates->rate); i++)
 +		rates->rate[i].txpower = txpower;
++	i = 0;
 +
  	/* Start with max_tp_rate[0] */
  	minstrel_ht_set_rate(mp, mi, rates, i++, mi->max_tp_rate[0]);
