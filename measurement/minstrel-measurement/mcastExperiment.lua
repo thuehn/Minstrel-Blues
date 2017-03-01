@@ -1,5 +1,5 @@
 
-McastExperiment = { control = nil, uns = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil }
+McastExperiment = { control = nil, runs = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil }
 
 function McastExperiment:new (o)
     local o = o or {}

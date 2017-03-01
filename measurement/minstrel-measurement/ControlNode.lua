@@ -326,12 +326,12 @@ end
 -- fixme: exp userdata over rpc not possible
 function ControlNode:run_experiments ( command, args, ap_names )
 
-    function check_mem ( mem )
+    function check_mem ( mem, name )
         if ( mem < 15180 ) then
-            self:send_error ( "AccessPoint " .. ap_ref.name .. " is running out of memory. stop here" )
+            self:send_error ( name .. " is running out of memory. stop here" )
             return false
         elseif ( mem < 20240 ) then
-            self:send_warning ( "AccessPoint " .. ap_ref.name .. " has low memory." )
+            self:send_warning ( name .. " has low memory." )
         end
         return true
     end
@@ -371,12 +371,12 @@ function ControlNode:run_experiments ( command, args, ap_names )
 
         for _, ap_ref in ipairs ( ap_refs ) do
             local free_m = ap_ref:get_free_mem ()
-            if ( check_mem ( free_m ) == false ) then
+            if ( check_mem ( free_m, ap_ref.name ) == false ) then
                 return ret
             end
             for _, sta_ref in ipairs ( ap_ref.refs ) do
                 local free_m = sta_ref:get_free_mem ()
-                if ( check_mem ( free_m ) == false ) then
+                if ( check_mem ( free_m, sta_ref.name ) == false ) then
                     return ret
                 end
             end
