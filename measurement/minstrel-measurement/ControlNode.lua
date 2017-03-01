@@ -327,10 +327,10 @@ end
 function ControlNode:run_experiments ( command, args, ap_names )
 
     function check_mem ( mem, name )
-        if ( mem < 15180 ) then
+        if ( mem < 20240 ) then
             self:send_error ( name .. " is running out of memory. stop here" )
             return false
-        elseif ( mem < 20240 ) then
+        elseif ( mem < 40480 ) then
             self:send_warning ( name .. " has low memory." )
         end
         return true
@@ -403,7 +403,10 @@ function ControlNode:run_experiments ( command, args, ap_names )
         self:send_info ("Start Measurement")
         -- -------------------------------------------------------
         for _, ap_ref in ipairs ( ap_refs ) do
-            exp:start_measurement (ap_ref, key )
+            if ( exp:start_measurement (ap_ref, key ) == false ) then
+                self:send_error ( "Start measurement failed. Stop here." )
+                return ret
+            end
         end
 
         -- -------------------------------------------------------
@@ -412,7 +415,9 @@ function ControlNode:run_experiments ( command, args, ap_names )
             
         self:send_info ("Start Experiment")
         for _, ap_ref in ipairs ( ap_refs ) do
-            exp:start_experiment ( ap_ref, key )
+             if ( exp:start_experiment ( ap_ref, key ) == false ) then
+                return ret
+             end
         end
     
         self:send_info ("Wait Experiment")

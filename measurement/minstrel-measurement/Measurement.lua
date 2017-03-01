@@ -127,6 +127,9 @@ function Measurement:start ( phy, key )
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
     str = self.rpc_node.start_tcpdump( phy, tcpdump_fname )
+    if ( str == nil ) then
+        return false
+    end
     self.tcpdump_proc = parse_process ( str )
     -- rc stats
     self.rc_stats_procs = {}
@@ -137,6 +140,7 @@ function Measurement:start ( phy, key )
             self.rc_stats_procs [ #self.rc_stats_procs + 1 ] = parse_process ( rc_proc_str )
         end
     end
+    return true
 end
 
 function Measurement:stop ()

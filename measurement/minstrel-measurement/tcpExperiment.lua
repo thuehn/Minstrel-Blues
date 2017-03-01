@@ -39,8 +39,9 @@ function TcpExperiment:settle_measurement ( ap_ref, key, retrys )
 end
 
 function TcpExperiment:start_measurement ( ap_ref, key )
-    ap_ref:start_measurement ( key )
+    local started = ap_ref:start_measurement ( key )
     ap_ref:start_iperf_servers()
+    return started
 end
 
 function TcpExperiment:stop_measurement ( ap_ref, key )
@@ -62,8 +63,11 @@ function TcpExperiment:start_experiment ( ap_ref, key )
             return
         end
         local wait = false
-        ap_ref.rpc.run_tcp_iperf( addr, self.tcpdata, wait )
+        if ( ap_ref.rpc.run_tcp_iperf( addr, self.tcpdata, wait ) == false ) then
+            return false
+        end
     end
+    return true
 end
 
 function TcpExperiment:wait_experiment ( ap_ref )

@@ -60,7 +60,7 @@ function McastExperiment:settle_measurement ( ap_ref, key, retrys )
 end
 
 function McastExperiment:start_measurement ( ap_ref, key )
-    ap_ref:start_measurement ( key )
+    return ap_ref:start_measurement ( key )
 end
 
 function McastExperiment:stop_measurement ( ap_ref, key )
@@ -82,8 +82,11 @@ function McastExperiment:start_experiment ( ap_ref, key )
         local size = "100M"
         local wifi_addr = sta_ref:get_addr ( sta_ref.wifi_cur )
         self.control:send_debug ( "run multicast udp client with local addr " .. wifi_addr )
-        ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait )
+        if ( ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait ) == nil ) then
+            return false
+        end
     end
+    return true
 end
 
 function McastExperiment:wait_experiment ( ap_ref )

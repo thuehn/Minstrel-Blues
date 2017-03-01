@@ -572,11 +572,12 @@ function Node:start_tcpdump ( phy, fname )
 --    local tcpdump, _ = spawn_pipe2( { "tcpdump", "-i", mon, "-s", "150", "-U", "-w", "-" },
 --                                 { "tee", "-a", fname } )
     self.tcpdump_proc = tcpdump
+    if ( tcpdump['err_msg'] ~= nil ) then
+        self:send_error ( "start_tcpdump: " .. tcpdump['err_msg'] )
+        return nil
+    end
     local line = tcpdump['err']:read('*line')
     self:send_info ( line )
-    if ( tcpdump['err_msg'] ~= nil ) then
-        self:send_error ( tcpdump['err_msg'] )
-    end
     return tcpdump['proc']:__tostring()
 end
 
@@ -684,7 +685,7 @@ function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
     local iperf = spawn_pipe ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port
                              , "-T", ttl, "-t", interval, "-b", size, "-B", addr)
     if ( iperf['proc'] == nil ) then
-        self:send_error ( "udp multicast iperf client not started" )
+        self:send_error ( "udp multicast iperf client not started: " .. ( iperf['err_msg'] or "unknown error" ) )
         return nil 
     end
     self.iperf_client_procs [ addr ] = iperf

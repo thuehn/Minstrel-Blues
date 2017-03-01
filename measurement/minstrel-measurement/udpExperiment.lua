@@ -54,8 +54,9 @@ function UdpExperiment:settle_measurement ( ap_ref, key, retrys )
 end
 
 function UdpExperiment:start_measurement ( ap_ref, key )
-    ap_ref:start_measurement ( key )
+    local started = ap_ref:start_measurement ( key )
     ap_ref:start_iperf_servers()
+    return started
 end
 
 function UdpExperiment:stop_measurement ( ap_ref, key )
@@ -74,8 +75,11 @@ function UdpExperiment:start_experiment ( ap_ref, key )
     local rate = split ( key, "-") [1]
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         local addr = sta_ref:get_addr ()
-        ap_ref.rpc.run_udp_iperf( addr, size, rate, self.udp_interval )
+        if ( ap_ref.rpc.run_udp_iperf( addr, size, rate, self.udp_interval ) == nil ) then
+            return false
+        end
     end
+    return true
 end
 
 function UdpExperiment:wait_experiment ( ap_ref )
