@@ -4,6 +4,7 @@ Cpusage = { timestamp = nil, user = nil, nice = nil
           , system = nil, idle = nil, iowait = nil
           , irq = nil, softirq = nil
           }
+
 function Cpusage:new (o)
     local o = o or {}
     setmetatable(o, self)

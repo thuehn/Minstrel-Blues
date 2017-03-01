@@ -4,6 +4,7 @@ require ('spawn_pipe')
 local unistd = require ('posix.unistd')
 require ('parentpid')
 require ('parsers/proc_version')
+require ('parsers/free')
 require ('Uci')
 
 NodeBase = { name = nil
@@ -39,6 +40,18 @@ end
 
 function NodeBase:set_nameserver (  nameserver )
     set_resolvconf ( nameserver )
+end
+
+-- -------------------------
+-- memory consumption
+-- -------------------------
+
+function NodeBase:get_free_mem ()
+    local free_proc = spawn_pipe("free" )
+    local free_str = free_proc['out']:read("*a")
+    close_proc_pipes ( free )
+    local free = parse_free ( free_str )
+    return free.free
 end
 
 -- -------------------------

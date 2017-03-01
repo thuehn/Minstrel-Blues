@@ -65,6 +65,18 @@ function AccessPointRef:get_ssid ()
     return self.ssid
 end
 
+function AccessPointRef:set_tx_power ( power )
+    for _, str in ipairs ( self.stations ) do
+        self.rpc.set_tx_power ( self.wifi_cur, str, power )
+    end
+end
+
+function AccessPointRef:set_tx_rate ( rate_idx )
+    for _, str in ipairs ( self.stations ) do
+        self.rpc.set_tx_rate ( self.wifi_cur, str, rate_idx )
+    end
+end
+
 function AccessPointRef:create_measurement()
     NodeRef.create_measurement( self )
     for i, sta_ref in ipairs ( self.refs ) do

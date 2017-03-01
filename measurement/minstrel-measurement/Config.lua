@@ -83,7 +83,7 @@ Config.load_config = function ( fname )
     -- load config from a file
     if ( has_config_arg or has_rcfile ) then
 
-        if ( not isFile ( fname ) and not has_rcfile ) then
+        if ( has_config_arg == nil and not isFile ( fname ) and not has_rcfile ) then
             print ( fname .. " does not exists.")
             return false
         end

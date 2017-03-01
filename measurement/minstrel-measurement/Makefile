@@ -54,7 +54,7 @@ define Package/minstrel-measurement/install
 	$(INSTALL_DIR) $(1)/root/parsers
 	$(CP) $(PKG_BUILD_DIR)/parsers/*.lua $(1)/root/parsers
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bin/cpusage_single.lua $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bin/cpusage_single $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bin/fetch_file.lua $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/root/bin
 	$(CP) $(PKG_BUILD_DIR)/bin/* $(1)/root/bin

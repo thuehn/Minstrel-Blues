@@ -3,7 +3,7 @@ require ('functional') -- head
 require ('Experiment')
 require ('misc')
 
-UdpExperiment = { runs = nil, packet_sizes = nil, cct_intervals = nil, packet_rates = nil, udp_interval = nil }
+UdpExperiment = { control = control, runs = nil, packet_sizes = nil, cct_intervals = nil, packet_rates = nil, udp_interval = nil }
 
 
 function UdpExperiment:new (o)
@@ -15,7 +15,8 @@ end
 
 
 function UdpExperiment:create ( data )
-    local o = UdpExperiment:new( { runs = data[1]
+    local o = UdpExperiment:new( { control = control
+                                 , runs = data[1]
                                  , packet_sizes = data[2]
                                  , cct_intervals = data[3]
                                  , packet_rates = data[4]

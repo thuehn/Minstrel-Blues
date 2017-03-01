@@ -55,6 +55,10 @@ end
 -- you should check for them
 
 function isFile ( name )
+    if ( name == nil ) then
+        io.stderr:write ( "Error: filename argument is not set\n" )
+        return false 
+    end
     if type ( name ) ~= "string" then 
         io.stderr:write ( "Error: filename argument should be a string\n" )
         return false 

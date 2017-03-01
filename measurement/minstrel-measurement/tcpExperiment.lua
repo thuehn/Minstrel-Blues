@@ -1,6 +1,6 @@
 require ('Experiment')
 
-TcpExperiment = { runs = nil, tcpdata = nil }
+TcpExperiment = { control = nil, runs = nil, tcpdata = nil }
 
 
 function TcpExperiment:new (o)
@@ -11,8 +11,8 @@ function TcpExperiment:new (o)
 end
 
 
-function TcpExperiment:create ( data )
-    local o = TcpExperiment:new( { runs = data[1], tcpdata = data[2] } )
+function TcpExperiment:create ( control, data )
+    local o = TcpExperiment:new( { control = control, runs = data[1], tcpdata = data[2] } )
     return o
 end
 

@@ -344,12 +344,11 @@ end
 
 -- set the power level by index (i.e. 25 is the index of the highest power level, sometimes 50)
 -- usally two different power levels differs by a multiple of 1mW (25 levels) or 0.5mW (50 power levels)
--- todo: set tx_power with newly created debugfs entry
 function Node:set_tx_power ( phy, station, tx_power )
     self:send_info("Set tx power level for station " .. station .. " at device " .. phy .. " to " .. tx_power)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
     local file = io.open ( fname )
     if ( file ~= nil) then
         file:write ( tostring ( tx_power ) )
@@ -364,11 +363,11 @@ function Node:get_tx_power ( phy, station )
     self:send_info("Get tx power level for station " .. station .. " from device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local fname = "/sys/kernel/debug/ieee80211/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
     local file = io.open ( fname )
     if ( file ~= nil) then
         local content = file:read("*a")
-        local level = tonumber (content)
+        local level = tonumber ( content )
         self:send_info(" tx power level for station " .. station .. " at device " .. phy .. " is " .. level)
         file:close ()
     else
@@ -376,13 +375,11 @@ function Node:get_tx_power ( phy, station )
     end
 end
 
--- rate can be set for 
---      - monitored device at 'monitor_tx_rate' (fixme: not in tree)
---      - broadcast at 'bcast_tx_rate' (fixme: not in tree)
---      - per station at 'rate_scale_table' (fixme: not in tree)
 function Node:set_tx_rate ( phy, station, tx_rate_idx )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
     self:send_info("Set tx rate index for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx)
-    local fname = debugfs .. "/rc/" .. "fixed_rate_idx"
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txrate"
     local file = io.open ( fname )
     if ( file ~= nil) then
         file:write ( tostring ( tx_rate_idx ) )

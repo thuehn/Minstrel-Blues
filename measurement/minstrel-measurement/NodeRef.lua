@@ -141,3 +141,7 @@ end
 function NodeRef:check_bridge ()
     return self.rpc.check_bridge ( self.wifi_cur )
 end
+
+function NodeRef:get_free_mem ()
+    return self.rpc.get_free_mem()
+end

@@ -1,5 +1,5 @@
 
-McastExperiment = { runs = nil, udp_interval = nil }
+McastExperiment = { control = nil, uns = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil }
 
 function McastExperiment:new (o)
     local o = o or {}
@@ -8,26 +8,36 @@ function McastExperiment:new (o)
     return o
 end
 
+function McastExperiment:get_rate( key )
+    return split ( key, "-" ) [1]
+end
 
-function McastExperiment:create ( data )
-    local o = McastExperiment:new( { runs = data[1], udp_interval = data[2] } )
+function McastExperiment:get_power( key )
+    return split ( key, "-" ) [2]
+end
+
+function McastExperiment:create ( control, data )
+    local o = McastExperiment:new( { control = control, runs = data[1], udp_interval = data[2] } )
     return o
 end
 
 function McastExperiment:keys ( ap_ref )
 
     local keys = {}
-    local tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
-    local tx_powers = {}
+    self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
+    self.tx_powers = {}
     for i = 1, 25 do
-        tx_powers[i] = i
+        self.tx_powers[i] = i
     end
+    self.control:send_debug( "run multicast experiment for rates " .. table_tostring ( self.tx_rates ) )
+    self.control:send_debug( "run multicast experiment for powers " .. table_tostring ( self.tx_powers ) )
 
     for run = 1, self.runs do
-        for _, tx_rate in ipairs ( tx_rates ) do
-            for _, tx_power in ipairs ( tx_powers ) do
-                local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring(run)
+        for _, tx_rate in ipairs ( self.tx_rates ) do
+            for _, tx_power in ipairs ( self.tx_powers ) do
+                local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring( run )
                 keys [ #keys + 1 ] = key
+                --break -- REMOVE ME: testing only
             end
         end
     end
@@ -45,6 +55,7 @@ function McastExperiment:settle_measurement ( ap_ref, key, retrys )
     local linked = ap_ref:wait_linked ( retrys )
     local visible = ap_ref:wait_station ( retrys )
     ap_ref:add_monitor ()
+    ap_ref:set_tx_power( self:get_power ( key ) )
     return (linked and visible)
 end
 
@@ -62,12 +73,16 @@ end
 
 function McastExperiment:start_experiment ( ap_ref, key )
     local wait = false
+    local ap_wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
+    self.control:send_debug ( "run multicast udp server with local addr " .. ap_wifi_addr )
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         -- start iperf client on AP
         local addr = "224.0.67.0"
         local ttl = 32
         local size = "100M"
-        ap_ref.rpc.run_multicast( sta_ref:get_addr ( sta_ref.wifi_cur ), addr, ttl, size, self.udp_interval, wait )
+        local wifi_addr = sta_ref:get_addr ( sta_ref.wifi_cur )
+        self.control:send_debug ( "run multicast udp client with local addr " .. wifi_addr )
+        ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait )
     end
 end
 

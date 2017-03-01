@@ -7,12 +7,12 @@
 -- sample rate from luci-regmon
 -- built test client with command line arg which router should run the test
 --   -- unit test (rpc in init of the unit tests base class)
--- net/mac80211/rc80211_minstrel_debugfs.c tx_power mit max_power aus hw initialisieren
 -- auto-tools, Makefile, luac, configue ifconfig, date, ...
 --   use luac to speed up node initialisation
 -- implement experiments with streams
 -- cleanup nodes before os.exit
 -- erease debug table in production ( debug = nil )
+-- sample rate rc_stats (how many updates / second)
 
 --pprint = require ('pprint')
 
@@ -382,13 +382,6 @@ for _, ap_name in ipairs ( ap_names ) do
     map ( print, wifi_stations )
     print ()
 end
-
--- check whether station is connected
--- got the right station? query mac from STA
---if ( table_size ( wifi_stations_target ) < 1 ) then
---    print ("no station connected with access point")
---    os.exit(1)
---end
 
 print ( ctrl_rpc.__tostring() )
 print ( )

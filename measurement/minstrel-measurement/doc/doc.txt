@@ -76,6 +76,9 @@ utils
 
 ssh
 ---
+note: when using ssh control master then sometimes "channel 5: bad ext data"
+occurs. a workaround is to disable ssh control master
+
 generate keys:
     dropbearkey -t rsa -f /etc/dropbear/id_rsa
 auth-file:

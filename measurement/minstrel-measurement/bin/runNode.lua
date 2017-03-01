@@ -51,6 +51,8 @@ function stop_cpusage(...) return node:stop_cpusage(...) end
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
 function add_monitor(...) return node:add_monitor(...) end
 function remove_monitor(...) return node:remove_monitor(...) end
+function set_tx_power ( ... ) return node:set_tx_power ( ... ) end -- AP only
+function set_tx_rate ( ... ) return node:set_tx_rate ( ... ) end -- AP only
 
 -- rc_stats
 function start_rc_stats(...) return node:start_rc_stats(...) end
@@ -81,6 +83,7 @@ function wait_iperf_c(...) return node:wait_iperf_c(...) end
 function stop_iperf_server(...) return node:stop_iperf_server(...) end
 
 function get_pid(...) return node:get_pid(...) end
+function get_free_mem ( ... ) return node:get_free_mem ( ... ) end
 function set_date(...) return node:set_date(...) end
 function set_nameserver (...) return node:set_nameserver (...) end
 function check_bridge (...) return node:check_bridge (...) end

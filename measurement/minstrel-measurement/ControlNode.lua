@@ -326,13 +326,23 @@ end
 -- fixme: exp userdata over rpc not possible
 function ControlNode:run_experiments ( command, args, ap_names )
 
+    function check_mem ( mem )
+        if ( mem < 15180 ) then
+            self:send_error ( "AccessPoint " .. ap_ref.name .. " is running out of memory. stop here" )
+            return false
+        elseif ( mem < 20240 ) then
+            self:send_warning ( "AccessPoint " .. ap_ref.name .. " has low memory." )
+        end
+        return true
+    end
+
     local exp
     if ( command == "tcp") then
-        exp = TcpExperiment:create ( args )
+        exp = TcpExperiment:create ( self, args )
     elseif ( command == "mcast") then
-        exp = McastExperiment:create ( args )
+        exp = McastExperiment:create ( self, args )
     elseif ( command == "udp") then
-        exp = UdpExperiment:create ( args )
+        exp = UdpExperiment:create ( self, args )
     else
         return false
     end
@@ -358,6 +368,19 @@ function ControlNode:run_experiments ( command, args, ap_names )
     self:send_info ( "Run experiment." )
     local stop = false
     for _, key in ipairs ( keys[1] ) do -- fixme: smallest set of keys
+
+        for _, ap_ref in ipairs ( ap_refs ) do
+            local free_m = ap_ref:get_free_mem ()
+            if ( check_mem ( free_m ) == false ) then
+                return ret
+            end
+            for _, sta_ref in ipairs ( ap_ref.refs ) do
+                local free_m = sta_ref:get_free_mem ()
+                if ( check_mem ( free_m ) == false ) then
+                    return ret
+                end
+            end
+        end
 
         self:send_info ("Settle measurement")
         for _, ap_ref in ipairs ( ap_refs ) do
