@@ -18,7 +18,7 @@
   * @IEEE80211_CONF_CHANGE_SMPS: Spatial multiplexing powersave mode changed
   *	Note that this is only valid if channel contexts are not used,
   *	otherwise each channel context has the number of chains listed.
-+ * @IEEE80211_CONF_CHANGE_ACK_TX_POWER: TX power in dBm for ACK packets changed
++ * @IEEE80211_CONF_CHANGE_ACK_TXPOWER: TX power in dBm for ACK packets changed
   */
  enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_SMPS		= BIT(1),
@@ -26,7 +26,7 @@
  	IEEE80211_CONF_CHANGE_CHANNEL		= BIT(6),
  	IEEE80211_CONF_CHANGE_RETRY_LIMITS	= BIT(7),
  	IEEE80211_CONF_CHANGE_IDLE		= BIT(8),
-+	IEEE80211_CONF_CHANGE_ACK_TX_POWER	= BIT(9),
++	IEEE80211_CONF_CHANGE_ACK_TXPOWER	= BIT(9),
  };
  
  /**
@@ -35,10 +35,10 @@
   *	Note that this is only valid if channel contexts are not used,
   *	otherwise each channel context has the number of chains listed.
 + *
-+ * @min_tx_power: minimum tx power level in dBm, that is configured for the
++ * @min_txpower: minimum tx power level in dBm, that is configured for the
 + *	hardware. Negative values are possible (e.g. -5 dBm).
 + *
-+ * @ack_tx_power: tx power level in dBm of mac layer ACK packets.
++ * @ack_txpower: tx power level in dBm of mac layer ACK packets.
   */
  struct ieee80211_conf {
  	u32 flags;
@@ -46,8 +46,8 @@
  	struct cfg80211_chan_def chandef;
  	bool radar_enabled;
  	enum ieee80211_smps_mode smps_mode;
-+	s8 min_tx_power;
-+	s8 ack_tx_power;
++	s8 min_txpower;
++	s8 ack_txpower;
  };
  
  /**
@@ -99,7 +99,7 @@
   * @max_nan_de_entries: maximum number of NAN DE functions supported by the
   *	device.
 + *
-+ * @min_tx_power: minimum tx power level in dBm, that is supported by the
++ * @min_txpower: minimum tx power level in dBm, that is supported by the
 + *	hardware. Negative values are possible (e.g. -5 dBm).
   */
  struct ieee80211_hw {
@@ -108,7 +108,7 @@
  	u8 n_cipher_schemes;
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	u8 max_nan_de_entries;
-+	s8 min_tx_power;
++	s8 min_txpower;
  };
  
  static inline bool _ieee80211_hw_check(struct ieee80211_hw *hw,
@@ -197,7 +197,7 @@
  	if (local->hw.conf.power_level != power) {
  		changed |= IEEE80211_CONF_CHANGE_POWER;
  		local->hw.conf.power_level = power;
-+		local->hw.conf.ack_tx_power = power;
++		local->hw.conf.ack_txpower = power;
  	}
  
  	return changed;
@@ -206,10 +206,10 @@
  	local->dynamic_ps_forced_timeout = -1;
  
 +	/*
-+	 * if the driver doesn't specify a min_tx_power we
++	 * if the driver doesn't specify a min txpower we
 +	 * use 0dBm which should be a safe default
 +	 */
-+	local->hw.conf.min_tx_power = local->hw.min_tx_power = 0;
++	local->hw.conf.min_txpower = local->hw.min_txpower = 0;
 +
  	if (!local->hw.max_nan_de_entries)
  		local->hw.max_nan_de_entries = IEEE80211_MAX_NAN_INSTANCE_ID;
