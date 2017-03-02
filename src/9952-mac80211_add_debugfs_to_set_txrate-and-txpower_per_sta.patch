@@ -1,6 +1,6 @@
 --- a/net/mac80211/rc80211_minstrel.c
 +++ b/net/mac80211/rc80211_minstrel.c
-@@ -120,6 +120,15 @@ minstrel_set_rate(struct minstrel_sta_in
+@@ -146,6 +146,15 @@ minstrel_set_rate(struct minstrel_sta_in
  	ratetbl->rate[offset].count = r->adjusted_retry_count;
  	ratetbl->rate[offset].count_cts = r->retry_count_cts;
  	ratetbl->rate[offset].count_rts = r->stats.retry_count_rtscts;
@@ -16,9 +16,30 @@
  }
  
  static void
+@@ -395,7 +404,7 @@ minstrel_get_rate(void *priv, struct iee
+ 	}
+ 
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+-	if (mp->fixed_rate_idx != -1)
++	if ((mp->fixed_rate_idx != -1) || (mi->fixed_txrate != -1))
+ 		return;
+ #endif
+ 
+@@ -450,6 +459,11 @@ minstrel_get_rate(void *priv, struct iee
+ 	sampling_setup->idx = mi->r[sampling_ndx].rix;
+ 	sampling_setup->count = minstrel_get_retry_count(&mi->r[sampling_ndx],
+ 	                                                 info);
++#ifdef CPTCFG_MAC80211_DEBUGFS
++	/* use fixed txpower for rate sampling packets if set */
++	if (mi->fixed_txpower < 0xff)
++		info->control.txpower = mi->fixed_txpower;
++#endif
+ }
+ 
+ static void
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
-@@ -113,6 +113,10 @@ struct minstrel_sta_info {
+@@ -121,6 +121,10 @@ struct minstrel_sta_info {
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	struct dentry *dbg_stats;
  	struct dentry *dbg_stats_csv;
@@ -55,7 +76,7 @@
  }
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -827,6 +827,9 @@ minstrel_ht_set_rate(struct minstrel_pri
+@@ -829,6 +829,9 @@ minstrel_ht_set_rate(struct minstrel_pri
  	u8 idx;
  	u16 flags = group->flags;
  
@@ -81,9 +102,31 @@
  }
  
  static inline int
+@@ -1043,7 +1055,7 @@ minstrel_ht_get_rate(void *priv, struct
+ 	info->flags |= mi->tx_flags;
+ 
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+-	if (mp->fixed_rate_idx != -1)
++	if ((mp->fixed_rate_idx != -1) || (msp->fixed_txrate != -1))
+ 		return;
+ #endif
+ 
+@@ -1145,6 +1157,12 @@ minstrel_ht_get_rate(void *priv, struct
+ 		mi->sample_packets++;
+ 		info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
+ 
++#ifdef CPTCFG_MAC80211_DEBUGFS
++		/* use fixed txpower for rate sampling packets if set */
++		if (msp->fixed_txpower < 0xff)
++			info->control.txpower = msp->fixed_txpower;
++#endif
++
+ 		/* Assign proper sampling parameters */
+ 		sampling_setup->count = 1;
+ 		if (minstrel_mcs_groups[s_group].flags & IEEE80211_TX_RC_MCS) {
 --- a/net/mac80211/rc80211_minstrel_ht.h
 +++ b/net/mac80211/rc80211_minstrel_ht.h
-@@ -113,6 +113,10 @@ struct minstrel_ht_sta_priv {
+@@ -111,6 +111,10 @@ struct minstrel_ht_sta_priv {
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	struct dentry *dbg_stats;
  	struct dentry *dbg_stats_csv;
