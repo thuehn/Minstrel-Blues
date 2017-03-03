@@ -1,0 +1,125 @@
+--- a/drivers/net/wireless/ath/ath5k/ath5k.h
++++ b/drivers/net/wireless/ath/ath5k/ath5k.h
+@@ -1453,7 +1453,7 @@ struct ath5k_hw {
+ 	 */
+ 	int (*ah_setup_tx_desc)(struct ath5k_hw *, struct ath5k_desc *,
+ 		unsigned int, unsigned int, int, enum ath5k_pkt_type,
+-		unsigned int, unsigned int, unsigned int, unsigned int,
++		s8, unsigned int, unsigned int, unsigned int,
+ 		unsigned int, unsigned int, unsigned int, unsigned int);
+ 	int (*ah_proc_tx_desc)(struct ath5k_hw *, struct ath5k_desc *,
+ 		struct ath5k_tx_status *);
+--- a/drivers/net/wireless/ath/ath5k/base.c
++++ b/drivers/net/wireless/ath/ath5k/base.c
+@@ -741,6 +741,7 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+ 	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
+ 	unsigned int pktlen, flags, keyidx = AR5K_TXKEYIX_INVALID;
+ 	struct ieee80211_rate *rate;
++	struct ieee80211_sta_rates *ratetbl;
+ 	unsigned int mrr_rate[3], mrr_tries[3];
+ 	int i, ret;
+ 	u16 hw_rate;
+@@ -757,6 +758,8 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+ 	if (dma_mapping_error(ah->dev, bf->skbaddr))
+ 		return -ENOSPC;
+ 
++	bf->txpower = AR5K_TUNE_MAX_TXPOWER;
++
+ 	ieee80211_get_tx_rates(info->control.vif, (control) ? control->sta : NULL, skb, bf->rates,
+ 			       ARRAY_SIZE(bf->rates));
+ 
+@@ -774,6 +777,13 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+ 
+ 	hw_rate = ath5k_get_rate_hw_value(ah->hw, info, bf, 0);
+ 
++	if (info->control.rates[0].idx >= 0) {
++		bf->txpower = info->control.txpower;
++	} else {
++		ratetbl = rcu_dereference(control->sta->rates);
++		bf->txpower = ratetbl->rate[0].txpower;
++	}
++
+ 	pktlen = skb->len;
+ 
+ 	/* FIXME: If we are in g mode and rate is a CCK rate
+@@ -799,7 +809,7 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+ 	ret = ah->ah_setup_tx_desc(ah, ds, pktlen,
+ 		ieee80211_get_hdrlen_from_skb(skb), padsize,
+ 		get_hw_packet_type(skb),
+-		(ah->ah_txpower.txp_requested * 2),
++		bf->txpower,
+ 		hw_rate,
+ 		bf->rates[0].count, keyidx, ah->ah_tx_ant, flags,
+ 		cts_rate, duration);
+@@ -1819,6 +1829,7 @@ ath5k_beacon_setup(struct ath5k_hw *ah,
+ 	u8 antenna;
+ 	u32 flags;
+ 	const int padsize = 0;
++	s8 txpower = ah->ah_txpower.txp_requested * 2;
+ 
+ 	bf->skbaddr = dma_map_single(ah->dev, skb->data, skb->len,
+ 			DMA_TO_DEVICE);
+@@ -1872,7 +1883,7 @@ ath5k_beacon_setup(struct ath5k_hw *ah,
+ 	ret = ah->ah_setup_tx_desc(ah, ds, skb->len,
+ 			ieee80211_get_hdrlen_from_skb(skb), padsize,
+ 			AR5K_PKT_TYPE_BEACON,
+-			(ah->ah_txpower.txp_requested * 2),
++			txpower,
+ 			ieee80211_get_tx_rate(ah->hw, info)->hw_value,
+ 			1, AR5K_TXKEYIX_INVALID,
+ 			antenna, flags, 0, 0);
+--- a/drivers/net/wireless/ath/ath5k/base.h
++++ b/drivers/net/wireless/ath/ath5k/base.h
+@@ -68,6 +68,7 @@ struct ath5k_buf {
+ 	struct sk_buff			*skb;		/* skbuff for buf */
+ 	dma_addr_t			skbaddr;	/* physical addr of skb data */
+ 	struct ieee80211_tx_rate	rates[4];	/* number of multi-rate stages */
++	s8 txpower;					/* txpower per packet */
+ };
+ 
+ struct ath5k_vif {
+--- a/drivers/net/wireless/ath/ath5k/desc.c
++++ b/drivers/net/wireless/ath/ath5k/desc.c
+@@ -77,7 +77,7 @@ ath5k_hw_setup_2word_tx_desc(struct ath5
+ 			unsigned int pkt_len, unsigned int hdr_len,
+ 			int padsize,
+ 			enum ath5k_pkt_type type,
+-			unsigned int tx_power,
++			s8 txpower,
+ 			unsigned int tx_rate0, unsigned int tx_tries0,
+ 			unsigned int key_index,
+ 			unsigned int antenna_mode,
+@@ -243,7 +243,7 @@ ath5k_hw_setup_4word_tx_desc(struct ath5
+ 			unsigned int pkt_len, unsigned int hdr_len,
+ 			int padsize,
+ 			enum ath5k_pkt_type type,
+-			unsigned int tx_power,
++			s8 txpower,
+ 			unsigned int tx_rate0, unsigned int tx_tries0,
+ 			unsigned int key_index,
+ 			unsigned int antenna_mode,
+@@ -278,9 +278,12 @@ ath5k_hw_setup_4word_tx_desc(struct ath5
+ 		return -EINVAL;
+ 	}
+ 
+-	tx_power += ah->ah_txpower.txp_offset;
+-	if (tx_power > AR5K_TUNE_MAX_TXPOWER)
+-		tx_power = AR5K_TUNE_MAX_TXPOWER;
++	if (txpower > ah->ah_txpower.txp_requested)
++		txpower = ah->ah_txpower.txp_requested;
++	txpower *= 2;
++	txpower += ah->ah_txpower.txp_offset;
++	if (txpower > AR5K_TUNE_MAX_TXPOWER)
++		txpower = AR5K_TUNE_MAX_TXPOWER;
+ 
+ 	/* Clear descriptor status area */
+ 	memset(&desc->ud.ds_tx5212.tx_stat, 0,
+@@ -309,7 +312,7 @@ ath5k_hw_setup_4word_tx_desc(struct ath5
+ 
+ 	txctl1 = pkt_len & AR5K_4W_TX_DESC_CTL1_BUF_LEN;
+ 
+-	txctl0 |= AR5K_REG_SM(tx_power, AR5K_4W_TX_DESC_CTL0_XMIT_POWER) |
++	txctl0 |= AR5K_REG_SM(txpower, AR5K_4W_TX_DESC_CTL0_XMIT_POWER) |
+ 		  AR5K_REG_SM(antenna_mode, AR5K_4W_TX_DESC_CTL0_ANT_MODE_XMIT);
+ 	txctl1 |= AR5K_REG_SM(type, AR5K_4W_TX_DESC_CTL1_FRAME_TYPE);
+ 	txctl2 = AR5K_REG_SM(tx_tries0, AR5K_4W_TX_DESC_CTL2_XMIT_TRIES0);
