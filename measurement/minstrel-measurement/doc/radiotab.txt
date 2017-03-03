@@ -1,0 +1,78 @@
+bit name            structure                               align   unit
+---------------------------------------------------------------------------------
+0   TSFT            u64 mactime                             8       microseconds
+1   Flags           u8 flags                                -       bitmap
+2   Rate            u8                                      -       500 Kbps
+3   Channel         u16 frequency, u16 flags                2       MHz, bitmap 
+4   FHSS            u8 hop set, u8 hop pattern              -       ??
+5   Antenna signal  s8                                      -       dBm
+6   Antenna noise   s8                                      -       dBm
+7   Lock quality    u16                                     2       unitless
+8   TX attenuation  u16                                     2       unitless
+9   dB TX attenuation u16                                   2       dB
+10  dBm TX power    s8                                      1       dBm
+11  Antenna         u8                                      -
+12  dB antenna signal u8                                    -       dB
+13  dB antenna noise u8                                     -       dB
+14  RX flags        u16                                     2       bitmap
+19  MCS             u8 known, u8 flags, u8 mcs              1       
+20  A-MPDU status   u32 reference number, u16 flags,        4       antenna index
+                    u8 delimiter CRC value, u8 reserved
+21  VHT             u16 known, u8 flags, u8 bandwidth,      2       
+                    u8 mcs_nss[4], u8 coding, u8 group_id, 
+                    u16 partial_aid
+22  timestamp       u64 timestamp, u16 accuracy,            8       as defined, as defined, none, none
+                    u8 unit/position, u8 flags
+
+not applicable
+29  Radiotap Namespace
+30  Vendor Namespace
+
+Flags flags
+0x01 	sent/received during CFP
+0x02 	sent/received with short preamble
+0x04 	sent/received with WEP encryption
+0x08 	sent/received with fragmentation
+0x10 	frame includes FCS
+0x20 	frame has padding between 802.11 header and payload (to 32-bit boundary)
+0x40 	frame failed FCS check
+unspecified but used
+0x80 	frame used short guard interval (HT)
+
+Channel flags
+0x0010 	Turbo Channel
+0x0020 	CCK channel
+0x0040 	OFDM channel
+0x0080 	2 GHz spectrum channel
+0x0100 	5 GHz spectrum channel
+0x0200 	Only passive scan allowed
+0x0400 	Dynamic CCK-OFDM channel
+0x0800 	GFSK channel (FHSS PHY)
+
+MCS known
+0x01 	bandwidth
+0x02 	MCS index known (in mcs part of the field)
+0x04 	guard interval
+0x08 	HT format
+0x10 	FEC type
+0x20 	STBC known
+0x40 	Ness known (Number of extension spatial streams)
+0x80 	Ness data - bit 1 (MSB) of Number of extension spatial streams
+
+MCS flags
+0x03 	bandwidth - 0: 20, 1: 40, 2: 20L, 3: 20U
+0x04 	guard interval - 0: long GI, 1: short GI
+0x08 	HT format - 0: mixed, 1: greenfield
+0x10 	FEC type - 0: BCC, 1: LDPC
+0x60 	Number of STBC streams
+0x80 	Ness - bit 0 (LSB) of Number of extension spatial streams
+
+MCS mcs field indicates the MCS rate index as in IEEE_802.11n-2009
+
+A-MPDU status flags
+0x0001 driver reports 0-length subframes
+0x0002 frame is 0-length subframe (valid only if 0x0001 is set)
+0x0004 last subframe is known (should be set for all subframes in an A-MPDU)
+0x0008 this frame is the last subframe
+0x0010 delimiter CRC error
+0x0020 delimiter CRC value known: the delimiter CRC value field is valid
