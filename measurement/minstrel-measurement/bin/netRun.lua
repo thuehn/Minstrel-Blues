@@ -3,7 +3,6 @@
 -- TODO:
 -- - openwrt package: fetch sources for argparse, luarpc, pcap-lua, pprint-lua and lua-ex with git
 -- - rpc: transfer tcpdump binary lines/packages online
--- - analyse pcap
 -- sample rate from luci-regmon
 -- built test client with command line arg which router should run the test
 --   -- unit test (rpc in init of the unit tests base class)

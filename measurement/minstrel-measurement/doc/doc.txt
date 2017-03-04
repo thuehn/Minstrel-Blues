@@ -26,21 +26,30 @@ lua-posix: process id [+openwrt]
 lua-ex: spawn process [+openwrt]
 lua-argparse: command line parser / interface [+openwrt]
 lua-rpc: remote procedure calls for lua [+openwrt]
-pcap-lua: parse pcap files [-openwrt]
+pcap-lua: parse pcap files [+openwrt]
+LuaBitOp [-openwrt]
 
 runtime
 -------
+lua
 tcpdump: dump monitor interface packets
 iperf (NOT iperf3): generation of payload for measurement
 cputime: cpu load
 ping: reachablity
 ssh/ssh-keygen: start/stop nodes, with authorized keys
+dropbear-ssh,dropbearkeygen:
 kill: stop processes
 iw, ifconfig: add monitor
 tee: split tcpdump output
 ssh-add, ssh-agent: local ssh authorizer for remote command execution (~/.ssh# ssh-add id_rsa)
+dropbear: 
 bind-dig: optain ip addresses
 hostname: query hostname ( testing only )
+free: monitor memory
+dig: resolve hostnames
+uci, wifi: wifi configuration (openwrt only)
+coreutils date: sync time
+busybox date: sync time on openwrt
 
 logging
 =======
