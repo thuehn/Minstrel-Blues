@@ -21,9 +21,6 @@ if (cap ~= nil) then
         local rest = capdata
         local radiotap_header
         local radiotap_data
-        local ethernet_header
-        local ip_header
-        local tcp_header
         radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
         radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
 		local ssid = radiotap_data['ssid']
@@ -48,20 +45,6 @@ if (cap ~= nil) then
 			print ( "db_antenna_signal: " .. ( radiotap_header ['db_antenna_signal'] or "not present" ) )
 			print ( "db_antenna_noise: " .. ( radiotap_header ['db_antenna_noise'] or "not present" ) )
 		end
-        --ethernet_header, rest = PCAP.parse_ethernet_header ( rest )
-        --print ( PCAP.mac_tostring ( ethernet_header['eth_src'] ) )
-        --print ( PCAP.mac_tostring ( ethernet_header['eth_dest'] ) )
-        --ip_header, rest = PCAP.parse_ip_header ( rest )
-        --tcp_header, rest = PCAP.parse_tcp_header ( rest )
-        --payload
-        --print ( PCAP.ip_tostring ( ip_header['ip_src'] ) )
-        --print ( PCAP.ip_tostring ( ip_header['ip_dest'] ) )
-        --print ( PCAP.to_bytes ( rest ) )
-        --for i = 1, #capdata do
-        --    --print ( to_bytes ( string.sub ( capdata, i ) ) )
-        --    print ( i .. ": " .. PCAP.ip_tostring ( PCAP.read_int32 ( string.sub ( capdata, i ) ) ) )
-        --    if ( i > #capdata - 4 ) then break end
-        --end
     end
 
     cap:close()

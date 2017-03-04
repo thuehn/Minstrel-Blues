@@ -20,6 +20,7 @@ PCAP.radiotap_type [ "IEEE80211_RADIOTAP_ANTENNA" ] = 12
 PCAP.radiotap_type [ "IEEE80211_RADIOTAP_DB_ANTSIGNAL" ] = 13
 PCAP.radiotap_type [ "IEEE80211_RADIOTAP_DB_ANTNOISE" ] = 14
 PCAP.radiotap_type [ "IEEE80211_RADIOTAP_RX_FLAGS" ] = 15
+PCAP.radiotap_type [ "IEEE80211_RADIOTAP_NS_NEXT" ] = 30
 PCAP.radiotap_type [ "IEEE80211_RADIOTAP_EXT" ] = 32
 
 PCAP.radiotap_flags = {}
@@ -221,10 +222,14 @@ PCAP.parse_radiotap_header = function ( capdata )
     local has_ext = PCAP.hasbit( ret['it_present'], PCAP.bit( PCAP.radiotap_type [ "IEEE80211_RADIOTAP_EXT" ] ) )
     if ( has_ext ) then
         ret ['it_present_ex'], rest = PCAP.read_int32 ( rest )
-        _, rest = PCAP.read_int32 ( rest )
-        -- ( when bit 31 was set then the extended bitmap appears three times)
-        _, rest = PCAP.read_int32 ( rest )
-        _, rest = PCAP.read_int32 ( rest )
+        -- #antennas
+        local bitmask
+        repeat
+            --print ( "read mask" )
+            bitmask, rest = PCAP.read_int32 ( rest )
+        until ( PCAP.hasbit ( bitmask, PCAP.bit ( PCAP.radiotap_type [ "IEEE80211_RADIOTAP_NS_NEXT" ] ) ) == false )
+        -- fixme: IEEE80211_RADIOTAP_NS_NEXT defines whether more data is specified
+        bitmask, rest = PCAP.read_int32 ( rest )
     end
 
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_TSFT' ] )  ) ) then

@@ -288,7 +288,7 @@ function ControlNode:connect_nodes ( ctrl_port )
         local status
         local rpc
         local err
-        local retrys = 5
+        local retrys = 10
         repeat
             status, rpc = pcall ( connect_rpc )
             retrys = retrys -1

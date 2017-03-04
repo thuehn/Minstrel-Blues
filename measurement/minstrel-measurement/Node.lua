@@ -376,10 +376,9 @@ function Node:get_tx_power ( phy, station )
 end
 
 function Node:set_tx_rate ( phy, station, tx_rate_idx )
-    self:send_info("Set tx rate idx for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx)
+    self:send_info("Set tx rate index for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    self:send_info("Set tx rate index for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx)
     local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txrate"
     local file = io.open ( fname )
     if ( file ~= nil) then
@@ -492,7 +491,7 @@ function Node:stop_rc_stats ( pid, station )
     self:send_info("stop collecting rc stats with pid " .. pid)
     local exit_code = self:kill ( pid )
     self.rc_stats_procs [ station ] ['proc']:wait()
-    return ret
+    return exit_code
 end
 
 -- --------------------------

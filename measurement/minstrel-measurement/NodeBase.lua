@@ -112,7 +112,7 @@ function NodeBase:connect_logger ()
     local status
     local logger
     local err
-    local retrys = 5
+    local retrys = 10
     repeat
         status, logger, err = pcall ( connect )
         retrys = retrys -1

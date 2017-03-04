@@ -1,4 +1,6 @@
+-- 1 run: 0.41s user 0.75s system 0% cpu 1:49:45.91 total
 
+-- runs an multicast experiment with fixed rate and fixed power setting
 McastExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil }
 
 function McastExperiment:new (o)
@@ -26,12 +28,17 @@ function McastExperiment:keys ( ap_ref )
     local keys = {}
     if ( self.tx_rates == nil ) then
         self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
+    else
+        self.tx_rates = split ( self.tx_rates, "," )
     end
+
     if ( self.tx_powers == nil ) then
         self.tx_powers = {}
         for i = 1, 25 do
             self.tx_powers[i] = i
         end
+    else
+        self.tx_powers = split ( self.tx_powers, "," )
     end
     self.control:send_debug( "run multicast experiment for rates " .. table_tostring ( self.tx_rates ) )
     self.control:send_debug( "run multicast experiment for powers " .. table_tostring ( self.tx_powers ) )

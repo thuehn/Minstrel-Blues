@@ -82,8 +82,9 @@ function Measurement:__tostring()
             out = out .. tostring(count) .. "\n"
             cap:close()
         else
-            print ("pcap open failed: " .. fname)
+            print ("Measurement: pcap open failed: " .. fname)
         end
+        os.remove ( fname )
     end
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then

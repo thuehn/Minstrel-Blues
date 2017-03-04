@@ -50,7 +50,6 @@ function TcpExperiment:get_power( key )
     return split ( key, "-" ) [2]
 end
 
-
 function TcpExperiment:prepare_measurement ( ap_ref )
     ap_ref:create_measurement()
     ap_ref.stats:enable_rc_stats ( ap_ref.stations )

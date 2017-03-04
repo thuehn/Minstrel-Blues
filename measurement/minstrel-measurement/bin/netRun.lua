@@ -4,7 +4,6 @@
 -- - openwrt package: fetch sources for argparse, luarpc, pcap-lua, pprint-lua and lua-ex with git
 -- - add LuaBitOp LEDE package
 -- - rpc: transfer tcpdump binary lines/packages online
--- sample rate from luci-regmon
 -- built test client with command line arg which router should run the test
 --   -- unit test (rpc in init of the unit tests base class)
 -- auto-tools, Makefile, luac, configue ifconfig, date, ...
@@ -12,21 +11,22 @@
 -- implement experiments with streams
 -- cleanup nodes before os.exit
 -- erease debug table in production ( debug = nil )
--- sample rate rc_stats, regmon-stats, cpusage (how many updates / second)
+-- sample rate rc_stats, regmon-stats, cpusage (how many updates / second) from luci regmon
 
---pprint = require ('pprint')
+pprint = require ('pprint')
 
 local argparse = require "argparse"
 require ('parsers/argparse_con')
 
+require ('lfs')
 require ('misc')
 
 require ('Config')
 require ('NetIF')
 require ('ControlNodeRef')
 require ('Measurement')
-
-require ('pcap')
+require ('Analyser')
+require ('SNRRenderer')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
@@ -68,7 +68,7 @@ parser:option ("-I --cct_intervals", "send iperf traffic intervals in millisecon
 parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" )
 
 parser:option ("--tx_rates", "TX rate indices")
-parser:option ("--tx_power", "TX power indices")
+parser:option ("--tx_powers", "TX power indices")
 
 parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes", false )
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
@@ -314,6 +314,9 @@ end
 
 -- ----------------------------------------------------------
 
+print ( "Wait 3 seconds for nodes initialisation" )
+os.sleep (3)
+
 -- and connect to nodes
 print ("connect to nodes at port " .. args.ctrl_port )
 if ( ctrl_rpc.connect_nodes ( args.ctrl_port ) == false ) then
@@ -410,11 +413,18 @@ end
 
 local data
 if (args.command == "tcp") then
-    data = { runs, args.tx_powers, args.tx_rates, args.tcpdata }
+    data = { runs, args.tx_powers, args.tx_rates
+           , args.tcpdata 
+           }
 elseif (args.command == "mcast") then
-    data = { runs, args.tx_powers, args.tx_rates, args.interval }
+    data = { runs, args.tx_powers, args.tx_rates
+           , args.interval 
+           }
 elseif (args.command == "udp") then
-    data = { runs, args.tx_powers, args.tx_rates, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval }
+    data = { runs, args.tx_powers, args.tx_rates
+           , args.packet_sizes, args.cct_intervals
+           , args.packet_rates, args.interval 
+           }
 else
     show_config_error ( parser, "command")
 end
@@ -423,6 +433,7 @@ local status = ctrl_rpc.run_experiments ( args.command, data, ap_names )
 
 if (status == true) then
     print ( )
+
     local all_stats = ctrl_rpc.get_stats()
     for name, stats in pairs ( all_stats ) do
 
@@ -441,6 +452,17 @@ if (status == true) then
         print ( name )
         print ( measurement:__tostring() )
         print ( )
+        
+        local analyser = Analyser:create ()
+        analyser:add_measurement ( measurement )
+        local snrs = analyser:snrs ()
+        pprint ( snrs )
+        print ( )
+
+        local renderer = SNRRenderer:create ( snrs )
+        local dirname = "/tmp/" .. name
+        lfs.mkdir(dirname)
+        renderer:run ( dirname )
     end
 end
 
