@@ -1,6 +1,6 @@
 require ('Experiment')
 
-TcpExperiment = { control = nil, runs = nil, tcpdata = nil }
+TcpExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, tcpdata = nil }
 
 
 function TcpExperiment:new (o)
@@ -12,16 +12,42 @@ end
 
 
 function TcpExperiment:create ( control, data )
-    local o = TcpExperiment:new( { control = control, runs = data[1], tcpdata = data[2] } )
+    local o = TcpExperiment:new( { control = control, runs = data[1], tx_powers = data[2], tx_rates = data[3], tcpdata = data[2] } )
     return o
 end
 
 function TcpExperiment:keys ( ap_ref )
     local keys = {}
-    for run = 1, self.runs do
-        keys [ #keys + 1 ] = tostring ( run )
+    if ( self.tx_rates == nil ) then
+        self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
     end
+    if ( self.tx_powers == nil ) then
+        self.tx_powers = {}
+        for i = 1, 25 do
+            self.tx_powers[i] = i
+        end
+    end
+    self.control:send_debug( "run tcp experiment for rates " .. table_tostring ( self.tx_rates ) )
+    self.control:send_debug( "run tcp experiment for powers " .. table_tostring ( self.tx_powers ) )
+
+    for run = 1, self.runs do
+        for _, tx_rate in ipairs ( self.tx_rates ) do
+            for _, tx_power in ipairs ( self.tx_powers ) do
+                local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring( run )
+                keys [ #keys + 1 ] = key
+            end
+        end
+    end
+
     return keys
+end
+
+function TcpExperiment:get_rate( key )
+    return split ( key, "-" ) [1]
+end
+
+function TcpExperiment:get_power( key )
+    return split ( key, "-" ) [2]
 end
 
 
@@ -35,6 +61,8 @@ function TcpExperiment:settle_measurement ( ap_ref, key, retrys )
     local linked = ap_ref:wait_linked ( retrys )
     local visible = ap_ref:wait_station ( retrys )
     ap_ref:add_monitor ()
+    ap_ref:set_tx_power ( self:get_power ( key ) )
+    ap_ref:set_tx_rate ( self:get_rate ( key ) )
     return (linked and visible)
 end
 

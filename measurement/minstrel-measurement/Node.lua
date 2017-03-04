@@ -376,6 +376,7 @@ function Node:get_tx_power ( phy, station )
 end
 
 function Node:set_tx_rate ( phy, station, tx_rate_idx )
+    self:send_info("Set tx rate idx for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_info("Set tx rate index for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx)
@@ -451,7 +452,7 @@ function Node:start_rc_stats ( phy, stations )
         local file = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
                         .. station .. "/rc_stats_csv"
         -- for _, name in ipairs ( scandir ( debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" ) ) do
-        --     self:send_debug ( "proc station: " .. name )
+        --      self:send_debug ( "proc station: " .. name )
         -- end
         -- self:send_debug( file .. " exists: " .. tostring ( isFile ( file ) ) )
         local rc_stats = spawn_pipe ( "lua", "bin/fetch_file.lua", "-i", "500000", file )
@@ -475,7 +476,7 @@ function Node:get_rc_stats ( phy, station )
         return nil
     end
     self:send_info("send rc-stats for " .. iface ..  ", station " .. station)
-    if ( self.rc_stats_procs [ station ] == nil) then return nil end
+    if ( self.rc_stats_procs [ station ] == nil ) then return nil end
     self:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ] [ 'proc' ]:__tostring() )
     local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
@@ -483,13 +484,15 @@ function Node:get_rc_stats ( phy, station )
     return content 
 end
 
-function Node:stop_rc_stats ( pid )
+function Node:stop_rc_stats ( pid, station )
     if ( pid == nil ) then 
         self:send_error ( "Cannot kill rc stats because pid is nil!" )
         return nil
     end
     self:send_info("stop collecting rc stats with pid " .. pid)
-    return self:kill ( pid )
+    local exit_code = self:kill ( pid )
+    self.rc_stats_procs [ station ] ['proc']:wait()
+    return ret
 end
 
 -- --------------------------
@@ -524,8 +527,10 @@ function Node:get_regmon_stats ()
 end
 
 function Node:stop_regmon_stats ( pid )
-    self:send_info("stop collecting regmon stats with pid " .. pid)
-    return self:kill ( pid )
+    self:send_info ("stop collecting regmon stats with pid " .. pid)
+    local exit_code = self:kill ( pid )
+    self.regmon_proc['proc']:wait()
+    return exit_code
 end
 
 -- --------------------------
@@ -552,7 +557,9 @@ end
 function Node:stop_cpusage ( pid )
     self:send_info("stop cpusage with pid " .. pid)
     -- self.cpusage_proc = nil -- needed to read pipe
-    return self:kill ( pid )
+    local exit_code = self:kill ( pid )
+    self.cpusage_proc['proc']:wait()
+    return exit_code
 end
 
 -- --------------------------
@@ -595,7 +602,9 @@ end
 -- TODO: unlock
 function Node:stop_tcpdump ( pid )
     self:send_info("stop tcpdump with pid " .. pid)
-    return self:kill ( pid )
+    local exit_code = self:kill ( pid )
+    self.tcpdump_proc['proc']:wait()
+    return exit_code
 end
 
 -- --------------------------

@@ -2,6 +2,7 @@
 
 -- TODO:
 -- - openwrt package: fetch sources for argparse, luarpc, pcap-lua, pprint-lua and lua-ex with git
+-- - add LuaBitOp LEDE package
 -- - rpc: transfer tcpdump binary lines/packages online
 -- sample rate from luci-regmon
 -- built test client with command line arg which router should run the test
@@ -11,7 +12,7 @@
 -- implement experiments with streams
 -- cleanup nodes before os.exit
 -- erease debug table in production ( debug = nil )
--- sample rate rc_stats (how many updates / second)
+-- sample rate rc_stats, regmon-stats, cpusage (how many updates / second)
 
 --pprint = require ('pprint')
 
@@ -65,6 +66,9 @@ parser:option ("-S --packet_sizes", "Amount of UDP data", "1500" )
 parser:option ("-R --packet_rates", "Rates of UDP data", "50,200,600,1200" )
 parser:option ("-I --cct_intervals", "send iperf traffic intervals in milliseconds", "20000,50,100,1000" )
 parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" )
+
+parser:option ("--tx_rates", "TX rate indices")
+parser:option ("--tx_power", "TX power indices")
 
 parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes", false )
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
@@ -406,11 +410,11 @@ end
 
 local data
 if (args.command == "tcp") then
-    data = { runs, args.tcpdata }
+    data = { runs, args.tx_powers, args.tx_rates, args.tcpdata }
 elseif (args.command == "mcast") then
-    data = { runs, args.interval }
+    data = { runs, args.tx_powers, args.tx_rates, args.interval }
 elseif (args.command == "udp") then
-    data = { runs, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval }
+    data = { runs, args.tx_powers, args.tx_rates, args.packet_sizes, args.cct_intervals, args.packet_rates, args.interval }
 else
     show_config_error ( parser, "command")
 end

@@ -158,9 +158,9 @@ function Measurement:stop ()
     end
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
-        for _, rc_proc in ipairs ( self.rc_stats_procs ) do
+        for i, rc_proc in ipairs ( self.rc_stats_procs ) do
             if ( rc_proc ~= nil ) then
-                local exit_code = self.rpc_node.stop_rc_stats( rc_proc['pid'] )
+                local exit_code = self.rpc_node.stop_rc_stats( rc_proc['pid'], self.stations[i] )
             end
         end
     end

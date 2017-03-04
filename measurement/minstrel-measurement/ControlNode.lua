@@ -327,10 +327,14 @@ end
 function ControlNode:run_experiments ( command, args, ap_names )
 
     function check_mem ( mem, name )
-        if ( mem < 20240 ) then
+        -- local warn_threshold = 40960
+        local warn_threshold = 10240
+        local error_threshold = 8192
+        -- local error_threshold = 20280
+        if ( mem < error_threshold ) then
             self:send_error ( name .. " is running out of memory. stop here" )
             return false
-        elseif ( mem < 40480 ) then
+        elseif ( mem < warn_threshold ) then
             self:send_warning ( name .. " has low memory." )
         end
         return true
@@ -365,9 +369,15 @@ function ControlNode:run_experiments ( command, args, ap_names )
         keys[i] = exp:keys ( ap_ref )
     end
 
-    self:send_info ( "Run experiment." )
     local stop = false
+    local num_keys = #keys[1]
+    local counter = 1
+    self:send_info ( "Run " .. num_keys .. " experiments." )
     for _, key in ipairs ( keys[1] ) do -- fixme: smallest set of keys
+
+        self:send_info ("**********************************************")
+        self:send_info ("Start experiment " .. counter .. " of " .. num_keys .. ".")
+        self:send_info ("**********************************************")
 
         for _, ap_ref in ipairs ( ap_refs ) do
             local free_m = ap_ref:get_free_mem ()
@@ -412,7 +422,7 @@ function ControlNode:run_experiments ( command, args, ap_names )
         -- -------------------------------------------------------
         -- Experiment
         -- -------------------------------------------------------
-            
+
         self:send_info ("Start Experiment")
         for _, ap_ref in ipairs ( ap_refs ) do
              if ( exp:start_experiment ( ap_ref, key ) == false ) then
@@ -437,6 +447,7 @@ function ControlNode:run_experiments ( command, args, ap_names )
             exp:unsettle_measurement ( ap_ref, key )
         end
 
+        counter = counter + 1
     end
 
     self:send_info ( "Copy stats from nodes." )

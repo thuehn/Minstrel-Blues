@@ -3,7 +3,8 @@ require ('functional') -- head
 require ('Experiment')
 require ('misc')
 
-UdpExperiment = { control = control, runs = nil, packet_sizes = nil, cct_intervals = nil, packet_rates = nil, udp_interval = nil }
+UdpExperiment = { control = control, runs = nil, tx_powers = nil, tx_rates = nil,
+                  packet_sizes = nil, cct_intervals = nil, packet_rates = nil, udp_interval = nil }
 
 
 function UdpExperiment:new (o)
@@ -17,27 +18,56 @@ end
 function UdpExperiment:create ( data )
     local o = UdpExperiment:new( { control = control
                                  , runs = data[1]
-                                 , packet_sizes = data[2]
-                                 , cct_intervals = data[3]
-                                 , packet_rates = data[4]
-                                 , udp_interval = data[5]
+                                 , tx_powers = data[2]
+                                 , tx_rates = data[3]
+                                 , packet_sizes = data[4]
+                                 , cct_intervals = data[5]
+                                 , packet_rates = data[6]
+                                 , udp_interval = data[7]
                                  } )
     return o
 end
 
 function UdpExperiment:keys ( ap_ref )
     local keys = {}
-    for _, interval in ipairs ( split( self.cct_intervals, ",") ) do
-        -- fixme: attenuate
-        -- https://github.com/thuehn/Labbrick_Digital_Attenuator
-        for _, rate in ipairs ( split ( self.packet_rates, ",") ) do
-            for run = 1, self.runs do
-                local key = tostring(rate) .. "-" .. tostring(interval) .. "-" .. tostring(run)
-                keys [ #keys + 1 ] = key
+    if ( self.tx_rates == nil ) then
+        self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
+    end
+    if ( self.tx_powers == nil ) then
+        self.tx_powers = {}
+        for i = 1, 25 do
+            self.tx_powers[i] = i
+        end
+    end
+    self.control:send_debug( "run udp experiment for rates " .. table_tostring ( self.tx_rates ) )
+    self.control:send_debug( "run udp experiment for powers " .. table_tostring ( self.tx_powers ) )
+
+    -- fixme: attenuate
+    -- https://github.com/thuehn/Labbrick_Digital_Attenuator
+    for run = 1, self.runs do
+        for _, tx_rate in ipairs ( self.tx_rates ) do
+            for _, tx_power in ipairs ( self.tx_powers ) do
+                for _, interval in ipairs ( split( self.cct_intervals, ",") ) do
+                    for _, rate in ipairs ( split ( self.packet_rates, ",") ) do
+                        local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) 
+                                    .. "-" .. tostring(rate) .. "-" .. tostring(interval)
+                                    .. "-" .. tostring( run )
+                        keys [ #keys + 1 ] = key
+                    end
+                end
             end
         end
     end
+
     return keys
+end
+
+function UdpExperiment:get_rate( key )
+    return split ( key, "-" ) [1]
+end
+
+function UdpExperiment:get_power( key )
+    return split ( key, "-" ) [2]
 end
 
 function UdpExperiment:prepare_measurement ( ap_ref )
@@ -50,6 +80,8 @@ function UdpExperiment:settle_measurement ( ap_ref, key, retrys )
     local linked = ap_ref:wait_linked ( retrys )
     local visible = ap_ref:wait_station ( retrys )
     ap_ref:add_monitor ()
+    ap_ref:set_tx_power ( self:get_power ( key ) )
+    ap_ref:set_tx_rate ( self:get_rate ( key ) )
     return (linked and visible)
 end
 

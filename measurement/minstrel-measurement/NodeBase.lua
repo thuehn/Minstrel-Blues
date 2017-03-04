@@ -48,6 +48,7 @@ end
 
 function NodeBase:get_free_mem ()
     local free_proc = spawn_pipe("free" )
+    free_proc['proc']:wait()
     local free_str = free_proc['out']:read("*a")
     close_proc_pipes ( free )
     local free = parse_free ( free_str )
@@ -97,7 +98,6 @@ function NodeBase:kill ( pid, signal )
         self:send_warning("try to kill pid " .. pid)
         return nil
     end
-    -- TODO: creates zombies
 end
 
 -- -------------------------

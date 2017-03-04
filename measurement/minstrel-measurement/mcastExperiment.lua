@@ -1,5 +1,5 @@
 
-McastExperiment = { control = nil, runs = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil }
+McastExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil }
 
 function McastExperiment:new (o)
     local o = o or {}
@@ -17,17 +17,21 @@ function McastExperiment:get_power( key )
 end
 
 function McastExperiment:create ( control, data )
-    local o = McastExperiment:new( { control = control, runs = data[1], udp_interval = data[2] } )
+    local o = McastExperiment:new( { control = control, runs = data[1], tx_powers = data[2], tx_rates = data[3], udp_interval = data[4] } )
     return o
 end
 
 function McastExperiment:keys ( ap_ref )
 
     local keys = {}
-    self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
-    self.tx_powers = {}
-    for i = 1, 25 do
-        self.tx_powers[i] = i
+    if ( self.tx_rates == nil ) then
+        self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
+    end
+    if ( self.tx_powers == nil ) then
+        self.tx_powers = {}
+        for i = 1, 25 do
+            self.tx_powers[i] = i
+        end
     end
     self.control:send_debug( "run multicast experiment for rates " .. table_tostring ( self.tx_rates ) )
     self.control:send_debug( "run multicast experiment for powers " .. table_tostring ( self.tx_powers ) )
@@ -55,7 +59,8 @@ function McastExperiment:settle_measurement ( ap_ref, key, retrys )
     local linked = ap_ref:wait_linked ( retrys )
     local visible = ap_ref:wait_station ( retrys )
     ap_ref:add_monitor ()
-    ap_ref:set_tx_power( self:get_power ( key ) )
+    ap_ref:set_tx_power ( self:get_power ( key ) )
+    ap_ref:set_tx_rate ( self:get_rate ( key ) )
     return (linked and visible)
 end
 
