@@ -42,7 +42,7 @@ PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_PASSIVE" ] = 10
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_DYN" ] = 11
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_GFSK" ] = 12
 
--- converts a number 'mask' with size 'len'
+-- converts a number 'mask' of with size 'len'
 -- into a string in binary representation
 -- (in reversed order)
 PCAP.bitmask_tostring = function ( mask, len )
@@ -129,7 +129,6 @@ PCAP.read_int64 = function ( bytes )
     return num, rest
 end
 
--- read 6 bytes from head of 'bytes' and truncate from
 PCAP.read_mac = function ( bytes )
     local ret = {}
     for i = 1, 6 do
@@ -139,8 +138,6 @@ PCAP.read_mac = function ( bytes )
     return ret, rest
 end
 
--- convert 6 bytes array 'mac' into mac address string
--- fixme: duplicate
 PCAP.mac_tostring = function ( mac )
     if ( #mac ~= 6 ) then return "not a mac addr" end
     local ret = ""
@@ -151,8 +148,6 @@ PCAP.mac_tostring = function ( mac )
     return ret
 end
 
--- read 'len' bytes from head of 'bytes' and truncate from
--- return red bytes as string
 PCAP.read_str = function ( bytes, len )
     local str = ""
     local rest = bytes
@@ -198,21 +193,16 @@ PCAP.parse_radiotap_data = function ( capdata )
     return ret, rest
 end
 
--- parse radiotap header from head of 'capdata' and truncate the whole
--- header block from 'capdata'
--- (currently the first 16 sub blocks are parsed only)
--- alignment in sub blocks doesn't matter because of the absence of memory mapping
+-- https://www.kernel.org/doc/Documentation/networking/radiotap-headers.txt
+-- 1 byte it_version header version (always 0)
+-- 1 byte .          padding ( to fit alignment )
+-- 2 bytes it_len    total header and data length
+-- 4 byte it_present bitmask ( bit 31 is set when theres a 64bit bitmask instead of a 32bit bitmask
 PCAP.parse_radiotap_header = function ( capdata )
-
-    -- https://www.kernel.org/doc/Documentation/networking/radiotap-headers.txt
-    -- 1 byte it_version header version (always 0)
-    -- 1 byte .          padding ( to fit alignment )
-    -- 2 bytes it_len    total header and sub block length
-    -- 4 byte it_present bitmask ( bit 31 is set when theres a 64bit bitmask instead of a 32bit bitmask
-
     local ret = {}
     local rest = capdata
 
+    -- radiotap header
     ret ['it_ver'], rest = PCAP.read_int8 ( rest )
     _, rest = PCAP.read_int8 ( rest ) -- 1 byte padding
     ret ['it_len'], rest = PCAP.read_int16 ( rest )
@@ -222,7 +212,6 @@ PCAP.parse_radiotap_header = function ( capdata )
     if ( has_ext ) then
         ret ['it_present_ex'], rest = PCAP.read_int32 ( rest )
         _, rest = PCAP.read_int32 ( rest )
-        -- ( when bit 31 was set then the extended bitmap appears three times)
         _, rest = PCAP.read_int32 ( rest )
         _, rest = PCAP.read_int32 ( rest )
     end

@@ -2,7 +2,7 @@ require ('pcap')
 local pprint = require ('pprint')
 require ('parsers/parsers')
 require ('bit') -- lua5.3 supports operator &,|,<<,>> natively
-require ('parsers/radiotab')
+require ('parsers/radiotap')
 
 --fixme: transfer tcpdump as binary data
 
@@ -19,34 +19,34 @@ if (cap ~= nil) then
         -- pprint ( capdata )
         print ( PCAP.to_bytes_hex ( capdata ) )
         local rest = capdata
-        local radiotab_header
-        local radiotab_data
+        local radiotap_header
+        local radiotap_data
         local ethernet_header
         local ip_header
         local tcp_header
-        radiotab_header, rest = PCAP.parse_radiotab_header ( rest )
-        radiotab_data, rest = PCAP.parse_radiotab_data ( rest )
-		local ssid = radiotab_data['ssid']
+        radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
+        radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
+		local ssid = radiotap_data['ssid']
 		print ( "ssid: '" .. ssid .. "'" )
 		print ( ssid == "LEDE" )
 		if ( true or ssid == "LEDE" ) then
-			print ( "tsft: " .. ( radiotab_header ['tsft'] or "not present" ) )
-			print ( "flags: " .. ( radiotab_header ['flags'] or "not present" ) )
-			print ( "rate: " .. ( radiotab_header ['rate'] or "not present" ) )
-			print ( "channel: " .. ( radiotab_header ['channel'] or "not present" ) )
+			print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
+			print ( "flags: " .. ( radiotap_header ['flags'] or "not present" ) )
+			print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
+			print ( "channel: " .. ( radiotap_header ['channel'] or "not present" ) )
 			local channel_flags = "not present"
-			if ( radiotab_header ['channel_flags'] ~= nil ) then
-				channel_flags = PCAP.bitmask_tostring ( radiotab_header ['channel_flags'], 16)
-						.. ", 0x" .. string.format ( "%x", radiotab_header ['channel_flags']) 
+			if ( radiotap_header ['channel_flags'] ~= nil ) then
+				channel_flags = PCAP.bitmask_tostring ( radiotap_header ['channel_flags'], 16)
+						.. ", 0x" .. string.format ( "%x", radiotap_header ['channel_flags']) 
 			end
 			print ( "channel_flags: " .. ( channel_flags or "not present" ) )
-			print ( "fhss_hop_set: " .. ( radiotab_header ['fhss_hop_set'] or "not present" ) )
-			print ( "fhss_hop_pattern: " .. ( radiotab_header ['fhss_hop_pattern'] or "not present" ) )
-			print ( "antenna_signal: " .. ( radiotab_header ['antenna_signal'] or "not present" ) )
-			print ( "antenna_noise: " .. ( radiotab_header ['antenna_noise'] or "not present" ) )
-			print ( "tx_power: " .. ( radiotab_header ['tx_power'] or "not present" ) )
-			print ( "db_antenna_signal: " .. ( radiotab_header ['db_antenna_signal'] or "not present" ) )
-			print ( "db_antenna_noise: " .. ( radiotab_header ['db_antenna_noise'] or "not present" ) )
+			print ( "fhss_hop_set: " .. ( radiotap_header ['fhss_hop_set'] or "not present" ) )
+			print ( "fhss_hop_pattern: " .. ( radiotap_header ['fhss_hop_pattern'] or "not present" ) )
+			print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
+			print ( "antenna_noise: " .. ( radiotap_header ['antenna_noise'] or "not present" ) )
+			print ( "tx_power: " .. ( radiotap_header ['tx_power'] or "not present" ) )
+			print ( "db_antenna_signal: " .. ( radiotap_header ['db_antenna_signal'] or "not present" ) )
+			print ( "db_antenna_noise: " .. ( radiotap_header ['db_antenna_noise'] or "not present" ) )
 		end
         --ethernet_header, rest = PCAP.parse_ethernet_header ( rest )
         --print ( PCAP.mac_tostring ( ethernet_header['eth_src'] ) )
@@ -82,7 +82,7 @@ end
     - "Easily upload your wireshark captures to CloudShark"
 * alternative packet filtering for lua https://github.com/Igalia/pflua
     - seems to focus on filtering instead of analyse headers
-    - do they have radiotab header support? parsers and lexers attach ethernet headers with some wlan addresses and types
+    - do they have radiotap header support? parsers and lexers attach ethernet headers with some wlan addresses and types
 * nl80211 is supported by LEDE with libnl tiny https://wireless.wiki.kernel.org/en/developers/documentation/nl80211
 ------------------------------------------------------------------------
 cat /tmp/node.pcap | rawshark -s -r - -d proto:radiotap
