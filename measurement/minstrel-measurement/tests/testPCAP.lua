@@ -4,7 +4,7 @@ require ('parsers/parsers')
 require ('bit') -- lua5.3 supports operator &,|,<<,>> natively
 require ('parsers/radiotab')
 
---fixme: transger tcpdump as binary data
+--fixme: transfer tcpdump as binary data
 
 print (pcap._LIB_VERSION)
 
@@ -29,7 +29,7 @@ if (cap ~= nil) then
 		local ssid = radiotab_data['ssid']
 		print ( "ssid: '" .. ssid .. "'" )
 		print ( ssid == "LEDE" )
-		if ( true or ssid == "'LEDE" ) then
+		if ( true or ssid == "LEDE" ) then
 			print ( "tsft: " .. ( radiotab_header ['tsft'] or "not present" ) )
 			print ( "flags: " .. ( radiotab_header ['flags'] or "not present" ) )
 			print ( "rate: " .. ( radiotab_header ['rate'] or "not present" ) )
@@ -97,6 +97,4 @@ tshark -nn -r /tmp/node.pcap -F pcap -T fields -e radiotap.dbm_antsignal
 -47,-48,-57,-56
 -79,-83,-85,-86
 -88,-92,-94,-94
-
 --]]
---pprint (pcap)

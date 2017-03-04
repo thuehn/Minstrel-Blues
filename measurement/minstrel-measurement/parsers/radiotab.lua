@@ -43,31 +43,23 @@ PCAP.radiotab_chan_flags [ "IEEE80211_CHAN_DYN" ] = 11
 PCAP.radiotab_chan_flags [ "IEEE80211_CHAN_GFSK" ] = 12
 
 PCAP.bitmask_tostring = function ( mask, len )
-	local ret = ""
-	for i = 1, len do
-		if ( PCAP.hasbit ( mask, PCAP.bit(i) ) )  then
-			ret = ret .. "1"
-		else
-			ret = ret .. "0"
-		end
-	end
-	return ret
+    local ret = ""
+    for i = 1, len do
+        if ( PCAP.hasbit ( mask, PCAP.bit(i) ) )  then
+            ret = ret .. "1"
+        else
+            ret = ret .. "0"
+        end
+    end
+    return ret
 end
 
 PCAP.bit = function (p)
-  return 2 ^ (p - 1)  -- 1-based indexing
+    return 2 ^ (p - 1)  -- 1-based indexing
 end
 
 PCAP.hasbit = function (x, p)
   return x % (p + p) >= p       
-end
-
-PCAP.setbit = function (x, p)
-  return PCAP.hasbit(x, p) and x or x + p
-end
-
-PCAP.clearbit = function (x, p)
-  return PCAP.hasbit(x, p) and x - p or x
 end
 
 PCAP.to_bytes = function ( str )
@@ -105,20 +97,20 @@ end
 
 -- read number (little endian)
 PCAP.read_int32 = function ( bytes )
-    local num = bit.lshift ( string.byte ( bytes, 4 ), 24) 
-        + bit.lshift ( string.byte ( bytes, 3 ), 16) 
-        + bit.lshift ( string.byte ( bytes, 2 ), 8) 
+    local num = bit.lshift ( string.byte ( bytes, 4 ), 24)
+        + bit.lshift ( string.byte ( bytes, 3 ), 16)
+        + bit.lshift ( string.byte ( bytes, 2 ), 8)
         + string.byte ( bytes, 1 )
-	return num, string.sub ( bytes, 5 )
+    return num, string.sub ( bytes, 5 )
 end
 
 -- read long number
 PCAP.read_int64 = function ( bytes )
-	local rest = bytes
-	local high, rest = PCAP.read_int32 ( rest )
-	local low, rest = PCAP.read_int32 ( rest )
-	local num = bit.lshift ( low, 32 ) + high
-	return num, rest
+    local rest = bytes
+    local high, rest = PCAP.read_int32 ( rest )
+    local low, rest = PCAP.read_int32 ( rest )
+    local num = bit.lshift ( low, 32 ) + high
+    return num, rest
 end
 
 PCAP.mac_tostring = function ( mac )
@@ -138,30 +130,31 @@ end
 -- 4 byte it_present bitmask ( bit 31 is set when theres a 64bit bitmask instead of a 32bit bitmask
 PCAP.parse_radiotab_data = function ( capdata )
 
-	ret = {}
+    ret = {}
 
-	local bssid = {}
-	bssid[1] = string.byte ( capdata, 17)
-	bssid[2] = string.byte ( capdata, 18)
-	bssid[3] = string.byte ( capdata, 19)
-	bssid[4] = string.byte ( capdata, 20)
-	bssid[5] = string.byte ( capdata, 21)
-	bssid[6] = string.byte ( capdata, 22)
+    local bssid = {}
+    bssid[1] = string.byte ( capdata, 17)
+    bssid[2] = string.byte ( capdata, 18)
+    bssid[3] = string.byte ( capdata, 19)
+    bssid[4] = string.byte ( capdata, 20)
+    bssid[5] = string.byte ( capdata, 21)
+    bssid[6] = string.byte ( capdata, 22)
     ret [ 'bssid' ] = bssid
-	--print ( "bssid: " .. PCAP.mac_tostring ( bssid ) )
+    --print ( "bssid: " .. PCAP.mac_tostring ( bssid ) )
 
-	-- ssid (not \0 terminated )
-	local ssid_len = string.byte ( capdata, 38 )
-	local ssid = ""
-	for i = 39, 39 + ssid_len do
-		ssid = ssid .. string.char ( ( string.byte ( capdata, i ) ) )
-	end
-	ret['ssid'] = ssid
-	return ret, ""
+    -- ssid (not \0 terminated )
+    local ssid_len = string.byte ( capdata, 38 )
+    local ssid = ""
+    for i = 39, 39 + ssid_len do
+        ssid = ssid .. string.char ( ( string.byte ( capdata, i ) ) )
+    end
+    ret['ssid'] = ssid
+    -- FCS
+    return ret, ""
 end
 
 PCAP.parse_radiotab_header = function ( capdata )
-	local ret = {}
+    local ret = {}
     local rest = capdata
 
     -- radiotab header
@@ -178,57 +171,56 @@ PCAP.parse_radiotab_header = function ( capdata )
         _, rest = PCAP.read_int32 ( rest )
     end
 
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_TSFT' ] )  ) ) then	
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_TSFT' ] )  ) ) then
         --align 8
-		ret['tsft'], rest = PCAP.read_int64 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_FLAGS' ] )  ) ) then	
-		ret['flags'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_RATE' ] )  ) ) then	
-		ret['rate'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_CHANNEL' ] )  ) ) then	
+        ret['tsft'], rest = PCAP.read_int64 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_FLAGS' ] )  ) ) then
+        ret['flags'], rest = PCAP.read_int8 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_RATE' ] )  ) ) then
+        ret['rate'], rest = PCAP.read_int8 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_CHANNEL' ] )  ) ) then
         --align 2
-		ret['channel'], rest = PCAP.read_int16 ( rest )
-		ret['channel_flags'], rest = PCAP.read_int16 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_FHSS' ] )  ) ) then	
-		ret['fhss_hop_set'], rest = PCAP.read_int8 ( rest )
-		ret['fhss_hop_pattern'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DBM_ANTSIGNAL' ] )  ) ) then	
-		ret['antenna_signal'], rest = PCAP.read_int8_signed ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DBM_ANTNOISE' ] )  ) ) then	
-		ret['antenna_noise'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_LOCK_QUALITY' ] )  ) ) then	
+        ret['channel'], rest = PCAP.read_int16 ( rest )
+        ret['channel_flags'], rest = PCAP.read_int16 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_FHSS' ] )  ) ) then
+        ret['fhss_hop_set'], rest = PCAP.read_int8 ( rest )
+        ret['fhss_hop_pattern'], rest = PCAP.read_int8 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DBM_ANTSIGNAL' ] )  ) ) then
+        ret['antenna_signal'], rest = PCAP.read_int8_signed ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DBM_ANTNOISE' ] )  ) ) then
+        ret['antenna_noise'], rest = PCAP.read_int8_signed ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_LOCK_QUALITY' ] )  ) ) then
         --align 2
-		ret['lock_quality'], rest = PCAP.read_int16 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_TX_ATTENUATION' ] )  ) ) then	
+        ret['lock_quality'], rest = PCAP.read_int16 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_TX_ATTENUATION' ] )  ) ) then
         --align 2
-		ret['antenna_noise'], rest = PCAP.read_int16 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DBM_TX_POWER' ] )  ) ) then	
+        ret['antenna_noise'], rest = PCAP.read_int16 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DBM_TX_POWER' ] )  ) ) then
         -- align 1
-		ret['tx_power'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_ANTENNA' ] )  ) ) then	
-		ret['db_antenna_signal'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DB_ANTSIGNAL' ] )  ) ) then	
-		ret['db_antenna_signal'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DB_ANTNOISE' ] )  ) ) then	
-		ret['db_antenna_noise'], rest = PCAP.read_int8 ( rest )
-	end
-	if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_RX_FLAGS' ] )  ) ) then	
+        ret['tx_power'], rest = PCAP.read_int8_signed ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_ANTENNA' ] )  ) ) then
+        ret['db_antenna_signal'], rest = PCAP.read_int8 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DB_ANTSIGNAL' ] )  ) ) then
+        ret['db_antenna_signal'], rest = PCAP.read_int8 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_DB_ANTNOISE' ] )  ) ) then
+        ret['db_antenna_noise'], rest = PCAP.read_int8 ( rest )
+    end
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotab_type [ 'IEEE80211_RADIOTAP_RX_FLAGS' ] )  ) ) then
         --align 2
-		ret['db_antenna_noise'], rest = PCAP.read_int16 ( rest )
-	end
-    -- FCS
+        ret['db_antenna_noise'], rest = PCAP.read_int16 ( rest )
+    end
 
     return ret, string.sub ( capdata, ret['it_len'] + 1 )
 end

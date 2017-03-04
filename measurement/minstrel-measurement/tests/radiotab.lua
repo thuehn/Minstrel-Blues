@@ -15,7 +15,7 @@ snrs[7] = -87
 local fname = "tests/test.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
-	cap:set_filter ("type mgt subtype beacon", nooptimize)
+    cap:set_filter ("type mgt subtype beacon", nooptimize)
     local i = 1
     for capdata, timestamp, wirelen in cap.next, cap do
 
