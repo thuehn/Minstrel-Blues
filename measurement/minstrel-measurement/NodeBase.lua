@@ -1,4 +1,5 @@
 
+local ps = require ('posix.signal') --kill
 require ('rpc')
 require ('spawn_pipe')
 local unistd = require ('posix.unistd')
@@ -87,12 +88,10 @@ function NodeBase:kill ( pid, signal )
     if (parent_pid ( pid ) == lua_pid) then
         local kill
         if (signal ~= nil) then
-            kill = spawn_pipe("kill", "-" .. signal, pid)
+            ps.kill ( pid, signal )
         else
-            kill = spawn_pipe("kill", pid)
+            ps.kill ( pid )
         end
-        local exit_code = kill['proc']:wait()
-        close_proc_pipes ( kill )
         return exit_code
     else 
         self:send_warning("try to kill pid " .. pid)

@@ -1,4 +1,4 @@
-
+require ('misc')
 require ('pcap')
 require ('parsers/radiotap')
 
@@ -32,18 +32,39 @@ function Analyser:get_power( key )
     return split ( key, "-" ) [2]
 end
 
-function Analyser.avg ( t )
+function Analyser:min ( t )
+    if ( t == nil ) then return nil end
+    if ( table_size ( t ) == 0 ) then return nil end
+    if ( table_size ( t ) == 1 ) then return t [1] end
+    local min = t[1]
+    for _, v in ipairs ( t ) do
+        if ( v ~= nil and type ( v ) == 'number' and v < min ) then min = v end
+    end
+    return min
+end
+
+function Analyser:max ( t )
+    if ( t == nil ) then return nil end
+    if ( table_size ( t ) == 0 ) then return nil end
+    if ( table_size ( t ) == 1 ) then return t [1] end
+    local max = t[1]
+    for _, v in ipairs ( t ) do
+        if ( v ~= nil and type ( v ) == 'number' and v > max ) then max = v end
+    end
+    return max
+end
+
+function Analyser:avg ( t )
     local sum = 0
     local count = 0
     
     for _, v in ipairs ( t ) do
-        if type ( v ) == 'number' then
+        if ( v ~= nil and type ( v ) == 'number' ) then
             sum = sum + v
             count = count + 1
         end
     end
-
-    return (sum / count)
+    return ( sum / count )
 end
 
 -- returns list of SNRs stats (MIN/MAX/AVG) for each measurement
@@ -64,7 +85,8 @@ function Analyser:snrs ()
             local rate = self:get_rate ( key )
             local power = self:get_power ( key )
 
-            local fname = "/tmp/" .. measurement.node_name .. "-" .. key .. ".pcap"
+            local fname = measurement.output_dir .. "/" .. measurement.node_name 
+                            .. "/" .. measurement.node_name .. "-" .. key .. ".pcap.2"
             local file = io.open(fname, "wb")
             file:write ( stats )
             file:close()
@@ -95,8 +117,8 @@ function Analyser:snrs ()
             end
 
             if ( table_size ( snrs ) > 0 ) then
-                ret [ power .. "-" .. rate .. "-MIN" ] = math.min ( unpack ( snrs ) )
-                ret [ power .. "-" .. rate .. "-MAX" ] = math.max ( unpack ( snrs ) )
+                ret [ power .. "-" .. rate .. "-MIN" ] = self:min ( snrs )
+                ret [ power .. "-" .. rate .. "-MAX" ] = self:max ( snrs )
                 ret [ power .. "-" .. rate .. "-AVG" ] = self:avg ( snrs )
             end
         end

@@ -2,8 +2,8 @@ require ('NodeRef')
 
 StationRef = NodeRef:new()
 
-function StationRef:create ( name, ctrl, rsa_key )
-    local o = StationRef:new{ name = name, ctrl = ctrl, rsa_key = rsa_key }
+function StationRef:create ( name, ctrl, rsa_key, output_dir )
+    local o = StationRef:new{ name = name, ctrl = ctrl, rsa_key = rsa_key, output_dir = output_dir }
     return o
 end
 

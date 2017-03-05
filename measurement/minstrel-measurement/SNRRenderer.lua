@@ -93,18 +93,22 @@ function SNRRenderer:run ( basedir )
     table.sort( self.rates )
 
     local rates_file = io.open ( rates_fname, "w" )
-    for i, rate in ipairs ( self.rates ) do
-        if ( i ~= 1 ) then rates_file:write (" ") end
-        rates_file:write ( rate )
+    if ( rates_file ~= nil ) then
+        for i, rate in ipairs ( self.rates ) do
+            if ( i ~= 1 ) then rates_file:write (" ") end
+            rates_file:write ( rate )
+        end
+        rates_file:close()
     end
-    rates_file:close()
 
     local powers_file = io.open ( powers_fname, "w" )
-    for i, power in ipairs ( self.powers ) do
-        if ( i ~= 1 ) then powers_file:write (" ") end
-        powers_file:write ( power )
+    if ( powers_file ~= nil ) then
+        for i, power in ipairs ( self.powers ) do
+            if ( i ~= 1 ) then powers_file:write (" ") end
+            powers_file:write ( power )
+        end
+        powers_file:close()
     end
-    powers_file:close()
 
     local snr_mins = {}
     local snr_maxs = {}
@@ -136,34 +140,39 @@ function SNRRenderer:run ( basedir )
     end
 
     local snrs_min_file = io.open ( snrs_min_fname, "w" )
-    for i, powers in ipairs ( snr_mins ) do
-        for j, snr in ipairs ( powers ) do
-            if ( j ~= 1 ) then snrs_min_file:write (" ") end
-            snrs_min_file:write ( snr )
+    if ( snrs_min_file ~= nil ) then
+        for i, powers in ipairs ( snr_mins ) do
+            for j, snr in ipairs ( powers ) do
+                if ( j ~= 1 ) then snrs_min_file:write (" ") end
+                snrs_min_file:write ( snr )
+            end
+            snrs_min_file:write ( "\n" )
         end
-        snrs_min_file:write ( "\n" )
+        snrs_min_file:close ()
     end
-    snrs_min_file:close ()
 
     local snrs_max_file = io.open ( snrs_max_fname, "w" )
-    for i, powers in ipairs ( snr_maxs ) do
-        for j, snr in ipairs ( powers ) do
-            if ( j ~= 1 ) then snrs_max_file:write (" ") end
-            snrs_max_file:write ( snr )
+    if ( snrs_max_file ~= nil ) then
+        for i, powers in ipairs ( snr_maxs ) do
+            for j, snr in ipairs ( powers ) do
+                if ( j ~= 1 ) then snrs_max_file:write (" ") end
+                snrs_max_file:write ( snr )
+            end
+            snrs_max_file:write ( "\n" )
         end
-        snrs_max_file:write ( "\n" )
+        snrs_max_file:close ()
     end
-    snrs_max_file:close ()
 
     local snrs_avg_file = io.open ( snrs_avg_fname, "w" )
-    for i, powers in ipairs ( snr_avgs ) do
-        for j, snr in ipairs ( powers ) do
-            if ( j ~= 1 ) then snrs_avg_file:write (" ") end
-            snrs_avg_file:write ( snr )
+    if ( snrs_avg_file ~= nil ) then
+        for i, powers in ipairs ( snr_avgs ) do
+            for j, snr in ipairs ( powers ) do
+                if ( j ~= 1 ) then snrs_avg_file:write (" ") end
+                snrs_avg_file:write ( snr )
+            end
+            snrs_avg_file:write ( "\n" )
         end
-        snrs_avg_file:write ( "\n" )
+        snrs_avg_file:close ()
     end
-    snrs_avg_file:close ()
-
     -- spawn R script to generate image
 end

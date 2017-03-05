@@ -15,6 +15,7 @@ parser:option ("--log_if", "Logging Interface name", "eth0" )
 parser:option ("-L --log_port", "Logging port", "12347" )
 parser:option ("--log_ip", "Logging ip address" )
 
+parser:option ("-O --output", "measurement / analyse data directory","/tmp")
 
 local args = parser:parse ()
 
@@ -24,7 +25,7 @@ end
 
 local net = NetIF:create ( args.ctrl_if )
 local log = NetIF:create ( args.log_if, args.log_ip )
-local node = ControlNode:create ( "Control", net, args.port, log, args.log_port, args.log_file )
+local node = ControlNode:create ( "Control", net, args.port, log, args.log_port, args.log_file, args.output )
 
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 function add_ap ( ... ) return node:add_ap ( ... ) end

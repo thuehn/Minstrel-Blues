@@ -1,3 +1,4 @@
+require ('misc')
 
 --[[
 --  STA: regmon, tcpdump, cpusage
@@ -5,6 +6,8 @@
 --]]
 
 require ("parsers/ex_process")
+
+pprint = require('pprint')
 
 Measurement = { rpc_node = nil
               , node_name = nil
@@ -18,6 +21,7 @@ Measurement = { rpc_node = nil
               , cpusage_proc = nil
               , rc_stats_procs = nil
               , stations = nil
+              , output_dir = nil
               }
 
 function Measurement:new (o)
@@ -27,7 +31,7 @@ function Measurement:new (o)
     return o
 end
 
-function Measurement:create ( name, rpc )
+function Measurement:create ( name, rpc, output_dir )
     local o = Measurement:new( { rpc_node = rpc
                                , node_name = name
                                , regmon_stats = {}
@@ -35,11 +39,80 @@ function Measurement:create ( name, rpc )
                                , cpusage_stats = {}
                                , rc_stats = {}
                                , rc_stats_enabled = false
+                               , output_dir = output_dir
                                } )
     return o
 end
 
-function Measurement:__tostring() 
+function Measurement:read ()
+    -- tcpdump pcap
+    for key, stats in pairs ( self.tcpdump_pcaps ) do
+        local fname = self.output_dir .. "/" .. self.node_name 
+                    .. "/" .. self.node_name .. "-" .. key .. ".pcap"
+        local file = io.open(fname, "rb")
+        stats = file:read("*a")
+        self.tcpdump_pcaps [ key ] = stats
+        file:close()
+    end
+
+end
+
+function Measurement:write ()
+    if ( self.output_dir == nil ) then
+        return false, "output dir unset"
+    end
+
+    local base_dir = self.output_dir .. "/" .. self.node_name
+    local status, err = lfs.mkdir ( base_dir )
+    if ( status == false ) then 
+        return false, err
+    end
+
+    -- regmon stats
+    local fname = base_dir .. "/" .. self.node_name .. "-regmon_stats.txt" 
+    local file = io.open ( fname, "w" )
+    for key, stat in pairs ( self.regmon_stats ) do
+        file:write ( key .. ":" .. stat .. "\n" )
+    end
+    file:close ()
+
+    -- cpusage stats
+    local fname = base_dir .. "/" .. self.node_name .. "-cpusage_stats.txt" 
+    local file = io.open ( fname, "w" )
+    for key, stat in pairs ( self.cpusage_stats ) do
+        file:write ( key .. ":" .. stat .. "\n" )
+    end
+    file:close ()
+    
+    -- tcpdump pcap
+    for key, stats in pairs ( self.tcpdump_pcaps ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
+        print ( fname )
+        local file = io.open ( fname, "w")
+        if ( file ~= nil )  then
+            file:write ( stats )
+            file:close()
+        end
+    end
+    
+    -- rc_stats
+    if ( self.rc_stats_enabled == true ) then
+        for _, station in ipairs ( self.stations ) do
+            if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil) then
+                local fname = base_dir .. "/" .. self.node_name .. "-rc_stats-" 
+                            .. station .. ".txt" 
+                local file = io.open ( fname, "w" )
+                for key, stat in pairs ( self.rc_stats [ station ] ) do
+                    file:write ( key .. ": " .. stat .. "\n" )
+                end
+                file:close ()
+            end
+        end
+    end
+    return true
+end
+
+function Measurement:__tostring () 
     local out = "Measurement\n==========\n"
     -- regmon stats
     out = out .. "regmon: " .. table_size ( self.regmon_stats ) .. " stats\n"
@@ -64,27 +137,30 @@ function Measurement:__tostring()
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         out = out .. "tcpdump_pcap-" .. key .. ":\n"
         out = out .. "timestamp, wirelen, #capdata\n"
-        local fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
-        local file = io.open(fname, "wb")
-        file:write ( stats )
-        file:close()
-        local cap = pcap.open_offline( fname )
-        if (cap ~= nil) then
-            -- cap:set_filter(filter, nooptimize)
-            local count = 0
-            for capdata, timestamp, wirelen in cap.next, cap do
-                if (false) then
-                    out = out .. tostring(timestamp) .. ", " .. tostring(wirelen) .. ", " .. tostring(#capdata) .. "\n"
-                else
-                    count = count + 1
+        if ( self.output_dir ~= nil ) then 
+            local fname = self.output_dir .. "/" .. self.node_name 
+                            .. "/" .. self.node_name .. "-" .. key .. ".pcap.1"
+            local file = io.open(fname, "wb")
+            file:write ( stats )
+            file:close()
+            local cap = pcap.open_offline( fname )
+            if (cap ~= nil) then
+                -- cap:set_filter(filter, nooptimize)
+                local count = 0
+                for capdata, timestamp, wirelen in cap.next, cap do
+                    if (false) then
+                        out = out .. tostring(timestamp) .. ", " .. tostring(wirelen) .. ", " .. tostring(#capdata) .. "\n"
+                    else
+                        count = count + 1
+                    end
                 end
+                out = out .. tostring(count) .. "\n"
+                cap:close()
+            else
+                print ("Measurement: pcap open failed: " .. fname)
             end
-            out = out .. tostring(count) .. "\n"
-            cap:close()
-        else
-            print ("Measurement: pcap open failed: " .. fname)
+            os.remove ( fname )
         end
-        os.remove ( fname )
     end
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then

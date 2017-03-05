@@ -2,8 +2,8 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, ctrl, rsa_key )
-    local o = AccessPointRef:new{ name = name, ctrl = ctrl, rsa_key = rsa_key, stations = {} }
+function AccessPointRef:create ( name, ctrl, rsa_key, output_dir )
+    local o = AccessPointRef:new{ name = name, ctrl = ctrl, rsa_key = rsa_key, output_dir = output_dir, stations = {} }
     return o
 end
 

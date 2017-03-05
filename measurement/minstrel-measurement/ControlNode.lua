@@ -1,5 +1,8 @@
 
 --pprint = require ('pprint')
+
+local ps = require ('posix.signal') --kill
+
 require ('NodeBase')
 
 require ('NetIF')
@@ -18,7 +21,7 @@ require ('mcastExperiment')
 
 ControlNode = NodeBase:new()
 
-function ControlNode:create ( name, ctrl, port, log_ctrl, log_port, log_file )
+function ControlNode:create ( name, ctrl, port, log_ctrl, log_port, log_file, output_dir )
     local o = ControlNode:new ( { name = name
                                 , ctrl = ctrl
                                 , port = port
@@ -30,6 +33,7 @@ function ControlNode:create ( name, ctrl, port, log_ctrl, log_port, log_file )
                                 , logger_proc = nil
                                 , log_ctrl = log_ctrl
                                 , log_port = log_port
+                                , output_dir = output_dir
                                 } )
 
     function start_logger ( log_ctrl, port, file )
@@ -100,7 +104,7 @@ end
 function ControlNode:add_ap ( name, ctrl_if, rsa_key )
     self:send_info ( " add access point " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = AccessPointRef:create ( name, ctrl, rsa_key )
+    local ref = AccessPointRef:create ( name, ctrl, rsa_key, self.output_dir )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -108,7 +112,7 @@ end
 function ControlNode:add_sta ( name, ctrl_if, rsa_key )
     self:send_info ( " add station " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = StationRef:create ( name, ctrl, rsa_key )
+    local ref = StationRef:create ( name, ctrl, rsa_key, self.output_dir )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -315,7 +319,7 @@ end
 
 function ControlNode:disconnect_nodes()
     for _, node_ref in ipairs ( self.node_refs ) do 
-        rpc.close ( node_ref.rpc )
+        if ( node_ref.rpc ~= nil ) then rpc.close ( node_ref.rpc ) end
     end
 end
 
@@ -507,14 +511,13 @@ function ControlNode:stop()
             self:send_error ( "logger not stopped: pid is not set" )
         else
             self:send_info ( "stop logger with pid " .. pid )
-            kill = spawn_pipe( "kill", "-2", pid )
-            close_proc_pipes ( kill )
-            kill = spawn_pipe( "kill", "-2", pid )
-            close_proc_pipes ( kill )
+            ps.kill ( pid, ps.SIGINT )
+            ps.kill ( pid, ps.SIGINT )
         end
     end
 
     for i, node_ref in ipairs ( self.node_refs ) do
+        if ( node_ref.rpc == nil ) then break end
         self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
         local ssh
         local exit_code

@@ -7,6 +7,7 @@ require ('NetIF')
 
 ControlNodeRef = { name
                  , ctrl
+                 , output_dir
                  }
 
 function ControlNodeRef:new (o)
@@ -16,7 +17,7 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create( name, ctrl_if, ctrl_ip )
+function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir )
     -- ctrl node iface, ctrl node (name) lookup
     local ctrl_net = NetIF:create ( ctrl_if )
     ctrl_net.addr = ctrl_ip
@@ -27,7 +28,7 @@ function ControlNodeRef:create( name, ctrl_if, ctrl_ip )
         end 
     end
 
-    local o = ControlNodeRef:new ( { name = name, ctrl = ctrl_net } )
+    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir }
     return o
 end
 
@@ -38,6 +39,7 @@ function ControlNodeRef:start ( log_net, ctrl_port, log_port )
                             , "--log_if", log_net.iface
                             , "--log_ip", log_net.addr
                             , "--log_port", log_port 
+                            , "--output", self.output_dir
                             )
     if ( ctrl ['err_msg'] ~= nil ) then
         self:send_warning("Control not started" .. ctrl ['err_msg'] )
@@ -53,6 +55,7 @@ function ControlNodeRef:start_remote ( log_net, ctrl_port, log_port )
      local remote_cmd = "lua bin/runControl.lua"
                  .. " --port " .. ctrl_port 
                  .. " --ctrl_if " .. self.ctrl.iface
+                 .. " --output " .. self.output_dir
      if ( log_net.iface ~= nil ) then
         remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
      end
@@ -96,8 +99,7 @@ function ControlNodeRef:connect ( ctrl_port )
 end
 
 function ControlNodeRef:stop ( pid )
-    kill = spawn_pipe("kill", "-2", pid)
-    close_proc_pipes ( kill )
+    ps.kill ( pid, ps.SIGINT )
 end
 
 function ControlNodeRef:stop_remote ( addr, pid )

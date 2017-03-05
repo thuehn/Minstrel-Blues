@@ -14,6 +14,7 @@ NodeRef = { name = nil
           , refs = nil
           , stats = nil
           , iperf_s_proc = nil
+          , output_dir = nil
           }
 
 function NodeRef:new (o)
@@ -98,7 +99,7 @@ function NodeRef:wait_linked ( retrys )
 end
 
 function NodeRef:create_measurement()
-    self.stats = Measurement:create ( self.name, self.rpc )
+    self.stats = Measurement:create ( self.name, self.rpc, self.output_dir )
 end
 
 function NodeRef:restart_wifi( )
