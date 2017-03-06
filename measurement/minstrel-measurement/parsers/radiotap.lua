@@ -101,7 +101,8 @@ end
 -- 2-complement already known by lua
 PCAP.read_int8_signed = function ( bytes )
     local num, rest = PCAP.read_int8 ( bytes )
-    return num - 256, rest
+    if ( num > 127 ) then num = num - 256 end
+    return num, rest
 end
 
 -- read short number from head of 'bytes' and truncate from

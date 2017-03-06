@@ -10,7 +10,8 @@ print (pcap._LIB_VERSION)
 
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
-local fname = "/home/denis/data25x30/lede-sta/lede-sta-120-11-1.pcap"
+local fname = "/home/denis/data25x30/lede-sta/lede-sta-0-11-1.pcap"
+--local fname = "/home/denis/data25x30/lede-sta/lede-sta-120-11-1.pcap"
 --local fname = "tests/test.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
@@ -54,6 +55,28 @@ else
     print ("pcap open failed: " .. fname)
 end
 
+--[[
+lede-sta-0-11-1.pcap
+ tshark -nn -r lede-sta-0-11-1.pcap -F pcap -T fields -e radiotap.dbm_antsignal -e wlan.bssid
+-32,-32,-44
+-27,-28,-33
+-6,-31,-6
+-5,-29,-5
+-26,-29,-30
+-25,-25,-34
+-5,-30,-5
+-5,-30,-5
+-71,-94,-71
+-5,-31,-5
+-5,-31,-5
+-4,-28,-4
+-4,-29,-4
+-4,-29,-4
+-5,-31,-5
+-5,-26,-5
+-5,-30,-5
+-4,-30,-4
+--]]
 
 --[[
 * wireshark has lua support, but LEDE doesn't have any of these rawshark, dumpcap, TShark, or Wireshark.

@@ -17,7 +17,7 @@ avg <- scan('snrs-avg.txt')
 avg <- matrix(avg, ncol=length(rates), byrow=TRUE)
 
 #persp3d (rates,powers,avg,col="firebrick")
-persp3d ( x=powers,y=rates,z=avg,col="skyblue")
+persp3d ( x=powers,y=rates,z=max,col="skyblue")
 persp3d ( x=powers, y=rates, z=avg, col="skyblue", plot = FALSE)
 Vx <- avg[-1, ] - avg[-length(avg), ]
 
