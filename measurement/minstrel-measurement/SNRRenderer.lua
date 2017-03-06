@@ -1,5 +1,6 @@
 
 -- TODO: use lua rClient / rServe for passing data to R
+-- pprint = require ('pprint')
 
 SNRRenderer = { snrs = nil
               , powers = nil
@@ -21,11 +22,11 @@ function SNRRenderer:create ( snrs )
 end
 
 function SNRRenderer:get_power ( key )
-    return split ( key, "-" ) [1]
+    return tonumber ( split ( key, "-" ) [1] )
 end
 
 function SNRRenderer:get_rate ( key )
-    return split ( key, "-" ) [2]
+    return tonumber ( split ( key, "-" ) [2] )
 end
 
 function SNRRenderer:get_stat ( key )
@@ -98,6 +99,7 @@ function SNRRenderer:run ( basedir )
             if ( i ~= 1 ) then rates_file:write (" ") end
             rates_file:write ( rate )
         end
+        rates_file:write("\n")
         rates_file:close()
     end
 
@@ -107,44 +109,54 @@ function SNRRenderer:run ( basedir )
             if ( i ~= 1 ) then powers_file:write (" ") end
             powers_file:write ( power )
         end
+        powers_file:write("\n")
         powers_file:close()
     end
 
     local snr_mins = {}
     local snr_maxs = {}
     local snr_avgs = {}
-    for _, _ in ipairs ( self.rates ) do
-        snr_mins [ #snr_mins + 1 ] = {}
-        snr_maxs [ #snr_maxs + 1 ] = {}
-        snr_avgs [ #snr_avgs + 1 ] = {}
-    end
-    for i, _ in ipairs ( self.rates ) do
-        for j, _ in ipairs ( self.powers ) do
-            snr_mins [ i ] [ j ] = nil
-            snr_maxs [ i ] [ j ] = nil
-            snr_avgs [ i ] [ j ] = nil
+    for _, power in ipairs ( self.powers ) do
+        if ( snr_mins [ tostring ( power ) ] == nil ) then
+            snr_mins [ tostring ( power ) ] = {}
+        end
+
+        if ( snr_maxs [ tostring ( power ) ] == nil ) then
+            snr_maxs [ tostring ( power ) ] = {}
+        end
+
+        if ( snr_avgs [ tostring ( power ) ] == nil ) then
+            snr_avgs [ tostring ( power ) ] = {}
+        end
+
+        for _, rate in ipairs ( self.rates ) do
+            snr_mins [ tostring ( power ) ] [ tostring ( rate ) ] = nil
+            snr_maxs [ tostring ( power ) ] [ tostring ( rate ) ] = nil
+            snr_avgs [ tostring ( power ) ] [ tostring ( rate ) ] = nil
         end
     end
 
     for key, snr in pairs ( self.snrs ) do
-        local power = self:get_power ( key )
-        local rate = self:get_rate ( key )
+        local power = tostring ( self:get_power ( key ) )
+        local rate = tostring ( self:get_rate ( key ) )
         local stat = self:get_stat ( key )
         if ( stat == "MIN" ) then
-            snr_mins [ self:get_rate_idx ( rate ) ] [ self:get_power_idx ( power ) ] = snr
+            snr_mins [ power ] [ rate ] = snr
         elseif ( stat == "MAX" ) then
-            snr_maxs [ self:get_rate_idx ( rate ) ] [ self:get_power_idx ( power ) ] = snr
+            snr_maxs [ power ] [ rate ] = snr
         elseif ( stat == "AVG" ) then
-            snr_avgs [ self:get_rate_idx ( rate ) ] [ self:get_power_idx ( power ) ] = snr
+            snr_avgs [ power ] [ rate ] = snr
         end
     end
 
     local snrs_min_file = io.open ( snrs_min_fname, "w" )
     if ( snrs_min_file ~= nil ) then
-        for i, powers in ipairs ( snr_mins ) do
-            for j, snr in ipairs ( powers ) do
-                if ( j ~= 1 ) then snrs_min_file:write (" ") end
-                snrs_min_file:write ( snr )
+        for power, rates in pairs ( snr_mins ) do
+            local first = true
+            for rate, snr in pairs ( rates ) do
+                if ( first ~= true ) then snrs_min_file:write (" ") else first = false end
+                --print ( "min: " .. power .. " x " .. rate .. " = " .. ( snr or "NIL") )
+                snrs_min_file:write ( ( snr or 0 ) )
             end
             snrs_min_file:write ( "\n" )
         end
@@ -153,10 +165,12 @@ function SNRRenderer:run ( basedir )
 
     local snrs_max_file = io.open ( snrs_max_fname, "w" )
     if ( snrs_max_file ~= nil ) then
-        for i, powers in ipairs ( snr_maxs ) do
-            for j, snr in ipairs ( powers ) do
-                if ( j ~= 1 ) then snrs_max_file:write (" ") end
-                snrs_max_file:write ( snr )
+        for power, rates in pairs ( snr_maxs ) do
+            local first = true
+            for rate, snr in pairs ( rates ) do
+                if ( first ~= true ) then snrs_max_file:write (" ") else first = false end
+                --print ( "max: " .. power .. " x " .. rate .. " = " .. ( snr or "NIL") )
+                snrs_max_file:write ( ( snr or 0 ) )
             end
             snrs_max_file:write ( "\n" )
         end
@@ -165,10 +179,12 @@ function SNRRenderer:run ( basedir )
 
     local snrs_avg_file = io.open ( snrs_avg_fname, "w" )
     if ( snrs_avg_file ~= nil ) then
-        for i, powers in ipairs ( snr_avgs ) do
-            for j, snr in ipairs ( powers ) do
-                if ( j ~= 1 ) then snrs_avg_file:write (" ") end
-                snrs_avg_file:write ( snr )
+        for power, rates in pairs ( snr_avgs ) do
+            local first = true
+            for rate, snr in pairs ( rates ) do
+                if ( first ~= true ) then snrs_avg_file:write (" ") else first = false end
+                --print ( "avg: " .. power .. " x " .. rate .. " = " .. ( snr or "NIL" ) )
+                snrs_avg_file:write ( ( snr or 0 ) )
             end
             snrs_avg_file:write ( "\n" )
         end
