@@ -30,7 +30,8 @@ require ('Config')
 require ('NetIF')
 require ('ControlNodeRef')
 require ('Measurement')
-require ('Analyser')
+require ('FXsnrAnalyser')
+require ('DYNsnrAnalyser')
 require ('SNRRenderer')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
@@ -552,7 +553,13 @@ end
 print ("Analayse and plot SNR")
 for _, measurement in ipairs ( measurements ) do
 
-    local analyser = Analyser:create ()
+    local analyser
+    if ( args.enable_fixed == true ) then
+        analyser = FXsnrAnalyser:create ()
+    else
+        analyser = DYNsnrAnalyser:create ()
+
+    end
     analyser:add_measurement ( measurement )
     local snrs = analyser:snrs ()
     --pprint ( snrs )

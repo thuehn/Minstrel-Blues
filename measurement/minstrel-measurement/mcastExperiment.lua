@@ -1,7 +1,8 @@
 -- 1 run: 0.41s user 0.75s system 0% cpu 1:49:45.91 total
 
 -- runs an multicast experiment with fixed rate and fixed power setting
-McastExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil }
+McastExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil
+                  , is_fixed = nil }
 
 function McastExperiment:new (o)
     local o = o or {}
@@ -19,37 +20,52 @@ function McastExperiment:get_power( key )
 end
 
 function McastExperiment:create ( control, data )
-    local o = McastExperiment:new( { control = control, runs = data[1], tx_powers = data[2], tx_rates = data[3], udp_interval = data[4] } )
+    local o = McastExperiment:new( { control = control, runs = data[1], tx_powers = data[2], tx_rates = data[3]
+                                   , udp_interval = data[4]
+                                   , is_fixed = false
+                                   } )
     return o
 end
 
 function McastExperiment:keys ( ap_ref )
 
     local keys = {}
-    if ( self.tx_rates == nil ) then
-        self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
-    else
-        self.tx_rates = split ( self.tx_rates, "," )
+    if ( self.is_fixed == true ) then
+        if ( self.tx_rates == nil ) then
+            self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
+        else
+            self.tx_rates = split ( self.tx_rates, "," )
+        end
     end
 
-    if ( self.tx_powers == nil ) then
-        self.tx_powers = {}
-        for i = 1, 25 do
-            self.tx_powers[i] = i
+    if ( self.is_fixed == true ) then
+        if ( self.tx_powers == nil ) then
+            self.tx_powers = {}
+            for i = 1, 25 do
+                self.tx_powers[i] = i
+            end
+        else
+            self.tx_powers = split ( self.tx_powers, "," )
         end
-    else
-        self.tx_powers = split ( self.tx_powers, "," )
     end
-    self.control:send_debug( "run multicast experiment for rates " .. table_tostring ( self.tx_rates ) )
-    self.control:send_debug( "run multicast experiment for powers " .. table_tostring ( self.tx_powers ) )
+
+    if ( self.is_fixed == true ) then
+        self.control:send_debug( "run multicast experiment for rates " .. table_tostring ( self.tx_rates ) )
+        self.control:send_debug( "run multicast experiment for powers " .. table_tostring ( self.tx_powers ) )
+    end
 
     for run = 1, self.runs do
-        for _, tx_rate in ipairs ( self.tx_rates ) do
-            for _, tx_power in ipairs ( self.tx_powers ) do
-                local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring( run )
-                keys [ #keys + 1 ] = key
-                --break -- REMOVE ME: testing only
+        local key = tostring ( run )
+        if ( self.tx_rates ~= nil or self.tx_powers ~= nil) then
+            for _, tx_rate in ipairs ( self.tx_rates ) do
+                key = key .. "-" .. tostring ( tx_rate )
+                for _, tx_power in ipairs ( self.tx_powers ) do
+                    key = key .. "-" .. tostring ( tx_power )
+                    keys [ #keys + 1 ] = key
+                end
             end
+        else
+            keys [ #keys + 1 ] = key
         end
     end
 
@@ -66,7 +82,9 @@ function McastExperiment:settle_measurement ( ap_ref, key, retrys )
     local linked = ap_ref:wait_linked ( retrys )
     local visible = ap_ref:wait_station ( retrys )
     ap_ref:add_monitor ()
-    ap_ref:set_tx_power ( self:get_power ( key ) )
+    if ( self.is_fixed == true ) then
+        ap_ref:set_tx_power ( self:get_power ( key ) )
+    end
     ap_ref:set_tx_rate ( self:get_rate ( key ) )
     return (linked and visible)
 end

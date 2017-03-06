@@ -32,6 +32,7 @@ Not connected.
 --]]
 
 IwLink = { ssid = nil, iface = nil, mac = nil }
+
 function IwLink:new (o)
     local o = o or {}
     setmetatable(o, self)

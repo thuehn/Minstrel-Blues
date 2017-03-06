@@ -1,38 +1,29 @@
+
 require ('misc')
 require ('pcap')
 require ('parsers/radiotap')
 
-Analyser = { measurements = nil
-           }
+DYNsnrAnalyser = { measurements = nil
+                 }
 
-function Analyser:new (o)
+function DYNsnrAnalyser:new (o)
     local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
-function Analyser:create ()
-    local o = Analyser:new( {} )
+function DYNsnrAnalyser:create ()
+    local o = DYNsnrAnalyser:new( {} )
     o.measurements = {}
     return o
 end
 
-function Analyser:add_measurement ( m )
+function DYNsnrAnalyser:add_measurement ( m )
     self.measurements [ #self.measurements + 1 ] = m
 end
 
--- duplicate of experiment:get_rate
-function Analyser:get_rate( key )
-    return split ( key, "-" ) [1]
-end
-
--- duplicate of experiment:get_rate
-function Analyser:get_power( key )
-    return split ( key, "-" ) [2]
-end
-
-function Analyser:min ( t )
+function DYNsnrAnalyser:min ( t )
     if ( t == nil ) then return nil end
     if ( table_size ( t ) == 0 ) then return nil end
     if ( table_size ( t ) == 1 ) then return t [1] end
@@ -43,7 +34,7 @@ function Analyser:min ( t )
     return min
 end
 
-function Analyser:max ( t )
+function DYNsnrAnalyser:max ( t )
     if ( t == nil ) then return nil end
     if ( table_size ( t ) == 0 ) then return nil end
     if ( table_size ( t ) == 1 ) then return t [1] end
@@ -54,7 +45,7 @@ function Analyser:max ( t )
     return max
 end
 
-function Analyser:avg ( t )
+function DYNsnrAnalyser:avg ( t )
     local sum = 0
     local count = 0
     
@@ -70,7 +61,7 @@ end
 -- returns list of SNRs stats (MIN/MAX/AVG) for each measurement
 -- stored in map indexed by a string concatenated by power and rate 
 -- and MIN/MAX/AVG seperated by "-"
-function Analyser:snrs ()
+function DYNsnrAnalyser:snrs ()
     local ret = {}
     
     for _, measurement in ipairs ( self.measurements ) do
@@ -82,8 +73,11 @@ function Analyser:snrs ()
 
         for key, stats in pairs ( measurement.tcpdump_pcaps ) do
         
-            local rate = self:get_rate ( key )
-            local power = self:get_power ( key )
+            print ( key ) 
+            if ( table_size ( split ( key, "-" ) ) ~= 1 ) then break end
+        
+            local power
+            local rate
 
             local fname = measurement.output_dir .. "/" .. measurement.node_name 
                             .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
@@ -101,19 +95,27 @@ function Analyser:snrs ()
                     radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
                     radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
 		            local ssid = radiotap_data['ssid']
-                    if ( ssid == "LEDE" ) then
+                    if ( ssid == "Sagmegar" ) then
                 	    --print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
                         --print ( ssid )
-                        print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
-                        if ( radiotap_header ['antenna_signal'] ~= nil ) then
-                            snrs [ #snrs + 1 ] = radiotap_header ['antenna_signal']
+                        
+                        power = radiotap_header ['tx_power'] or 25
+                        local snr = radiotap_header ['antenna_signal']
+                        rate = radiotap_header ['rate'] or 128
+
+                        print ( "antenna_signal: " .. ( snr or "not present" ) )
+                        print ( "rate: " .. ( rate or "not present" ) )
+                        print ( "tx_power: " .. ( power or "not present" ) )
+
+                        if ( snr ~= nil ) then
+                            snrs [ #snrs + 1 ] = snr
                         end
                     end
                 end
 
                 cap:close()
             else
-                print ("Analyser: pcap open failed: " .. fname)
+                print ("DYNsnrAnalyser: pcap open failed: " .. fname)
             end
 
             if ( table_size ( snrs ) > 0 ) then
@@ -121,6 +123,7 @@ function Analyser:snrs ()
                 ret [ power .. "-" .. rate .. "-MAX" ] = self:max ( snrs )
                 ret [ power .. "-" .. rate .. "-AVG" ] = self:avg ( snrs )
             end
+
         end
     end
 
