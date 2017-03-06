@@ -72,6 +72,7 @@ parser:option ("-R --packet_rates", "Rates of UDP data", "50,200,600,1200" )
 parser:option ("-I --cct_intervals", "send iperf traffic intervals in milliseconds", "20000,50,100,1000" )
 parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" )
 
+parser:option ("--enable_fixed", "enable fixed setting of parameters", false)
 parser:option ("--tx_rates", "TX rate indices")
 parser:option ("--tx_powers", "TX power indices")
 

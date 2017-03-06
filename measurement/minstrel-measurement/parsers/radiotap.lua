@@ -219,23 +219,31 @@ PCAP.parse_radiotap_header = function ( capdata )
     ret ['it_len'], rest = PCAP.read_int16 ( rest )
     ret ['it_present'], rest = PCAP.read_int32 ( rest )
     
-    local has_ext = PCAP.hasbit( ret['it_present'], PCAP.bit( PCAP.radiotap_type [ "IEEE80211_RADIOTAP_EXT" ] ) )
+    local has_ext = PCAP.hasbit( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ "IEEE80211_RADIOTAP_EXT" ] ) )
+    --print ( PCAP.to_bytes ( rest ) )
+    --print ( )
     if ( has_ext ) then
         ret ['it_present_ex'], rest = PCAP.read_int32 ( rest )
         -- #antennas
-        local bitmask
+        local bitmask = ret ['it_present_ex']
         repeat
             --print ( "read mask" )
             bitmask, rest = PCAP.read_int32 ( rest )
-        until ( PCAP.hasbit ( bitmask, PCAP.bit ( PCAP.radiotap_type [ "IEEE80211_RADIOTAP_NS_NEXT" ] ) ) == false )
-        -- fixme: IEEE80211_RADIOTAP_NS_NEXT defines whether more data is specified
-        bitmask, rest = PCAP.read_int32 ( rest )
+            local cont = PCAP.hasbit ( bitmask, PCAP.bit ( PCAP.radiotap_type [ "IEEE80211_RADIOTAP_NS_NEXT" ] ) )
+            --print ( "next: " .. tostring ( cont ) )
+        until ( cont == false )
     end
 
+    --print ( PCAP.to_bytes ( rest ) )
+    --print ( )
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_TSFT' ] )  ) ) then
         --align 8
         ret['tsft'], rest = PCAP.read_int64 ( rest )
+        -- print ( ret['tsft'] )
     end
+    --print ( PCAP.to_bytes ( rest ) )
+    --print ( )
+    --tests/test.pcap: _, rest = PCAP.read_int32 ( rest )
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_FLAGS' ] )  ) ) then
         ret['flags'], rest = PCAP.read_int8 ( rest )
     end

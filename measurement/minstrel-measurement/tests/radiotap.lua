@@ -49,6 +49,7 @@ if (cap ~= nil) then
             assert ( radiotap_header['tsft'] == 89665551)
 
             -- check flags
+            print ( PCAP.bitmask_tostring ( radiotap_header['flags'], 32 ) )
             assert ( PCAP.hasbit ( radiotap_header['flags'], PCAP.bit ( PCAP.radiotap_flags [ 'IEEE80211_RADIOTAP_F_CFP' ] ) ) == false )
             assert ( PCAP.hasbit ( radiotap_header['flags'], PCAP.bit ( PCAP.radiotap_flags [ 'IEEE80211_RADIOTAP_F_SHORTPRE' ] ) ) == false )
             assert ( PCAP.hasbit ( radiotap_header['flags'], PCAP.bit ( PCAP.radiotap_flags [ 'IEEE80211_RADIOTAP_F_WEP' ] ) ) == false )
@@ -58,7 +59,7 @@ if (cap ~= nil) then
             assert ( PCAP.hasbit ( radiotap_header['flags'], PCAP.bit ( PCAP.radiotap_flags [ 'IEEE80211_RADIOTAP_F_BADFCS' ] ) ) == false )
     
             -- check data rate
-            --print ( radiotap_header['rate'] )
+            print ( radiotap_header['rate'] )
             assert ( radiotap_header['rate'] == 2 ) -- 1Mb/s
 
             --print ( radiotap_header['channel'] )

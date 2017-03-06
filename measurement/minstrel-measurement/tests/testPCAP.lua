@@ -10,40 +10,42 @@ print (pcap._LIB_VERSION)
 
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
-local fname = "tests/test.pcap"
+local fname = "/home/denis/data25x30/lede-sta/lede-sta-120-11-1.pcap"
+--local fname = "tests/test.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
 	cap:set_filter ("type mgt subtype beacon", nooptimize)
     for capdata, timestamp, wirelen in cap.next, cap do
         -- print ( timestamp, wirelen, #capdata )
         -- pprint ( capdata )
-        print ( PCAP.to_bytes_hex ( capdata ) )
         local rest = capdata
         local radiotap_header
         local radiotap_data
         radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
         radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
 		local ssid = radiotap_data['ssid']
-		print ( "ssid: '" .. ssid .. "'" )
-		print ( ssid == "LEDE" )
+		--print ( "ssid: '" .. ssid .. "'" )
+		--print ( ssid == "LEDE" )
 		if ( true or ssid == "LEDE" ) then
+            print ("LEDE")
+            --print ( PCAP.to_bytes_hex ( capdata ) )
 			print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
-			print ( "flags: " .. ( radiotap_header ['flags'] or "not present" ) )
-			print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
-			print ( "channel: " .. ( radiotap_header ['channel'] or "not present" ) )
-			local channel_flags = "not present"
-			if ( radiotap_header ['channel_flags'] ~= nil ) then
-				channel_flags = PCAP.bitmask_tostring ( radiotap_header ['channel_flags'], 16)
-						.. ", 0x" .. string.format ( "%x", radiotap_header ['channel_flags']) 
-			end
-			print ( "channel_flags: " .. ( channel_flags or "not present" ) )
-			print ( "fhss_hop_set: " .. ( radiotap_header ['fhss_hop_set'] or "not present" ) )
-			print ( "fhss_hop_pattern: " .. ( radiotap_header ['fhss_hop_pattern'] or "not present" ) )
+			--print ( "flags: " .. ( radiotap_header ['flags'] or "not present" ) )
+			--print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
+			--print ( "channel: " .. ( radiotap_header ['channel'] or "not present" ) )
+			--local channel_flags = "not present"
+			--if ( radiotap_header ['channel_flags'] ~= nil ) then
+			--	channel_flags = PCAP.bitmask_tostring ( radiotap_header ['channel_flags'], 16)
+			--			.. ", 0x" .. string.format ( "%x", radiotap_header ['channel_flags']) 
+			--end
+			--print ( "channel_flags: " .. ( channel_flags or "not present" ) )
+			--print ( "fhss_hop_set: " .. ( radiotap_header ['fhss_hop_set'] or "not present" ) )
+			--print ( "fhss_hop_pattern: " .. ( radiotap_header ['fhss_hop_pattern'] or "not present" ) )
 			print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
-			print ( "antenna_noise: " .. ( radiotap_header ['antenna_noise'] or "not present" ) )
-			print ( "tx_power: " .. ( radiotap_header ['tx_power'] or "not present" ) )
-			print ( "db_antenna_signal: " .. ( radiotap_header ['db_antenna_signal'] or "not present" ) )
-			print ( "db_antenna_noise: " .. ( radiotap_header ['db_antenna_noise'] or "not present" ) )
+			--print ( "antenna_noise: " .. ( radiotap_header ['antenna_noise'] or "not present" ) )
+			--print ( "tx_power: " .. ( radiotap_header ['tx_power'] or "not present" ) )
+			--print ( "db_antenna_signal: " .. ( radiotap_header ['db_antenna_signal'] or "not present" ) )
+			--print ( "db_antenna_noise: " .. ( radiotap_header ['db_antenna_noise'] or "not present" ) )
 		end
     end
 

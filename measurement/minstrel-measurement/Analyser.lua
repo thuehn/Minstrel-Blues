@@ -86,10 +86,10 @@ function Analyser:snrs ()
             local power = self:get_power ( key )
 
             local fname = measurement.output_dir .. "/" .. measurement.node_name 
-                            .. "/" .. measurement.node_name .. "-" .. key .. ".pcap.2"
-            local file = io.open(fname, "wb")
-            file:write ( stats )
-            file:close()
+                            .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
+            -- local file = io.open(fname, "wb")
+            --file:write ( stats )
+            --file:close()
             local cap = pcap.open_offline( fname )
             if (cap ~= nil) then
 	            cap:set_filter ("type mgt subtype beacon", nooptimize)
@@ -102,9 +102,9 @@ function Analyser:snrs ()
                     radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
 		            local ssid = radiotap_data['ssid']
                     if ( ssid == "LEDE" ) then
-                        --print ( "timestamp: " .. timestamp )
                 	    --print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
-        			    print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
+                        --print ( ssid )
+                        print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
                         if ( radiotap_header ['antenna_signal'] ~= nil ) then
                             snrs [ #snrs + 1 ] = radiotap_header ['antenna_signal']
                         end
