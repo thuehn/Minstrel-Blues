@@ -347,6 +347,7 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
     function find_rate ( rate_name, rate_names, rate_indices )
         rate_name = string.gsub ( rate_name, " ", "" )
         rate_name = string.gsub ( rate_name, "MBit/s", "M" )
+        rate_name = string.gsub ( rate_name, "1M", "1.0M" )
         --print ( "'" .. rate_name .. "'" )
         for i, name in ipairs ( rate_names ) do
             if ( name == rate_name ) then return rate_indices [ i ] end
