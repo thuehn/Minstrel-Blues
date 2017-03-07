@@ -1,1 +1,0 @@
-return {modules = {argparse = "src/argparse.lua"}}
