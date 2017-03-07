@@ -12,7 +12,15 @@ SLOT="0"
 KEYWORDS="~amd64 ~arm ~hppa ~mips ~ppc ~ppc64 ~x86 ~x86-fbsd"
 IUSE=""
 
-DEPEND=">=dev-lang/lua-5.1"
+DEPEND=">=dev-lang/lua-5.1
+		dev-lua/luafilesystem
+		dev-lua/luaposix
+		dev-lua/LuaBitOp
+		dev-lua/pcap-lua
+		dev-lua/luaex
+		dev-lua/luaargparse
+		dev-lua/luapprint
+		dev-lua/luarpc"
 RDEPEND="${DEPEND}"
 
 src_install() {
