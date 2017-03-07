@@ -262,7 +262,7 @@ if ( args.no_measurement == false ) then
     ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
                                      , ctrl_config['ctrl_if'], args.ctrl_ip 
                                      , args.output
-                                     , args_enabe_fixed
+                                     , args.enable_fixed
                                      )
 
     if ( args.disable_autostart == false ) then
