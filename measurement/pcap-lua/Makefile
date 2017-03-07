@@ -26,7 +26,7 @@ define Package/pcap-lua
 	SECTION:=lang
 	CATEGORY:=Languages
 	TITLE:=pcap-lua
-	DEPENDS:=+lua
+	DEPENDS:=+lua +libpcap
 	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 	PKGARCH:=all
 endef
@@ -35,11 +35,6 @@ define Package/pcap-lua/description
   lua bindings for libpcap
 endef
 
-#define Build/Prepare 
-#	mkdir -p $(PKG_BUILD_DIR)/pcap-lua 
-#	$(CP) -r ./pcap-lua/* $(PKG_BUILD_DIR)/pcap-lua
-#endef
-
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC) $(TARGET_CFLAGS) -s" \
@@ -47,10 +42,6 @@ define Build/Compile
 		STAGING_DIR="$(STAGING_DIR)" \
 		install
 endef
-##		CFLAGS="$(TARGET_CFLAGS)" \
-##		CC="$(TARGET_CC)" \
-##		$(MAKE_FLAGS) \
-
 
 define Package/pcap-lua/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua
