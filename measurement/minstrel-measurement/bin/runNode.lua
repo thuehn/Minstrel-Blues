@@ -33,12 +33,15 @@ function link_to_ssid ( ... ) return node:link_to_ssid ( ... ) end
 function get_linked_ssid(...) return node:get_linked_ssid(...) end
 function get_linked_iface(...) return node:get_linked_iface(...) end
 function get_linked_mac(...) return node:get_linked_mac(...) end
+function get_linked_signal(...) return node:get_linked_signal(...) end
+function get_linked_rate_idx(...) return node:get_linked_rate_idx(...) end
 
 function get_mac(...) return node:get_mac(...) end
 function get_addr(...) return node:get_addr(...) end
 function has_lease(...) return node:has_lease(...) end
 
 function tx_rate_indices(...) return node:tx_rate_indices(...) end
+function tx_rate_names(...) return node:tx_rate_names(...) end
 function set_tx_rate(...) return node:set_tx_rate(...) end
 function set_tx_power(...) return node:set_tx_power(...) end
 function get_tx_power(...) return node:get_tx_power(...) end

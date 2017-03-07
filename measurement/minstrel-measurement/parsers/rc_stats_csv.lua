@@ -183,6 +183,10 @@ end
 
 function parse_rc_stats_csv( rest )
 
+    function trim ( s )
+        return ( s:gsub("^%s*(.-)%s*$", "%1") )
+    end
+
     local fields = split ( rest, ',' )
 
     local stats = RcStatsCsv:create ()
@@ -192,7 +196,7 @@ function parse_rc_stats_csv( rest )
     stats.best_rate = fields [ 4 ]
 
     stats.rate = RcRate:create()
-    stats.rate.name = fields [ 5 ]
+    stats.rate.name = trim ( fields [ 5 ] )
     stats.rate.idx = fields [ 6 ]
     stats.rate.airtime = fields [ 7 ]
     stats.rate.max_tp = fields [ 8 ]

@@ -45,16 +45,65 @@ function Measurement:create ( name, rpc, output_dir )
 end
 
 function Measurement:read ()
+    if ( self.output_dir == nil ) then
+        return false, "output dir unset"
+    end
+
+    local base_dir = self.output_dir .. "/" .. self.node_name
+
+    -- regmon stats
+    for key, stats in pairs ( self.regmon_stats ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            stats = file:read ( "*a" )
+            self.regmon_stats [ key ] = stats
+            file:close ()
+        end
+    end
+
+    -- cpusage stats
+    for key, stats in pairs ( self.cpusage_stats ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-cpusage_stats.txt"
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            stats = file:read ( "*a" )
+            self.cpusage_stats [ key ] = stats
+            file:close ()
+        end
+    end
+
     -- tcpdump pcap
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         local fname = self.output_dir .. "/" .. self.node_name 
                     .. "/" .. self.node_name .. "-" .. key .. ".pcap"
         local file = io.open(fname, "rb")
-        stats = file:read("*a")
-        self.tcpdump_pcaps [ key ] = stats
-        file:close()
+        if ( file ~= nil ) then
+            stats = file:read("*a")
+            self.tcpdump_pcaps [ key ] = stats
+            file:close()
+        end
     end
 
+    -- rc_stats
+    if ( self.rc_stats_enabled == true ) then
+        for _, station in ipairs ( self.stations ) do
+            if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
+                for key, stats in pairs ( self.rc_stats [ station ] ) do
+                    local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
+                            .. station .. ".txt"
+                    local file = io.open(fname, "r")
+                    if ( file ~= nil ) then
+                        stats = file:read ( "*a" )
+                        self.rc_stats [ station ] [ key ] = stats
+                        file:close ()
+                    end
+                end
+            end
+        end
+    end
+
+    return true, nil
 end
 
 function Measurement:write ()
@@ -63,31 +112,31 @@ function Measurement:write ()
     end
 
     local base_dir = self.output_dir .. "/" .. self.node_name
+
     local status, err = lfs.mkdir ( base_dir )
     if ( status == false ) then 
         return false, err
     end
 
     -- regmon stats
-    local fname = base_dir .. "/" .. self.node_name .. "-regmon_stats.txt" 
-    local file = io.open ( fname, "w" )
-    for key, stat in pairs ( self.regmon_stats ) do
-        file:write ( key .. ":" .. stat .. "\n" )
+    for key, stats in pairs ( self.regmon_stats ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
+        local file = io.open ( fname, "w" )
+        file:write ( stats )
+        file:close ()
     end
-    file:close ()
 
     -- cpusage stats
-    local fname = base_dir .. "/" .. self.node_name .. "-cpusage_stats.txt" 
-    local file = io.open ( fname, "w" )
-    for key, stat in pairs ( self.cpusage_stats ) do
-        file:write ( key .. ":" .. stat .. "\n" )
+    for key, stats in pairs ( self.cpusage_stats ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key  .. "-cpusage_stats.txt"
+        local file = io.open ( fname, "w" )
+        file:write ( stats )
+        file:close ()
     end
-    file:close ()
     
     -- tcpdump pcap
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
-        print ( fname )
         local file = io.open ( fname, "w")
         if ( file ~= nil )  then
             file:write ( stats )
@@ -98,14 +147,14 @@ function Measurement:write ()
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil) then
-                local fname = base_dir .. "/" .. self.node_name .. "-rc_stats-" 
-                            .. station .. ".txt" 
-                local file = io.open ( fname, "w" )
-                for key, stat in pairs ( self.rc_stats [ station ] ) do
-                    file:write ( key .. ": " .. stat .. "\n" )
+            if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
+                for key, stats in pairs ( self.rc_stats [ station ] ) do
+                    local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
+                            .. station .. ".txt"
+                    local file = io.open ( fname, "w" )
+                    file:write ( stats )
+                    file:close ()
                 end
-                file:close ()
             end
         end
     end
@@ -180,7 +229,8 @@ end
 
 function Measurement:enable_rc_stats ( stations )
     if ( stations == nil or stations == {} ) then
-        error ( "stations unset" )
+    self.rc_stats_enabled = false
+        return
     end
     self.rc_stats_enabled = true
     self.stations = stations

@@ -31,7 +31,14 @@ Not connected.
 
 --]]
 
-IwLink = { ssid = nil, iface = nil, mac = nil }
+IwLink = { ssid = nil
+         , iface = nil
+         , mac = nil
+         , freq = nil
+         , signal = nil
+         , rate_idx = nil
+         , rate = nil
+         }
 
 function IwLink:new (o)
     local o = o or {}
@@ -46,15 +53,12 @@ function IwLink:create ()
 end
 
 function IwLink:__tostring() 
-    local ssid = "nil"
-    if (self.ssid ~= nil) then ssid = self.ssid end
-    local mac = "nil"
-    if (self.mac ~= nil) then mac = self.mac end
-    local iface = "nil"
-    if (self.iface ~= nil) then iface = self.iface end
-    return "IwLink ssid: " .. ssid
-            .. " mac: " .. mac
-            .. " iface: " .. iface
+    return "IwLink ssid: " .. ( self.ssid or "unset" )
+            .. " mac: " .. ( self.mac or "unset" )
+            .. " iface: " .. ( self.iface or "unset" )
+            .. " signal (dBm): " .. ( self.signal or "unset" )
+            .. " rate " .. ( self.rate or "unset" )
+            .. " rate_idx: " .. ( self.rate_idx or "unset" )
 end
 
 function parse_iwlink ( iwlink )
@@ -64,6 +68,17 @@ function parse_iwlink ( iwlink )
     local mac = nil
     local iface = nil
     local ssid = nil
+    local freq = nil
+    local rx_bytes = nil
+    local rx_packets = nil
+    local tx_bytes = nil
+    local tx_packets = nil
+    local signal = nil
+    local rate = nil
+    local unit = nil
+    local rate_idx_part1 = nil
+    local rate_idx_part2 = nil
+    local rate_idx = nil
 
     state, rest = parse_str ( rest, "Not connected." )
     if (state == true) then return nil end
@@ -76,13 +91,59 @@ function parse_iwlink ( iwlink )
     iface, rest = parse_ide ( rest )
     state, rest = parse_str ( rest, ")" )
     rest = skip_layout( rest )
+
     state, rest = parse_str ( rest, "SSID: " )
     ssid, rest = parse_ide ( rest )
+    rest = skip_layout( rest )
+
+    state, rest = parse_str ( rest, "freq: " )
+    freq, rest = parse_num ( rest )
+    rest = skip_layout( rest )
+
+    state, rest = parse_str ( rest, "RX: " )
+    rx_bytes, rest = parse_num ( rest )
+    state, rest = parse_str ( rest, " bytes (" )
+    rx_packets, rest = parse_num ( rest )
+    state, rest = parse_str ( rest, " packets)" )
+    rest = skip_layout( rest )
+
+    state, rest = parse_str ( rest, "TX: " )
+    tx_bytes, rest = parse_num ( rest )
+    state, rest = parse_str ( rest, " bytes (" )
+    tx_packets, rest = parse_num ( rest )
+    state, rest = parse_str ( rest, " packets)" )
+    rest = skip_layout( rest )
+
+    state, rest = parse_str ( rest, "signal: " )
+    signal, rest = parse_num ( rest )
+    state, rest = parse_str ( rest, " dBm" )
+    rest = skip_layout( rest )
+
+    state, rest = parse_str ( rest, "tx bitrate: " )
+    rate, rest = parse_real ( rest )
+    rest = skip_layout( rest )
+    local add_chars = {}
+    add_chars[1] = '/'
+    unit, rest = parse_ide ( rest, add_chars )
+
+    local c = shead ( rest )
+    if ( c ~= '\n' ) then
+        rest = skip_layout( rest )
+
+        rate_idx_part1, rest = parse_ide ( rest )
+        rest = skip_layout( rest )
+        rate_idx_part2, rest = parse_num ( rest )
+        rate_idx = rate_idx_part1 .. " " .. rate_idx_part2
+    end
+    rest = skip_layout( rest )
     -- ...
     
     local out = IwLink:create()
     out.ssid = ssid
     out.mac = mac
     out.iface = iface
+    out.signal = tonumber ( signal )
+    out.rate = rate .. " " .. unit
+    out.rate_idx = rate_idx
     return out
 end

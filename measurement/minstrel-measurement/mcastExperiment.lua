@@ -19,10 +19,10 @@ function McastExperiment:get_power( key )
     return split ( key, "-" ) [2]
 end
 
-function McastExperiment:create ( control, data )
+function McastExperiment:create ( control, data, is_fixed )
     local o = McastExperiment:new( { control = control, runs = data[1], tx_powers = data[2], tx_rates = data[3]
                                    , udp_interval = data[4]
-                                   , is_fixed = false
+                                   , is_fixed = is_fixed
                                    } )
     return o
 end
@@ -56,7 +56,7 @@ function McastExperiment:keys ( ap_ref )
 
     for run = 1, self.runs do
         local key = tostring ( run )
-        if ( self.tx_rates ~= nil or self.tx_powers ~= nil) then
+        if ( self.is_fixed == true and ( self.tx_rates ~= nil and self.tx_powers ~= nil ) ) then
             for _, tx_rate in ipairs ( self.tx_rates ) do
                 key = key .. "-" .. tostring ( tx_rate )
                 for _, tx_power in ipairs ( self.tx_powers ) do
@@ -105,13 +105,16 @@ function McastExperiment:start_experiment ( ap_ref, key )
     local wait = false
     local ap_wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
     self.control:send_debug ( "run multicast udp server with local addr " .. ap_wifi_addr )
+
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         -- start iperf client on AP
         local addr = "224.0.67.0"
         local ttl = 32
         local size = "100M"
         local wifi_addr = sta_ref:get_addr ( sta_ref.wifi_cur )
+
         self.control:send_debug ( "run multicast udp client with local addr " .. wifi_addr )
+
         if ( ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait ) == nil ) then
             return false
         end

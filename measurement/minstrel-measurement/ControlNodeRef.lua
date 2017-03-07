@@ -17,7 +17,7 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir )
+function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir, is_fixed )
     -- ctrl node iface, ctrl node (name) lookup
     local ctrl_net = NetIF:create ( ctrl_if )
     ctrl_net.addr = ctrl_ip
@@ -28,7 +28,7 @@ function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir )
         end 
     end
 
-    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir }
+    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir, is_fixed = is_fixed }
     return o
 end
 
@@ -40,6 +40,7 @@ function ControlNodeRef:start ( log_net, ctrl_port, log_port )
                             , "--log_ip", log_net.addr
                             , "--log_port", log_port 
                             , "--output", self.output_dir
+                            , "--enable_fixed", self.is_fixed
                             )
     if ( ctrl ['err_msg'] ~= nil ) then
         self:send_warning("Control not started" .. ctrl ['err_msg'] )
@@ -56,6 +57,7 @@ function ControlNodeRef:start_remote ( log_net, ctrl_port, log_port )
                  .. " --port " .. ctrl_port 
                  .. " --ctrl_if " .. self.ctrl.iface
                  .. " --output " .. self.output_dir
+                 .. " --enable_fixed ", self.is_fixed
      if ( log_net.iface ~= nil ) then
         remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
      end

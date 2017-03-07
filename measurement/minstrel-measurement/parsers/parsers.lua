@@ -45,7 +45,7 @@ function parse_num ( str )
     function parse ( str, num )
         local parsed = str
         local ft = shead ( parsed )
-        if ( is_num ( ft ) ) then
+        if ( is_num ( ft ) or ( num == "" and ft == '-' ) ) then
             return parse ( stail ( parsed ), num .. ft )
         else
             return num, parsed

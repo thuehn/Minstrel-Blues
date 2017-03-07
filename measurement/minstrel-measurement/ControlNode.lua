@@ -328,7 +328,7 @@ end
 -- see run_experiment in Experiment.lua for
 -- a sequential variant
 -- fixme: exp userdata over rpc not possible
-function ControlNode:run_experiments ( command, args, ap_names )
+function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
 
     function check_mem ( mem, name )
         -- local warn_threshold = 40960
@@ -344,13 +344,24 @@ function ControlNode:run_experiments ( command, args, ap_names )
         return true
     end
 
+    function find_rate ( rate_name, rate_names, rate_indices )
+        rate_name = string.gsub ( rate_name, " ", "" )
+        rate_name = string.gsub ( rate_name, "MBit/s", "M" )
+        --print ( "'" .. rate_name .. "'" )
+        for i, name in ipairs ( rate_names ) do
+            if ( name == rate_name ) then return rate_indices [ i ] end
+        end
+        print ( "rate name doesn't match: '" .. rate_name .. "'" )
+        return nil
+    end
+
     local exp
     if ( command == "tcp") then
-        exp = TcpExperiment:create ( self, args )
+        exp = TcpExperiment:create ( self, args, is_fixed )
     elseif ( command == "mcast") then
-        exp = McastExperiment:create ( self, args )
+        exp = McastExperiment:create ( self, args, is_fixed )
     elseif ( command == "udp") then
-        exp = UdpExperiment:create ( self, args )
+        exp = UdpExperiment:create ( self, args, is_fixed )
     else
         return false
     end
@@ -409,6 +420,21 @@ function ControlNode:run_experiments ( command, args, ap_names )
             -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
             --     self:send_debug ( "station: " .. station )
             -- end
+
+            local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations[1] )
+            self:send_debug( "rates names: " .. table_tostring ( rate_names ) )
+            local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
+            self:send_debug( "rates names: " .. table_tostring ( rates ) )
+
+            for i, sta_ref in ipairs ( ap_ref.refs ) do
+
+                local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
+                local rate_idx = find_rate ( rate_name, rate_names, rates )
+                self:send_debug ( " rate_idx: " .. ( rate_idx or "unset" ) )
+
+                local signal = sta_ref.rpc.get_linked_signal ( sta_ref.wifi_cur )
+            end
+
         end
 
         self:send_info ("Waiting one extra second for initialised debugfs")

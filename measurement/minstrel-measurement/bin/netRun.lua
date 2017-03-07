@@ -73,7 +73,7 @@ parser:option ("-R --packet_rates", "Rates of UDP data", "50,200,600,1200" )
 parser:option ("-I --cct_intervals", "send iperf traffic intervals in milliseconds", "20000,50,100,1000" )
 parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" )
 
-parser:option ("--enable_fixed", "enable fixed setting of parameters", false)
+parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
 parser:option ("--tx_rates", "TX rate indices")
 parser:option ("--tx_powers", "TX power indices")
 
@@ -262,6 +262,7 @@ if ( args.no_measurement == false ) then
     ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
                                      , ctrl_config['ctrl_if'], args.ctrl_ip 
                                      , args.output
+                                     , args_enabe_fixed
                                      )
 
     if ( args.disable_autostart == false ) then
@@ -525,26 +526,66 @@ else -- args.no_measurement
 
         if ( name ~= "." and name ~= ".."  and isDir ( args.output .. "/" .. name ) ) then
                        
-            local measurement = Measurement:create ( name, nil, args.output )
-            measurement.tcpdump_pcaps = {}
-            measurements [ #measurements + 1 ] = measurement
+            if ( Config.find_node ( name, nodes ) ~= nil ) then
 
-            for _, pcap in ipairs ( ( scandir ( args.output .. "/" .. name ) ) ) do
+                local measurement = Measurement:create ( name, nil, args.output )
+                measurement.tcpdump_pcaps = {}
+                measurements [ #measurements + 1 ] = measurement
 
-                if ( pcap ~= "." and pcap ~= ".." 
-                    and not isDir ( args.output .. "/" .. name .. "/" .. pcap ) 
-                    and isFile ( args.output .. "/" .. name .. "/" .. pcap ) 
-                    and string.sub ( pcap, #pcap - 4, #pcap ) == ".pcap" ) then
+                for _, fname in ipairs ( ( scandir ( args.output .. "/" .. name ) ) ) do
 
-                    if ( Config.find_node ( name, nodes ) ) then 
-                        local key = string.sub ( pcap, #name + 2, #pcap - 5 )
-                        measurement.tcpdump_pcaps [ key ] = ""
-                    end
+                    if ( fname ~= "." and fname ~= ".."
+                        and not isDir ( args.output .. "/" .. name .. "/" .. fname )
+                        and isFile ( args.output .. "/" .. name .. "/" .. fname ) ) then
+
+                        if ( string.sub ( fname, #fname - 4, #fname ) == ".pcap" ) then
+
+                            -- lede-ap-1.pcap
+                            local key = string.sub ( fname, #name + 2, #fname - 5 )
+                            measurement.tcpdump_pcaps [ key ] = ""
+
+                        elseif ( string.sub ( fname, #fname - 3, #fname ) == ".txt" ) then
+
+                            -- lede-ap-1-regmon_stats.txt
+                            if ( string.sub ( fname, #fname - 15, #fname - 4 ) == "regmon_stats" ) then
+                                local key = string.sub ( fname, #name + 2, #fname - 17 )
+                                measurement.regmon_stats [ key ] = ""
+                            -- lede-ap-1-cpusage_stats.txt
+                            elseif ( string.sub ( fname, #fname - 16, #fname - 4 ) == "cpusage_stats" ) then
+                                local key = string.sub ( fname, #name + 2, #fname - 18 )
+                                measurement.cpusage_stats [ key ] = ""
+                            -- lede-ap-1-rc_stats-a0:f3:c1:64:81:7b.txt
+                            elseif ( string.sub ( fname, #fname - 29, #fname - 22 ) == "rc_stats" ) then
+                                local key = string.sub ( fname, #name + 2, #fname - 31 )
+                                local station = string.sub ( fname, #name + #key + 12, #fname - 4 )
+                                if (measurement.stations == nil ) then
+                                    measurement.stations = {}
+                                end
+                                local exists = false
+                                for _, s in ipairs ( measurement.stations ) do
+                                    if ( s == station ) then
+                                        exists = true
+                                        break
+                                    end
+                                end
+                                measurement.rc_stats_enabled = true
+                                if ( exists == false ) then
+                                    measurement.stations [ #measurement.stations + 1 ] = station
+                                end
+                                if ( measurement.rc_stats [ station ] == nil ) then
+                                    measurement.rc_stats [ station ] = {}
+                                end
+                                measurement.rc_stats [ station ] [ key ] = ""
+                            end
+
+                        end
                         
+                    end
                 end
+
+                measurement:read ()
+                print ( measurement:__tostring () )
             end
-            
-            measurement:read ()
         end
     end
 

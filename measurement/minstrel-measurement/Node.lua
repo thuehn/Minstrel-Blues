@@ -8,6 +8,8 @@ require ('Uci')
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
+require ('parsers/rc_stats_csv')
+require ('parsers/iw_link')
 
 local iperf_bin = "iperf"
 local lease_fname = "/tmp/dhcp.leases"
@@ -316,24 +318,54 @@ function Node:has_lease ( mac )
     return nil
 end
 
+-- read rc_stats and collects rate names
+function Node:tx_rate_names( phy, station )
+    self:send_info("List tx rate names for station " .. station .. " at device " .. phy)
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local fname = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" .. station .. "/rc_stats_csv"
+    local names = {}
+    local file = io.open( fname )
+    if ( file ~= nil ) then
+        local content = file:read("*a")
+        for i, line in ipairs ( split ( content, "\n" ) ) do
+            if ( line ~= ""
+                    and string.sub( line, 1, 5) ~= "Total"
+                    and string.sub( line, 1, 7) ~= "Average"
+                    and string.sub( line, 1, 18) ~= "              best"
+                    and string.sub( line, 1, 4) ~= "mode"
+               ) then
+                local rc_line = parse_rc_stats_csv ( line )
+                print ( rc_line:__tostring() )
+                names [ #names + 1 ] = rc_line.rate.name
+            end
+        end
+    end
+    return names
+end
+
+-- reads rc_stats and collects rate indices
 function Node:tx_rate_indices( phy, station )
-    self:send_info("List tx rates for station " .. station .. " at device " .. phy)
+    self:send_info("List tx rate indices for station " .. station .. " at device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" .. station .. "/rc_stats_csv"
     local rates = {}
-    -- TODO: csv parser
     local file = io.open( fname )
     if ( file ~= nil ) then
         local content = file:read("*a")
-        for _, line in ipairs ( split (content, '\n') ) do
-            local fields = split (line, ',')
-            if ( fields[6] ~= nil ) then
-                rates [ #rates + 1 ] = tonumber ( fields[6] )
+        for i, line in ipairs ( split ( content, "\n" ) ) do
+            if ( line ~= ""
+                    and string.sub( line, 1, 5) ~= "Total"
+                    and string.sub( line, 1, 7) ~= "Average"
+                    and string.sub( line, 1, 18) ~= "              best"
+                    and string.sub( line, 1, 4) ~= "mode"
+               ) then
+                local rc_line = parse_rc_stats_csv ( line )
+                print ( rc_line:__tostring() )
+                rates [ #rates + 1 ] = rc_line.rate.idx
             end
         end
-        table.sort ( rates )
-        file:close()
     end
     return rates
 end
@@ -437,6 +469,35 @@ function Node:get_linked_mac ( phy )
     return iwlink.mac
 end
 
+-- returns the signal when iface is connected
+-- otherwise nil is returned
+function Node:get_linked_signal ( phy )
+    self:send_info("Get linked signal for device " .. phy)
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
+    iwlink_proc['proc']:wait()
+    local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
+    close_proc_pipes ( iwlink_proc )
+    if (iwlink == nil or iwlink.signal == nil ) then return nil end
+    self:send_info(" linked signal: " .. iwlink.signal )
+    return iwlink.signal
+end
+
+-- returns the rate index when iface is connected
+-- otherwise nil is returned
+function Node:get_linked_rate_idx ( phy )
+    self:send_info("Get linked rate index for device " .. phy)
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
+    iwlink_proc['proc']:wait()
+    local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
+    close_proc_pipes ( iwlink_proc )
+    if (iwlink == nil or ( iwlink.rate_idx == nil and iwlink.rate == nil ) ) then return nil end
+    self:send_info(" linked rate index: " .. ( iwlink.rate_idx or iwlink.rate ) )
+    return ( iwlink.rate_idx or iwlink.rate )
+end
 -- --------------------------
 -- rc_stats
 -- --------------------------

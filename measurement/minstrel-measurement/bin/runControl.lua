@@ -14,6 +14,7 @@ parser:option ("--log_file", "Logging file name", "/tmp/minstrelm.log" )
 parser:option ("--log_if", "Logging Interface name", "eth0" )
 parser:option ("-L --log_port", "Logging port", "12347" )
 parser:option ("--log_ip", "Logging ip address" )
+parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
 
 parser:option ("-O --output", "measurement / analyse data directory","/tmp")
 
@@ -25,7 +26,8 @@ end
 
 local net = NetIF:create ( args.ctrl_if )
 local log = NetIF:create ( args.log_if, args.log_ip )
-local node = ControlNode:create ( "Control", net, args.port, log, args.log_port, args.log_file, args.output )
+local node = ControlNode:create ( "Control", net, args.port, log, args.log_port, args.log_file
+                                , args.output, args.enable_fixed )
 
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 function add_ap ( ... ) return node:add_ap ( ... ) end

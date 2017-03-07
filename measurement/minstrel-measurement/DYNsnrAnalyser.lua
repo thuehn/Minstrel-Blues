@@ -103,9 +103,9 @@ function DYNsnrAnalyser:snrs ()
                         local snr = radiotap_header ['antenna_signal']
                         rate = radiotap_header ['rate'] or 128
 
-                        print ( "antenna_signal: " .. ( snr or "not present" ) )
-                        print ( "rate: " .. ( rate or "not present" ) )
-                        print ( "tx_power: " .. ( power or "not present" ) )
+                        --print ( "antenna_signal: " .. ( snr or "not present" ) )
+                        --print ( "rate: " .. ( rate or "not present" ) )
+                        --print ( "tx_power: " .. ( power or "not present" ) )
 
                         if ( snr ~= nil ) then
                             snrs [ #snrs + 1 ] = snr
