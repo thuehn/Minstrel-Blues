@@ -13,6 +13,12 @@ PKG_MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 PKG_LICENSE:=GPL-3.0+
 PKG_LICENSE_FILES:=LICENSE
 
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-git.tar.gz
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+PKG_SOURCE_URL:=https://github.com/jjensen/lua-ex.git
+PKG_SOURCE_VERSION:=master
+
 include $(INCLUDE_DIR)/package.mk
 
 define Package/lua-ex
@@ -29,27 +35,18 @@ define Package/lua-ex/description
   The Lua Extension API is a proposal for a standard set of functions to provide a more complete programming environment for Lua.
 endef
 
-define Build/Prepare 
-	mkdir -p $(PKG_BUILD_DIR)/lua-ex 
-	$(CP) -r ./lua-ex/* $(PKG_BUILD_DIR)/lua-ex
-endef
-
 define Build/Compile
-	$(CP) $(PKG_BUILD_DIR)/lua-ex/conf.in $(PKG_BUILD_DIR)/lua-ex/conf
-	$(MAKE) -C $(PKG_BUILD_DIR)/lua-ex \
+	$(CP) $(PKG_BUILD_DIR)/conf.in $(PKG_BUILD_DIR)/conf
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC) $(TARGET_CFLAGS) -s" \
 		PRECOMPILED_FILTER=1 \
 		STAGING_DIR="$(STAGING_DIR)" \
 		linux
 endef
-##		CFLAGS="$(TARGET_CFLAGS)" \
-##		CC="$(TARGET_CC)" \
-##		$(MAKE_FLAGS) \
-
 
 define Package/lua-ex/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lua-ex/posix/ex.so $(1)/usr/lib/lua
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/posix/ex.so $(1)/usr/lib/lua
 endef
 
 $(eval $(call BuildPackage,lua-ex))

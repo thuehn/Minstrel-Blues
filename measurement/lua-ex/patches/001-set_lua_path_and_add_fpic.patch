@@ -1,5 +1,5 @@
 diff --git a/conf.in b/conf.in
-index 4a6832e..b549e33 100755
+index 3b6b6b2..2675e72 100644
 --- a/conf.in
 +++ b/conf.in
 @@ -1,7 +1,6 @@
@@ -13,15 +13,15 @@ index 4a6832e..b549e33 100755
  #LUA= /home/mark/luabinaries/lua51
  #LUAINC= -I$(LUA)/include
 diff --git a/posix/Makefile b/posix/Makefile
-index d12c388..0d6d1cb 100755
+index b83c328..3fa4f60 100644
 --- a/posix/Makefile
 +++ b/posix/Makefile
 @@ -1,6 +1,6 @@
  include ../conf
  
 -CFLAGS= $(WARNINGS) $(DEFINES) $(INCLUDES)
-+CFLAGS= $(CFLAG) -fPIC $(WARNINGS) $(DEFINES) $(INCLUDES)
- DEFINES= -D_XOPEN_SOURCE=600 $(POSIX_SPAWN)
++CFLAGS= $(WARNINGS) -fPIC $(DEFINES) $(INCLUDES)
+ DEFINES= -D_XOPEN_SOURCE=600 $(POSIX_SPAWN) $(ENVIRON)
  INCLUDES= $(LUAINC)
  WARNINGS= -W -Wall
 @@ -10,7 +10,7 @@ T= ex.so
