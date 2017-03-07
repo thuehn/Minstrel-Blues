@@ -31,6 +31,6 @@ src_prepare() {
 src_install() {
 #	emake PREFIX="${ED}usr" install
 	dodir /usr/lib/lua/5.1
-	cp -R "${S}/bit.so" "${D}/usr/lib/lua/5.1/bit.so" || die "Install failed!"
+	cp "${S}/bit.so" "${D}/usr/lib/lua/5.1/bit.so" || die "Install failed!"
 	dodoc README
 }

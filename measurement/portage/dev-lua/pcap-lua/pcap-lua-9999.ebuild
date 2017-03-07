@@ -27,6 +27,6 @@ src_prepare() {
 src_install() {
 #	emake PREFIX="${ED}usr" install
 	dodir /usr/lib/lua/5.1
-	cp -R "${S}/pcap.so" "${D}/usr/lib/lua/5.1/pcap.so" || die "Install failed!"
+	cp "${S}/pcap.so" "${D}/usr/lib/lua/5.1/pcap.so" || die "Install failed!"
 	dodoc README.txt
 }

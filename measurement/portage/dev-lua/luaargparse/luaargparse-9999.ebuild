@@ -17,6 +17,6 @@ RDEPEND="${DEPEND}"
 
 src_install() {
 	dodir /usr/lib/lua/5.1
-	cp -R "${S}/src/argparse.lua" "${D}/usr/lib/lua/5.1/" || die "Install failed!"
+	cp "${S}/src/argparse.lua" "${D}/usr/lib/lua/5.1/" || die "Install failed!"
 	dodoc README.md
 }
