@@ -1,0 +1,10 @@
+--- Makefile.am	2015-01-04 13:08:20.000000000 +0100
++++ Makefile.amnew	2017-03-08 13:52:42.111838800 +0100
+@@ -83,7 +83,6 @@
+ 	@for la in $(luaexec_LTLIBRARIES); do	\
+ 	  f=`echo "$$la" |sed 's|^.*/||'`;	\
+ 	  echo rm -f $(luaexecdir)/$$f;		\
+-	  rm -f $(luaexecdir)/$$f;		\
+ 	done
+ 
+ 
