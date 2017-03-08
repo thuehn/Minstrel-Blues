@@ -52,16 +52,16 @@ endef
 
 define Package/minstrel-measurement/install
 	$(INSTALL_DIR) $(1)/root
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measuremet/*.lua $(1)/root
+	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/*.lua $(1)/root
 	$(INSTALL_DIR) $(1)/root/parsers
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measuremet/parsers/*.lua $(1)/root/parsers
+	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/parsers/*.lua $(1)/root/parsers
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measuremet/bin/cpusage_single $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measuremet/bin/fetch_file.lua $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/cpusage_single $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/fetch_file.lua $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/root/bin
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measuremet/bin/* $(1)/root/bin
+	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/* $(1)/root/bin
 	$(INSTALL_DIR) $(1)/root/tests
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measuremet/tests/*.lua $(1)/root/tests
+	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/tests/*.lua $(1)/root/tests
 
 endef
 
