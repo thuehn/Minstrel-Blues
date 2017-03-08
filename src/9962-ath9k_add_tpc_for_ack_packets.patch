@@ -43,8 +43,8 @@
  	}
  
 +	/* Handle tx power changes for ACK packets*/
-+	if (changed & IEEE80211_CONF_CHANGE_ACK_TX_POWER)
-+		ath9k_hw_set_ack_txpower(ah, conf->ack_tx_power);
++	if (changed & IEEE80211_CONF_CHANGE_ACK_TXPOWER)
++		ath9k_hw_set_ack_txpower(ah, conf->ack_txpower);
 +
  	mutex_unlock(&sc->mutex);
  	ath9k_ps_restore(sc);

@@ -24,7 +24,7 @@
  	hw->max_rates = 4;
  	hw->max_listen_interval = 10;
  	hw->max_rate_tries = 10;
-+	hw->min_tx_power = 0;
++	hw->min_txpower = 0;
  	hw->sta_data_size = sizeof(struct ath_node);
  	hw->vif_data_size = sizeof(struct ath_vif);
  	hw->txq_data_size = sizeof(struct ath_atx_tid);
