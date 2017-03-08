@@ -1,9 +1,13 @@
 
+-- TODO: stderr
+
 require ('NodeBase')
 
 require ('NetIF')
 require ('misc')
 require ('Uci')
+
+requie ('lpc')
 
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
@@ -78,14 +82,16 @@ end
 
 function get_ip_addr ( iface )
     if ( iface == nil ) then error ( "argument iface unset!" ) end
-    local ifconfig_proc = spawn_pipe( "ifconfig", iface )
-    ifconfig_proc['proc']:wait()
-    local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
-    close_proc_pipes ( ifconfig_proc )
-    if (ifconfig == nil or ifconfig.addr == nil) then 
-        return nil
+    local ifconfig_str, exit_code = os.execute ( "ifconfig " .. iface )
+    if ( exit_code == 0 ) then
+        local ifconfig = parse_ifconfig ( ifconfig_str )
+        if (ifconfig == nil or ifconfig.addr == nil) then 
+            return nil, ifconfig_str
+        else
+            return ifconfig.addr, nil
+        end
     else
-        return ifconfig.addr
+        return nil, ifconfig_str
     end
 end
 
@@ -119,30 +125,25 @@ function Node:get_ssid( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_info("send ssid for " .. iface)
-    local iwinfo = spawn_pipe("iw", iface, "info")
-    local exit_code = iwinfo['proc']:wait()
+    local str, exit_code = os.execute ( "iw " .. iface .. " info")
     if (exit_code == 0) then
         -- TODO: parse response
-        local str = iwinfo ['out']:read("*all")
         str = string.gsub ( str, "\t", " " )
         str = string.gsub ( str, "\n", " " )
         local tokens = split ( str, " " )
         for i, token in ipairs( tokens ) do
             if ( token == "ssid") then
                 close_proc_pipes ( iwinfo )
-                return tokens [ i + 1 ]
+                return tokens [ i + 1 ], nil
             end
         end
     end
-    close_proc_pipes ( iwinfo )
-    return nil
+    return nil, str
 end
 
 function Node:restart_wifi()
-    local wifi = spawn_pipe("wifi")
-    local exit_code = wifi['proc']:wait()
-    close_proc_pipes ( wifi )
-    self:send_info("restart wifi")
+    local wifi, exit_code = os.execute ( "wifi" )
+    self:send_info("restart wifi: " .. wifi)
     return exit_code == 0
 end
 
@@ -152,29 +153,20 @@ end
 function Node:add_monitor ( phy )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
-    local iw_info = spawn_pipe("iw", "dev", mon, "info")
-    local exit_code = iw_info['proc']:wait()
-    close_proc_pipes ( iw_info )
-    if (exit_code ~= 0) then
+    local iw_info, exit_code = os.execute ( "iw  dev " .. mon .. " info" )
+    if ( exit_code ~= 0 ) then
         self:send_info("Adding monitor " .. mon .. " to " .. phy)
-        local iw_add = spawn_pipe("iw", "phy", phy, "interface", "add", mon, "type", "monitor")
-        local exit_code = iw_add['proc']:wait()
+        local iw_add, exit_code = os.execute ( "iw phy " .. phy .. " interface add " .. mon .. " type monitor" )
         if (exit_code ~= 0) then
-            local err = iw_add['err']:read("*l")
-            self:send_error("Add monitor failed: " .. ( err or "" ) )
+            self:send_error("Add monitor failed: " .. ( iw_add or "" ) )
         end
-        if ( iw_add['err_msg'] ~= nil ) then 
-            self:send_error("Add monitor failed: " .. iw_add['err_msg'] )
-        end
-        close_proc_pipes ( iw_add )
     else
-        self:send_info("Monitor " .. mon .. " not added to " .. phy .. ": already exists")
+        self:send_info("Monitor " .. mon .. " not added to " .. phy .. ": " .. iw_info )
     end
     self:send_info("enable monitor " .. mon)
-    local ifconfig = spawn_pipe("ifconfig", mon, "up")
-    local exit_code = ifconfig['proc']:wait()
+    local ifconfig, exit_code = os.execute ("ifconfig " .. mon .. " up")
     if (exit_code ~= 0) then
-        self:send_error("add monitor for device " .. phy .. "failed with exit code " .. exit_code)
+        self:send_error("add monitor for device " .. phy .. "failed with exit code " .. exit_code .. ": " .. ifconfig )
     end
     close_proc_pipes ( ifconfig )
 end
@@ -184,16 +176,12 @@ end
 function Node:remove_monitor ( phy )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
-    local iw_info = spawn_pipe("iw", "dev", mon, "info")
-    local exit_code = iw_info['proc']:wait()
-    close_proc_pipes ( iw_info )
+    local iw_info, exit_code = os.execute ( "iw dev " .. mon .. " info" )
     if (exit_code == 0) then
         self:send_info("Removing monitor " .. mon .. " from " .. phy)
-        local iw_add = spawn_pipe("iw", "dev", mon, "del")
-        local exit_code = iw_add['proc']:wait()
-        close_proc_pipes ( iw_add )
+        local iw_add, exit_code = os.execute ( "iw dev " .. mon ..  " del" )
         if (exit_code ~= 0) then
-            self:send_error("Remove monitor failed: " .. exit_code)
+            self:send_error("Remove monitor failed: " .. iw_info )
         end
     end
 end
@@ -270,10 +258,8 @@ function Node:get_mac ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_info("send mac for " .. iface )
-    local ifconfig_proc = spawn_pipe( "ifconfig", iface )
-    ifconfig_proc['proc']:wait()
-    local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
-    close_proc_pipes ( ifconfig_proc )
+    local ifconfig_str, exit_code = os.execute ( "ifconfig " .. iface )
+    local ifconfig = parse_ifconfig ( ifconfig_str )
     if ( ifconfig == nil or ifconfig.mac == nil ) then return nil end
     self:send_info(" mac for " .. iface .. ": " .. ifconfig.mac )
     return ifconfig.mac
@@ -430,12 +416,10 @@ function Node:get_linked_ssid ( phy )
     self:send_info("Get linked ssid for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
-    iwlink_proc['proc']:wait()
-    local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
-    close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil or iwlink.ssid == nil ) then return nil end
-    self:send_info(" linked ssid: " .. iwlink.ssid)
+    local iwlink_str, exit_coe = os.execute ( "iw dev " .. iface .. " link" )
+    local iwlink = parse_iwlink ( iwlink_str )
+    if ( iwlink == nil or iwlink.ssid == nil ) then return nil end
+    self:send_info ( " linked ssid: " .. iwlink.ssid )
     return iwlink.ssid
 end
 
@@ -445,12 +429,10 @@ function Node:get_linked_iface ( phy )
     self:send_info("Get linked interface for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
-    iwlink_proc['proc']:wait()
+    local iwlink_str, exit_coe = os.execute ( "iw dev " .. iface .. " link" )
     local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
-    close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil or iwlink.iface == nil ) then return nil end
-    self:send_info(" linked iface: " .. iwlink.iface)
+    if ( iwlink == nil or iwlink.iface == nil ) then return nil end
+    self:send_info ( " linked iface: " .. iwlink.iface )
     return iwlink.iface
 end
 
@@ -460,12 +442,10 @@ function Node:get_linked_mac ( phy )
     self:send_info("Get linked mac for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
-    iwlink_proc['proc']:wait()
-    local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
-    close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil or iwlink.mac == nil) then return nil end
-    self:send_info(" linked mac: " .. iwlink.mac)
+    local iwlink_str, exit_coe = os.execute ( "iw dev " .. iface .. " link" )
+    local iwlink = parse_iwlink ( iwlink_str )
+    if ( iwlink == nil or iwlink.mac == nil) then return nil end
+    self:send_info ( " linked mac: " .. iwlink.mac )
     return iwlink.mac
 end
 
@@ -475,12 +455,10 @@ function Node:get_linked_signal ( phy )
     self:send_info("Get linked signal for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
-    iwlink_proc['proc']:wait()
-    local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
-    close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil or iwlink.signal == nil ) then return nil end
-    self:send_info(" linked signal: " .. iwlink.signal )
+    local iwlink_str, exit_coe = os.execute ( "iw dev " .. iface .. " link" )
+    local iwlink = parse_iwlink ( iwlink_str )
+    if ( iwlink == nil or iwlink.signal == nil ) then return nil end
+    self:send_info ( " linked signal: " .. iwlink.signal )
     return iwlink.signal
 end
 
@@ -490,14 +468,13 @@ function Node:get_linked_rate_idx ( phy )
     self:send_info("Get linked rate index for device " .. phy)
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local iwlink_proc = spawn_pipe( "iw", "dev", iface, "link" )
-    iwlink_proc['proc']:wait()
-    local iwlink = parse_iwlink ( iwlink_proc['out']:read("*a") )
-    close_proc_pipes ( iwlink_proc )
-    if (iwlink == nil or ( iwlink.rate_idx == nil and iwlink.rate == nil ) ) then return nil end
-    self:send_info(" linked rate index: " .. ( iwlink.rate_idx or iwlink.rate ) )
+    local iwlink_str, exit_coe = os.execute ( "iw dev " .. iface .. " link" )
+    local iwlink = parse_iwlink ( iwlink_str )
+    if ( iwlink == nil or ( iwlink.rate_idx == nil and iwlink.rate == nil ) ) then return nil end
+    self:send_info ( " linked rate index: " .. ( iwlink.rate_idx or iwlink.rate ) )
     return ( iwlink.rate_idx or iwlink.rate )
 end
+
 -- --------------------------
 -- rc_stats
 -- --------------------------
@@ -515,15 +492,10 @@ function Node:start_rc_stats ( phy, stations )
         --      self:send_debug ( "proc station: " .. name )
         -- end
         -- self:send_debug( file .. " exists: " .. tostring ( isFile ( file ) ) )
-        local rc_stats = spawn_pipe ( "lua", "bin/fetch_file.lua", "-i", "500000", file )
-        if ( rc_stats ['err_msg'] ~= nil ) then
-            self:send_error("fetch_file: " .. rc_stats ['err_msg'] )
-        else
-            --self:send_error ( rc_stats['err']:read("*l") )
-            self.rc_stats_procs [ station ] = rc_stats
-            self:send_info("rc stats for station " .. station .. " started " .. rc_stats['proc']:__tostring())
-            out [ #out + 1 ] = rc_stats['proc']:__tostring()
-        end
+        local pid, stdin, stdout = lpc.run ( "lua bin/fetch_file.lua -i 500000 " .. file )
+        self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
+        self:send_info("rc stats for station " .. station .. " started with pid: " .. pid )
+        out [ #out + 1 ] = pid
     end
     return out
 end
@@ -569,9 +541,9 @@ function Node:start_regmon_stats ( phy )
         return nil
     end
     self:send_info("start collecting regmon stats for " .. iface .. ", " .. phy)
-    local regmon = spawn_pipe( "lua", "bin/fetch_file.lua", "-l", "-i", "50000", file )
-    self.regmon_proc = regmon
-    return regmon['proc']:__tostring()
+    local pid, stdin, stdout = lpc.run ( "lua bin/fetch_file.lua -l -i 500000 " .. file )
+    self.regmon_proc = { pid = pid, stdin = stdin, stdout = stdout }
+    return pid
 end
 
 function Node:get_regmon_stats ()
@@ -587,7 +559,7 @@ function Node:get_regmon_stats ()
 end
 
 function Node:stop_regmon_stats ( pid )
-    self:send_info ("stop collecting regmon stats with pid " .. pid)
+    self:send_info ("stop collecting regmon stats with pid " .. pid )
     local exit_code = self:kill ( pid )
     self.regmon_proc['proc']:wait()
     return exit_code
@@ -600,9 +572,9 @@ end
 local cpusage_dump_fname = "/tmp/cpusage_dump"
 function Node:start_cpusage ()
     self:send_info("start cpusage")
-    local cpusage = spawn_pipe( "bin/cpusage_single" )
-    self.cpusage_proc = cpusage
-    return cpusage['proc']:__tostring()
+    local pid, stdin, stdout = lpc.run ( "bin/cpusage_single" )
+    self.cpusage_proc = { pid = pid, stdin = stdin, stdout = stdout }
+    return pid
 end
 
 function Node:get_cpusage()
@@ -628,24 +600,16 @@ end
 
 -- TODO: lock
 -- -U packet-buffered output instead of line buffered (-l)
--- tcpdump -l | tee file
+-- tcpdump -l -w - | tee -a file
 -- tcpdump -i mon0 -s 150 -U
 -- tcpdump: mon0: SIOCETHTOOL(ETHTOOL_GET_TS_INFO) ioctl failed: No such device
 function Node:start_tcpdump ( phy, fname )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
     self:send_info("start tcpdump for " .. mon .. " writing to " .. fname)
-    local tcpdump = spawn_pipe( "tcpdump", "-i", mon, "-s", "150", "-U", "-w", fname)
---    local tcpdump, _ = spawn_pipe2( { "tcpdump", "-i", mon, "-s", "150", "-U", "-w", "-" },
---                                 { "tee", "-a", fname } )
-    self.tcpdump_proc = tcpdump
-    if ( tcpdump['err_msg'] ~= nil ) then
-        self:send_error ( "start_tcpdump: " .. tcpdump['err_msg'] )
-        return nil
-    end
-    local line = tcpdump['err']:read('*line')
-    self:send_info ( line )
-    return tcpdump['proc']:__tostring()
+    local pid, stdin, stdout = lpc.run ( "tcpdump -i " ..mon .. " -s 150 -U -w" .. fname )
+    self.tcpdump_proc = { pid = pid, stdin = stdin, stdout = stdout }
+    return pid
 end
 
 function Node:get_tcpdump_offline ( fname )
@@ -675,18 +639,15 @@ end
 -- fixme: rpc function name to long
 function Node:start_tcp_iperf_s ()
     self:send_info("start TCP iperf server at port " .. self.iperf_port)
-    local iperf = spawn_pipe(iperf_bin, "-s", "-p", self.iperf_port)
-    self.iperf_server_proc = iperf
-    if ( iperf['proc'] == nil ) then
-        self:send_error ( "udp iperf server not started" )
-    end
+    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -s -p " .. self.iperf_port)
+    self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     for i=1,4 do
-        local msg = iperf['out']:read("*l")
+        local msg = stdout:read("*l")
         if ( msg ~= nil ) then
             self:send_info(msg)
         end
     end
-    return iperf['proc']:__tostring()
+    return pid
 end
 
 -- TODO: lock
@@ -694,17 +655,13 @@ end
 -- fixme: rpc function name to long
 function Node:start_udp_iperf_s ()
     self:send_info("start UDP iperf server at port " .. self.iperf_port)
-    local iperf = spawn_pipe(iperf_bin, "-s", "-u", "-p", self.iperf_port)
-    self.iperf_server_proc = iperf
-    if ( iperf['proc'] == nil ) then
-        self:send_error ( "tcp iperf server not started" )
-        return nil 
-    end
+    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -s -u -p " .. self.iperf_port)
+    self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     for i=1,5 do
-        local msg = iperf['out']:read("*l")
+        local msg = stdout:read("*l")
         self:send_info(msg)
     end
-    return iperf['proc']:__tostring()
+    return pid
 end
 
 --fixme: return iperf_str and map from addr to iperf client pid
@@ -713,16 +670,12 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
     self:send_info("run TCP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with tcpdata " .. tcpdata)
-    local iperf = spawn_pipe(iperf_bin, "-c", addr, "-p", self.iperf_port, "-n", tcpdata)
-    if ( iperf['proc'] == nil ) then 
-        self:send_error ( "tcp iperf client not started" )
-        return nil 
-    end
-    self.iperf_client_procs[ addr ] = iperf
+    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -c " .. addr .. " -p " .. self.iperf_port .. " -n " .. tcpdata )
+    self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     if ( wait == true) then
-        self:wait_iperf_c ( addr )
+        lpc.wait ( pid )
     end
-    return iperf['proc']:__tostring()
+    return pid
 end
 
 --fixme: return iperf_str and map from addr to iperf client pid
@@ -732,16 +685,13 @@ function Node:run_udp_iperf ( addr, size, rate, interval, wait )
                                 .. " to addr " .. addr 
                                 .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval)
     local bitspersec = size * 8 * rate
-    local iperf = spawn_pipe ( iperf_bin, "-u", "-c", addr, "-p", self.iperf_port, "-l", size .. "B", "-b", bitspersec, "-t", interval)
-    if ( iperf['proc'] == nil ) then
-        self:send_error ( "udp iperf client not started" )
-        return nil
-    end
-    self.iperf_client_procs[ addr ] = iperf
+    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -u  -c " .. addr .. " -p " .. self.iperf_port 
+                                         .. " -l " .. size .. "B -b " .. bitspersec .. " -t " .. interval )
+    self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     if ( wait == true) then
-        self:wait_iperf_c ( addr )
+        lpc.wait ( pid )
     end
-    return iperf['proc']:__tostring()
+    return pid 
 end
 
 --fixme: return iperf_str and map from addr to iperf client pid
@@ -751,17 +701,13 @@ function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
     self:send_info("run UDP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with ttl and interval " .. ttl .. ", " .. interval)
-    local iperf = spawn_pipe ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port
-                             , "-T", ttl, "-t", interval, "-b", size, "-B", addr)
-    if ( iperf['proc'] == nil ) then
-        self:send_error ( "udp multicast iperf client not started: " .. ( iperf['err_msg'] or "unknown error" ) )
-        return nil 
-    end
-    self.iperf_client_procs [ addr ] = iperf
+    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -u " .. " -c " .. multicast_addr .. " -p " .. self.iperf_port
+                                         " -T " .. ttl .. " -t " .. interval .. " -b " .. size .. " -B " .. addr )
+    self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     if ( wait == true) then
-        self:wait_iperf_c ( addr )
+        lpc.wait ( pid )
     end
-    return iperf['proc']:__tostring()
+    return pid
 end
 
 function Node:wait_iperf_c ( addr )
@@ -770,12 +716,11 @@ function Node:wait_iperf_c ( addr )
         return
     end
     self:send_info("wait for TCP/UDP client iperf for address " .. addr ) 
-    local exit_code = self.iperf_client_procs[ addr ]['proc']:wait()
+    local exit_code = lpc.wait ( self.iperf_client_procs[ addr ].pid )
     repeat
-        local line = self.iperf_client_procs[ addr ]['out']:read("*l")
+        local line = self.iperf_client_procs[ addr ].stdout:read("*l")
         if line ~= nil then self:send_info ( line ) end
     until line == nil
-    close_proc_pipes ( self.iperf_client_procs[ addr ] )
     self.iperf_client_procs [ addr ] = nil
 end
 
@@ -784,10 +729,9 @@ function Node:stop_iperf_server ( pid )
     self:send_info("stop iperf server with pid " .. pid)
     local exit_code = self:kill ( pid )
     repeat
-        local line = self.iperf_server_proc['out']:read("*l")
+        local line = self.iperf_server_proc.stdout:read("*l")
         if line ~= nil then self:send_info ( line ) end
     until line == nil
-    close_proc_pipes ( self.iperf_server_proc )
     return exit_code
 end
 

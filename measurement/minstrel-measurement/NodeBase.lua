@@ -1,7 +1,6 @@
 
 local ps = require ('posix.signal') --kill
 require ('rpc')
-require ('spawn_pipe')
 local unistd = require ('posix.unistd')
 require ('parentpid')
 require ('parsers/proc_version')
@@ -48,12 +47,13 @@ end
 -- -------------------------
 
 function NodeBase:get_free_mem ()
-    local free_proc = spawn_pipe("free" )
-    free_proc['proc']:wait()
-    local free_str = free_proc['out']:read("*a")
-    close_proc_pipes ( free )
-    local free = parse_free ( free_str )
-    return free.free
+    local free_str, exit_code = os.execute ( "free" )
+    if ( exit_code == 0 ) then
+        local free = parse_free ( free_str )
+        return free.free, nil
+    else
+        return nil, free_str
+    end
 end
 
 -- -------------------------

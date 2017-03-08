@@ -1,5 +1,4 @@
 require ('parsers/ifconfig')
-require ('spawn_pipe')
 
 local num
 local rest
@@ -26,17 +25,26 @@ ide, rest = parse_ide ( "br-lan mf", add_chars)
 assert ( ide == "br-lan" )
 assert ( rest == " mf" )
 
-local ifconfig_proc = spawn_pipe( "ifconfig", "wlan0" )
-ifconfig_proc['proc']:wait()
-local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
-print ( tostring ( ifconfig ) )
+local ifconfig_str, exit_code = os.execute ( "ifconfig wlan0" )
+if ( exit_code ~= 0 ) then
+    local ifconfig = parse_ifconfig ( ifconfig_str )
+    print ( tostring ( ifconfig ) )
+else
+    print ( ifconfig_str )
+end
 
-local ifconfig_proc = spawn_pipe( "ifconfig", "eth0" )
-ifconfig_proc['proc']:wait()
-local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
-print ( tostring ( ifconfig ) )
+local ifconfig_str, exit_code = os.execute ( "ifconfig eth0" )
+if ( exit_code ~= 0 ) then
+    local ifconfig = parse_ifconfig ( ifconfig_str )
+    print ( tostring ( ifconfig ) )
+else
+    print ( ifconfig_str )
+end
 
-local ifconfig_proc = spawn_pipe( "ifconfig", "br-lan" )
-ifconfig_proc['proc']:wait()
-local ifconfig = parse_ifconfig ( ifconfig_proc['out']:read("*a") )
-print ( tostring ( ifconfig ) )
+local ifconfig_str, exit_code = os.execute ( "ifconfig br-lan" )
+if ( exit_code ~= 0 ) then
+    local ifconfig = parse_ifconfig ( ifconfig_str )
+    print ( tostring ( ifconfig ) )
+else
+    print ( ifconfig_str )
+end

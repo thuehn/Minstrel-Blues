@@ -1,43 +1,47 @@
 
-require ("spawn_pipe")
-
 require ('parsers/ifconfig')
 require ('parsers/dig')
 
 Net = {}
 
 Net.get_addr = function ( iface )
-    local ifconfig_proc = spawn_pipe( "ifconfig", iface )
-    ifconfig_proc['proc']:wait()
-    local lines = ifconfig_proc['out']:read("*a")
-    local ifconfig = parse_ifconfig ( lines )
-    close_proc_pipes ( ifconfig_proc )
-    return ifconfig.addr
+    local lines, exit_code = os.execute ( "ifconfig " .. iface )
+    print ( lines )
+    print ( exit_code )
+    if ( exit_code == 0 ) then
+        local ifconfig = parse_ifconfig ( lines )
+        return ifconfig.addr, nil
+    else
+        return nil, lines
+    end
 end
 
--- TODO: +search has full qualified hostname output
--- lede-ap answer is lede-ap.lan. instead of lede-ap.
--- should be ok but untested
 Net.lookup = function ( name ) 
-    local dig = spawn_pipe ( "dig", name, "+search" ) -- '+search' for local hostnames ( without domain )
-    if ( dig['err_msg'] ~= nil ) then 
-        self:send_error ( "dig: " .. dig['err_msg'] )
-        return nil
+    local content, exit_code = os.execute ( "dig " .. name .. " +search" ) -- '+search' for local hostnames ( without domain )
+    if ( exit_code == 0 ) then
+        local answer = parse_dig ( content )
+        if ( answer ~= nil ) then
+            return answer.addr, nil
+        else
+            -- never happens
+            return nil, "Net.lookup: parse error: unknown"
+        end
+    else
+        return nil, content
     end
-    local exitcode = dig['proc']:wait()
-    local content = dig['out']:read("*a")
-    local answer = parse_dig ( content )
-    close_proc_pipes ( dig )
-    return answer.addr
 end
 
 -- tests only
 -- net-tools-hostname needs netinet6/ipv6_route.h to compile
 -- opkg install kmod-ipv6 radvd ip kmod-ip6tables ip6tables
 Net.get_hostname = function ()
-    local hostname_proc = spawn_pipe( "hostname", "-s" )
-    hostname_proc['proc']:wait()
-    local line = hostname_proc['out']:read("*l")
-    close_proc_pipes ( hostname_proc )
-    return line
+    local line, exit_code = os.execute ( "hostname -s" )
+    if ( exit_code == 0 ) then
+        return line, nil
+    else
+        return nil, line
+    end
 end
+
+print ( Net.get_addr ( "eth0" ) )
+print ( Net.get_addr ( "wlan0" ) )

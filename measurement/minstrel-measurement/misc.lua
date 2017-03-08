@@ -1,6 +1,5 @@
 
 require ('lfs')
-require ('spawn_pipe')
 
 function table_size ( tbl )
     local count = 0
@@ -121,15 +120,12 @@ function set_date_core ( year, month, day, hour, min, second )
                  .. string.format ( "%02d", min )
                  .. string.format ( "%04d", year )
                  .. string.format ( "%02d", second )
-    local proc = spawn_pipe ( "date", date )
-    local exit_code = proc['proc']:wait()
-    local err = nil
+    local date2, exit_code = os.execute ( "date " .. date )
     if ( exit_code ~= 0 ) then
-        err = proc ['err']:read("*l")
+        return nil, date
+    else
+        return date, nil
     end
-    local date = proc['out']:read("*l")
-    close_proc_pipes ( proc )
-    return date, err
 end
 
 -- syncronize time (date [YYYY.]MM.DD-hh:mm[:ss])
@@ -140,13 +136,10 @@ function set_date_bb ( year, month, day, hour, min, second )
                  .. string.format ( "%02d", hour ) .. ":"
                  .. string.format ( "%02d", min ) .. ":"
                  .. string.format ( "%02d", second )
-    local proc = spawn_pipe ( "date", date )
-    local exit_code = proc['proc']:wait()
-    local err = nil
+    local result, exit_code = os.execute ( "date " .. date )
     if ( exit_code ~= 0 ) then
-        err = proc ['err']:read("*l")
+        return nil, result
+    else
+        return result, nil
     end
-    local date = proc['out']:read("*l")
-    close_proc_pipes ( proc )
-    return date, err
 end

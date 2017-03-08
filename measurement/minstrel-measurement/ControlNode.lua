@@ -2,6 +2,7 @@
 --pprint = require ('pprint')
 
 local ps = require ('posix.signal') --kill
+require 'lpc'
 
 require ('NodeBase')
 
@@ -37,27 +38,18 @@ function ControlNode:create ( name, ctrl, port, log_ctrl, log_port, log_file, ou
                                 } )
 
     function start_logger ( log_ctrl, port, file )
-        local logger = spawn_pipe ( "lua", "bin/runLogger.lua", file, "--port", port, "--log_if", log_ctrl.iface )
-        if ( logger ['err_msg'] ~= nil ) then
-            print ( "Logger not started" .. logger ['err_msg'] )
+        local pid, _, _ = lpc.run ( "lua bin/runLogger.lua " .. file 
+                                     .. " --port " .. port
+                                     .. " --log_if " .. log_ctrl.iface )
+        local exit_code = lpc.wait ( pid )
+        --fixme: error_msg at stderr
+        if ( exit_code ~= 0 ) then
+            o:send_error ( "Logger not started" )
+        else
+            o:send_info ( "Logging started" )
         end
-        close_proc_pipes ( logger )
-        local str = logger['proc']:__tostring()
-        o:send_info ( "Logging started: " .. str )
-        return parse_process ( str ) 
+        return pid 
     end
-
---    function start_logger_remote ( addr, port, file )
---        local remote_cmd = "lua bin/runLogger.lua " .. file
---                    .. " --port " .. port 
--- 
---        if ( addr ~= nil ) then
---            remote_cmd = remote_cmd .. " --log_ip " .. addr 
---        end
---        o:send_info ( remote_cmd )
---        local ssh = spawn_pipe("ssh", "root@" .. addr, remote_cmd)
---        close_proc_pipes ( ssh )
---    end
 
     if ( log_ctrl ~= nil and log_port ~= nil and log_file ~= nil ) then
         local pid = start_logger ( log_ctrl, log_port, log_file ) ['pid']
@@ -225,10 +217,8 @@ end
 
 function ControlNode:reachable ()
     function node_reachable ( ip )
-        local ping = spawn_pipe("ping", "-c1", ip)
-        local exitcode = ping['proc']:wait()
-        close_proc_pipes ( ping )
-        return exitcode == 0
+        local ping, exit_code = os.execute ( "ping -c1 " .. ip)
+        return exit_code == 0
     end
 
     local reached = {}
@@ -259,8 +249,11 @@ function ControlNode:start( log_addr, log_port )
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
         self:send_info ( remote_cmd )
-        local ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, "root@" .. node_ref.ctrl.addr, remote_cmd)
-        close_proc_pipes ( ssh )
+        local ssh, exit_code = os.execut ( "ssh -i " .. node_ref.rsa_key 
+            .. " root@" .. node_ref.ctrl.addr .. " " .. remote_cmd )
+        if ( exit_code ~= 0 ) then
+            self:send_error ( "ControlNode:start failed: " .. ssh )
+        end
 --[[    local exit_code = ssh['proc']:wait()
         if (exit_code == 0) then
             self:send_info (node.name .. ": node started" )
@@ -550,12 +543,16 @@ function ControlNode:stop()
         local exit_code
         local remote = "root@" .. node_ref.ctrl.addr
         local remote_cmd = "kill -2 " .. self.pids [ node_ref.name ]
-        ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
-        exit_code = ssh['proc']:wait()
-        close_proc_pipes ( ssh )
-        ssh = spawn_pipe("ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
-        exit_code = ssh['proc']:wait()
-        close_proc_pipes ( ssh )
+        ssh, exit_code = os.execute ( "ssh -i " .. node_ref.rsa_key .. " " .. remote
+                                        .. " " .. remote_cmd )
+        if ( exit_code ~= 0 ) then
+            self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed: " .. ssh )
+        end
+        ssh, exit_code = os.execute ( "ssh -i " .. node_ref.rsa_key .. " " .. remote
+                                        .. " " .. remote_cmd )
+        if ( exit_code ~= 0 ) then
+            self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed: " .. ssh )
+        end
     end
     stop_logger ( self.pids['logger'] )
 end

@@ -1,4 +1,3 @@
-require ('spawn_pipe')
 require ('misc')
 
 -- dig cannot handle resolv.conf files other than /etc/resolv.conf
@@ -19,14 +18,9 @@ function set_resolvconf ( nameserver )
     local fname = "/etc/resolv.conf"
     if ( isFile ( uci_bin ) ) then
         local var = "dhcp.@dnsmasq[0].resolvfile"
-        local proc = spawn_pipe( uci_bin, "get", var )
-        proc['proc']:wait()
-        local line = proc['out']:read("*l")
-        close_proc_pipes ( proc )
+        local line, exit_code = os.execute ( uci_bin .. " get " .. var )
         if ( line ~= fname ) then
-            local proc = spawn_pipe( "uci", "set", var .. "=" .. fname )
-            proc['proc']:wait()
-            close_proc_pipes ( proc )
+            local line, exit_code = os.execute ( uci_bin .. " set " .. var .. "=" .. fname )
         end
     end
     -- overwrite resolv.conf
@@ -67,16 +61,12 @@ function uci_check_bridge ( phy )
 --            close_proc_pipes ( proc )
 --        end
         local var = "network.lan.type"
-        local proc = spawn_pipe( uci_bin, "get", var )
-        local exit_code = proc['proc']:wait()
+        local line, exit_code = os.execute ( uci_bin .. " get " .. var )
         if ( exit_code > 0 ) then
             -- uci has no such entry ( no bridge )
-            close_proc_pipes ( proc )
             return false
         else
-            local lan_type = proc['out']:read("*l")
-            close_proc_pipes ( proc )
-            return lan_bridge ~= "bridge"
+            return line ~= "bridge"
         end
     end
     return nil
@@ -88,9 +78,7 @@ function uci_link_to_ssid ( ssid, phy )
     if ( isFile ( uci_bin ) ) then
         local phy_idx = tonumber ( string.sub ( phy, 4, 5 ) ) + 1
         local var = "wireless.@wifi-iface[" .. phy_idx .. "].ssid"
-        local proc = spawn_pipe( uci_bin, "set", var .. "=" .. ssid )
-        local exit_code = proc['proc']:wait()
-        close_proc_pipes ( proc )
+        local line, exit_code = os.execute ( uci_bin .. " set " .. var .. "=" .. ssid )
         if ( exit_code > 0 ) then
             -- device id does not exists
             return false
@@ -106,9 +94,7 @@ function uci_set_wifi_mode ( mode, phy )
     if ( isFile ( uci_bin ) ) then
         local phy_idx = tonumber ( string.sub ( phy, 4, 5 ) ) + 1
         local var = "wireless.@wifi-iface[" .. phy_idx .. "].mode"
-        local proc = spawn_pipe( uci_bin, "set", var .. "=" .. mode )
-        local exit_code = proc['proc']:wait()
-        close_proc_pipes ( proc )
+        local line, exit_code = os.execute ( uci_bin .. " set " .. var .. "=" .. mode )
         if ( exit_code > 0 ) then
             -- device id does not exists
             return false

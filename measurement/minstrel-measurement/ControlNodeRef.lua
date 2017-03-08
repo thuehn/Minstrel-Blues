@@ -1,7 +1,6 @@
 
 require ("rpc")
-require ("spawn_pipe")
-require ("parsers/ex_process")
+require ("lpc")
 require ('Net')
 require ('NetIF')
 
@@ -33,42 +32,42 @@ function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir, is_fixed )
 end
 
 function ControlNodeRef:start ( log_net, ctrl_port, log_port )
-    local ctrl = spawn_pipe ( "lua", "bin/runControl.lua"
-                            , "--port", ctrl_port
-                            , "--ctrl_if", self.ctrl.iface
-                            , "--log_if", log_net.iface
-                            , "--log_ip", log_net.addr
-                            , "--log_port", log_port 
-                            , "--output", self.output_dir
-                            , "--enable_fixed", self.is_fixed
-                            )
-    if ( ctrl ['err_msg'] ~= nil ) then
-        self:send_warning("Control not started" .. ctrl ['err_msg'] )
-    end
-    close_proc_pipes ( ctrl )
-    local str = ctrl['proc']:__tostring()
-    local proc = parse_process ( str ) 
-    print ( "Control: " .. str )
-    return proc
-end
-
-function ControlNodeRef:start_remote ( log_net, ctrl_port, log_port )
-     local remote_cmd = "lua bin/runControl.lua"
+    local cmd = "lua bin/runControl.lua"
                  .. " --port " .. ctrl_port 
                  .. " --ctrl_if " .. self.ctrl.iface
                  .. " --output " .. self.output_dir
-                 .. " --enable_fixed ", self.is_fixed
-     if ( log_net.iface ~= nil ) then
-        remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
-     end
+                 .. " --enable_fixed " .. self.is_fixed
+    if ( log_net.iface ~= nil ) then
+        cmd = cmd .. " --log_if " .. log_net.iface
+    end
 
-     if ( log_net.addr ~= nil and log_port ~= nil ) then
+    if ( log_net.addr ~= nil and log_port ~= nil ) then
+        cmd = cmd .. " --log_ip " .. log_net.addr 
+                  .. " --log_port " .. log_port 
+    end
+    print ( remote_cmd )
+    local pid, _, _ = lpc.run ( cmd )
+    print ( "Control: " .. pid )
+    return pid
+end
+
+function ControlNodeRef:start_remote ( log_net, ctrl_port, log_port )
+    local remote_cmd = "lua bin/runControl.lua"
+                 .. " --port " .. ctrl_port 
+                 .. " --ctrl_if " .. self.ctrl.iface
+                 .. " --output " .. self.output_dir
+                 .. " --enable_fixed " .. self.is_fixed
+    if ( log_net.iface ~= nil ) then
+        remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
+    end
+
+    if ( log_net.addr ~= nil and log_port ~= nil ) then
         remote_cmd = remote_cmd .. " --log_ip " .. log_net.addr 
                  .. " --log_port " .. log_port 
-     end
-     print ( remote_cmd )
-     local ssh = spawn_pipe("ssh", "root@" .. self.ctrl.addr, remote_cmd)
-     close_proc_pipes ( ssh )
+    end
+    print ( remote_cmd )
+    local pid, _, _ = lpc.run ( "ssh root@" .. self.ctrl.addr .. remote_cmd)
+    return pid
 end
 
 function ControlNodeRef:connect ( ctrl_port )
@@ -105,7 +104,10 @@ function ControlNodeRef:stop ( pid )
 end
 
 function ControlNodeRef:stop_remote ( addr, pid )
-    local ssh = spawn_pipe("ssh", "root@" .. addr, "kill " .. pid )
-    local exit_code = ssh['proc']:wait()
-    close_proc_pipes ( ssh )
+    local ssh, exit_code = os.execute ( "ssh root@" .. addr .. " kill " .. pid )
+    if ( exit_code == 0 ) then
+        return true, nil
+    else
+        return false, ssh
+    end
 end

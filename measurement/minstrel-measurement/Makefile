@@ -4,7 +4,7 @@ SRC_DIR         = .
 SOURCE          =                \
 AccessPointRef.lua  DYNsnrAnalyser.lua  Measurement.lua  NodeBase.lua     Uci.lua              misc.lua           udpExperiment.lua \
 Config.lua          Experiment.lua      Net.lua          NodeRef.lua      config.lua           parentpid.lua \
-ControlNode.lua     FXsnrAnalyser.lua   NetIF.lua        SNRRenderer.lua  functional.lua       spawn_pipe.lua \
+ControlNode.lua     FXsnrAnalyser.lua   NetIF.lua        SNRRenderer.lua  functional.lua        \
 ControlNodeRef.lua  LogNode.lua         Node.lua         StationRef.lua   mcastExperiment.lua  tcpExperiment.lua \
 
 BIN_DIR         = bin
