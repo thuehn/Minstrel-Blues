@@ -1,2 +1,9 @@
+#https://github.com/github/gitignore
 *.swp
 *.out
+fetch_file
+netRun
+runControl
+runLogger
+runNode
+luac.out

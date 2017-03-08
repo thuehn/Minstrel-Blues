@@ -1,16 +1,33 @@
 require ("ex")
+pprint = require ('pprint')
 
+function table_size_misc ( tbl )
+    local count = 0
+    for _ in pairs( tbl ) do count = count + 1 end
+    return count
+end
 -- spawns process with pipes to stdin, stdout and stderr
 -- returns table with 
 --   1. struct with process, pid and life cycle state
 --   2. pipes
 --   3. error
 -- exit code with process:wait()
-function spawn_pipe(...)
-    local in_rd, in_wr = io.pipe()
-    local out_rd, out_wr = io.pipe()
-    local err_rd, err_wr = io.pipe()
-    local proc, err = os.spawn{stdin = in_rd, stdout = out_wr, stderr = err_wr, ...}
+
+function spawn_pipe ( cmd, ... )
+    local in_rd, in_wr = assert ( io.pipe() )
+    local out_rd, out_wr = assert ( io.pipe() )
+    local err_rd, err_wr = assert ( io.pipe() )
+    local args = { ... }
+    if ( table_size_misc ( args ) == 0 ) then
+        args = nil
+    end
+    local proc, err = os.spawn ( { command = cmd
+                                 , stdin = in_rd
+                                 , stdout = out_wr
+                                 , stderr = err_wr
+                                 , args = args
+                                 --, ...
+                                 } )
     in_rd:close(); out_wr:close(); err_wr:close()
     if not proc then
         in_wr:close(); out_rd:close(); err_rd:close()

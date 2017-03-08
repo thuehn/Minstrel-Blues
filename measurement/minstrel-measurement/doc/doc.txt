@@ -21,13 +21,26 @@ only. To run these test cases as user remount the debugfs with mode=1777.
 
 build
 -----
-lua: measurement runtime [+openwrt]
-lua-posix: process id [+openwrt]
-lua-ex: spawn process [+openwrt]
+lua 5.1: measurement runtime [+openwrt] ( lua 5.3 not available on LEDE,
+											hard masked on gentoo)
+lua-posix 33.2.1: process id [+openwrt] ( >33.2.1 lacks bit32 native in lua 5.3)
+lua-ex: spawn process [+openwrt] (microsleep, spawn [broken on all platforms
+                                              due to memory corruption] )
 lua-argparse: command line parser / interface [+openwrt]
-lua-rpc: remote procedure calls for lua [+openwrt]
+lua-rpc: remote procedure calls for lua [+openwrt] (alternative: nixio)
 pcap-lua: parse pcap files [+openwrt]
 LuaBitOp [-openwrt]
+pprint.lua: lua pretty printing
+
+not used but helpful
+--------------------
+nixio supports:
+	- rpc, 
+	- rpc.uci,
+	- net.ping,
+	- wifi.iwinfo (but not more i.e., iwlink)
+	- routes, iptables, ifconfig
+	- process pid, signal
 
 runtime
 -------
@@ -60,6 +73,10 @@ control
 - lua rpc nodes via control network interface
 - transfer stats
 - needs a running name server or a resolv.conf pointing to
+
+documentation
+=============
+LDoc, LuaDoc
 
 setup
 =====
