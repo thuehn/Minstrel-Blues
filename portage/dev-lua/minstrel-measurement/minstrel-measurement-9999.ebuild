@@ -33,7 +33,7 @@ src_install() {
 	dobin measurement/minstrel-measurement/bin/runLogger.lua
 	dobin measurement/minstrel-measurement/bin/runNode.lua
 	dodir /usr/lib/lua/5.1
-	insinto /usr/lib/lua5.1
+	insinto /usr/lib/lua/5.1
 	doins measurement/minstrel-measurement/AccessPointRef.lua
 	doins measurement/minstrel-measurement/DYNsnrAnalyser.lua
 	doins measurement/minstrel-measurement/Measurement.lua
