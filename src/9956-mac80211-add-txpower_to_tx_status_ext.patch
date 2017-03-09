@@ -1,0 +1,16 @@
+--- a/include/net/mac80211.h
++++ b/include/net/mac80211.h
+@@ -953,11 +953,13 @@ struct ieee80211_tx_info {
+  * @sta: Station that the packet was transmitted for
+  * @info: Basic tx status information
+  * @skb: Packet skb (can be NULL if not provided by the driver)
++ * @txpower: Txpower per rate status information
+  */
+ struct ieee80211_tx_status {
+ 	struct ieee80211_sta *sta;
+ 	struct ieee80211_tx_info *info;
+ 	struct sk_buff *skb;
++	s8 txpower[IEEE80211_TX_MAX_RATES];
+ };
+ 
+ /**
