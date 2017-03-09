@@ -2,7 +2,7 @@ LUAC = luac
 SRC_DIR	= .
 BIN_DIR	= bin
 INSTALL_BIN_DIR	= $(ROOT)/usr/bin
-INSTALL_LUA_LIB_DIR	= $(ROOT)/usr/lib/lua
+INSTALL_LUA_LIB_DIR	= $(ROOT)/usr/lib/lua/5.1
 
 FETCH_FILE = fetch_file
 NET_RUN = netRun
