@@ -89,6 +89,8 @@ end
 
 -- uci set wireless.@wifi-iface[1].mode='sta'
 -- mode: 'sta', 'ap'
+-- TODO: start/stop dhcp-server
+-- TODO: set static address/dhcp
 function uci_set_wifi_mode ( mode, phy )
     local uci_bin = "/sbin/uci" 
     if ( isFile ( uci_bin ) ) then

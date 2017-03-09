@@ -1,6 +1,6 @@
 
 -- TODO: extend lpc with stderr
--- TODO: sstdout:close, stdin_close
+-- TODO: stdout:close, stdin:close
 
 require ('NodeBase')
 
@@ -357,7 +357,7 @@ function Node:tx_rate_indices( phy, station )
     return rates
 end
 
--- fixme: tx_power_levels
+-- fixme: tx_power_levels ( per rate )
 -- funtion tx_power_levels ( phy, station )
 -- end
 

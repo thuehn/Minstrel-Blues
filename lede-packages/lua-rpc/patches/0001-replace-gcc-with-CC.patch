@@ -1,0 +1,17 @@
+diff --git a/Makefile b/Makefile
+index 594f122..ed8148e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -43,10 +43,10 @@ socket:
+ serial:
+ 	CFLAGS=-DLUARPC_ENABLE_SERIAL $(MAKE) $(LIBRARY).so
+ %.o : %.c $(DEPS)
+-	gcc $(CFLAGS) -I$(LUAINC) -o $@ -c $<
++	$(CC) $(CFLAGS) -I$(LUAINC) -o $@ -c $<
+ 
+ $(LIBRARY).so: $(OBJECTS)
+-	gcc $(LFLAGS) -o $(LIBRARY).so $(OBJECTS)
++	$(CC) $(LFLAGS) -o $(LIBRARY).so $(OBJECTS)
+ 
+ .PHONY : clean
+ clean:
