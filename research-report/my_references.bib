@@ -1,0 +1,267 @@
+%% This BibTeX bibliography file was created using BibDesk.
+%% http://bibdesk.sourceforge.net/
+
+
+%% Created for Bluse-Blue at 2015-07-23 18:11:07 +0200 
+
+
+%% Saved with string encoding Unicode (UTF-8) 
+
+
+
+@inproceedings{Juju_USENIX_2014,
+	Address = {Philadelphia, PA},
+	Author = {Julius Schulz-Zander and Lalith Suresh and Nadi Sarrar and Anja Feldmann and Thomas H{\"u}hn and Ruben Merz},
+	Booktitle = {2014 USENIX Annual Technical Conference (USENIX ATC 14)},
+	Date-Added = {2015-07-20 21:22:14 +0000},
+	Date-Modified = {2015-07-20 21:22:35 +0000},
+	Isbn = {978-1-931971-10-2},
+	Month = Jun,
+	Pages = {347--358},
+	Publisher = {USENIX Association},
+	Title = {Programmatic Orchestration of WiFi Networks},
+	Url = {https://www.usenix.org/conference/atc14/technical-sessions/presentation/schulz-zandery},
+	Year = {2014},
+	Bdsk-Url-1 = {https://www.usenix.org/conference/atc14/technical-sessions/presentation/schulz-zandery}}
+
+@phdthesis{Diss_Huehn_2013,
+	Abstract = {{IEEE} 802.11 ({WiFi)} networks are used to provide Internet access anywhere anytime. However, their performance is far below the achievable limits when multiple participants share the same frequency spectrum in an uncoordinated manner. The major reason behind such inefficiency is the lack of practical resource allocation algorithms that adapt well to the current conditions in a wireless network dynamically and select the appropriate transmission parameters such as transmission rates and power levels. Most current practical schemes are rather simplistic and only change a single transmission parameter. For instance, Transmit Power Control ({TPC)} works at the {WiFi} {PHY} layer and commonly assigns a static and rather high power level to all packets. A per-link or packet scheme is expected to provide better performance, but typically increases complexity and requires higher-layer information, such as medium access state from the Medium Access Control ({MAC)} layer. Therefore, although performance improvements have been shown in theory, these ideas are largely uninvestigated in practice. In this thesis, our main goal is to understand the feasibility and performance impact of a joint and per-link rate and power controller in a real {WiFi} system. To this end, we first enabled cross-layer communication of transmission power between the {WiFi} {PHY} and {MAC} layers in the Linux mac80211 subsystem. Based on our Atheros {WiFi} hardware, we also developed the in-kernel monitoring tool {`RegMon'} that enables understanding and troubleshooting {MAC} and {PHY-layer} operations with a finegrained time resolution across different Linux drivers. We designed and implemented a distributed rate and power control algorithm, Minstrel-Blues, which does not rely on signal strength or channel state information, but uses local statistics from periodic sampling of different rate and power combinations. Essentially, Minstrel-Blues can run on any {WiFi} hardware that supports packet-level power and rate control capabilities. Minstrel Blues decides the datarate, and consequently, the minimum power-level to support the chosen rate using a two-attribute utility function based on the throughput and power consumption of all rates. To expose the trade-off between throughput and network interference, we also introduced a weight parameter for the utility function, which tunes the importance of throughput in utility decisions. Our results show that if the goal is on maximizing the per-link throughput, Minstrel-Blues can significantly reduce transmission power necessary to communicate per link, while maintaining the same throughput achieved with maximum transmit power. We call this mode of operation - Minstrel-Piano. Based on experiments in {BOWL}, at {5Ghz}, Minstrel-Piano shows significant overall throughput enhancements due to increasing spatial reuse. Our performance analysis concludes with experiments with different weight factors in a home network scenario, with 2-laptops and one access point. These experiments were run in the 2.4 {GHz} {ISM} band, and hence, they also show that our controller works well in an typical scenarios. As more and more {WiFi} Access Points are deployed and with upcoming {IEEE} 802.11 n and ac devices using wider channel widths, resource allocation is expected to become even more important to manage interference efficiently. To this end, our work significantly contributes to the understanding of rate, power and carrier-sense control in practice., Die weite Verbreitung heutiger {IEEE} 802.11 ({WiFi)} Systeme untermauert das gro{\ss}e Potential dezentraler Funknetzwerke nahezu {\"u}berall und zu jeder Zeit einen Internetzugang bereitstellen zu k{\"o}nnen. Jedoch besteht eine signifikante Differenz zwischen der theoretisch m{\"o}glichen und derzeit erreichten Daten{\"u}bertragungsleistung, wenn sich mehrere Benutzer gemeinsam einen Funkkanal teilen. Eine der Hauptursachen liegt in der ineffizienten Ausnutzung des Frequenzspektrums begr{\"u}ndet. Es fehlen praxisnahe Algorithmen zur dynamischen Ressourcenallokation, die geeignete Parameter, wie z. B. {\"U}bertragungsrate und Sendeleistungeine an den aktuellen Zustand des drahtlosen Netzwerks an passen. Gegenw{\"a}rtige Verfahren zur Ressourcenallokation in {WiFi} Systemen sind von sehr einfacher Struktur und beschr{\"a}nken sich auf die Anpassung genau eines Parameters innerhalb der Funk{\"u}bertragung. {\"U}bliche Praxis ist das Festsetzen einer statischen und vergleichsweise hohen Sendeleistung f{\"u}r alle zu {\"u}bertragenden Datenpakete. Praktische Verfahren zur dynamischen und verteilten Sendeleistungsregelung auf der physikalischen Schicht ({PHY-layer)} des {IEEE} 802.11 Standards gibt es derzeit nicht. Gleichwohl versprechen solche Allokationsschemen, die pro Paket bzw. pro Kommunikationsverbindung gezielt Ressourcen zuweisen k{\"o}nnen, eine wesentliche Steigerung der Gesamtdatenrate innerhalb eines drahtlosen Netzwerks. Jedoch steigen mit ihnen typischerweise die Komplexit{\"a}t und auch der Informationsbedarf aus h{\"o}heren Netzwerkschichten, wie beispielsweise der aktuelle Status des Medienzugriffs aus der Schicht zur Medienzugriffssteuerung ({MAC-layer).} Deshalb sind derartige Ans{\"a}tze, trotz ihres in theoretischen Arbeiten belegten Potentials zur Leistungssteigerung, in praktischen {WiFi} Systemen weitgehend unerforscht. Der Schwerpunkt dieser wissenschaftlichen Arbeit liegt auf der Analyse zur Realisierbarkeit und zur Leistungsf{\"a}higkeit einer gemeinsamen Regelung von {\"U}bertragungsrate und Sendeleistung pro Kommunikationsverbindung unter Verwendung realer {IEEE} 802.11 Hardware. Zu diesem Zweck haben wir das Linux mac80211 Subsystem erweitert, so dass eine schicht{\"u}bergreifende (cross-layer) Kommunikation {\"u}ber die Sendeleistung pro Datenpaket zwischen {PHY-layer} und {MAC-layer} erm{\"o}glicht wird. Im n{\"a}chsten Schritt haben wir analysiert, inwieweit die relevanten Regelungsparameter {\"U}bertragungsrate und Sendeleistung in unserem Forschungsnetzwerk {``Berlin} Open Wireless Lab ({BOWL)''} parametrisierbar sind und welche Wechselwirkungen zwischen ihnen bestehen. Auf der Grundlage unserer Atheros {WiFi} Hardware entwickelten wir das neues Monitoringtool {``RegMon''} f{\"u}r verschiedene Linux Kernel Treiber. Mit dessen Hilfe k{\"o}nnen wir die dynamischen Vorg{\"a}nge auf dem {PHY-layer}, als auch auf dem {MAC-layer} der {WLAN} Netzwerkarte mit hoher zeitlichen Aufl{\"o}sung analysieren, auswerten und zur Fehlerdiagnose nutzen. In der vorliegenden Arbeit haben wir den verteilten Algorithmus {``Minstrel-Blues''} zur dynamischen Ressourcenallokation von {\"U}bertragungsrate und Sendeleistung entwickelt und implementiert. Unser Algorithmus basiert auf der Auswertung lokaler Statistiken, die Paketerfolgswahrscheinlichkeiten aktiv getesteter Kombinationen aus {\"U}bertragungsrate und Sendeleistung beinhalten. Dar{\"u}ber hinaus werden keine zus{\"a}tzlichen Informationen wie {z.B.} die Signalst{\"a}rke der empfangenen Pakete oder Kanalzustandsbeschreibungen ben{\"o}tigt. Tats{\"a}chlich funktioniert Minstrel-Blues auf jeder beliebigen {IEEE} 802.11 Hardware, die eine Unterst{\"u}tzung zur Regelung der {\"U}bertragungsrate und Sendeleistung pro Datenpaket bietet. Unter Berechnung einer additiven Nutzenfunktion, die sich aus dem aktuellen Datendurchsatz und der notwendigen Sendeleistung pro unterst{\"u}tzter Datenrate zusammensetzt, entscheidet Minstrel-Blues welche Kombination aus Datenrate und Sendeleistung die h{\"o}chste Pr{\"a}ferenz erh{\"a}lt. Um die Auswirkungen des Zielkonflikts zwischen der Maximierung des Datendurchsatzes und der Minimierung der Interferenz im Funknetzwerk analysieren zu k{\"o}nnen, haben wir einen Gewichtungsfaktor in unsere Nutzenfunktion integriert. Unsere Ergebnisse zeigen, dass ein auf die Maximierung des Datendurchsatzes gewichteter Minstrel-Blues in der Lage ist, die f{\"u}r einen gleichbleibenden Datendurchsatz notwendig Sendeleistung, im Vergleich zur maximalen Sendeleistung, signifikant zu verringern. Diese spezielle Funktionsweise bezeichnen wir als {``Minstrel-Piano''.} Basierend auf unseren Experimenten in {BOWL}, konnten wir bei der Nutzung des 5 {GHz} {ISM} Frequenzbandes ({IEEE} 802.11a) belegen, dass Minstrel-Piano den Gesamtdurchsatz des Datenverkehrs im Funknetzwerk, aufgrund seiner effizienterer Nutzung des Frequenzspektrums, ma{\ss}geblich erh{\"o}ht. Unsere Analyse endet mit experimentellen Untersuchungen zu unterschiedlichen Gewichtungsfaktoren in einer typischen {WiFI} Umgebenung im Heimnetzwerk, bestehend aus zwei Laptops und einer {WLAN} Basisstation. Anhand dessen konnten wir zeigen, dass unsere dynamische Regelung von Datenrate und Sendeleistung auch im lizenzfreien 2,4 {GHz} Frequenzspektrum gut funktioniert. Mit steigender Dichte von {WiFi} Ger{\"a}ten und der kontinuierlichen Vergr{\"o}{\ss}erung der genutzten Bandbreite, durch die aktuellen Standards {IEEE} 802.11 n und 802.11 ac, gehen wir davon aus, dass eine dynamische Ressourcenallokation eine Schl{\"u}sselrolle zur effizienten Nutzung des Spektrum bzw. zum Interferenzmanagement einnehmen wird. Zu diesem Zweck leistet diese Dissertations einen entscheidenden Beitrag zum theoretischen Verst{\"a}ndnis und der praktischen Umsetzung einer dynamischen Regelung von {\"U}bertragungsrate, Sendeleistung und Carrier Sensing in {IEEE} 802.11 Systemen.},
+	Address = {Berlin},
+	Author = {H{\"u}hn, Thomas},
+	Date-Added = {2014-01-27 16:02:40 +0000},
+	Date-Modified = {2015-07-20 21:23:38 +0000},
+	File = {Snapshot:/Users/bluse/Library/Application Support/Firefox/Profiles/ljfcmqe1.default/zotero/storage/7NPAHBK3/3939.html:text/html},
+	Keywords = {Datenratenregelung, drahtlose Funknetzwerke, {IEEE} 802.11, rate control, Ressource Allocation, Sendeleistungsregelung, spacial reuse, Spektrumswiederverwendbarkeit, Transmit power control},
+	Note = {{IEEE} 802.11 ({WiFi)} networks are used to provide Internet access anywhere anytime. However, their performance is far below the achievable limits when multiple participants share the same frequency spectrum in an uncoordinated manner. The major reason behind such inefficiency is the lack of practical resource allocation algorithms that adapt well to the current conditions in a wireless network dynamically and select the appropriate transmission parameters such as transmission rates and power levels. Most current practical schemes are rather simplistic and only change a single transmission parameter. For instance, Transmit Power Control ({TPC)} works at the {WiFi} {PHY} layer and commonly assigns a static and rather high power level to all packets. A per-link or packet scheme is expected to provide better performance, but typically increases complexity and requires higher-layer information, such as medium access state from the Medium Access Control ({MAC)} layer. Therefore, although performance improvements have been shown in theory, these ideas are largely uninvestigated in practice. In this thesis, our main goal is to understand the feasibility and performance impact of a joint and per-link rate and power controller in a real {WiFi} system. To this end, we first enabled cross-layer communication of transmission power between the {WiFi} {PHY} and {MAC} layers in the Linux mac80211 subsystem. Based on our Atheros {WiFi} hardware, we also developed the in-kernel monitoring tool {`RegMon'} that enables understanding and troubleshooting {MAC} and {PHY-layer} operations with a finegrained time resolution across different Linux drivers. We designed and implemented a distributed rate and power control algorithm, Minstrel-Blues, which does not rely on signal strength or channel state information, but uses local statistics from periodic sampling of different rate and power combinations. Essentially, Minstrel-Blues can run on any {WiFi} hardware that supports packet-level power and rate control capabilities. Minstrel Blues decides the datarate, and consequently, the minimum power-level to support the chosen rate using a two-attribute utility function based on the throughput and power consumption of all rates. To expose the trade-off between throughput and network interference, we also introduced a weight parameter for the utility function, which tunes the importance of throughput in utility decisions. Our results show that if the goal is on maximizing the per-link throughput, Minstrel-Blues can significantly reduce transmission power necessary to communicate per link, while maintaining the same throughput achieved with maximum transmit power. We call this mode of operation - Minstrel-Piano. Based on experiments in {BOWL}, at {5Ghz}, Minstrel-Piano shows significant overall throughput enhancements due to increasing spatial reuse. Our performance analysis concludes with experiments with different weight factors in a home network scenario, with 2-laptops and one access point. These experiments were run in the 2.4 {GHz} {ISM} band, and hence, they also show that our controller works well in an typical scenarios. As more and more {WiFi} Access Points are deployed and with upcoming {IEEE} 802.11 n and ac devices using wider channel widths, resource allocation is expected to become even more important to manage interference efficiently. To this end, our work significantly contributes to the understanding of rate, power and carrier-sense control in practice.},
+	School = {Technical University of Berlin},
+	Title = {A Measurement-Based Joint Power and Rate Controller for {IEEE} 802.11 Networks, Ein messbasierter Sendeleistungs- und Datenratenregler f{\"u}r {IEEE} 802.11 Netzwerke},
+	Url = {http://opus4.kobv.de/opus4-tuberlin/frontdoor/index/index/docId/3939},
+	Urldate = {2014-01-19},
+	Year = {2013},
+	Bdsk-Url-1 = {http://opus4.kobv.de/opus4-tuberlin/frontdoor/index/index/docId/3939}}
+
+@inproceedings{YHK-ACWTOLPA-08,
+	Abstract = {Even though hot spots and mesh networks increasingly realize the long-standing
+    vision of ubiquitous Internet access, our understanding of wireless protocols
+    and system is still in its infancy. To analyze and debug the current and new
+    protocols, packet-level accurate information of protocol status is crucially
+    needed. Thus, this paper introduces PaPMo (Packet accurate Protocol Monitor),
+    an active monitoring tool that captures snapshots of the protocol status as
+    packets pass through the different layers and over distributed nodes. By merging
+    and correlating the captured information, PaPMo is able to provide packet-level
+    accurate information of deployed wireless network behavior that is currently
+    available only via simulations. We show that PaPMo is able to correlate MAC-layer
+    events, such as packet loss due to queue overflow, with TCP congestion control
+    behavior at the accuracy of microseconds and with high fidelity.
+},
+	Address = {New York, NY, USA},
+	Author = {Yoo, Jae-Yong and H{\"u}hn, Thomas and Kim, JongWon},
+	Booktitle = {WiNTECH '08: Proceedings of the third ACM international workshop on Wireless network testbeds, experimental evaluation and characterization},
+	Date-Added = {2012-09-20 20:32:23 +0000},
+	Date-Modified = {2012-09-20 20:32:23 +0000},
+	Location = {San Francisco, California, USA},
+	Month = {September},
+	Pages = {41--48},
+	Publisher = {ACM},
+	Title = {Active capture of wireless traces: overcome the lack in protocol analysis},
+	Year = {2008}}
+
+@inproceedings{AHKT-MVETFFB-08,
+	Abstract = {This testbed practice paper presents our efforts to validate an analytical
+    model for fluid flow behavior in wireless mesh networks with an experimental
+    evaluation. We have developed a fluid model for multihop communication in wireless
+    mesh networks and analyzed it with simulations. Now, we describe our efforts
+    to reproduce the modeled and simulated network with an indoorWiFi mesh network
+    and to measure flow parameters that allow us to verify that the underlying
+    assumptions and the flow behavior can be matched in real networks. Our experiences
+    emphasize the need to gap the bridge between simulations and experimental validation
+    as well as the lack of tools to efficiently validate results. These findings
+    are particularly true in wireless mesh networks where interference is beyond
+    the control of the experiment and where nodes are distributed such that an
+    easy coordination and monitoring of the nodes is not possible.},
+	Address = {Brussels, Belgium},
+	Author = {Aziz, Adel and H{\"u}hn, Thomas and Karrer, Roger and Thiran, Patrick},
+	Booktitle = {Proceedings of 4th International Conference on Testbeds and Research Infrastructures for the Development of Networks and Communities (TRIDENTCOM '08)},
+	Date-Added = {2012-09-20 20:31:39 +0000},
+	Date-Modified = {2012-09-20 20:31:39 +0000},
+	Location = {Innsbruck, Austria},
+	Month = {March},
+	Pages = {1--6},
+	Publisher = {ICST (Institute for Computer Sciences, Social-Informatics and Telecommunications Engineering)},
+	Title = {Model validation through experimental testbed: the fluid flow behavior example},
+	Year = {2008}}
+
+@article{PKH-C2GWMN-08,
+	Abstract = {Wireless mesh networks have the potential to provide ubiquitous high-speed Internet access at low costs. The good news is that initial deployments of WiFi meshes show the feasibility of providing ubiquitous Internet connectivity. However, their performance is far below the necessary and achievable limit. Moreover, users subscription in the existing meshes is dismal even though the technical challenges to get connectivity are low. This paper provides an overview of the current status of mesh networks deployment and highlights the technical, economical and social challenges that need to be addressed in the next years. As proof of principle study, we discuss the above mentioned challenges with reference to three real networks: (i) MagNets, an operator-driven planned two-tier mesh network; (ii) Berlin Freifunk network as a pure community-driven, single-tier network; (iii) Weimar Freifunk network, also a community-driven but two-tier network.},
+	Address = {New York, NY, USA},
+	Author = {Karrer, Roger and Pescape, Antonio and H\"uhn, Thomas},
+	Categories = {tlabs_yes, group_feldmann, proj_magnets},
+	Date-Added = {2012-05-24 17:15:07 +0200},
+	Date-Modified = {2012-05-24 17:15:07 +0200},
+	Doi = {http://dx.doi.org/10.1155/2008/274790},
+	Issn = {1687-1472},
+	Journal = {EURASIP Journal on Wireless Communications and Networking},
+	Keywords = {wireless},
+	Month = {August},
+	Note = {Article ID 274790, 10 pages},
+	Onlineissn = {1687-1499},
+	Projectname = {thisisimportant},
+	Publisher = {Hindawi Publishing Corporation},
+	Title = {Challenges in Second-Generation Wireless Mesh Networks},
+	Volume = {2008},
+	Year = {2008},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1155/2008/274790}}
+
+@inproceedings{KKH-ECIE-08,
+	Author = {Karrer, Roger and K{\"u}hn, Ulrich and H{\"u}hn, Thomas},
+	Booktitle = {Proceedings of the Second International Conference on Future Generation Communication and Networking (FGCN '08)},
+	Location = {Sanya, Hainan Island, China},
+	Month = {December},
+	Pages = {11--16},
+	Publisher = {Springer},
+	Title = {Joint Application and Network Defense against DDoS Flooding Attacks in the Future Internet},
+	Year = {2008}}
+
+@misc{YHK-PPAPMS-08,
+	Address = {New York, NY, USA},
+	Author = {Yoo, Jae-Yong and H{\"u}hn, Thomas and Kim, JongWon},
+	Howpublished = {Demo at WiNTECH '08: Proceedings of the third ACM international workshop on Wireless network testbeds, experimental evaluation and characterization},
+	Location = {San Francisco, California, USA},
+	Month = {September},
+	Pages = {101--102},
+	Publisher = {ACM},
+	Title = {PaPMo: packet accurate protocol monitoring system},
+	Year = {2008}}
+
+@article{KH-UTVDM-08,
+	Address = {Ojung-Dong, Daedoek-Gu, Daejon, Korea},
+	Author = {Karrer, Roger and H{\"u}hn, Thomas},
+	Journal = {International Journal of Multimedia and Ubiquitous Engineering},
+	Month = {April},
+	Pages = {21--34},
+	Publisher = {SERSC - Science & Engineering Research Support Center},
+	Title = {Ubiquitous TV delivery to the masses},
+	Volume = {3},
+	Year = {2008}}
+
+@inproceedings{H-DACWCMN-09,
+	Author = {H{\"u}hn, Thomas},
+	Booktitle = {ExtremeCom '09: 1st Extreme Workshop on Communication},
+	Location = {Padjelanta National Park in Laponia, Sweden},
+	Month = {August},
+	Title = {Decentralized Administration Concepts for Wireless Community Mesh Networks},
+	Year = {2009}}
+
+@misc{albado09-automated,
+	Author = {Al-Bado, Mustafa and Feldmann, Anja and Fischer, Thorsten and H{\"u}hn, Thomas and Merz, Ruben and Schi{\"o}berg, Harald and Schulz-Zander, Julius and Sengul, Cigdem and Vahl, Benjamin},
+	Howpublished = {Demo at ACM SIGCOMM '09},
+	Month = {August},
+	Title = {Automated Online Reconfigurations in an Outdoor Live Wireless Mesh Network},
+	Year = {2009}}
+
+@inproceedings{Huehn_WiMesh_2010,
+	Abstract = {A substantial variety of control algorithms to adjust carrier sensing, transmission power, and transmission rate have been proposed for {IEEE} 802.11 wireless networks in the recent literature. Their objectives range from maximizing throughput, spatial reuse, and fairness to minimizing interference and congestion within the network. However, only a few of these have been implemented and analysed in practice, often because accessing and changing the necessary parameters in the wireless hardware is too difficult. Essentially, there is little understanding about the interactions of jointly adjusted transmission rate, power and carrier sense thresholds, and their impact on the aforementioned objectives. Therefore, in this paper, we focus on transmission rate, power and carrier sensing settings. We provide a detailed description of the common {IEEE} 802.11 radio hardware, especially in terms of carrier-sensing circuitry. We then present our results from our validation and initial measurement study, which demonstrate interactions between transmit power and rate under different carrier-sensing settings in a two link scenario. Our initial findings indicate there exists a limited number of rate-power combinations that achieve high performance in terms of either throughput and fairness both with and without carrier sensing. Furthermore, in the case of both strong and weak links exist in the network, turning carrier sensing off significantly improves performance.},
+	Author = {Thomas Huehn and Ruben Merz and Cigdem Sengul},
+	Booktitle = {Wireless Mesh Networks {(WIMESH} 2010), 2010 Fifth {IEEE} Workshop on},
+	Date-Modified = {2015-07-20 21:18:50 +0000},
+	Doi = {10.1109/WIMESH.2010.5507901},
+	Pages = {1--6},
+	Shorttitle = {Joint Transmission Rate, Power, and Carrier Sense Settings},
+	Title = {Joint Transmission Rate, Power, and Carrier Sense Settings: An Initial Measurement Study},
+	Url = {10.1109/WIMESH.2010.5507901},
+	Year = {2010},
+	Bdsk-Url-1 = {10.1109/WIMESH.2010.5507901},
+	Bdsk-Url-2 = {http://dx.doi.org/10.1109/WIMESH.2010.5507901}}
+
+@inproceedings{Huehn_ICCCN_2012,
+	Abstract = {While there has been extensive theoretical work on sophisticated joint
+resource allocation algorithms for wireless networks, these ideas are not
+typically followed up in WiFi (IEEE 802.11) based deployments. The reasons
+range from technical issues such as limitations of current driver
+implementations to administrative issues such as not having centralized
+control over neighboring deployments. To this end, in this work, we
+investigate the feasibility of and benefits from resource control in a real
+WiFi system. Specifically, we focus on rate and power control capabilities
+and realize an adaptive rate-power controller (Minstrel-Piano) by enabling
+a cross-layer communication interface between the IEEE 802.11 PHY and MAC
+layers. Our initial evaluation results show that Minstrel-Piano
+significantly decreases the transmit power per communication while
+maintaining the same link performance in different scenarios. This is
+expected to achieve better spatial reuse as using less transmission power
+decreases the overall interference in the network.},
+	Address = {Munich, Germany},
+	Author = {Thomas Huehn and Cigdem Sengul},
+	Booktitle = {21st International Conference on Computer Communications and Networks (ICCCN 2012)},
+	Date-Modified = {2015-07-20 21:18:10 +0000},
+	Days = 30,
+	Month = jul,
+	Title = {Practical Power and Rate Control for {WiFi}},
+	Year = 2012}
+
+@inproceedings{Vahl_Bowlmap_2012,
+	Abstract = {In this paper, we present Bowlmap, a web-based visualization tool designed
+for network monitoring and debugging. Bowlmap offers a highly-customizable
+representation of different measurement traces in the same network map. An
+important feature of Bowlmap is that it provides the user a convenient way
+to visualize both live and offline measurements and combine results from
+different sources. In addition to its flexibility, Bowlmap is designed to
+achieve low bandwidth usage, which allows faster visualization updates to
+the viewers. We demonstrate Bowlmap's capabilities and performance through
+several case studies to show how Bowlmap facilitates network monitoring and
+debugging.},
+	Address = {San Francisco, USA},
+	Author = {Benjamin Vahl and Francisco Luque and Thomas Huehn and Cigdem Sengul},
+	Booktitle = {The 4th IEEE Workshop on Hot Topics in Mesh Networking (IEEE HotMESH 2012)},
+	Date-Modified = {2012-10-16 13:01:23 +0000},
+	Month = jun,
+	Title = {Bowlmap: Network Monitoring and Debugging through Measurement Visualization},
+	Year = 2012}
+
+@inproceedings{abdesslem_feasibility_2006,
+	Abstract = {Recent research in wireless communications has achieved important results by exploring more and more sophisticated solutions involving power control. Cross-layer design and topology control are the main examples. Although much has been done in the theoretical domain, there is still a large gap between theory and practice. In this paper, we investigate whether current {IEEE} 802.11 devices are able to comply with cross-layer and topology control requirements. Our study and associated measurement results reveal that many novel power control solutions cannot be efficiently implemented over existing {IEEE} 802.11 cards. 1.},
+	Author = {Abdesslem, Fehmi Ben and Iannone, Luigi and Amorim, Marcelo Dias De and Kabassanov, Konstantin and Fdida, Serge},
+	Booktitle = {in {PERCOMW} '06: Proceedings of the 4th annual {IEEE} international conference on Pervasive Computing and Communications Workshops},
+	Date-Modified = {2012-05-25 15:46:06 +0200},
+	Pages = {468},
+	Publisher = {{IEEE} Computer Society},
+	Title = {On the feasibility of power control in current ieee 802.11 devices},
+	Year = {2006}}
+
+@article{shrivastava_feasibility_2007,
+	Abstract = {Spectral efficiency has been a major focus of research in wireless networks. Recent theoretical work has shown that ideal medium access protocol using optimal power control can improve channel utilization by up to a factor of √ρ, where ρ is the density of nodes in the region [1]. Although power control mechanisms have been extensively studied in theory and simulations, their practical evaluation has not been done throughly. Most of the power control mechanisms proposed in literature [3, 4, 5] assume a very fine grained handle on transmit power of wireless nodes and exercise this control to provide sophisticated mechanisms of sharing wireless medium among competing flows. In this work, we investigate the (in)feasibility of fine-grained power control in wireless networks using real testbed experiments. We perform detailed experiments to highlight fundamental issues with power control mechanisms, that cannot be captured by using a network simulator. Our experiments indicate that fine grained power control may not be a viable solution for indoor wireless networks and most power control mechanisms may need to be adapted to be suitable for practical settings.},
+	Author = {Shrivastava, Vivek and Agrawal, Dheeraj and Mishra, Arunesh and Banerjee, Suman and Nadeem, Tamer},
+	Date-Modified = {2012-05-23 20:02:43 +0200},
+	Issn = {1559-1662},
+	Journal = {{SIGMOBILE} Mob. Comput. Commun. Rev.},
+	Lccn = {0000},
+	Month = apr,
+	Number = {2},
+	Pages = {65--66},
+	Title = {On the (in)feasibility of fine grained power control},
+	Volume = {11},
+	Year = {2007},
+	Bdsk-Url-1 = {http://doi.acm.org/10.1145/1282221.1282238}}
+
+@inproceedings{shrivastava_understanding_2007,
+	Address = {New York, {NY}, {USA}},
+	Author = {Shrivastava, Vivek and Agrawal, Dheeraj and Mishra, Arunesh and Banerjee, Suman and Nadeem, Tamer},
+	Booktitle = {Proceedings of the 7th {ACM} {SIGCOMM} conference on Internet measurement},
+	Pages = {351--364},
+	Publisher = {{ACM}},
+	Series = {{IMC} '07},
+	Title = {Understanding the limitations of transmit power control for indoor wlans},
+	Year = {2007}}
+
+@techreport{wifi_forcast_2012,
+	Abstract = {By the end of 2012, 678 million households worldwide will be connected to the internet via broadband -- a 8.5% increase from 2011. Of these 678 million broadband households, 492 million households (73% of broadband households) will use a wireless router to create to WLAN, or Wi-Fi home network. Asia Pacific will have the highest number of Wi-Fi households in 2012, representing nearly 38% of global Wi-Fi households.
+
+This report provides broadband households, broadband household pentration, Wi-Fi households and Wi-Fi household penetration for six regions: North America, Western Europe, Central and Eastern Europe, Asia Pacific, Central and Latin America and Africa and the Middle East. Detailed figures are available for seventeen countries including USA, Canada, France, Germany, UK, Italy, Spain, Russia, Poland, Czech Republic, Brazil, Mexico, Australia, China, India, Japan and South Korea.},
+	Author = {Kantideep Thota},
+	Date-Added = {2012-06-03 14:28:55 +0200},
+	Date-Modified = {2013-07-09 09:46:38 +0000},
+	Institution = {Strategy Analytics},
+	Month = {M{\"a}rz},
+	Title = {Broadband and Wi-Fi Households Global Forecast 2012},
+	Year = {2012},
+	Bdsk-Url-1 = {http://www.strategyanalytics.com/default.aspx?mod=reportabstractviewer&a0=7215}}
+

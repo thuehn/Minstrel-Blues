@@ -1,0 +1,210 @@
+%\documentclass{letterpaper,11pt,twoside,twocolumn}
+% \documentclass[10pt, conference, letterpaper]{IEEEtran}
+% use sig alternate template
+\documentclass{sig-alternate}
+
+% \setlength{\oddsidemargin}{-0.3cm}
+% \setlength{\evensidemargin}{-0.3cm}
+% \setlength{\textwidth}{16cm}
+% \setlength{\topmargin}{-0.8cm}
+% \setlength{\textheight}{23.0cm}
+
+%\usepackage[margin=.70in]{geometry}
+
+%\pdfpagewidth=8.5in
+%\pdfpageheight=11in
+%\setlength\paperheight {11in}
+%\setlength\paperwidth {8.5in}
+%\setlength{\textwidth}{7in}
+%\setlength{\textheight}{9.25in}
+%\setlength{\oddsidemargin}{-.25in}
+%\setlength{\evensidemargin}{-.25in}
+
+
+%include our custom files
+\input{my_newcommands}
+\input{my_packages}
+
+
+% MAIN DOC
+\begin{document}
+
+	\title{Minstrel Blues}
+	\subtitle{Distributed Joint Power and Rate Control for todays WiFi Networks}
+
+	\numberofauthors{4}
+	\author{
+		\alignauthor
+		Thomas H{\"u}hn
+			\titlenote{\texttt{https://github.com/thuehn/Minstrel-Blues}}\\
+	    		\affaddr{Technical University of Berlin}\\
+			\affaddr{Berlin, Germany}\\
+			\email{thomas@inet.tu-berlin.de}
+		\alignauthor
+		Felix Fitkau\\
+	    		\affaddr{LEDE Project}\\
+			\affaddr{Berlin, Germany}\\
+			\email{nbd@nbd.name}
+		\alignauthor
+		Denis R{\"o}per\\
+	    		\affaddr{LEDE Project}\\
+			\affaddr{Berlin, Germany}\\
+			\email{denis.roeper@posteo.de}
+		\and
+		\alignauthor
+		Holger T{\"a}ubig\\
+	    		\affaddr{University of Bremen}\\
+			\affaddr{Bremen, Germany}\\
+			\email{holger.taeubig@dfki.de}
+	}
+
+	\maketitle
+	\sloppy
+
+	\begin{abstract}
+	While there has been extensive theoretical work on sophisticated
+	joint resource allocation algorithms for wireless networks,
+	their applicability to WiFi (IEEE 802.11) networks is very limited.
+	With \textit{Minstrel-Blues} we designed, implemented and analyzed
+	our decentralized joint rate and power resource allocation algorithm
+	within the Linux kernel	running on off-the-shelf WiFi hardware.
+	\end{abstract}
+
+	\keywords{Power control, rate control, WiFi, joint ressource allocation}
+
+	%%%
+	\section{Introduction}
+	With increasing penetration of WiFi in residential areas chaotic
+	unplanned deployments are becoming the norm where access points and
+	stations operate on the same or nearby channels either due to lack
+	of coordination or insufficient	available frequencies.
+	%
+	Given the rate of deployment, wireless interference is becoming one key
+	component for performance degradation due to the broadcast nature of
+	wireless communication and limited unlicensed ISM bandwidth.
+	%
+	The major reason behind such inefficiency is the lack of practical
+	resource allocation algorithms that adapt well to the current conditions
+	in a wireless network dynamically and select the appropriate
+	transmission parameters such as transmission rates and 	power levels.
+	%
+	Most current practical schemes are rather simplistic and only change a
+	single transmission parameter.
+	%
+	For instance, Transmit Power Control (TPC) works at the WiFi PHY layer
+	and commonly assigns a static and rather high power level to all packets.
+	%
+	A per-link or packet scheme is expected to provide better performance,
+	but typically increases complexity and requires	higher-layer information,
+	such as medium access state from the Medium Access Control (MAC) layer.
+	%
+	Therefore, although performance improvements have been shown in theory,
+	these ideas are largely uninvestigated in practice.
+	%
+	In this paper, our main goal is to analyse the performance impact of a
+	new joint and per-link rate and power controller in a real WiFi system.
+	%
+	We designed and implemented a distributed power and rate control
+	algorithm, \textit{Minstrel-Blues}, which does not rely on signal
+	strength or channel state information, but uses local statistics from
+	periodic sampling of different rate and power combinations.  
+	%
+	Essentially, Minstrel-Blues can run on any WiFi hardware that supports
+	packet-level power and rate control capabilities.
+	%
+	Minstrel Blues decides the data-rate, and consequently, the minimum
+	power-level to support the chosen rate using a two-attribute utility
+	function based on the throughput and power consumption of all rates.
+	%
+	To expose the trade-off between throughput and network interference,
+	we also introduced a weight parameter for the utility function, which
+	tunes the importance of throughput in utility decisions.
+	%
+	Our results show that if the goal is on maximizing the per-link
+	throughput, Minstrel-Blues can significantly reduce transmission power
+	necessary to communicate per link, while maintaining the same throughput
+	achieved with maximum transmit power.
+
+	%%%
+	\section{Related Work}
+	\label{s:related}
+	Most practical resource allocation algorithms realized on commodity
+	WiFi hardware focus on rate control. Most carrier-sense control solutions
+	are vendor-specific as there is no agreed-upon standard and power
+	control is often considered infeasible~\cite{abdesslem_feasibility_2006,
+	shrivastava_feasibility_2007,shrivastava_understanding_2007}.
+	%
+	In our work on Minstrel-Piano~\cite{Huehn_ICCCN_2012} we designed and
+	implemented a practical tpc algorithm on top of Minstrel rate control
+	with the goal to reduce the transmission power level as long as the
+	throughput is not effected.
+
+	%%%
+	\section{Designing a Joint Power and Rate Controller: Minstrel-Blues}
+	\label{s:design} 
+
+	\subsection{TPC Design Considerations within Linux}
+
+	\subsubsection{Per-Packet TX-Power Annotations}
+	\label{s:power-annotation}
+
+	\subsubsection{TPC of MAC-Layer ACK Packets}
+	\label{s:ack-packets}
+
+	\subsubsection{WiFi Hardware Supporting TPC}
+	\label{s:hardware}
+
+	\subsection{The Algorithm: Minstrel-Blues}
+	\label{s:minstrel-blues}
+
+	\subsubsection{Minstrel Rate Control}
+	\label{s:minstrel}
+
+	\subsubsection{Blues Power Control}
+	\label{s:blues}
+
+	\subsubsection{New Utility Function}
+	\label{s:utility}
+
+	\subsubsection{Joint Rate and Power Control}
+	\label{s:joint-control}
+
+
+	%%%
+	%\section{Simulation Results}
+	%\label{s:simulations}
+
+	%\subsection{Simulation Set-up}
+
+	%\subsection{Validation}
+
+	%\subsection{Performance Evaluation}
+
+
+	%%%
+	\section{Performance Analysis}
+	\label{s:measurements}
+
+	\subsection{Measurement Setup}
+
+	\subsection{Validation}
+
+	\subsection{Performance Evaluation}
+
+
+	%%%
+	\section{Conclusion}
+	\label{s:conclusion}
+
+
+       % Bibliography
+	{
+	\bibliographystyle{abbrv}
+	\small
+	\bibliography{my_references}
+	}
+
+	%\appendix
+	%\include{appendix}
+
+\end{document}

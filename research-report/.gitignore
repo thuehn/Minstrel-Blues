@@ -1,0 +1,14 @@
+# exlude latex compile & logging & final stuff
+*.pdf
+*.ps  
+*.dvi
+*.aug
+*.bbl
+*.blg
+*.log
+*.aux
+*.d
+*.fls
+*.make
+*.temp
+*.aux
