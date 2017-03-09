@@ -9,7 +9,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=minstrel-measurement
-PKG_VERSION:=0.1
+PKG_VERSION:=git
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 PKG_LICENSE:=GPL-3.0+
@@ -37,32 +37,18 @@ define Package/minstrel-measurement/description
   Minstrel Blues Measurement
 endef
 
-#define Build/Prepare 
-#	mkdir -p $(PKG_BUILD_DIR)/parsers 
-#	mkdir -p $(PKG_BUILD_DIR)/bin 
-#	mkdir -p $(PKG_BUILD_DIR)/tests 
-#	$(CP) ./*.lua $(PKG_BUILD_DIR)/
-#	$(CP) ./bin/* $(PKG_BUILD_DIR)/bin
-#	$(CP) ./parsers/*.lua $(PKG_BUILD_DIR)/parsers
-#	$(CP) ./tests/*.lua $(PKG_BUILD_DIR)/tests
-#endef
-
 define Build/Compile
+	$(MAKE) -C $(PKG_BUILD_DIR)/measurement/minstrel-measurement all
 endef
 
 define Package/minstrel-measurement/install
-	$(INSTALL_DIR) $(1)/root
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/*.lua $(1)/root
-	$(INSTALL_DIR) $(1)/root/parsers
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/parsers/*.lua $(1)/root/parsers
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/cpusage_single $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/fetch_file.lua $(1)/usr/bin
-	$(INSTALL_DIR) $(1)/root/bin
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/* $(1)/root/bin
-	$(INSTALL_DIR) $(1)/root/tests
-	$(CP) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/tests/*.lua $(1)/root/tests
-
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/fetch_file $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/netRun $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/runLogger $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/runNode $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/runControl $(1)/usr/bin
 endef
 
 $(eval $(call BuildPackage,minstrel-measurement))

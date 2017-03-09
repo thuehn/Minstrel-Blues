@@ -1,13 +1,8 @@
 LUAC            = luac
-
+LUA_LIB	= ${ROOT}/usr/lib/lua/5.1
 SRC_DIR         = .
-SOURCE          =                \
-AccessPointRef.lua  DYNsnrAnalyser.lua  Measurement.lua  NodeBase.lua     Uci.lua              misc.lua           udpExperiment.lua \
-Config.lua          Experiment.lua      Net.lua          NodeRef.lua      config.lua           parentpid.lua \
-ControlNode.lua     FXsnrAnalyser.lua   NetIF.lua        SNRRenderer.lua  functional.lua        \
-ControlNodeRef.lua  LogNode.lua         Node.lua         StationRef.lua   mcastExperiment.lua  tcpExperiment.lua \
-
 BIN_DIR         = bin
+INSTALL_DIR     = ${ROOT}/usr/bin
 
 FETCH_FILE = fetch_file
 NET_RUN = netRun
@@ -17,26 +12,25 @@ RUN_NODE = runNode
 
 all: $(FETCH_FILE) $(NET_RUN) $(RUN_CONTROL) $(RUN_LOGGER) $(RUN_NODE)
 
-
 $(FETCH_FILE): $(BIN_DIR)/$(FETCH_FILE).lua
-	$(LUAC) -o $(BIN_DIR)/$(FETCH_FILE) $(SOURCE) "$<"
-	chmod 700 $(BIN_DIR)/$(FETCH_FILE)
+	$(LUAC) -o $(BIN_DIR)/$(FETCH_FILE) "$<"
+	chmod 755 $(BIN_DIR)/$(FETCH_FILE)
 
 $(NET_RUN): $(BIN_DIR)/$(NET_RUN).lua
-	$(LUAC) -o $(BIN_DIR)/$(NET_RUN) $(SOURCE) "$<"
-	chmod 700 $(BIN_DIR)/$(NET_RUN)
+	$(LUAC) -o $(BIN_DIR)/$(NET_RUN) "$<"
+	chmod 755 $(BIN_DIR)/$(NET_RUN)
 
 $(RUN_CONTROL): $(BIN_DIR)/$(RUN_CONTROL).lua
-	$(LUAC) -o $(BIN_DIR)/$(RUN_CONTROL) $(SOURCE) "$<"
-	chmod 700 $(BIN_DIR)/$(RUN_CONTROL)
+	$(LUAC) -o $(BIN_DIR)/$(RUN_CONTROL) "$<"
+	chmod 755 $(BIN_DIR)/$(RUN_CONTROL)
 
 $(RUN_LOGGER): $(BIN_DIR)/$(RUN_LOGGER).lua
-	$(LUAC) -o $(BIN_DIR)/$(RUN_LOGGER) $(SOURCE) "$<"
-	chmod 700 $(BIN_DIR)/$(RUN_LOGGER)
+	$(LUAC) -o $(BIN_DIR)/$(RUN_LOGGER) "$<"
+	chmod 755 $(BIN_DIR)/$(RUN_LOGGER)
 
 $(RUN_NODE): $(BIN_DIR)/$(RUN_NODE).lua
-	$(LUAC) -o $(BIN_DIR)/$(RUN_NODE) $(SOURCE) "$<"
-	chmod 700 $(BIN_DIR)/$(RUN_NODE)
+	$(LUAC) -o $(BIN_DIR)/$(RUN_NODE) "$<"
+	chmod 755 $(BIN_DIR)/$(RUN_NODE)
 
 .PHONY: all
 
@@ -46,3 +40,18 @@ clean:
 	rm -f $(BIN_DIR)/$(RUN_CONTROL)
 	rm -f $(BIN_DIR)/$(RUN_LOGGER)
 	rm -f $(BIN_DIR)/$(RUN_NODE)
+
+install:
+	cp $(BIN_DIR)/$(FETCH_FILE) $(INSTALL_DIR)/$(FETCH_FILE)
+	chmod 755 $(INSTALL_DIR)/$(FETCH_FILE)
+	cp $(BIN_DIR)/$(NET_RUN) $(INSTALL_DIR)/$(NET_RUN)
+	chmod 755 $(INSTALL_DIR)/$(NET_RUN)
+	cp $(BIN_DIR)/$(RUN_CONTROL) $(INSTALL_DIR)/$(RUN_CONTROL)
+	chmod 755 $(INSTALL_DIR)/$(RUN_CONTROL)
+	cp $(BIN_DIR)/$(RUN_NODE) $(INSTALL_DIR)/$(RUN_NODE)
+	chmod 755 $(INSTALL_DIR)/$(RUN_LOGGER)
+	cp $(BIN_DIR)/$(RUN_LOGGER) $(INSTALL_DIR)/$(RUN_LOGGER)
+	chmod 755 $(INSTALL_DIR)/$(RUN_NODE)
+	cp -r *.lua $(LUA_LIB)
+	mkdir -p $(LUA_LIB)/parsers
+	cp -r parsers/*.lua $(LUA_LIB)/parsers
