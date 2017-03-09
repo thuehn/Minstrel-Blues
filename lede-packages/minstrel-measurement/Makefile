@@ -41,14 +41,10 @@ define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR)/measurement/minstrel-measurement all
 endef
 
+ROOT=$(1)
+export ROOT
 define Package/minstrel-measurement/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/cpusage_single $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/fetch_file $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/netRun $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/runLogger $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/runNode $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/measurement/minstrel-measurement/bin/runControl $(1)/usr/bin
+	$(MAKE) -C $(PKG_BUILD_DIR)/measurement/minstrel-measurement ROOT=$(1) install
 endef
 
 $(eval $(call BuildPackage,minstrel-measurement))

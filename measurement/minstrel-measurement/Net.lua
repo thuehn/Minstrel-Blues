@@ -6,8 +6,6 @@ Net = {}
 
 Net.get_addr = function ( iface )
     local lines, exit_code = os.execute ( "ifconfig " .. iface )
-    print ( lines )
-    print ( exit_code )
     if ( exit_code == 0 ) then
         local ifconfig = parse_ifconfig ( lines )
         return ifconfig.addr, nil
@@ -43,5 +41,4 @@ Net.get_hostname = function ()
     end
 end
 
-print ( Net.get_addr ( "eth0" ) )
-print ( Net.get_addr ( "wlan0" ) )
+return Net

@@ -32,7 +32,7 @@ function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir, is_fixed )
 end
 
 function ControlNodeRef:start ( log_net, ctrl_port, log_port )
-    local cmd = "lua bin/runControl.lua"
+    local cmd = "lua /usr/bin/runControl"
                  .. " --port " .. ctrl_port 
                  .. " --ctrl_if " .. self.ctrl.iface
                  .. " --output " .. self.output_dir
@@ -52,7 +52,7 @@ function ControlNodeRef:start ( log_net, ctrl_port, log_port )
 end
 
 function ControlNodeRef:start_remote ( log_net, ctrl_port, log_port )
-    local remote_cmd = "lua bin/runControl.lua"
+    local remote_cmd = "lua /usr/bin/runControl"
                  .. " --port " .. ctrl_port 
                  .. " --ctrl_if " .. self.ctrl.iface
                  .. " --output " .. self.output_dir

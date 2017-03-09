@@ -16,10 +16,10 @@ Measurement = { rpc_node = nil
               , cpusage_stats = nil
               , rc_stats = nil
               , rc_stats_enabled = nil
-              , regmon_proc = nil
-              , tcpdump_proc = nil
-              , cpusage_proc = nil
-              , rc_stats_procs = nil
+              , regmon_pid = nil
+              , tcpdump_pid = nil
+              , cpusage_pid = nil
+              , rc_stats_pids = nil
               , stations = nil
               , output_dir = nil
               }
@@ -240,32 +240,17 @@ function Measurement:enable_rc_stats ( stations )
 end
 
 function Measurement:start ( phy, key )
-    local str
     -- regmon 
-    str = self.rpc_node.start_regmon_stats ( phy )
-    if ( str ~= nil ) then
-        self.regmon_proc = parse_process ( str )
-    end
+    self.regmon_pid = self.rpc_node.start_regmon_stats ( phy )
     -- cpusage
-    str = self.rpc_node.start_cpusage()
-    if ( str ~= nil ) then
-        self.cpusage_proc = parse_process ( str )
-    end
+    self.cpusage_pid = self.rpc_node.start_cpusage()
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
-    str = self.rpc_node.start_tcpdump( phy, tcpdump_fname )
-    if ( str == nil ) then
-        return false
-    end
-    self.tcpdump_proc = parse_process ( str )
+    self.tcpdump_pid = self.rpc_node.start_tcpdump( phy, tcpdump_fname )
     -- rc stats
-    self.rc_stats_procs = {}
+    self.rc_stats_pids = {}
     if ( self.rc_stats_enabled == true ) then
-        local rc_stats_procs = self.rpc_node.start_rc_stats ( phy, self.stations )
-        local rc_procs = {}
-        for _, rc_proc_str in ipairs ( rc_stats_procs ) do
-            self.rc_stats_procs [ #self.rc_stats_procs + 1 ] = parse_process ( rc_proc_str )
-        end
+        self.rc_stats_pids [ self.rc_stats_pids + 1 ] = self.rpc_node.start_rc_stats ( phy, self.stations )
     end
     return true
 end
@@ -273,21 +258,21 @@ end
 function Measurement:stop ()
     -- regmon 
     if ( self.regmon_proc ~= nil) then
-        local exit_code = self.rpc_node.stop_regmon_stats( self.regmon_proc['pid'] )
+        local exit_code = self.rpc_node.stop_regmon_stats( self.regmon_pid )
     end
     -- cpusage
     if ( self.cpusage_proc ~= nil) then
-        local exit_code = self.rpc_node.stop_cpusage( self.cpusage_proc['pid'] )
+        local exit_code = self.rpc_node.stop_cpusage( self.cpusage_pid )
     end
     -- tcpdump
     if ( self.tcpdump_proc ~= nil ) then
-        local exit_code = self.rpc_node.stop_tcpdump( self.tcpdump_proc['pid'] )
+        local exit_code = self.rpc_node.stop_tcpdump( self.tcpdump_pid )
     end
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
-        for i, rc_proc in ipairs ( self.rc_stats_procs ) do
-            if ( rc_proc ~= nil ) then
-                local exit_code = self.rpc_node.stop_rc_stats( rc_proc['pid'], self.stations[i] )
+        for i, rc_pid in ipairs ( self.rc_stats_pids ) do
+            if ( rc_pid ~= nil ) then
+                local exit_code = self.rpc_node.stop_rc_stats( rc_pid, self.stations[i] )
             end
         end
     end

@@ -1,8 +1,8 @@
-LUAC = luac
-SRC_DIR	= .
-BIN_DIR	= bin
-INSTALL_BIN_DIR	= $(ROOT)/usr/bin
-INSTALL_LUA_LIB_DIR	= $(ROOT)/usr/lib/lua
+LUAC            = luac
+LUA_LIB	= ${ROOT}/usr/lib/lua
+SRC_DIR         = .
+BIN_DIR         = bin
+INSTALL_DIR     = ${ROOT}/usr/bin
 
 FETCH_FILE = fetch_file
 NET_RUN = netRun
@@ -42,18 +42,16 @@ clean:
 	rm -f $(BIN_DIR)/$(RUN_NODE)
 
 install:
-	mkdir -p $(INSTALL_BIN_DIR)
-	cp $(BIN_DIR)/$(FETCH_FILE) $(INSTALL_BIN_DIR)/$(FETCH_FILE)
-	chmod 755 $(INSTALL_BIN_DIR)/$(FETCH_FILE)
-	cp $(BIN_DIR)/$(NET_RUN) $(INSTALL_BIN_DIR)/$(NET_RUN)
-	chmod 755 $(INSTALL_BIN_DIR)/$(NET_RUN)
-	cp $(BIN_DIR)/$(RUN_CONTROL) $(INSTALL_BIN_DIR)/$(RUN_CONTROL)
-	chmod 755 $(INSTALL_BIN_DIR)/$(RUN_CONTROL)
-	cp $(BIN_DIR)/$(RUN_NODE) $(INSTALL_BIN_DIR)/$(RUN_NODE)
-	chmod 755 $(INSTALL_BIN_DIR)/$(RUN_NODE)
-	cp $(BIN_DIR)/$(RUN_LOGGER) $(INSTALL_BIN_DIR)/$(RUN_LOGGER)
-	chmod 755 $(INSTALL_BIN_DIR)/$(RUN_LOGGER)
-	mkdir -p $(INSTALL_LUA_LIB_DIR)
-	cp -r *.lua $(INSTALL_LUA_LIB_DIR)
-	mkdir -p $(INSTALL_LUA_LIB_DIR)/parsers
-	cp -r parsers/*.lua $(INSTALL_LUA_LIB_DIR)/parsers
+	cp $(BIN_DIR)/$(FETCH_FILE) $(INSTALL_DIR)/$(FETCH_FILE)
+	chmod 755 $(INSTALL_DIR)/$(FETCH_FILE)
+	cp $(BIN_DIR)/$(NET_RUN) $(INSTALL_DIR)/$(NET_RUN)
+	chmod 755 $(INSTALL_DIR)/$(NET_RUN)
+	cp $(BIN_DIR)/$(RUN_CONTROL) $(INSTALL_DIR)/$(RUN_CONTROL)
+	chmod 755 $(INSTALL_DIR)/$(RUN_CONTROL)
+	cp $(BIN_DIR)/$(RUN_NODE) $(INSTALL_DIR)/$(RUN_NODE)
+	chmod 755 $(INSTALL_DIR)/$(RUN_LOGGER)
+	cp $(BIN_DIR)/$(RUN_LOGGER) $(INSTALL_DIR)/$(RUN_LOGGER)
+	chmod 755 $(INSTALL_DIR)/$(RUN_NODE)
+	cp -r *.lua $(LUA_LIB)
+	mkdir -p $(LUA_LIB)/parsers
+	cp -r parsers/*.lua $(LUA_LIB)/parsers

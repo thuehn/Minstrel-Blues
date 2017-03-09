@@ -1,5 +1,6 @@
 
--- TODO: stderr
+-- TODO: extend lpc with stderr
+-- TODO: sstdout:close, stdin_close
 
 require ('NodeBase')
 
@@ -7,7 +8,7 @@ require ('NetIF')
 require ('misc')
 require ('Uci')
 
-requie ('lpc')
+require ('lpc')
 
 require ('parsers/iw_link')
 require ('parsers/ifconfig')
@@ -492,7 +493,7 @@ function Node:start_rc_stats ( phy, stations )
         --      self:send_debug ( "proc station: " .. name )
         -- end
         -- self:send_debug( file .. " exists: " .. tostring ( isFile ( file ) ) )
-        local pid, stdin, stdout = lpc.run ( "lua bin/fetch_file.lua -i 500000 " .. file )
+        local pid, stdin, stdout = lpc.run ( "lua /usr/bin/fetch_file -i 500000 " .. file )
         self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
         self:send_info("rc stats for station " .. station .. " started with pid: " .. pid )
         out [ #out + 1 ] = pid
@@ -507,12 +508,14 @@ function Node:get_rc_stats ( phy, station )
         self:send_error ( "Cannot send rc_stats because the station argument is nil!" )
         return nil
     end
-    self:send_info("send rc-stats for " .. iface ..  ", station " .. station)
-    if ( self.rc_stats_procs [ station ] == nil ) then return nil end
+    self:send_info ( "send rc-stats for " .. iface ..  ", station " .. station )
+    if ( self.rc_stats_procs [ station ] == nil ) then 
+        self:send_warning ( " no rc-stats for " .. station .. " found" )
+        return nil 
+    end
     self:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ] [ 'proc' ]:__tostring() )
-    local content = self.rc_stats_procs [ station ] [ 'out' ]:read("*a")
+    local content = self.rc_stats_procs [ station ].stdout:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
-    close_proc_pipes ( self.rc_stats_procs [ station ] )
     return content 
 end
 
@@ -521,9 +524,9 @@ function Node:stop_rc_stats ( pid, station )
         self:send_error ( "Cannot kill rc stats because pid is nil!" )
         return nil
     end
-    self:send_info("stop collecting rc stats with pid " .. pid)
+    self:send_info ( "stop collecting rc stats with pid " .. pid )
     local exit_code = self:kill ( pid )
-    self.rc_stats_procs [ station ] ['proc']:wait()
+    lpc.wait ( self.rc_stats_procs [ station ].pid )
     return exit_code
 end
 
@@ -535,33 +538,32 @@ function Node:start_regmon_stats ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local file = debugfs .. "/" .. phy .. "/regmon/register_log"
-    if (not isFile(file)) then
-        self:send_warning("no regmon-stats for " .. iface .. ", " .. phy)
+    if ( not isFile ( file ) ) then
+        self:send_warning ( "no regmon-stats for " .. iface .. ", " .. phy )
         self.regmon_proc = nil
         return nil
     end
     self:send_info("start collecting regmon stats for " .. iface .. ", " .. phy)
-    local pid, stdin, stdout = lpc.run ( "lua bin/fetch_file.lua -l -i 500000 " .. file )
+    local pid, stdout, stdin = lpc.run ( "lua /usr/bin/fetch_file -l -i 500000 " .. file )
     self.regmon_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
 
 function Node:get_regmon_stats ()
-    self:send_info("send regmon-stats")
+    self:send_info ( "send regmon-stats" )
     if (self.regmon_proc == nil) then 
-        self:send_error("no regmon process running" )
+        self:send_error ( "no regmon process running" )
         return nil 
     end
-    local content = self.regmon_proc['out']:read("*a")
+    local content = self.regmon_proc.stdout:read("*a")
     self:send_info ( string.len ( content ) .. " bytes from regmon" )
-    close_proc_pipes ( self.regmon_proc )
     return content
 end
 
 function Node:stop_regmon_stats ( pid )
-    self:send_info ("stop collecting regmon stats with pid " .. pid )
+    self:send_info ( "stop collecting regmon stats with pid " .. pid )
     local exit_code = self:kill ( pid )
-    self.regmon_proc['proc']:wait()
+    lpc.wait ( self.regmon_proc.pid )
     return exit_code
 end
 
@@ -571,26 +573,27 @@ end
 
 local cpusage_dump_fname = "/tmp/cpusage_dump"
 function Node:start_cpusage ()
-    self:send_info("start cpusage")
-    local pid, stdin, stdout = lpc.run ( "bin/cpusage_single" )
+    self:send_info ( "start cpusage" )
+    local pid, stdout, stdin = lpc.run ( "bin/cpusage_single" )
     self.cpusage_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
 
 function Node:get_cpusage()
-    self:send_info("send cpusage")
-    if ( self.cpusage_proc == nil ) then return nil end
-    local a = self.cpusage_proc['out']:read("*all")
+    self:send_info ( "send cpusage" )
+    if ( self.cpusage_proc == nil ) then 
+        self:send_error ( "no cpusage process running" )
+        return nil 
+    end
+    local a = self.cpusage_proc.stdout:read("*all")
     self:send_info ( string.len ( a ) .. " bytes from cpusage" )
-    close_proc_pipes ( self.cpusage_proc )
     return a
 end
 
 function Node:stop_cpusage ( pid )
-    self:send_info("stop cpusage with pid " .. pid)
-    -- self.cpusage_proc = nil -- needed to read pipe
+    self:send_info ( "stop cpusage with pid " .. pid )
     local exit_code = self:kill ( pid )
-    self.cpusage_proc['proc']:wait()
+    lpc.wait ( self.cpusage_proc.pid )
     return exit_code
 end
 
@@ -606,19 +609,22 @@ end
 function Node:start_tcpdump ( phy, fname )
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
-    self:send_info("start tcpdump for " .. mon .. " writing to " .. fname)
-    local pid, stdin, stdout = lpc.run ( "tcpdump -i " ..mon .. " -s 150 -U -w" .. fname )
+    self:send_info ( "start tcpdump for " .. mon .. " writing to " .. fname )
+    local pid, stdout, stdin = lpc.run ( "tcpdump -i " ..mon .. " -s 150 -U -w" .. fname )
     self.tcpdump_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
 
 function Node:get_tcpdump_offline ( fname )
-    self:send_info("send tcpdump offline for file " .. fname)
+    self:send_info ( "send tcpdump offline for file " .. fname )
     local file = io.open ( fname, "rb" )
-    if ( file == nil ) then return nil end
+    if ( file == nil ) then 
+        self:send_error ( "no tcpdump file found" )
+        return nil 
+    end
     local content = file:read("*a")
     file:close()
-    self:send_info("remove tcpump pcap file " .. fname)
+    self:send_info ( "remove tcpump pcap file " .. fname )
     os.remove ( fname )
     return content
 end
@@ -627,7 +633,7 @@ end
 function Node:stop_tcpdump ( pid )
     self:send_info("stop tcpdump with pid " .. pid)
     local exit_code = self:kill ( pid )
-    self.tcpdump_proc['proc']:wait()
+    lpc.wait ( self.tcpdump_proc.pid )
     return exit_code
 end
 
@@ -638,8 +644,8 @@ end
 -- TODO: lock
 -- fixme: rpc function name to long
 function Node:start_tcp_iperf_s ()
-    self:send_info("start TCP iperf server at port " .. self.iperf_port)
-    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -s -p " .. self.iperf_port)
+    self:send_info ( "start TCP iperf server at port " .. self.iperf_port )
+    local pid, stdout, stdin = lpc.run ( iperf_bin .. " -s -p " .. self.iperf_port)
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     for i=1,4 do
         local msg = stdout:read("*l")
@@ -654,8 +660,8 @@ end
 -- iperf -s -u -p 12000
 -- fixme: rpc function name to long
 function Node:start_udp_iperf_s ()
-    self:send_info("start UDP iperf server at port " .. self.iperf_port)
-    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -s -u -p " .. self.iperf_port)
+    self:send_info ( "start UDP iperf server at port " .. self.iperf_port )
+    local pid, stdout, stdin = lpc.run ( iperf_bin .. " -s -u -p " .. self.iperf_port)
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     for i=1,5 do
         local msg = stdout:read("*l")
@@ -667,10 +673,10 @@ end
 --fixme: return iperf_str and map from addr to iperf client pid
 -- iperf -c 192.168.1.240 -p 12000 -n 500MB
 function Node:run_tcp_iperf ( addr, tcpdata, wait )
-    self:send_info("run TCP iperf at port " .. self.iperf_port 
+    self:send_info ( "run TCP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with tcpdata " .. tcpdata)
-    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -c " .. addr .. " -p " .. self.iperf_port .. " -n " .. tcpdata )
+    local pid, stdout, stdin = lpc.run ( iperf_bin .. " -c " .. addr .. " -p " .. self.iperf_port .. " -n " .. tcpdata )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     if ( wait == true) then
         lpc.wait ( pid )
@@ -681,11 +687,11 @@ end
 --fixme: return iperf_str and map from addr to iperf client pid
 -- iperf -u -c 192.168.1.240 -p 12000 -l 1500B -b 600000 -t 240
 function Node:run_udp_iperf ( addr, size, rate, interval, wait )
-    self:send_info("run UDP iperf at port " .. self.iperf_port 
+    self:send_info ( "run UDP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval)
     local bitspersec = size * 8 * rate
-    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -u  -c " .. addr .. " -p " .. self.iperf_port 
+    local pid, stdout, stdin = lpc.run ( iperf_bin .. " -u  -c " .. addr .. " -p " .. self.iperf_port 
                                          .. " -l " .. size .. "B -b " .. bitspersec .. " -t " .. interval )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     if ( wait == true) then
@@ -698,10 +704,10 @@ end
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
 -- iperf -c 224.0.67.0 -u --ttl 1 -t 120 -b 100M -l 1500 -B 10.10.250.2
 function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
-    self:send_info("run UDP iperf at port " .. self.iperf_port 
+    self:send_info ( "run UDP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with ttl and interval " .. ttl .. ", " .. interval)
-    local pid, stdin, stdout = lpc.run ( iperf_bin .. " -u " .. " -c " .. multicast_addr .. " -p " .. self.iperf_port
+    local pid, stdout, stdin = lpc.run ( iperf_bin .. " -u " .. " -c " .. multicast_addr .. " -p " .. self.iperf_port
                                          " -T " .. ttl .. " -t " .. interval .. " -b " .. size .. " -B " .. addr )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     if ( wait == true) then
@@ -712,7 +718,7 @@ end
 
 function Node:wait_iperf_c ( addr )
     if ( addr == nil ) then
-        self:send_error (" wait for iperf client failed, addr is not set.")
+        self:send_error ( " wait for iperf client failed, addr is not set." )
         return
     end
     self:send_info("wait for TCP/UDP client iperf for address " .. addr ) 
@@ -726,7 +732,7 @@ end
 
 -- TODO: unlock
 function Node:stop_iperf_server ( pid )
-    self:send_info("stop iperf server with pid " .. pid)
+    self:send_info ( "stop iperf server with pid " .. pid )
     local exit_code = self:kill ( pid )
     repeat
         local line = self.iperf_server_proc.stdout:read("*l")

@@ -14,7 +14,17 @@
 -- sample rate rc_stats, regmon-stats, cpusage (how many updates / second) from luci regmon
 -- init scripts for nodes
 -- io.tmpfile () for writing pcaps?
-
+-- filter tcpdump by AP and STA mac
+-- convert signal / rssi : http://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
+--  rssi is an estimate value and is detemined periodically (temperature changes ambient/background nois in the chip)
+-- Rserve / lua Rclient
+-- plot (line) signal by powers with fixed rate in one diagram
+--  - rate, adjusted txpower, signal
+--  -column rate for legend
+-- MCS has is own ordering: modulation & coding x channel Mhz x short/long gard interval (SGI/GI)
+-- rc_stats: mode guard # -> idx
+-- plugin support with loadfile
+--
 -- rates 0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 120, 121, 122, 123
 -- powers 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
 

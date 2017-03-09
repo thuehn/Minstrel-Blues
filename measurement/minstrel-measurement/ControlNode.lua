@@ -38,7 +38,7 @@ function ControlNode:create ( name, ctrl, port, log_ctrl, log_port, log_file, ou
                                 } )
 
     function start_logger ( log_ctrl, port, file )
-        local pid, _, _ = lpc.run ( "lua bin/runLogger.lua " .. file 
+        local pid, _, _ = lpc.run ( "lua /usr/bin/runLogger " .. file 
                                      .. " --port " .. port
                                      .. " --log_if " .. log_ctrl.iface )
         local exit_code = lpc.wait ( pid )
@@ -241,7 +241,7 @@ function ControlNode:start( log_addr, log_port )
 
     function start_node ( node_ref, log_addr )
 
-        local remote_cmd = "lua bin/runNode.lua"
+        local remote_cmd = "lua /usr/bin/runNode"
                     .. " --name " .. node_ref.name 
                     .. " --ctrl_if " .. node_ref.ctrl.iface
 

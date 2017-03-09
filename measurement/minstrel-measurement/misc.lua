@@ -67,11 +67,11 @@ function isFile ( name )
         if ( exists ~= nil and exists == true ) then
             return true
         else 
-            io.stderr:write ( "Error: file doesn't exists " .. name .. "\n" )
+            --io.stderr:write ( "Error: file doesn't exists " .. name .. "\n" )
             return false
         end
     end
-    io.stderr:write ( "Error: not a file but a directory " .. name .. "\n" )
+    --io.stderr:write ( "Error: not a file but a directory " .. name .. "\n" )
     return false
 end
 

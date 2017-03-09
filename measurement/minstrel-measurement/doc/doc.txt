@@ -26,11 +26,14 @@ lua 5.1: measurement runtime [+openwrt] ( lua 5.3 not available on LEDE,
 lua-posix 33.2.1: process id [+openwrt] ( >33.2.1 lacks bit32 native in lua 5.3)
 lua-ex: spawn process [+openwrt] (microsleep, spawn [broken on all platforms
                                               due to memory corruption] )
+        sleep with microseconds support
 lua-argparse: command line parser / interface [+openwrt]
 lua-rpc: remote procedure calls for lua [+openwrt] (alternative: nixio)
 pcap-lua: parse pcap files [+openwrt]
 LuaBitOp [-openwrt]
-pprint.lua: lua pretty printing
+pprint.lua: lua pretty printing [+openwrt]
+lua-system: sleep with nanosecond support [-openwrt]
+lpc: run process with pid, stdin, stdout and wait with exit_code support
 
 not used but helpful
 --------------------
