@@ -112,10 +112,10 @@ Config.set_configs_from_arg = function ( configs, key, arg )
 end
 
 Config.select_config = function ( all_configs, name )
-    if ( arg == nil ) then  return nil end
+    if ( all_configs == nil ) then  return nil end
 
     local node = Config.find_node ( name, all_configs )
-    
+
     if ( node == nil ) then return nil end
     if ( node.name ~= name ) then
         print ( "Error: no configuration for node with name '" .. name .. "' found")
@@ -173,3 +173,5 @@ Config.stations = function ( nodes, connections )
     end
     return stations
 end
+
+return Config

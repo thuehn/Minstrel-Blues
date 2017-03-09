@@ -34,6 +34,8 @@ pprint = require ('pprint')
 local argparse = require "argparse"
 require ('parsers/argparse_con')
 
+local posix = require ('posix') -- sleep
+
 require ('lfs')
 require ('misc')
 
@@ -373,7 +375,7 @@ if ( args.no_measurement == false ) then
     -- ----------------------------------------------------------
 
     print ( "Wait 3 seconds for nodes initialisation" )
-    os.sleep (3)
+    posix.sleep (3)
 
     -- and connect to nodes
     print ("connect to nodes at port " .. args.ctrl_port )

@@ -1,4 +1,5 @@
 
+local posix = require ('posix') -- sleep
 require ("rpc")
 require ("lpc")
 require ('Net')
@@ -89,7 +90,8 @@ function ControlNodeRef:connect ( ctrl_port )
     repeat
         status, slave, err = pcall ( connect_control_rpc )
         retrys = retrys -1
-        if ( status == false ) then os.sleep (1) end
+        print ("status: "..tostring(status))
+        if ( status == false ) then posix.sleep (1) end
     until status == true or retrys == 0
     if (status == false) then
         print ( "Err: Connection to control node failed" )

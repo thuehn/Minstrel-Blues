@@ -1,0 +1,45 @@
+
+include $(TOPDIR)/rules.mk
+
+PKG_NAME:=lpc
+PKG_VERSION:=git
+PKG_RELEASE:=1
+PKG_MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
+PKG_LICENSE:=GPL-3.0+
+PKG_LICENSE_FILES:=LICENSE
+
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-git.tar.gz
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+PKG_SOURCE_URL:=https://github.com/LuaDist/lpc.git
+PKG_SOURCE_VERSION:=master
+
+include $(INCLUDE_DIR)/package.mk
+
+define Package/lpc
+	SUBMENU:=Lua
+	SECTION:=lang
+	CATEGORY:=Languages
+	TITLE:=lpc
+	DEPENDS:=+libc +lua
+	MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
+	PKGARCH:=all
+endef
+
+define Package/lpc/description
+  Allows Lua scripts to call external processes while capturing both their input and output.
+endef
+
+define Build/Compile
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		CC="$(TARGET_CC) $(TARGET_CFLAGS) -s" \
+		PRECOMPILED_FILTER=1 \
+		STAGING_DIR="$(STAGING_DIR)"
+endef
+
+define Package/lpc/install
+	$(INSTALL_DIR) $(1)/usr/lib/lua
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lpc.so $(1)/usr/lib/lua
+endef
+
+$(eval $(call BuildPackage,lpc))

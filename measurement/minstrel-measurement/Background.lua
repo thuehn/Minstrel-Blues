@@ -1,4 +1,5 @@
-unistd = require ('posix.unistd')
+local unistd = require ('posix.unistd')
+local posix = require ('posix') -- sleep
 
 Background = { cmd = nil
              , args = nil
@@ -30,7 +31,7 @@ end
 
 function Background:wait ()
     repeat
-        os.sleep(1)
+        posix.sleep(1)
     until ( self.file )
 end
 

@@ -1,3 +1,5 @@
+
+local posix = require ('posix') -- sleep
 require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
@@ -43,7 +45,6 @@ end
 -- waits until station is reachable (not mandatory  connected)
 function AccessPointRef:wait_station ( retrys )
     repeat
-        os.sleep(1)
         local wifi_stations_cur = self.rpc.visible_stations( self.wifi_cur )
         local miss = false
         for _, str in ipairs ( self.stations ) do
@@ -53,6 +54,7 @@ function AccessPointRef:wait_station ( retrys )
             end
         end
         retrys = retrys - 1
+        posix.sleep(1)
     until not miss or retrys == 0
     return retrys ~= 0
 end

@@ -1,0 +1,17 @@
+diff --git a/src/Makefile b/src/Makefile
+index 10fc31a..54c25b9 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -206,11 +206,9 @@ SOLIB=core.$(SO)
+ #------
+ # Settings selected for platform
+ #
+-CC=$(CC_$(PLAT))
+ DEF=$(DEF_$(PLAT))
+-CFLAGS=$(MYCFLAGS) $(CFLAGS_$(PLAT))
+ LDFLAGS=$(MYLDFLAGS) $(LDFLAGS_$(PLAT))
+-LD=$(LD_$(PLAT))
++LD=$(CC)
+ LUAINC= $(LUAINC_$(PLAT))
+ LUALIB= $(LUALIB_$(PLAT))
+ 

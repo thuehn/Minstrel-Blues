@@ -1,17 +1,16 @@
-require ('ex')
-require ('misc')
+misc = require ('misc')
 local argparse = require "argparse"
 
 local parser = argparse("fetch_file", "dump file continuously to stdout")
 parser:argument("filename", "Filename to fetch.")
 parser:flag ("-l --line", "Read line by line", false )
 parser:flag ("-b --binary", "Read binary file", false )
-parser:option ("-i --interval", "Number of microseconds between reads", "50000" )
+parser:option ("-i --interval", "Number of nanoseconds between reads", "500000000" )
 local args = parser:parse()
 
 -- fixme: -l or -b, exclude -lb
 
-local microseconds = 1e6
+local nanoseconds = 1/1e9
 local interval_num = tonumber ( args.interval )
 local mode = "r"
 if (args.binary) then
@@ -40,5 +39,5 @@ while (true) do
         if (content ~= nil) then print ( content ) end
     end
     file:close()
-    os.sleep(interval_num, microseconds) -- sleep for 50000 µs 
+    misc.nanosleep(interval_num * nanoseconds) -- sleep for 500000 µs 
 end

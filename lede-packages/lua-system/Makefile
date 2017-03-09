@@ -31,15 +31,18 @@ define Package/lua-system/description
 endef
 
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR) \
-		CC="$(TARGET_CC) $(TARGET_CFLAGS) -s" \
+	echo "MAKE#########"
+	$(MAKE) -C $(PKG_BUILD_DIR)/src \
+		CC="$(TARGET_CC)" \
+		CFLAGS="$(TARGET_CFLAGS) -s -fPIC" \
 		PRECOMPILED_FILTER=1 \
-		STAGING_DIR="$(STAGING_DIR)"
+		STAGING_DIR="$(STAGING_DIR)" \
+		all
 endef
 
 define Package/lua-system/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/system
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/system/core.so $(1)/usr/lib/lua/system/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/core.so $(1)/usr/lib/lua/system/
 endef
 
 $(eval $(call BuildPackage,lua-system))

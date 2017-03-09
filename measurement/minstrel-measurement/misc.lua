@@ -1,6 +1,8 @@
 
 require ('lfs')
 
+Misc = {}
+
 function table_size ( tbl )
     local count = 0
     for _ in pairs( tbl ) do count = count + 1 end
@@ -143,3 +145,10 @@ function set_date_bb ( year, month, day, hour, min, second )
         return result, nil
     end
 end
+
+function Misc.nanosleep( s )
+  local ntime = os.clock() + s
+  repeat until os.clock() > ntime
+end
+
+return Misc

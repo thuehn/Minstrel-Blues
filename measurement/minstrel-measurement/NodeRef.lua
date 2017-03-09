@@ -1,4 +1,6 @@
 
+local posix = require ('posix') -- sleep
+
 require ('Measurement')
 require ('NetIF')
 
@@ -89,7 +91,7 @@ function NodeRef:wait_linked ( retrys )
     repeat
         local ssid = self.rpc.get_linked_ssid ( self.wifi_cur )
         if (ssid == nil) then 
-            os.sleep (1)
+            posix.sleep (1)
         else
             connected = true
         end

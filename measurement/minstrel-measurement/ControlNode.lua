@@ -2,7 +2,8 @@
 --pprint = require ('pprint')
 
 local ps = require ('posix.signal') --kill
-require 'lpc'
+local posix = require ('posix') -- sleep
+lcoal lpc = require 'lpc'
 
 require ('NodeBase')
 
@@ -289,7 +290,7 @@ function ControlNode:connect_nodes ( ctrl_port )
         repeat
             status, rpc = pcall ( connect_rpc )
             retrys = retrys -1
-            if ( status == false ) then os.sleep (1) end
+            if ( status == false ) then posix.sleep (1) end
         until status == true or retrys == 0
         if ( status == false or rpc == nil ) then
             self:send_error ("Connection to " .. node_ref.name .. " failed: ")
@@ -432,7 +433,7 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         end
 
         self:send_info ("Waiting one extra second for initialised debugfs")
-        os.sleep (1)
+        posix.sleep (1)
 
         self:send_info ("Start Measurement")
         -- -------------------------------------------------------

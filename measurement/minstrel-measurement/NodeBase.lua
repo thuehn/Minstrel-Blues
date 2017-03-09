@@ -1,7 +1,8 @@
 
-local ps = require ('posix.signal') --kill
 require ('rpc')
-local unistd = require ('posix.unistd')
+local ps = require ('posix.signal') --kill
+local unistd = require ('posix.unistd') -- getpid
+local posix = require ('posix') -- sleep
 require ('parentpid')
 require ('parsers/proc_version')
 require ('parsers/free')
@@ -115,7 +116,7 @@ function NodeBase:connect_logger ()
     repeat
         status, logger, err = pcall ( connect )
         retrys = retrys -1
-        if ( status == false ) then os.sleep (1) end
+        if ( status == false ) then posix.sleep (1) end
     until status == true or retrys == 0
     -- TODO: print this message a single time only
     if (status == false) then
