@@ -373,10 +373,28 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
     end
 
     local stop = false
-    local num_keys = #keys[1]
+    local num_keys = #keys[1] -- fixme: smallest set of keys
+                              -- nodes may have different rate
+                              -- and power sets
     local counter = 1
+
+    -- randomize keys
+    local keys_random = {}
+    math.randomseed ( os.time() )
+    local set = {}
+    while table_size ( keys_random ) < table_size ( keys [ 1 ] ) do
+
+        local nxt = math.random (1, table_size ( keys [ 1 ] ) )
+        if ( set [ nxt ] ~= true ) then
+            set [ nxt ] = true
+            keys_random [ #keys_random + 1 ] = keys [ 1 ] [ nxt ]
+        end
+
+    end
+
+    -- run expriments
     self:send_info ( "Run " .. num_keys .. " experiments." )
-    for _, key in ipairs ( keys[1] ) do -- fixme: smallest set of keys
+    for _, key in ipairs ( keys_random ) do 
 
         self:send_info ("**********************************************")
         self:send_info ("Start experiment " .. counter .. " of " .. num_keys .. ".")
