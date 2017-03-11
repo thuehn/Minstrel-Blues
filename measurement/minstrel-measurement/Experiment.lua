@@ -43,7 +43,6 @@ function Experiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:add_monitor ()
     if ( self.is_fixed == true ) then
         for _, station in ipairs ( ap_ref.stations ) do
-            self.control:send_info ( " set tx power and tx rate for station " .. station .. " on phy " .. ap_ref.wifi_cur )
             local tx_rate = self:get_rate ( key )
             ap_ref.rpc.set_tx_rate ( ap_ref.wifi_cur, station, tx_rate )
             local tx_rate_new = ap_ref.rpc.get_tx_rate ( ap_ref.wifi_cur, station )

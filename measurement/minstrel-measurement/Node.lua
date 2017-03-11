@@ -419,7 +419,7 @@ end
 -- usally two different power levels differs by a multiple of 1mW (25 levels) or 0.5mW (50 power levels)
 function Node:set_tx_power ( phy, station, tx_power )
     self:send_info ( "Set tx power level for station " .. station .. " at device " .. phy .. " to " .. tx_power )
-    if ( self:write_value_to_sta_debugfs ( phy, station, "fixed_txpower", value ) == false ) then
+    if ( self:write_value_to_sta_debugfs ( phy, station, "fixed_txpower", tx_power ) == false ) then
         self:send_error ( "Set tx power level for station " .. station .. " at device " .. phy .. " failed. Unsupported" )
     end
 end
@@ -437,20 +437,20 @@ end
 
 function Node:set_tx_rate ( phy, station, tx_rate_idx )
     self:send_info ( "Set tx rate index for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx )
-    if ( self:write_value_to_sta_debugfs ( phy, station, "fixed_txrate", value ) == false ) then
+    if ( self:write_value_to_sta_debugfs ( phy, station, "fixed_txrate", tx_rate_idx ) == false ) then
         self:send_error ( "Set tx rate level for station " .. station .. " at device " .. phy .. " failed. Unsupported" )
     end
 end
 
 function Node:get_tx_rate ( phy, station )
-    self:send_info ( "Get tx rate level for station " .. station .. " from device " .. phy )
-    local level = self:read_value_from_sta_debugfs ( phy, station, "fixed_txrate" )
-    if ( level ~= nil ) then
-        self:send_info(" tx rate level for station " .. station .. " at device " .. phy .. " is " .. level)
+    self:send_info ( "Get tx rate index for station " .. station .. " from device " .. phy )
+    local rate = self:read_value_from_sta_debugfs ( phy, station, "fixed_txrate" )
+    if ( rate ~= nil ) then
+        self:send_info(" tx rate index for station " .. station .. " at device " .. phy .. " is " .. rate)
     else
-        self:send_error ( "Get tx rate level for station " .. station .. " from device " .. phy .. " failed. Unsupported" )
+        self:send_error ( "Get tx rate index for station " .. station .. " from device " .. phy .. " failed. Unsupported" )
     end
-    return level
+    return rate
 end
 
 -- --------------------------
