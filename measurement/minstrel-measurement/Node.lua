@@ -391,9 +391,12 @@ function Node:write_value_to_sta_debugfs ( phy, station, file, value )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/" .. file
-    local file = io.open ( fname )
+    if ( not isFile ( fname ) ) then
+        self:send_error ( "file doesn't exists: " .. fname )
+    end
+    local file = io.open ( fname, "w" )
     if ( file ~= nil ) then
-        file:write ( tostring ( tx_power ) )
+        file:write ( tostring ( value ) )
         file:flush()
         file:close()
         return true
@@ -404,15 +407,18 @@ end
 function Node:read_value_from_sta_debugfs ( phy, station, file )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
-    local file = io.open ( fname )
-    local level
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/" .. file
+    if ( not isFile ( fname ) ) then
+        self:send_error ( "file doesn't exists: " .. fname )
+    end
+    local file = io.open ( fname, "r" )
+    local value
     if ( file ~= nil ) then
         local content = file:read ("*a")
-        level = tonumber ( content )
+        value = tonumber ( content )
         file:close ()
     end
-    return level
+    return value
 end
 
 -- set the power level by index (i.e. 25 is the index of the highest power level, sometimes 50)

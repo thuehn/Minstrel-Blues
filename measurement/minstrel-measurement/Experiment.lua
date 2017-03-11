@@ -21,14 +21,22 @@ end
 
 function Experiment:get_rate( key )
     if ( key ~= nil ) then
-        return split ( key, "-" ) [1]
+        local keys = split ( key, "-" )
+        if ( keys ~= nil and table_size ( keys ) > 0 ) then
+            return tonumber ( keys [ 1 ] )
+        end
     end
+    return nil
 end
 
 function Experiment:get_power( key )
     if ( key ~= nil ) then
-        return split ( key, "-" ) [2]
+        local keys = split ( key, "-" )
+        if ( keys ~= nil and table_size ( keys ) > 1 ) then
+            return tonumber ( keys [ 2 ] )
+        end
     end
+    return nil
 end
 
 function Experiment:prepare_measurement ( ap_ref )
