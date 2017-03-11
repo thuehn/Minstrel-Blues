@@ -17,6 +17,8 @@
 -- (connection timed out) or does the logging node accept
 -- the connections sequentially (connection refused)
 
+net = require ('Net')
+
 -- prototype table
 LogNode = { name = nil
           , fname = nil
@@ -101,14 +103,8 @@ function LogNode:send_debug( from, msg )
 end
 
 function LogNode:run( port )
-    if ( port == nil ) then
-        self:send_error ( self.name, "Err: port number not set" )
-    elseif rpc.mode == "tcpip" then
-        self:send_info ( self.name, "Start Logging via RPC" )
-        self:send_info ( self.name, "" )
-        self:set_cut()
-        rpc.server(port)
-    else
-        self:send_error ( self.name, "Err: tcp/ip supported only" )
-    end
+    self:set_cut()
+    net.run ( port, self.name,
+              function ( msg ) self:send_info ( self.name, msg ) end
+            )
 end

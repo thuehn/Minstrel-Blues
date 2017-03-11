@@ -14,3 +14,8 @@ local answer2 = "; <<>> DiG 9.11.0-P2 <<>> apfel2\n;; global options: +cmd\n;; G
 local dig = parse_dig ( answer2 )
 assert ( dig.name == nil )
 assert ( dig.addr == nil )
+
+local answer3 = "localhost.local.	3409	IN	A	127.0.0.1"
+local dig = parse_dig ( answer3 )
+assert ( dig.name == "localhost.local." )
+assert ( dig.addr == "127.0.0.1" )

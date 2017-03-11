@@ -10,19 +10,21 @@ local parser = argparse("runNode", "Run measurement node")
 parser:option ("-n --name", "Node Name" )
 parser:option ("--ctrl_if", "RPC Interface of Control node" )
 
-parser:option ("--log_ip", "IP of Logging node", "192.168.1.141" )
+parser:option ("--log_ip", "IP of Logging node" )
 
 parser:option ("-P --port", "Control RPC port", "12346" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-I --iperf_port", "Port for iperf", "12000" )
 
-local args = parser:parse()
+local args = parser:parse ()
 
-local ctrl = NetIF:create( args.ctrl_if )
-local log = NetIF:create ( args.ctrl_if, args.log_ip )
-local node = Node:create(args.name, ctrl, args.iperf_port, log, args.log_port )
+local ctrl = NetIF:create ( args.ctrl_if )
+local node = Node:create ( args.name, ctrl, args.port, args.log_port, args.log_ip, args.iperf_port )
 
-function phy_devices(...) return node:phy_devices(...) end
+function get_board ( ... ) return node:get_board ( ... ) end
+
+function phy_devices ( ... ) return node:phy_devices ( ... ) end
+function enable_wifi ( ... ) return node:enable_wifi ( ... ) end
 function restart_wifi(...) return node:restart_wifi(...) end
 function get_ssid (...) return node:get_ssid(...) end
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
@@ -43,6 +45,7 @@ function has_lease(...) return node:has_lease(...) end
 function tx_rate_indices(...) return node:tx_rate_indices(...) end
 function tx_rate_names(...) return node:tx_rate_names(...) end
 function set_tx_rate(...) return node:set_tx_rate(...) end
+function get_tx_rate(...) return node:get_tx_rate(...) end
 function set_tx_power(...) return node:set_tx_power(...) end
 function get_tx_power(...) return node:get_tx_power(...) end
 
@@ -87,9 +90,10 @@ function stop_iperf_server(...) return node:stop_iperf_server(...) end
 
 function get_pid(...) return node:get_pid(...) end
 function get_free_mem ( ... ) return node:get_free_mem ( ... ) end
+function set_timezone ( ... ) return node:set_timezone ( ... ) end
 function set_date(...) return node:set_date(...) end
 function set_nameserver (...) return node:set_nameserver (...) end
 function check_bridge (...) return node:check_bridge (...) end
 
-print(node)
+print ( node )
 node:run( args.port )

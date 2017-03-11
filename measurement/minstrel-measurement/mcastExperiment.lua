@@ -55,17 +55,17 @@ function McastExperiment:keys ( ap_ref )
     end
 
     for run = 1, self.runs do
-        local key = tostring ( run )
+        local run_key = tostring ( run )
         if ( self.is_fixed == true and ( self.tx_rates ~= nil and self.tx_powers ~= nil ) ) then
             for _, tx_rate in ipairs ( self.tx_rates ) do
-                key = key .. "-" .. tostring ( tx_rate )
+                local rate_key = tostring ( tx_rate )
                 for _, tx_power in ipairs ( self.tx_powers ) do
-                    key = key .. "-" .. tostring ( tx_power )
-                    keys [ #keys + 1 ] = key
+                    local power_key = tostring ( tx_power )
+                    keys [ #keys + 1 ] =  rate_key .. "-" .. power_key .. "-" .. run_key
                 end
             end
         else
-            keys [ #keys + 1 ] = key
+            keys [ #keys + 1 ] = run_key
         end
     end
 
@@ -83,9 +83,24 @@ function McastExperiment:settle_measurement ( ap_ref, key, retrys )
     local visible = ap_ref:wait_station ( retrys )
     ap_ref:add_monitor ()
     if ( self.is_fixed == true ) then
-        ap_ref:set_tx_power ( self:get_power ( key ) )
+        for _, station in ipairs ( ap_ref.stations ) do
+            self.control:send_info ( " set tx power and tx rate for station " .. station .. " on phy " .. ap_ref.wifi_cur )
+            local tx_rate = self:get_rate ( key )
+            ap_ref.rpc.set_tx_rate ( ap_ref.wifi_cur, station, tx_rate )
+            local tx_rate_new = ap_ref.rpc.get_tx_rate ( ap_ref.wifi_cur, station )
+            if ( tx_rate_new ~= tx_rate ) then
+                self.control:send_error ( "rate not set correctly: should be " .. tx_rate 
+                                          .. " (set) but is " .. ( tx_rate_new or "unset" ) .. " (actual)" )
+            end
+            local tx_power = self:get_power ( key )
+            ap_ref.rpc.set_tx_power ( ap_ref.wifi_cur, station, tx_power )
+            local tx_power_new = ap_ref.rpc.get_tx_power ( ap_ref.wifi_cur, station )
+            if ( tx_power_new ~= tx_power ) then
+                self.control:send_error ( "tx power not set correctly: should be " .. tx_power 
+                                          .. " (set) but is " .. ( tx_power_new or "unset" ) .. " (actual)" )
+            end
+        end
     end
-    ap_ref:set_tx_rate ( self:get_rate ( key ) )
     return (linked and visible)
 end
 
@@ -95,6 +110,10 @@ end
 
 function McastExperiment:stop_measurement ( ap_ref, key )
     ap_ref:stop_measurement ( key )
+end
+
+function McastExperiment:fetch_measurement ( ap_ref, key )
+    ap_ref:fetch_measurement ( key )
 end
 
 function McastExperiment:unsettle_measurement ( ap_ref, key )
@@ -115,11 +134,8 @@ function McastExperiment:start_experiment ( ap_ref, key )
 
         self.control:send_debug ( "run multicast udp client with local addr " .. wifi_addr )
 
-        if ( ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait ) == nil ) then
-            return false
-        end
+        ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait )
     end
-    return true
 end
 
 function McastExperiment:wait_experiment ( ap_ref )

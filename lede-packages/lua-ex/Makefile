@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=lua-ex
-PKG_VERSION:=0.1
+PKG_VERSION:=git
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Denis Roeper <denis.roeper@posteo.de>
 PKG_LICENSE:=GPL-3.0+

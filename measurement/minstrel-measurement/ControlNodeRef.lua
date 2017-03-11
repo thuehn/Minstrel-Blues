@@ -2,12 +2,14 @@
 local posix = require ('posix') -- sleep
 require ("rpc")
 require ("lpc")
-require ('Net')
+local misc = require 'misc'
+local net = require ('Net')
 require ('NetIF')
 
-ControlNodeRef = { name
-                 , ctrl
-                 , output_dir
+ControlNodeRef = { name = nil
+                 , ctrl = nil
+                 , rpc = nil
+                 , output_dir = nil
                  }
 
 function ControlNodeRef:new (o)
@@ -17,96 +19,91 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir, is_fixed )
+function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir )
     -- ctrl node iface, ctrl node (name) lookup
     local ctrl_net = NetIF:create ( ctrl_if )
     ctrl_net.addr = ctrl_ip
     if ( ctrl_net.addr == nil) then
-        local ip_addr = Net.lookup ( name )
+        local ip_addr = net.lookup ( name )
         if ( ip_addr ~= nil ) then
             ctrl_net.addr = ip_addr
         end 
     end
 
-    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir, is_fixed = is_fixed }
+    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir }
     return o
 end
 
-function ControlNodeRef:start ( log_net, ctrl_port, log_port )
-    local cmd = "lua /usr/bin/runControl"
-                 .. " --port " .. ctrl_port 
-                 .. " --ctrl_if " .. self.ctrl.iface
-                 .. " --output " .. self.output_dir
-                 .. " --enable_fixed " .. self.is_fixed
-    if ( log_net.iface ~= nil ) then
-        cmd = cmd .. " --log_if " .. log_net.iface
+function ControlNodeRef:init ( rpc )
+    self.rpc = rpc
+end
+
+function ControlNodeRef:get_board ()
+    return self.rpc.get_board ()
+end
+
+function ControlNodeRef:get_boards ()
+    return self.rpc.get_boards ()
+end
+
+function ControlNodeRef:start ( ctrl_port, log_file, log_port )
+    local cmd = {}
+    cmd [1] = "lua"
+    cmd [2] = "/usr/bin/runControl"
+    cmd [3] = "--port "
+    cmd [4] = ctrl_port 
+    cmd [5] = "--ctrl_if"
+    cmd [6] = self.ctrl.iface
+    cmd [7] = "--output"
+    cmd [8] = self.output_dir
+    if ( log_file ~= nil and log_port ~= nil ) then
+        cmd [9] = "--log_file"
+        cmd [10] = log_file
+        cmd [11] = "--log_port"
+        cmd [12] = log_port 
     end
 
-    if ( log_net.addr ~= nil and log_port ~= nil ) then
-        cmd = cmd .. " --log_ip " .. log_net.addr 
-                  .. " --log_port " .. log_port 
-    end
-    print ( remote_cmd )
-    local pid, _, _ = lpc.run ( cmd )
+    print ( cmd )
+    local pid, _, _ = misc.spawn ( unpack ( cmd ) )
     print ( "Control: " .. pid )
     return pid
 end
 
-function ControlNodeRef:start_remote ( log_net, ctrl_port, log_port )
+function ControlNodeRef:start_remote ( ctrl_port, log_file, log_port )
     local remote_cmd = "lua /usr/bin/runControl"
                  .. " --port " .. ctrl_port 
                  .. " --ctrl_if " .. self.ctrl.iface
                  .. " --output " .. self.output_dir
-                 .. " --enable_fixed " .. self.is_fixed
-    if ( log_net.iface ~= nil ) then
-        remote_cmd = remote_cmd .. " --log_if " .. log_net.iface
-    end
 
-    if ( log_net.addr ~= nil and log_port ~= nil ) then
-        remote_cmd = remote_cmd .. " --log_ip " .. log_net.addr 
-                 .. " --log_port " .. log_port 
+    if ( log_file ~= nil and log_port ~= nil ) then
+        remote_cmd = remote_cmd .. " --log_file " .. log_file 
+                       .. " --log_port " .. log_port 
     end
     print ( remote_cmd )
-    local pid, _, _ = lpc.run ( "ssh root@" .. self.ctrl.addr .. remote_cmd)
+    -- fixme:  "-i", node_ref.rsa_key, 
+    local pid, _, _ = misc.spawn ( "ssh", "root@" .. self.ctrl.addr, remote_cmd )
+    print ( "Control: " .. pid )
     return pid
 end
 
 function ControlNodeRef:connect ( ctrl_port )
+    return net.connect ( self.ctrl.addr, ctrl_port, 10, self.name, 
+                         function ( msg ) self:send_error ( msg ) end )
+end
 
-    function connect_control_rpc ()
-        local l, e = rpc.connect ( self.ctrl.addr, ctrl_port )
-        return l, e
-    end
-
-    if rpc.mode ~= "tcpip" then
-        print ( "Err: rpc mode tcp/ip is supported only" )
-        return nil
-    end
-
-    local status
-    local err
-    local slave
-    local retrys = 5
-    repeat
-        status, slave, err = pcall ( connect_control_rpc )
-        retrys = retrys -1
-        print ("status: "..tostring(status))
-        if ( status == false ) then posix.sleep (1) end
-    until status == true or retrys == 0
-    if (status == false) then
-        print ( "Err: Connection to control node failed" )
-        print ( "Err: no node at address: " .. self.ctrl.addr .. " on port: " .. ctrl_port )
-        return nil
-    end
-    return slave
+function ControlNodeRef:disconnect ( slave )
+    net.disconnect ( slave )
 end
 
 function ControlNodeRef:stop ( pid )
     ps.kill ( pid, ps.SIGINT )
+    ps.kill ( pid, ps.SIGINT )
+    lpc.wait ( pid )
 end
 
 function ControlNodeRef:stop_remote ( addr, pid )
-    local ssh, exit_code = os.execute ( "ssh root@" .. addr .. " kill " .. pid )
+    local remote_cmd = "/usr/bin/kill_remote " .. pid .. " --INT -n 2"
+    local ssh, exit_code = misc.execute ( "ssh", "root@" .. addr, remote_cmd )
     if ( exit_code == 0 ) then
         return true, nil
     else

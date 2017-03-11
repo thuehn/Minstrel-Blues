@@ -4,7 +4,7 @@ require ('Net')
 -- i.e. for pretty printing and have a named triple instead of unprintable
 -- table with keys
 
-NetIF = { iface = nil, addr = nil, mon = nil, phy = nil }
+NetIF = { iface = nil, addr = nil, mon = nil, phy = nil, is_remote = nil }
 function NetIF:new (o)
     local o = o or {}
     setmetatable(o, self)
@@ -18,31 +18,15 @@ function NetIF:create ( iface, addr, mon, phy )
 end
 
 function NetIF:__tostring() 
-    local iface = "none"
-    if (self.iface ~= nil) then
-        iface = tostring(self.iface)
-    end
-    local addr = "none"
-    if (self.addr ~= nil) then
-        addr = tostring(self.addr)
-    end
-    local mon = "none"
-    if (self.mon ~= nil) then
-        mon = tostring(self.mon)
-    end
-    local phy = "none"
-    if (self.phy ~= nil) then
-        phy = tostring(self.phy)
-    end
-    return "iface = " .. iface .. ", " 
-            .. "addr = " .. addr .. ", "
-            .. "mon = " .. mon .. ", " 
-            .. "phy = " .. phy 
+    return "iface = " .. ( self.iface or "none" ) .. ", "
+            .. "addr = " .. ( self.addr or "none" ) .. ", "
+            .. "mon = " .. ( self.mon or "none" ) .. ", "
+            .. "phy = " .. ( self.phy  or "none" )
 end
 
 function NetIF:get_addr ()
-    if ( self.addr == nil) then
-        self.addr = Net.get_addr ( self.iface )
+    if ( self.addr == nil ) then
+        self.addr, msg = Net.get_addr ( self.iface )
     end
     return self.addr
 end

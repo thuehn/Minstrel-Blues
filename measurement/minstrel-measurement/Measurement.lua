@@ -5,7 +5,7 @@ require ('misc')
 --  AP: regmon, tcpdump, cpusage, rc_stats per station
 --]]
 
-require ("parsers/ex_process")
+-- TODO: don't overwrite old measuremnt data
 
 pprint = require('pprint')
 
@@ -16,10 +16,6 @@ Measurement = { rpc_node = nil
               , cpusage_stats = nil
               , rc_stats = nil
               , rc_stats_enabled = nil
-              , regmon_pid = nil
-              , tcpdump_pid = nil
-              , cpusage_pid = nil
-              , rc_stats_pids = nil
               , stations = nil
               , output_dir = nil
               }
@@ -79,7 +75,7 @@ function Measurement:read ()
                     .. "/" .. self.node_name .. "-" .. key .. ".pcap"
         local file = io.open(fname, "rb")
         if ( file ~= nil ) then
-            stats = file:read("*a")
+            stats = file:read ("*a")
             self.tcpdump_pcaps [ key ] = stats
             file:close()
         end
@@ -217,7 +213,7 @@ function Measurement:__tostring ()
             out = out .. "rc_stats:" .. table_size ( self.rc_stats [ station ] ) .. " stats\n"
             if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil) then
                 for key, stat in pairs ( self.rc_stats [ station ] ) do
-                    out = out .. "rc_stats-" .. station .. "-" .. key .. ": " .. string.len(stat) .. " bytes\n"
+                    out = out .. "rc_stats-" .. station .. "-" .. key .. ": " .. string.len ( stat ) .. " bytes\n"
                     -- if (stat ~= nil) then print (stat) end
                 end
             end
@@ -229,7 +225,7 @@ end
 
 function Measurement:enable_rc_stats ( stations )
     if ( stations == nil or stations == {} ) then
-    self.rc_stats_enabled = false
+        self.rc_stats_enabled = false
         return
     end
     self.rc_stats_enabled = true
@@ -241,39 +237,32 @@ end
 
 function Measurement:start ( phy, key )
     -- regmon 
-    self.regmon_pid = self.rpc_node.start_regmon_stats ( phy )
+    local regmon_pid = self.rpc_node.start_regmon_stats ( phy )
     -- cpusage
-    self.cpusage_pid = self.rpc_node.start_cpusage()
+    local cpusage_pid = self.rpc_node.start_cpusage()
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
-    self.tcpdump_pid = self.rpc_node.start_tcpdump( phy, tcpdump_fname )
+    local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, tcpdump_fname )
     -- rc stats
-    self.rc_stats_pids = {}
     if ( self.rc_stats_enabled == true ) then
-        self.rc_stats_pids [ self.rc_stats_pids + 1 ] = self.rpc_node.start_rc_stats ( phy, self.stations )
+        for _, station in ipairs ( self.stations ) do
+            local rc_stats_pid = self.rpc_node.start_rc_stats ( phy, station )
+        end
     end
     return true
 end
 
 function Measurement:stop ()
     -- regmon 
-    if ( self.regmon_proc ~= nil) then
-        local exit_code = self.rpc_node.stop_regmon_stats( self.regmon_pid )
-    end
+    local exit_code = self.rpc_node.stop_regmon_stats ()
     -- cpusage
-    if ( self.cpusage_proc ~= nil) then
-        local exit_code = self.rpc_node.stop_cpusage( self.cpusage_pid )
-    end
+    local exit_code = self.rpc_node.stop_cpusage ()
     -- tcpdump
-    if ( self.tcpdump_proc ~= nil ) then
-        local exit_code = self.rpc_node.stop_tcpdump( self.tcpdump_pid )
-    end
+    local exit_code = self.rpc_node.stop_tcpdump ()
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
-        for i, rc_pid in ipairs ( self.rc_stats_pids ) do
-            if ( rc_pid ~= nil ) then
-                local exit_code = self.rpc_node.stop_rc_stats( rc_pid, self.stations[i] )
-            end
+        for _, station in ipairs ( self.stations ) do
+            local exit_code = self.rpc_node.stop_rc_stats ( station )
         end
     end
 end

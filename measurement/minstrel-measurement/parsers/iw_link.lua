@@ -63,6 +63,11 @@ end
 
 function parse_iwlink ( iwlink )
 
+    local out = IwLink:create()
+
+    if ( iwlink == nil ) then return out end
+    if ( string.len ( iwlink ) == 0 ) then return out end
+
     local rest = iwlink
     local state = true
     local mac = nil
@@ -138,7 +143,6 @@ function parse_iwlink ( iwlink )
     rest = skip_layout( rest )
     -- ...
     
-    local out = IwLink:create()
     out.ssid = ssid
     out.mac = mac
     out.iface = iface

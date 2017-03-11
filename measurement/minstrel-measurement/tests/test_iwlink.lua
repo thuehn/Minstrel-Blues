@@ -11,7 +11,7 @@ assert ( test.signal == -39 )
 assert ( test.rate_idx == "MCS 1" )
 assert ( test.rate == "13 MBit/s" )
 
-local output, exit_code = os.execute ( "iw dev wlan0 link" )
+local output, exit_code = misc.execute ( "iw", "dev", "wlan0", "link" )
 if ( exit_code > 0 ) then
     print ( "'iw dev wlan0 link' not started with exit code: " .. exit_code .. ". reason: " .. ( output or "unknown error" ) )
 end

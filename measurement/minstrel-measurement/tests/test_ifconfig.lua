@@ -1,4 +1,5 @@
 require ('parsers/ifconfig')
+local misc = require 'misc'
 
 local num
 local rest
@@ -25,7 +26,7 @@ ide, rest = parse_ide ( "br-lan mf", add_chars)
 assert ( ide == "br-lan" )
 assert ( rest == " mf" )
 
-local ifconfig_str, exit_code = os.execute ( "ifconfig wlan0" )
+local ifconfig_str, exit_code = misc.execute ( "ifconfig", "wlan0" )
 if ( exit_code ~= 0 ) then
     local ifconfig = parse_ifconfig ( ifconfig_str )
     print ( tostring ( ifconfig ) )
@@ -33,7 +34,7 @@ else
     print ( ifconfig_str )
 end
 
-local ifconfig_str, exit_code = os.execute ( "ifconfig eth0" )
+local ifconfig_str, exit_code = misc.execute ( "ifconfig", "eth0" )
 if ( exit_code ~= 0 ) then
     local ifconfig = parse_ifconfig ( ifconfig_str )
     print ( tostring ( ifconfig ) )
@@ -41,7 +42,7 @@ else
     print ( ifconfig_str )
 end
 
-local ifconfig_str, exit_code = os.execute ( "ifconfig br-lan" )
+local ifconfig_str, exit_code = misc.execute ( "ifconfig", "br-lan" )
 if ( exit_code ~= 0 ) then
     local ifconfig = parse_ifconfig ( ifconfig_str )
     print ( tostring ( ifconfig ) )

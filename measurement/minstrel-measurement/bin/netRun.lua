@@ -1,20 +1,16 @@
 -- run a single measurement between access points (APs) and stations (STAs)
 
 -- TODO:
--- - openwrt package: fetch sources for argparse, luarpc, pcap-lua, pprint-lua and lua-ex with git
--- - add LuaBitOp LEDE package
--- - rpc: transfer tcpdump binary lines/packages online
+-- - rpc: transfer tcpdump binary lines/packages and stats online to support large experiment with low ram
 -- built test client with command line arg which router should run the test
 --   -- unit test (rpc in init of the unit tests base class)
--- auto-tools, Makefile, luac, configue ifconfig, date, ...
---   use luac to speed up node initialisation
--- implement experiments with streams
+-- implement experiments as list of closures
 -- cleanup nodes before os.exit
 -- erease debug table in production ( debug = nil )
 -- sample rate rc_stats, regmon-stats, cpusage (how many updates / second) from luci regmon
 -- init scripts for nodes
 -- io.tmpfile () for writing pcaps?
--- filter tcpdump by AP and STA mac
+-- filter pcap by AP and STA mac (bssid)
 -- convert signal / rssi : http://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
 --  rssi is an estimate value and is detemined periodically (temperature changes ambient/background nois in the chip)
 -- Rserve / lua Rclient
@@ -28,6 +24,10 @@
 -- rates 0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 120, 121, 122, 123
 -- powers 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
 
+-- /etc/board.json
+-- /etc/diag.sh
+
+--TODO: iw info parser
 
 pprint = require ('pprint')
 
@@ -75,6 +75,7 @@ parser:option ("--log", "Logger host name")
 parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("--log_if", "RPC Interface of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
+-- TODO: replace "/tmp/minstrelm.log" with output_dir/minstrelm.log
 parser:option ("-l --log_file", "Logging to File", "/tmp/measurement.log" )
 
 parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
@@ -107,7 +108,13 @@ local args = parser:parse()
 
 args.command = string.lower ( args.command )
 if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast") then
-    show_config_error ( parser, "command", false )
+    Config.show_config_error ( parser, "command", false )
+end
+
+if ( args.enable_fixed == false 
+    and ( args.tx_rates ~= nil or args.tx_powers ~= nil ) ) then
+    Config.show_config_error ( parser, "enable_fixed", true )
+    print ("")
 end
 
 local has_config = Config.load_config ( args.config ) 
@@ -126,20 +133,20 @@ if ( has_config ) then
     if ( ctrl == nil ) then
         print ( "Error: config file '" .. Config.get_config_fname ( args.config ) 
                     .. "' have to contain at least one station node description in var 'stations'.")
-        os.exit(1)
+        os.exit (1)
     end
 
     if ( args.ctrl_only == false ) then
         if (table_size ( nodes ) < 2) then
             print ( "Error: config file '" .. Config.get_config_fname ( args.config ) 
                         .. "' have to contain at least two node descriptions in var 'nodes'.")
-            os.exit(1)
+            os.exit (1)
         end
 
         if (table_size ( connections ) < 1) then
             print ( "Error: config file '" .. Config.get_config_fname ( args.config )
                         .. "' have to contain at least one connection declaration in var 'connections'.")
-            os.exit(1)
+            os.exit (1)
         end
     end
 
@@ -214,13 +221,13 @@ if ( args.verbose == true) then
 end
 
 local aps_config = Config.select_configs ( ap_setups, args.ap ) 
-if ( aps_config == {} ) then os.exit(1) end
+if ( aps_config == {} ) then os.exit (1) end
 
 local stas_config = Config.select_configs ( sta_setups, args.sta )
-if ( stas_config == {} ) then os.exit(1) end
+if ( stas_config == {} ) then os.exit (1) end
 
 local ctrl_config = Config.select_config ( nodes, args.ctrl )
-if ( ctrl_config == nil ) then os.exit(1) end
+if ( ctrl_config == nil ) then os.exit (1) end
 
 print ( "Configuration:" )
 print ( "==============" )
@@ -230,13 +237,13 @@ print ( )
 print ( "Control: " .. Config.cnode_to_string ( ctrl_config ) )
 print ( )
 print ( "Access Points:" )
-print ( "--------------")
+print ( "--------------" )
 for _, ap in ipairs ( aps_config ) do
     print ( Config.cnode_to_string ( ap ) )
 end
 print ( )
-print ( "Stations:")
-print ( "---------")
+print ( "Stations:" )
+print ( "---------" )
 for _, sta_config in ipairs ( stas_config ) do
     print ( Config.cnode_to_string ( sta_config ) )
 end
@@ -253,11 +260,13 @@ if ( args.no_measurement == false ) then
 
     function cleanup ()
         if ( ctrl_rpc == nil ) then return true end
+
+        print ( " disconnect nodes " )
         ctrl_rpc.disconnect_nodes()
 
         -- kill nodes if desired by the user
-        -- fixme: logger not destroyed
         if ( args.disable_autostart == false ) then
+            print ( "stop control" )
             ctrl_rpc.stop()
             if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
                 ctrl_ref:stop_remote ( ctrl_ref.ctrl.addr, ctrl_pid )
@@ -265,25 +274,22 @@ if ( args.no_measurement == false ) then
                 ctrl_ref:stop ( ctrl_pid )
             end
         end
-        rpc.close ( ctrl_rpc )
+        ctrl_ref.disconnect ( ctrl_rpc )
     end
 
     -- local ctrl iface
     net = NetIF:create ( "eth0" )
-    net:get_addr( net.iface )
-
+    net:get_addr()
     ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
                                      , ctrl_config['ctrl_if'], args.ctrl_ip 
                                      , args.output
-                                     , args.enable_fixed
                                      )
 
     if ( args.disable_autostart == false ) then
         if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
-            ctrl_ref:start_remote ( ctrl_ref.ctrl, args.ctrl_port, args.log_port )
+            ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port, args.log_file, args.log_port )
         else
-            local ctrl_proc = ctrl_ref:start ( ctrl_ref.ctrl, args.ctrl_port, args.log_port )
-            ctrl_pid = ctrl_proc['pid']
+            ctrl_pid = ctrl_ref:start ( args.ctrl_port, args.log_file, args.log_port )
         end
     end
 
@@ -294,8 +300,13 @@ if ( args.no_measurement == false ) then
     ctrl_rpc = ctrl_ref:connect ( args.ctrl_port )
     if ( ctrl_rpc == nil) then
         print ( "Connection to control node faild" )
-        os.exit(1)
+        os.exit (1)
     end
+    print ()
+
+    ctrl_ref:init ( ctrl_rpc )
+    print ( "Control board: " .. ( ctrl_ref:get_board () or "unknown" ) )
+    print ()
 
     --synchronize time
     local err
@@ -329,7 +340,7 @@ if ( args.no_measurement == false ) then
     if ( table_size ( ctrl_rpc.list_nodes() ) == 0 ) then
         error ("no nodes present")
         cleanup ()
-        os.exit(1)
+        os.exit (1)
     end
 
     print ( "Reachability:" )
@@ -349,7 +360,7 @@ if ( args.no_measurement == false ) then
             os.exit (1)
         end
         for addr, reached in pairs ( reached ) do
-            if (reached) then
+            if ( reached ) then
                 print ( addr .. ": ONLINE" )
             else
                 print ( addr .. ": OFFLINE" )
@@ -367,8 +378,9 @@ if ( args.no_measurement == false ) then
     -- and auto start nodes
     if ( args.disable_autostart == false ) then
         if ( ctrl_rpc.start ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
-            print ("Error: Not all nodes started")
-            os.exit(1)
+            cleanup ()
+            print ( "Error: Not all nodes started")
+            os.exit (1)
         end
     end
 
@@ -378,28 +390,35 @@ if ( args.no_measurement == false ) then
     posix.sleep (3)
 
     -- and connect to nodes
-    print ("connect to nodes at port " .. args.ctrl_port )
+    print ( "connect to nodes at port " .. args.ctrl_port )
     if ( ctrl_rpc.connect_nodes ( args.ctrl_port ) == false ) then
-        print ("connection failed!")
+        print ( "connections to nodes failed!" )
         cleanup ()
-        os.exit(1)
+        os.exit (1)
     else
         print ("All nodes connected")
+    end
+    print ()
+
+    for node_name, board in pairs ( ctrl_ref:get_boards () ) do
+        print ( node_name .. " board: " .. board )
     end
 
     -- synchonize time
     ctrl_rpc.set_dates ()
 
     -- set nameserver on all nodes
-    ctrl_rpc.set_nameservers( args.nameserver or nameserver )
+    ctrl_rpc.set_nameservers ( args.nameserver or nameserver )
 
     print ( "Prepare APs" )
     local ap_names = ctrl_rpc.list_aps()
     for _, ap_name in ipairs (ap_names ) do
         local wifis = ctrl_rpc.list_phys ( ap_name )
         ctrl_rpc.set_phy ( ap_name, wifis[1] )
-        local ssid = ctrl_rpc.get_ssid ( ap_name )
-        ctrl_rpc.set_ssid ( ap_name, ssid )
+        if ( ctrl_rpc.enable_wifi ( ap_name, true ) == true ) then
+            local ssid = ctrl_rpc.get_ssid ( ap_name )
+            print ( "SSID: " .. ssid )
+        end
     end
 
     print ()
@@ -408,6 +427,7 @@ if ( args.no_measurement == false ) then
     for _, sta_name in ipairs ( ctrl_rpc.list_stas() ) do
         local wifis = ctrl_rpc.list_phys ( sta_name )
         ctrl_rpc.set_phy ( sta_name, wifis[1] )
+        ctrl_rpc.enable_wifi ( sta_name, true )
     end
 
     --fixme: connections may contain more stations than args.sta
@@ -424,7 +444,7 @@ if ( args.no_measurement == false ) then
     local all_bridgeless = ctrl_rpc.check_bridges()
     if ( not all_bridgeless ) then
         print ( "Some nodes have a bridged setup, stop here. See log for details." )
-        cleanup()
+        cleanup ()
         os.exit (1)
     end
 
@@ -436,8 +456,15 @@ if ( args.no_measurement == false ) then
     -- fixme: setup dhcp server for wlan0
     for ap, stas in pairs ( connections ) do
         local ssid = ctrl_rpc.get_ssid ( ap )
-        for _, sta in ipairs ( stas ) do
-            ctrl_rpc.link_to_ssid ( sta, ssid ) 
+        if ( ssid ~= nil ) then
+            print ( "SSID: " .. ssid )
+            for _, sta in ipairs ( stas ) do
+                ctrl_rpc.link_to_ssid ( sta, ssid ) 
+            end
+        else
+            print ( "error: cannot get ssid from acceesspoint" )
+            cleanup ()
+            os.exit (1)
         end
     end
 
@@ -454,15 +481,10 @@ if ( args.no_measurement == false ) then
     print ( ctrl_rpc.__tostring() )
     print ( )
 
-    if (args.dry_run) then 
+    if ( args.dry_run ) then 
         print ( "dry run is set, quit here" )
-        if ( args.disable_autostart == false ) then
-            print ("stop control")
-            ctrl_rpc.stop()
-        end
-        rpc.close ( ctrl_rpc )
-        cleanup()
-        os.exit(1)
+        cleanup ()
+        os.exit (1)
     end
     print ( )
 
@@ -476,15 +498,15 @@ if ( args.no_measurement == false ) then
     end
 
     local data
-    if (args.command == "tcp") then
+    if ( args.command == "tcp" ) then
         data = { runs, args.tx_powers, args.tx_rates
                , args.tcpdata 
                }
-    elseif (args.command == "mcast") then
+    elseif ( args.command == "mcast" ) then
         data = { runs, args.tx_powers, args.tx_rates
                , args.interval 
                }
-    elseif (args.command == "udp") then
+    elseif ( args.command == "udp" ) then
         data = { runs, args.tx_powers, args.tx_rates
                , args.packet_sizes, args.cct_intervals
                , args.packet_rates, args.interval 
@@ -493,7 +515,7 @@ if ( args.no_measurement == false ) then
         show_config_error ( parser, "command")
     end
 
-    local status, err = ctrl_rpc.run_experiments ( args.command, data, ap_names )
+    local status, err = ctrl_rpc.run_experiments ( args.command, data, ap_names, args.enable_fixed )
     if ( status == false ) then
         print ( "err: experiments failed: " .. ( err or "unknown error" ) )
     end
@@ -529,7 +551,7 @@ if ( args.no_measurement == false ) then
         end
     end
 
-    cleanup()
+    cleanup ()
 
 else -- args.no_measurement
 

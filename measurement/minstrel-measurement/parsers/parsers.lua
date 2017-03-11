@@ -7,15 +7,17 @@ require ('functional')
 -- returns first char of a string
 -- pre: string.len ( str ) > 0
 function shead ( str )
+    if ( str == nil ) then return nil end
     if ( string.len ( str ) == 0 ) then return nil end
-    return string.sub(str, 1, 1)
+    return string.sub ( str, 1, 1 )
 end
 
 -- returns rest of a string ( except first char )
 -- pre: string.len ( str ) > 0
 function stail ( str )
+    if ( str == nil ) then return nil end
     if ( string.len ( str ) == 0 ) then return nil end
-    return string.sub(str, 2)
+    return string.sub ( str, 2 )
 end
 
 -- parse string 'key' from begin of string 'str'
@@ -23,7 +25,7 @@ end
 function parse_str ( str, key )
     function parse ( str, key, ide )
         local rest = str
-        if ( key == "" ) then return true, rest end
+        if ( string.len ( key ) == 0 ) then return true, rest end
         if ( shead ( rest ) == shead ( key ) ) then
             return parse ( stail ( rest ), stail ( key ), ide .. shead ( rest ) )
         else
@@ -45,7 +47,7 @@ function parse_num ( str )
     function parse ( str, num )
         local parsed = str
         local ft = shead ( parsed )
-        if ( is_num ( ft ) or ( num == "" and ft == '-' ) ) then
+        if ( is_num ( ft ) or ( string.len ( num ) == 0 and ft == '-' ) ) then
             return parse ( stail ( parsed ), num .. ft )
         else
             return num, parsed
@@ -228,7 +230,7 @@ function parse_mac ( str )
 
     local out = ""
     for _, byte in ipairs ( mac ) do
-        if (out ~= "") then out = out .. ":" end
+        if ( string.len ( out ) > 0) then out = out .. ":" end
         out = out .. byte
     end
     return out, rest

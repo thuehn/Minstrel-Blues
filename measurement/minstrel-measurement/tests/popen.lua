@@ -19,4 +19,5 @@ end
 local result = os.capture("ls")
 print ( result )
 
-print ( os.execute ( "ls" ) )
+local exit_code = os.execute ( "ls" )
+

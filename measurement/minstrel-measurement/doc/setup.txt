@@ -1,0 +1,14 @@
+- connect to switch port 1 for fts config
+
+- set password
+- set hostname
+- set timezone
+- set network ip
+- no bridge eth0
+- firewall all accept
+- dhcp eth0
+- disbale only dhcp
+- enable wifi
+- set ssid / passphrase
+- add host keys
+- gateway ports (allow remote host to connect to local SSH forwared ports)

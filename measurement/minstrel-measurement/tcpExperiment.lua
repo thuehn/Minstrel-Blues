@@ -1,6 +1,7 @@
 require ('Experiment')
 
-TcpExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, tcpdata = nil }
+TcpExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, tcpdata = nil
+                , is_fixed = nil }
 
 
 function TcpExperiment:new (o)
@@ -11,31 +12,53 @@ function TcpExperiment:new (o)
 end
 
 
-function TcpExperiment:create ( control, data )
-    local o = TcpExperiment:new( { control = control, runs = data[1], tx_powers = data[2], tx_rates = data[3], tcpdata = data[2] } )
+function TcpExperiment:create ( control, data, is_fixed )
+    local o = TcpExperiment:new( { control = control, runs = data[1]
+                                 , tx_powers = data[2], tx_rates = data[3]
+                                 , tcpdata = data[2] 
+                                 , is_fixed = is_fixed
+                                 } )
     return o
 end
 
 function TcpExperiment:keys ( ap_ref )
     local keys = {}
-    if ( self.tx_rates == nil ) then
-        self.tx_rates = ap_ref.rpc.tx_rate_indices( ap_ref.wifi_cur, ap_ref.stations[1] )
-    end
-    if ( self.tx_powers == nil ) then
-        self.tx_powers = {}
-        for i = 1, 25 do
-            self.tx_powers[i] = i
+    if ( self.is_fixed == true ) then
+        if ( self.tx_rates == nil ) then
+            self.tx_rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
+        else
+            self.tx_rates = split ( self.tx_rates, "," )
         end
     end
-    self.control:send_debug( "run tcp experiment for rates " .. table_tostring ( self.tx_rates ) )
-    self.control:send_debug( "run tcp experiment for powers " .. table_tostring ( self.tx_powers ) )
+    
+    if ( self.is_fixed == true ) then
+        if ( self.tx_powers == nil ) then
+            self.tx_powers = {}
+            for i = 1, 25 do
+                self.tx_powers[i] = i
+            end
+        else
+            self.tx_powers = split ( self.tx_powers, "," )
+        end
+    end
+
+    if ( self.is_fixed == true ) then
+        self.control:send_debug( "run tcp experiment for rates " .. table_tostring ( self.tx_rates ) )
+        self.control:send_debug( "run tcp experiment for powers " .. table_tostring ( self.tx_powers ) )
+    end
 
     for run = 1, self.runs do
-        for _, tx_rate in ipairs ( self.tx_rates ) do
-            for _, tx_power in ipairs ( self.tx_powers ) do
-                local key = tostring ( tx_rate ) .. "-" .. tostring ( tx_power ) .. "-" .. tostring( run )
-                keys [ #keys + 1 ] = key
+        local run_key = tostring ( run )
+        if ( self.is_fixed == true and ( self.tx_rates ~= nil and self.tx_powers ~= nil ) ) then
+            for _, tx_rate in ipairs ( self.tx_rates ) do
+                local rate_key = tostring ( tx_rate )
+                for _, tx_power in ipairs ( self.tx_powers ) do
+                    local power_key = tostring ( tx_power )
+                    keys [ #keys + 1 ] = rate_key .. "-" .. power_key .. "-" .. run_key
+                end
             end
+        else
+            keys [ #keys + 1 ] = run_key
         end
     end
 
@@ -57,23 +80,43 @@ end
 
 function TcpExperiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:restart_wifi ()
-    local linked = ap_ref:wait_linked ( retrys )
     local visible = ap_ref:wait_station ( retrys )
+    local linked = ap_ref:wait_linked ( retrys )
     ap_ref:add_monitor ()
-    ap_ref:set_tx_power ( self:get_power ( key ) )
-    ap_ref:set_tx_rate ( self:get_rate ( key ) )
+    if ( self.is_fixed == true ) then
+        for _, station in ipairs ( ap_ref.stations ) do
+            self.control:send_info ( " set tx power and tx rate for station " .. station .. " on phy " .. ap_ref.wifi_cur )
+            local tx_rate = self:get_rate ( key )
+            ap_ref.rpc.set_tx_rate ( ap_ref.wifi_cur, station, tx_rate )
+            local tx_rate_new = ap_ref.rpc.get_tx_rate ( ap_ref.wifi_cur, station )
+            if ( tx_rate_new ~= tx_rate ) then
+                self.control:send_error ( "rate not set correctly: should be " .. tx_rate 
+                                          .. " (set) but is " .. ( tx_rate_new or "unset" ) .. " (actual)" )
+            end
+            local tx_power = self:get_power ( key )
+            ap_ref.rpc.set_tx_power ( ap_ref.wifi_cur, station, tx_power )
+            local tx_power_new = ap_ref.rpc.get_tx_power ( ap_ref.wifi_cur, station )
+            if ( tx_power_new ~= tx_power ) then
+                self.control:send_error ( "tx power not set correctly: should be " .. tx_power 
+                                          .. " (set) but is " .. ( tx_power_new or "unset" ) .. " (actual)" )
+            end
+        end
+    end
     return (linked and visible)
 end
 
 function TcpExperiment:start_measurement ( ap_ref, key )
-    local started = ap_ref:start_measurement ( key )
-    ap_ref:start_iperf_servers()
-    return started
+    ap_ref:start_measurement ( key )
+    ap_ref:start_iperf_servers ()
 end
 
 function TcpExperiment:stop_measurement ( ap_ref, key )
     ap_ref:stop_iperf_servers()
     ap_ref:stop_measurement ( key )
+end
+
+function TcpExperiment:fetch_measurement ( ap_ref, key )
+    ap_ref:fetch_measurement ( key )
 end
 
 function TcpExperiment:unsettle_measurement ( ap_ref, key )
@@ -90,11 +133,8 @@ function TcpExperiment:start_experiment ( ap_ref, key )
             return
         end
         local wait = false
-        if ( ap_ref.rpc.run_tcp_iperf( addr, self.tcpdata, wait ) == false ) then
-            return false
-        end
+        local pid, exit_code = ap_ref.rpc.run_tcp_iperf ( addr, self.tcpdata, wait )
     end
-    return true
 end
 
 function TcpExperiment:wait_experiment ( ap_ref )
@@ -105,7 +145,7 @@ function TcpExperiment:wait_experiment ( ap_ref )
             error ( "wait_experiment: address is unset" )
             return
         end
-        ap_ref.rpc.wait_iperf_c( addr )
+        local exit_code = ap_ref.rpc.wait_iperf_c( addr )
     end
 end
 

@@ -3,12 +3,13 @@
 
 local ps = require ('posix.signal') --kill
 local posix = require ('posix') -- sleep
-lcoal lpc = require 'lpc'
+local lpc = require 'lpc'
+local misc = require 'misc'
+local net = require ('Net')
 
 require ('NodeBase')
 
 require ('NetIF')
-require ('Net')
 require ('misc')
 require ('Uci')
 
@@ -23,42 +24,31 @@ require ('mcastExperiment')
 
 ControlNode = NodeBase:new()
 
-function ControlNode:create ( name, ctrl, port, log_ctrl, log_port, log_file, output_dir )
+function ControlNode:create ( name, ctrl, port, log_port, log_file, output_dir )
     local o = ControlNode:new ( { name = name
                                 , ctrl = ctrl
                                 , port = port
+                                , log_port = log_port
+                                , log_file = log_file
+                                , output_dir = output_dir
+                                , log_addr = ctrl.addr
                                 , ap_refs = {}     -- list of access point nodes
                                 , sta_refs = {}    -- list of station nodes
                                 , node_refs = {}   -- list of all nodes
                                 , stats = {}   -- maps node name to statistics
                                 , pids = {}    -- maps node name to process id of lua node
-                                , logger_proc = nil
-                                , log_ctrl = log_ctrl
-                                , log_port = log_port
-                                , output_dir = output_dir
                                 } )
 
-    function start_logger ( log_ctrl, port, file )
-        local pid, _, _ = lpc.run ( "lua /usr/bin/runLogger " .. file 
-                                     .. " --port " .. port
-                                     .. " --log_if " .. log_ctrl.iface )
-        local exit_code = lpc.wait ( pid )
-        --fixme: error_msg at stderr
-        if ( exit_code ~= 0 ) then
-            o:send_error ( "Logger not started" )
-        else
-            o:send_info ( "Logging started" )
-        end
-        return pid 
+    if ( o.ctrl.addr == nil ) then
+        o.ctrl:get_addr ()
+        o.log_addr = o.ctrl.addr
     end
 
-    if ( log_ctrl ~= nil and log_port ~= nil and log_file ~= nil ) then
-        local pid = start_logger ( log_ctrl, log_port, log_file ) ['pid']
+    if ( log_port ~= nil and log_file ~= nil ) then
+        local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", log_file 
+                                    , "--port", log_port )
         o.pids = {}
-        o.pids['logger'] = pid
-        if ( o.pids['logger'] == nil ) then
-            print ("Logger not started.")
-        end
+        o.pids ['logger'] = pid
     end
 
     return o
@@ -66,17 +56,13 @@ end
 
 
 function ControlNode:__tostring()
-    local net = "node"
+    local net = "none"
     if ( self.ctrl ~= nil ) then
         net = self.ctrl:__tostring()
     end
-    local log = "node"
-    if ( self.log_ctrl ~= nil ) then
-        log = self.log_ctrl:__tostring()
-    end
     local out = "control if: " .. net .. "\n"
     out = out .. "control port: " .. ( self.port or "none" ) .. "\n"
-    out = out .. "log: " .. log .."\n"
+    out = out .. "log file: " .. ( self.log_file or "none" ) .."\n"
     out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
         out = out .. '\n'
@@ -91,7 +77,7 @@ function ControlNode:__tostring()
 end
 
 function ControlNode:get_ctrl_addr ()
-    return Net.get_addr ( self.ctrl.iface )
+    return net.get_addr ( self.ctrl.iface )
 end
 
 function ControlNode:add_ap ( name, ctrl_if, rsa_key )
@@ -145,6 +131,11 @@ function ControlNode:get_phy ( name )
     return node_ref.wifi_cur
 end
 
+function ControlNode:enable_wifi ( name, enabled )
+    local node_ref = self:find_node_ref ( name )
+    return node_ref:enable_wifi ( enabled ) 
+end
+
 function ControlNode:link_to_ssid ( name, ssid )
     self:send_info ( "link to ssid " .. (name or "none" ) )
     local node_ref = self:find_node_ref ( name )
@@ -154,16 +145,11 @@ function ControlNode:link_to_ssid ( name, ssid )
     node_ref:link_to_ssid ( ssid, node_ref.wifi_cur )
 end
 
-function ControlNode:set_ssid ( name, ssid )
-    local node_ref = self:find_node_ref ( name )
-    node_ref:set_ssid ( ssid  )
-end
-
 function ControlNode:get_ssid ( name )
     self:send_info ( "get ssid " .. (name or "none" ) )
     local node_ref = self:find_node_ref ( name )
     if ( node_ref ~= nil ) then
-        self:send_info ( "get ssid node_ref " .. (node_ref.name or "none" ) )
+        self:send_info ( "get ssid node_ref " .. ( node_ref.name or "none" ) )
     end
     return node_ref.rpc.get_ssid ( node_ref.wifi_cur )
 end
@@ -218,13 +204,13 @@ end
 
 function ControlNode:reachable ()
     function node_reachable ( ip )
-        local ping, exit_code = os.execute ( "ping -c1 " .. ip)
+        local ping, exit_code = misc.execute ( "ping", "-c1", ip)
         return exit_code == 0
     end
 
     local reached = {}
     for _, node in ipairs ( self.node_refs ) do
-        local addr = Net.lookup ( node.name )
+        local addr = net.lookup ( node.name )
         if ( addr == nil ) then
             break
         end
@@ -250,62 +236,34 @@ function ControlNode:start( log_addr, log_port )
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
         self:send_info ( remote_cmd )
-        local ssh, exit_code = os.execut ( "ssh -i " .. node_ref.rsa_key 
-            .. " root@" .. node_ref.ctrl.addr .. " " .. remote_cmd )
-        if ( exit_code ~= 0 ) then
-            self:send_error ( "ControlNode:start failed: " .. ssh )
-        end
---[[    local exit_code = ssh['proc']:wait()
-        if (exit_code == 0) then
-            self:send_info (node.name .. ": node started" )
-        else
-            self:send_info (node.name .. ": node not started, exit code: " .. exit_code)
-            self:send_info ( ssh['err']:read("*all") )
-            os.exit(1)
-        end --]]
+        local pid, _, _ = misc.spawn ( "ssh", "-i", node_ref.rsa_key, 
+                                      "root@" .. node_ref.ctrl.addr, remote_cmd )
+        return pid
     end
 
     for _, node_ref in ipairs ( self.node_refs ) do
-        start_node( node_ref, log_addr )
+        self.pids [ node_ref.name ] = start_node( node_ref, log_addr )
     end
     return true
 end
 
 function ControlNode:connect_nodes ( ctrl_port )
     
-    if rpc.mode ~= "tcpip" then
-        self:send_info ( "Err: rpc mode tcp/ip is supported only" )
-        return false
-    end
-
     for _, node_ref in ipairs ( self.node_refs ) do
-        function connect_rpc ()
-            local l, e = rpc.connect ( node_ref.ctrl.addr, ctrl_port )
-            return l, e
-        end
-        local status
-        local rpc
-        local err
-        local retrys = 10
-        repeat
-            status, rpc = pcall ( connect_rpc )
-            retrys = retrys -1
-            if ( status == false ) then posix.sleep (1) end
-        until status == true or retrys == 0
-        if ( status == false or rpc == nil ) then
-            self:send_error ("Connection to " .. node_ref.name .. " failed: ")
-            self:send_error ( "Err: no node at address: " .. node_ref.ctrl.addr .. " on port: " .. ctrl_port )
+        local slave = net.connect ( node_ref.ctrl.addr, ctrl_port, 10, node_ref.name, 
+                                    function ( msg ) self:send_error ( msg ) end )
+        if ( slave == nil ) then 
             return false
-        else 
-            self:send_info ("Connected to " .. node_ref.name)
-            node_ref:init( rpc )
+        else
+            self:send_info ( "Connected to " .. node_ref.name)
+            node_ref:init ( slave )
         end
     end
 
     -- query lua pid before closing rpc connection
     -- maybe to kill nodes later
     for _, node_ref in ipairs ( self.node_refs ) do 
-        self.pids[ node_ref.name ] = node_ref.rpc.get_pid()
+        self.pids [ node_ref.name ] = node_ref.rpc.get_pid ()
     end
 
     return true
@@ -313,8 +271,41 @@ end
 
 function ControlNode:disconnect_nodes()
     for _, node_ref in ipairs ( self.node_refs ) do 
-        if ( node_ref.rpc ~= nil ) then rpc.close ( node_ref.rpc ) end
+        net.disconnect ( node_ref.rpc )
     end
+end
+
+-- kill all running nodes with two times sigint(2)
+-- (default kill signal is sigterm(15) )
+function ControlNode:stop()
+
+    --fixme: move to log node
+    function stop_logger ( pid )
+        if ( pid == nil ) then
+            self:send_error ( "logger not stopped: pid is not set" )
+        else
+            self:send_info ( "stop logger with pid " .. pid )
+            ps.kill ( pid, ps.SIGINT )
+            ps.kill ( pid, ps.SIGINT )
+            lpc.wait ( pid )
+        end
+    end
+
+    -- fixme: nodes should implement a stop function and kill itself with getpid
+    -- and wait
+    for i, node_ref in ipairs ( self.node_refs ) do
+        if ( node_ref.rpc == nil ) then break end
+        self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
+        local ssh
+        local exit_code
+        local remote = "root@" .. node_ref.ctrl.addr
+        local remote_cmd = "/usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
+        ssh, exit_code = misc.execute ( "ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
+        if ( exit_code ~= 0 ) then
+            self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed" )
+        end
+    end
+    stop_logger ( self.pids['logger'] )
 end
 
 -- runs experiment 'exp' for all nodes 'ap_refs'
@@ -346,9 +337,11 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         for i, name in ipairs ( rate_names ) do
             if ( name == rate_name ) then return rate_indices [ i ] end
         end
-        print ( "rate name doesn't match: '" .. rate_name .. "'" )
+        self:send_warning ( "rate name doesn't match: '" .. rate_name .. "'" )
         return nil
     end
+
+    self:send_info ("")
 
     local exp
     if ( command == "tcp") then
@@ -368,12 +361,12 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         ap_refs [ #ap_refs + 1 ] = ap_ref
     end
 
-    self:send_info ("Prepare measurement")
+    self:send_info ("*** Prepare measurement ***")
     for _, ap_ref in ipairs ( ap_refs ) do
         exp:prepare_measurement ( ap_ref )
     end
 
-    self:send_info ("Generate measurement keys")
+    self:send_info ("*** Generate measurement keys ***")
     local keys = {}
     for i, ap_ref in ipairs ( ap_refs ) do
         keys[i] = exp:keys ( ap_ref )
@@ -402,13 +395,13 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
             end
         end
 
-        self:send_info ("Settle measurement")
+        self:send_info ("*** Settle measurement ***")
         for _, ap_ref in ipairs ( ap_refs ) do
             -- self:send_debug ( ap_ref:__tostring() )
             -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
             --     self:send_debug ( "station: " .. station )
             -- end
-            if ( exp:settle_measurement ( ap_ref, key, 5 ) == false ) then
+            if ( exp:settle_measurement ( ap_ref, key, 10 ) == false ) then
                 self:send_error ( "experiment aborted, settledment failed. please check the wifi connnections." )
                 return ret
             end
@@ -424,50 +417,52 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
             for i, sta_ref in ipairs ( ap_ref.refs ) do
 
                 local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
-                local rate_idx = find_rate ( rate_name, rate_names, rates )
-                self:send_debug ( " rate_idx: " .. ( rate_idx or "unset" ) )
+                if ( rate_name ~= nil ) then
+                    local rate_idx = find_rate ( rate_name, rate_names, rates )
+                    self:send_debug ( " rate_idx: " .. ( rate_idx or "unset" ) )
+                end
 
                 local signal = sta_ref.rpc.get_linked_signal ( sta_ref.wifi_cur )
             end
 
         end
 
-        self:send_info ("Waiting one extra second for initialised debugfs")
+        self:send_info ( "Waiting one extra second for initialised debugfs" )
         posix.sleep (1)
 
-        self:send_info ("Start Measurement")
+        self:send_info ("*** Start Measurement ***" )
         -- -------------------------------------------------------
         for _, ap_ref in ipairs ( ap_refs ) do
-            if ( exp:start_measurement (ap_ref, key ) == false ) then
-                self:send_error ( "Start measurement failed. Stop here." )
-                return ret
-            end
+             exp:start_measurement (ap_ref, key )
         end
 
         -- -------------------------------------------------------
         -- Experiment
         -- -------------------------------------------------------
 
-        self:send_info ("Start Experiment")
+        self:send_info ("*** Start Experiment ***" )
         for _, ap_ref in ipairs ( ap_refs ) do
-             if ( exp:start_experiment ( ap_ref, key ) == false ) then
-                return ret
-             end
+             exp:start_experiment ( ap_ref, key )
         end
     
-        self:send_info ("Wait Experiment")
+        self:send_info ("*** Wait Experiment ***" )
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:wait_experiment ( ap_ref, 5 )
         end
 
         -- -------------------------------------------------------
 
-        self:send_info ("Start Measurement")
+        self:send_info ("*** Stop Measurement ***" )
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:stop_measurement (ap_ref, key )
         end
 
-        self:send_info ("Unsettle measurement")
+        self:send_info ("*** Fetch Measurement ***" )
+        for _, ap_ref in ipairs ( ap_refs ) do
+            exp:fetch_measurement (ap_ref, key )
+        end
+
+        self:send_info ("*** Unsettle measurement ***" )
         for _, ap_ref in ipairs ( ap_refs ) do
             exp:unsettle_measurement ( ap_ref, key )
         end
@@ -475,12 +470,12 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         counter = counter + 1
     end
 
-    self:send_info ( "Copy stats from nodes." )
+    self:send_info ( "*** Copy stats from nodes. ***" )
     for _, ap_ref in ipairs ( ap_refs ) do
         self:copy_stats ( ap_ref )
     end
 
-    self:send_info ("Transfer Measurement Result")
+    self:send_info ("*** Transfer Measurement Result")
     return ret
 
 end
@@ -523,39 +518,17 @@ function ControlNode:copy_stats ( ap_ref )
 
 end
 
--- kill all running nodes with two times sigint(2)
--- (default kill signal is sigterm(15) )
-function ControlNode:stop()
+-- -------------------------
+-- Hardware
+-- -------------------------
 
-    function stop_logger ( pid )
-        if ( pid == nil ) then
-            self:send_error ( "logger not stopped: pid is not set" )
-        else
-            self:send_info ( "stop logger with pid " .. pid )
-            ps.kill ( pid, ps.SIGINT )
-            ps.kill ( pid, ps.SIGINT )
-        end
+function ControlNode:get_boards ()
+    local map = {}
+    for _, node_ref in ipairs ( self.node_refs ) do
+       local board = node_ref:get_board () 
+       map [ node_ref.name ] = board
     end
-
-    for i, node_ref in ipairs ( self.node_refs ) do
-        if ( node_ref.rpc == nil ) then break end
-        self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
-        local ssh
-        local exit_code
-        local remote = "root@" .. node_ref.ctrl.addr
-        local remote_cmd = "kill -2 " .. self.pids [ node_ref.name ]
-        ssh, exit_code = os.execute ( "ssh -i " .. node_ref.rsa_key .. " " .. remote
-                                        .. " " .. remote_cmd )
-        if ( exit_code ~= 0 ) then
-            self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed: " .. ssh )
-        end
-        ssh, exit_code = os.execute ( "ssh -i " .. node_ref.rsa_key .. " " .. remote
-                                        .. " " .. remote_cmd )
-        if ( exit_code ~= 0 ) then
-            self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed: " .. ssh )
-        end
-    end
-    stop_logger ( self.pids['logger'] )
+    return map
 end
 
 -- -------------------------
@@ -563,7 +536,7 @@ end
 -- -------------------------
 
 function ControlNode:set_dates ()
-    local time = os.date("*t", os.time() )
+    local time = os.date( "*t", os.time() )
     for _, node_ref in ipairs ( self.node_refs ) do
         local cur_time
         local err

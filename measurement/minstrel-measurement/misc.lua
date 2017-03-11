@@ -1,5 +1,6 @@
 
 require ('lfs')
+require ('lpc')
 
 Misc = {}
 
@@ -122,7 +123,7 @@ function set_date_core ( year, month, day, hour, min, second )
                  .. string.format ( "%02d", min )
                  .. string.format ( "%04d", year )
                  .. string.format ( "%02d", second )
-    local date2, exit_code = os.execute ( "date " .. date )
+    local date2, exit_code = Misc.execute ( "date", date )
     if ( exit_code ~= 0 ) then
         return nil, date
     else
@@ -138,7 +139,7 @@ function set_date_bb ( year, month, day, hour, min, second )
                  .. string.format ( "%02d", hour ) .. ":"
                  .. string.format ( "%02d", min ) .. ":"
                  .. string.format ( "%02d", second )
-    local result, exit_code = os.execute ( "date " .. date )
+    local result, exit_code = Misc.execute ( "date", date )
     if ( exit_code ~= 0 ) then
         return nil, result
     else
@@ -149,6 +150,23 @@ end
 function Misc.nanosleep( s )
   local ntime = os.clock() + s
   repeat until os.clock() > ntime
+end
+
+function Misc.execute ( ... )
+    local pid, stdin, stdout = lpc.run ( ... )
+    local exit_code = lpc.wait ( pid )
+    stdin:close()
+    if ( exit_code == 0 ) then
+        local content = stdout:read ("*a")
+        stdout:close()
+        return content, exit_code
+    else
+        return nil, exit_code
+    end
+end
+
+function Misc.spawn ( ... )
+    return lpc.run ( ... )
 end
 
 return Misc

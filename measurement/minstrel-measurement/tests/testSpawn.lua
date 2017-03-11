@@ -5,7 +5,8 @@ function sleep(n)
 end
 
 -- os.execute can handle stdout only
-print ( os.execute ( "ls" ) )
+-- and has no pipe
+local exit_code = os.execute ( "ls" )
 
 -- io.popen has no wait (and no process id)
 local file = io.popen ( "ls", "r" )

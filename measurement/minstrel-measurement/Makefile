@@ -4,13 +4,15 @@ BIN_DIR	= bin
 INSTALL_BIN_DIR	= $(ROOT)/usr/bin
 INSTALL_LUA_LIB_DIR	= $(ROOT)/usr/lib/lua/5.1
 
+CPUSAGE_SINGLE = cpusage_single
 FETCH_FILE = fetch_file
 NET_RUN = netRun
 RUN_CONTROL = runControl
 RUN_LOGGER = runLogger
 RUN_NODE = runNode
+KILL_REMOTE = kill_remote
 
-all: $(FETCH_FILE) $(NET_RUN) $(RUN_CONTROL) $(RUN_LOGGER) $(RUN_NODE)
+all: $(FETCH_FILE) $(NET_RUN) $(RUN_CONTROL) $(RUN_LOGGER) $(RUN_NODE) $(KILL_REMOTE)
 
 $(FETCH_FILE): $(BIN_DIR)/$(FETCH_FILE).lua
 	$(LUAC) -o $(BIN_DIR)/$(FETCH_FILE) "$<"
@@ -32,6 +34,10 @@ $(RUN_NODE): $(BIN_DIR)/$(RUN_NODE).lua
 	$(LUAC) -o $(BIN_DIR)/$(RUN_NODE) "$<"
 	chmod 755 $(BIN_DIR)/$(RUN_NODE)
 
+$(KILL_REMOTE): $(BIN_DIR)/$(KILL_REMOTE).lua
+	$(LUAC) -o $(BIN_DIR)/$(KILL_REMOTE) "$<"
+	chmod 755 $(BIN_DIR)/$(KILL_REMOTE)
+
 .PHONY: all
 
 clean:
@@ -40,9 +46,12 @@ clean:
 	rm -f $(BIN_DIR)/$(RUN_CONTROL)
 	rm -f $(BIN_DIR)/$(RUN_LOGGER)
 	rm -f $(BIN_DIR)/$(RUN_NODE)
+	rm -f $(BIN_DIR)/$(KILL_REMOTE)
 
 install:
 	mkdir -p $(INSTALL_BIN_DIR)
+	cp $(BIN_DIR)/$(CPUSAGE_SINGLE) $(INSTALL_BIN_DIR)/$(CPUSAGE_SINGLE)
+	chmod 755 $(INSTALL_BIN_DIR)/$(CPUSAGE_SINGLE)
 	cp $(BIN_DIR)/$(FETCH_FILE) $(INSTALL_BIN_DIR)/$(FETCH_FILE)
 	chmod 755 $(INSTALL_BIN_DIR)/$(FETCH_FILE)
 	cp $(BIN_DIR)/$(NET_RUN) $(INSTALL_BIN_DIR)/$(NET_RUN)
@@ -53,6 +62,8 @@ install:
 	chmod 755 $(INSTALL_BIN_DIR)/$(RUN_NODE)
 	cp $(BIN_DIR)/$(RUN_LOGGER) $(INSTALL_BIN_DIR)/$(RUN_LOGGER)
 	chmod 755 $(INSTALL_BIN_DIR)/$(RUN_LOGGER)
+	cp $(BIN_DIR)/$(KILL_REMOTE) $(INSTALL_BIN_DIR)/$(KILL_REMOTE)
+	chmod 755 $(INSTALL_BIN_DIR)/$(KILL_REMOTE)
 	mkdir -p $(INSTALL_LUA_LIB_DIR)
 	cp -r *.lua $(INSTALL_LUA_LIB_DIR)
 	mkdir -p $(INSTALL_LUA_LIB_DIR)/parsers

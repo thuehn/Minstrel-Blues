@@ -6,4 +6,5 @@ netRun
 runControl
 runLogger
 runNode
+kill_remote
 luac.out

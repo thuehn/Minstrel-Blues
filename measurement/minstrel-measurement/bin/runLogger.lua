@@ -38,13 +38,5 @@ function send_debug ( from, msg) node:send_debug ( from, msg ) end
 -- shortcut to logger instance to simplify access
 function set_cut () node:set_cut () end
 
-function LogNode:get_addr() 
-    if ( args.log_if ~= nil ) then
-        return Net.get_addr( args.log_if ) 
-    else
-        return nil
-    end
-end
-
 -- make all functions available via RPC
 node:run ( args.port )

@@ -5,7 +5,8 @@ require ('NodeRef')
 AccessPointRef = NodeRef:new()
 
 function AccessPointRef:create ( name, ctrl, rsa_key, output_dir )
-    local o = AccessPointRef:new{ name = name, ctrl = ctrl, rsa_key = rsa_key, output_dir = output_dir, stations = {} }
+    local o = AccessPointRef:new { name = name, ctrl = ctrl, rsa_key = rsa_key, output_dir = output_dir, stations = {} }
+    o.ctrl:get_addr()
     return o
 end
 
@@ -43,7 +44,8 @@ end
 -- waits until all stations appears on ap
 -- not precise, sta maybe not really connected afterwards
 -- waits until station is reachable (not mandatory  connected)
-function AccessPointRef:wait_station ( retrys )
+function AccessPointRef:wait_station ( runs )
+    local retrys = runs
     repeat
         local wifi_stations_cur = self.rpc.visible_stations( self.wifi_cur )
         local miss = false
@@ -54,17 +56,9 @@ function AccessPointRef:wait_station ( retrys )
             end
         end
         retrys = retrys - 1
-        posix.sleep(1)
+        posix.sleep (1)
     until not miss or retrys == 0
     return retrys ~= 0
-end
-
-function AccessPointRef:set_ssid ( ssid )
-    self.ssid = ssid 
-end
-
-function AccessPointRef:get_ssid ()
-    return self.ssid
 end
 
 function AccessPointRef:set_tx_power ( power )
@@ -130,6 +124,12 @@ function AccessPointRef:stop_measurement( key )
     end
 end
 
+function AccessPointRef:fetch_measurement( key )
+    NodeRef.fetch_measurement( self, key )
+    for i, sta_ref in ipairs ( self.refs ) do
+        sta_ref:fetch_measurement ( key )
+    end
+end
 
 function AccessPointRef:start_iperf_servers()
     for i, sta_ref in ipairs ( self.refs ) do
