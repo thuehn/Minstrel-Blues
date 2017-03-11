@@ -2,8 +2,6 @@
 -- without error handling to read command line outputs
 -- and without tokenizer (scanner)
 
-require ('functional')
-
 -- returns first char of a string
 -- pre: string.len ( str ) > 0
 function shead ( str )
@@ -53,7 +51,7 @@ function parse_num ( str )
             return num, parsed
         end
      end
-     return parse ( str, "")
+     return parse ( str, "" )
 end
 
 function parse_hex_num ( str )
@@ -75,10 +73,10 @@ function parse_real ( str )
     local rest = str
     local num1; local num2
     local state
-    num1, rest = parse_num( rest )
-    state, rest = parse_str( rest, "." )
-    num2, rest = parse_num( rest )
-    return tonumber(num1 .. "." .. num2), rest
+    num1, rest = parse_num ( rest )
+    state, rest = parse_str ( rest, "." )
+    num2, rest = parse_num ( rest )
+    return tonumber ( num1 .. "." .. num2 ), rest
 end
 
 -- return: str without leading whitespaces ('\n', ' ', '\t')

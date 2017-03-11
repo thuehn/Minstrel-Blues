@@ -17,7 +17,7 @@ require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
 require ('parsers/rc_stats_csv')
-require ('parsers/iw_link')
+require ('parsers/iw_info')
 
 local lua_bin = "/usr/bin/lua"
 local tcpdump_bin = "/usr/sbin/tcpdump"
@@ -132,17 +132,12 @@ end
 function Node:get_ssid ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    self:send_info("send ssid for " .. iface )
+    self:send_info ( "send ssid for " .. iface )
     local str, exit_code = misc.execute ( "iw", iface, "info" )
     if ( str ~= nil and exit_code == 0) then
-        -- TODO: parse response
-        str = string.gsub ( str, "\t", " " )
-        str = string.gsub ( str, "\n", " " )
-        local tokens = split ( str, " " )
-        for i, token in ipairs( tokens ) do
-            if ( token == "ssid" ) then
-                return tokens [ i + 1 ], nil
-            end
+        local iwinfo = parse_iwinfo ( str )
+        if ( iwinfo ~= nil ) then
+            return iwinfo.ssid, nil
         end
     end
     return nil, nil

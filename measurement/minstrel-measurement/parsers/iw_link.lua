@@ -85,9 +85,11 @@ function parse_iwlink ( iwlink )
     local rate_idx_part2 = nil
     local rate_idx = nil
 
+    --stderr
     state, rest = parse_str ( rest, "Not connected." )
     if (state == true) then return nil end
 
+    --stdout
     state, rest = parse_str ( rest, "Connected to " )
     mac, rest = parse_mac ( rest )
     rest = skip_layout( rest )
