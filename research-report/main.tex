@@ -140,35 +140,54 @@
 	throughput is not effected.
 
 	%%%
-	\section{Designing a Joint Power and Rate Controller: Minstrel-Blues}
-	\label{s:design} 
+	\section{Practical Joint Rate and Power Control}
+	\label{s:practical-design} 
 
-	\subsection{TPC Design Considerations within Linux}
+		%%
+		\subsection{System Design Considerations}
+		\label{s:system-design}
 
-	\subsubsection{Per-Packet TX-Power Annotations}
-	\label{s:power-annotation}
+			\subsubsection{Freedom and Boundaries}
+			\label{s:freedom-boundaries}
 
-	\subsubsection{TPC of MAC-Layer ACK Packets}
-	\label{s:ack-packets}
+			\subsubsection{Per-Data-Packet TPC}
+			\label{s:tpc-data}
 
-	\subsubsection{WiFi Hardware Supporting TPC}
-	\label{s:hardware}
+			\subsubsection{MAC-Layer ACK-Packet TPC}
+			\label{s:tpc-ack}
 
-	\subsection{The Algorithm: Minstrel-Blues}
+		%%
+		\subsection{TPC with Linux WiFi Systems}
+		\label{s:todays-wifi-systems}
+
+
+	%%%
+	\section{The Algorithm: Minstrel-Blues}
 	\label{s:minstrel-blues}
 
-	\subsubsection{Minstrel Rate Control}
-	\label{s:minstrel}
+		%%
+		\subsection{Minstrel Rate Control}
+		\label{s:minstrel-rate}
 
-	\subsubsection{Blues Power Control}
-	\label{s:blues}
+		%%
+		\subsection{Blues Power Control}
+		\label{s:minstrel-blues}
 
-	\subsubsection{New Utility Function}
-	\label{s:utility}
+		%%
+		\subsection{Joint Rate and Power Control}
+		\label{s:joint-control}
 
-	\subsubsection{Joint Rate and Power Control}
-	\label{s:joint-control}
+			%
+			\subsubsection{New Utility Function}
+			\label{s:utility-function}
 
+		%%
+		\subsection{Technical Settings}
+		\label{s:technical-settings}
+
+		%%
+		\subsection{Open Issues}
+		\label{s:open-issues}
 
 	%%%
 	%\section{Simulation Results}
@@ -182,19 +201,50 @@
 
 
 	%%%
-	\section{Performance Analysis}
-	\label{s:measurements}
+	\section{Performance Analysis of Minstrel-Blues}
+	\label{s:performance-analysis}
 
-	\subsection{Measurement Setup}
+		%%
+		\subsection{Measurement System}
+		\label{s:measurement-system}
 
-	\subsection{Validation}
+		%%
+		\subsection{Validation}
+		\label{s:validation}
 
-	\subsection{Performance Evaluation}
+			\subsubsection{Experimental Setup}
+			
+			\subsubsection{Results}
 
+			\subsubsection{Discussion}
+
+		%%
+		\subsection{Performance Evaluation: Home-Setup}
+		\label{s:evaluation}
+
+			\subsubsection{Experimental Setup}
+
+			\subsubsection{Results}
+
+			\subsubsection{Discussion}
+
+		%%
+		\subsection{Performance Evaluation: Mesh-Setup}
+		\label{s:evaluation}
+
+			\subsubsection{Experimental Setup}
+
+			\subsubsection{Results}
+
+			\subsubsection{Discussion}
+
+		%%
+		\subsection{Summary}
 
 	%%%
 	\section{Conclusion}
 	\label{s:conclusion}
+
 
 
        % Bibliography

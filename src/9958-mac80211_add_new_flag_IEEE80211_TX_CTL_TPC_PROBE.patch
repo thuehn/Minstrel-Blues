@@ -1,0 +1,28 @@
+--- a/include/net/mac80211.h
++++ b/include/net/mac80211.h
+@@ -664,6 +664,8 @@ struct ieee80211_bss_conf {
+  *	any errors (like issues specific to the driver/HW).
+  *	This flag must not be set for frames that don't request no-ack
+  *	behaviour with IEEE80211_TX_CTL_NO_ACK.
++ * @IEEE80211_TX_CTL_TPC_PROBE: internal to mac80211, can be set by
++ *	transmit power control algorithms to indicate a tpc probe.
+  *
+  * Note: If you have to add new flags to the enumeration, then don't
+  *	 forget to update %IEEE80211_TX_TEMPORARY_FLAGS when necessary.
+@@ -699,6 +701,7 @@ enum mac80211_tx_info_flags {
+ 	IEEE80211_TX_CTL_USE_MINRATE		= BIT(28),
+ 	IEEE80211_TX_CTL_DONTFRAG		= BIT(29),
+ 	IEEE80211_TX_STAT_NOACK_TRANSMITTED	= BIT(30),
++	IEEE80211_TX_CTL_TPC_PROBE		= BIT(31),
+ };
+ 
+ #define IEEE80211_TX_CTL_STBC_SHIFT		22
+@@ -737,7 +740,7 @@ enum mac80211_tx_control_flags {
+ 	IEEE80211_TX_STAT_AMPDU | IEEE80211_TX_STAT_AMPDU_NO_BACK |	      \
+ 	IEEE80211_TX_CTL_RATE_CTRL_PROBE | IEEE80211_TX_CTL_NO_PS_BUFFER |    \
+ 	IEEE80211_TX_CTL_MORE_FRAMES | IEEE80211_TX_CTL_LDPC |		      \
+-	IEEE80211_TX_CTL_STBC)
++	IEEE80211_TX_CTL_STBC | IEEE80211_TX_CTL_TPC_PROBE)
+ 
+ /**
+  * enum mac80211_rate_control_flags - per-rate flags set by the
