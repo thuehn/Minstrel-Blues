@@ -90,8 +90,6 @@ function SNRRenderer:run ( basedir )
         local rate = self:get_rate ( key )
         self:add_rate ( rate )
     end
-    table.sort( self.powers )
-    table.sort( self.rates )
 
     local rates_file = io.open ( rates_fname, "w" )
     if ( rates_file ~= nil ) then
