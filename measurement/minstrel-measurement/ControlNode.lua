@@ -372,33 +372,45 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         keys[i] = exp:keys ( ap_ref )
     end
 
+    -- choose smallest set of keys
+    -- fixme: still differs over all APs maybe
+    -- better each ap should run its own set of keys
+    local min_len = #keys [ 1 ]
+    local key_index = 1
+    for i, key_list in ipairs ( keys ) do
+        if ( #key_list < min_len ) then
+            min_len = #key_list
+            key_index = i
+        end
+    end
+
     local stop = false
-    local num_keys = #keys[1] -- fixme: smallest set of keys
-                              -- nodes may have different rate
-                              -- and power sets
     local counter = 1
 
     -- randomize keys
     local keys_random = {}
     math.randomseed ( os.time() )
     local set = {}
-    while table_size ( keys_random ) < table_size ( keys [ 1 ] ) do
+    while table_size ( keys_random ) < table_size ( keys [ key_index ] ) do
 
-        local nxt = math.random (1, table_size ( keys [ 1 ] ) )
+        local nxt = math.random (1, table_size ( keys [ key_index ] ) )
         if ( set [ nxt ] ~= true ) then
             set [ nxt ] = true
-            keys_random [ #keys_random + 1 ] = keys [ 1 ] [ nxt ]
+            keys_random [ #keys_random + 1 ] = keys [ key_index ] [ nxt ]
         end
 
     end
 
     -- run expriments
-    self:send_info ( "Run " .. num_keys .. " experiments." )
+    self:send_info ( "Run " .. min_len .. " experiments." )
     for _, key in ipairs ( keys_random ) do 
 
-        self:send_info ("**********************************************")
-        self:send_info ("Start experiment " .. counter .. " of " .. num_keys .. ".")
-        self:send_info ("**********************************************")
+        local exp_header = "* Start experiment " .. counter .. " of " .. min_len .. " *"
+        local hrule = {}
+        for i=1, string.len ( exp_header ) do hrule = hrule + "*" end
+        self:send_info ( hrule )
+        self:send_info ( exp_header )
+        self:send_info ( hrule )
 
         for _, ap_ref in ipairs ( ap_refs ) do
             local free_m = ap_ref:get_free_mem ()
@@ -414,6 +426,7 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         end
 
         self:send_info ("*** Settle measurement ***")
+
         for _, ap_ref in ipairs ( ap_refs ) do
             -- self:send_debug ( ap_ref:__tostring() )
             -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
@@ -428,9 +441,11 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
             -- end
 
             local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            self:send_debug( "rates names: " .. table_tostring ( rate_names ) )
+            self:send_debug( "rates names: " .. table_tostring ( rate_names, 80 ) )
             local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            self:send_debug( "rates names: " .. table_tostring ( rates ) )
+            self:send_debug( "rates indices: " .. table_tostring ( rates, 80 ) )
+            local powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
+            self:send_debug( "power indices: " .. table_tostring ( power, 80 ) )
 
             for i, sta_ref in ipairs ( ap_ref.refs ) do
 
@@ -449,6 +464,7 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         posix.sleep (1)
 
         self:send_info ("*** Start Measurement ***" )
+
         -- -------------------------------------------------------
         for _, ap_ref in ipairs ( ap_refs ) do
              exp:start_measurement (ap_ref, key )

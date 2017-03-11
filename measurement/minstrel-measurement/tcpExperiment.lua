@@ -31,18 +31,15 @@ function TcpExperiment:keys ( ap_ref )
     
     if ( self.is_fixed == true ) then
         if ( self.tx_powers == nil ) then
-            self.tx_powers = {}
-            for i = 1, 25 do
-                self.tx_powers[i] = i
-            end
+            self.tx_powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
         else
             self.tx_powers = split ( self.tx_powers, "," )
         end
     end
 
     if ( self.is_fixed == true ) then
-        self.control:send_debug( "run tcp experiment for rates " .. table_tostring ( self.tx_rates ) )
-        self.control:send_debug( "run tcp experiment for powers " .. table_tostring ( self.tx_powers ) )
+        self.control:send_debug( "run tcp experiment for rates " .. table_tostring ( self.tx_rates, 80 ) )
+        self.control:send_debug( "run tcp experiment for powers " .. table_tostring ( self.tx_powers, 80 ) )
     end
 
     for run = 1, self.runs do

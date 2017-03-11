@@ -379,8 +379,13 @@ function Node:tx_rate_indices( phy, station )
 end
 
 -- fixme: tx_power_levels ( per rate )
--- funtion tx_power_levels ( phy, station )
--- end
+function Node:tx_power_indices ( phy, station )
+    tx_powers = {}
+    for i = 1, 25 do
+        tx_powers[i] = i
+    end
+    return tx_powers
+end
 
 function Node:write_value_to_sta_debugfs ( phy, station, file, value )
     local dev = self:find_wifi_device ( phy )

@@ -31,10 +31,7 @@ function McastExperiment:keys ( ap_ref )
 
     if ( self.is_fixed == true ) then
         if ( self.tx_powers == nil ) then
-            self.tx_powers = {}
-            for i = 1, 25 do
-                self.tx_powers[i] = i
-            end
+            self.tx_powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
         else
             self.tx_powers = split ( self.tx_powers, "," )
         end

@@ -10,13 +10,31 @@ function table_size ( tbl )
     return count
 end
 
-function table_tostring ( tbl )
-    local str = ""
+function table_tostring ( tbl, max_line_size )
+    local count = 1
+    local lines = {}
+    lines [ count ] = ""
     for i, elem in ipairs ( tbl ) do
-        if ( i ~= 1 ) then str = str .. ", " end
-        str = str .. elem
+        local elem_str = tostring ( elem )
+        if ( i ~= 1 ) then lines [ count ] = lines [ count ].. ", " end
+        if ( max_line_size ~= nil and ( string.len ( lines [ count ] ) + string.len ( elem_str ) >= max_line_size ) ) then
+            count = count + 1
+            lines [ count ] = ""
+        end
+        lines [ count ] = lines [ count ] .. elem
     end
-    return str
+    if ( count > 1 ) then
+        local all = ""
+        for i, line in ipairs ( lines ) do
+            all = all .. line
+            if ( i ~= table_size ( lines ) ) then
+                all = all .. '\n'
+            end
+        end
+        return all
+    else
+        return lines [ 1 ]
+    end
 end
 
 function copy_map ( from )
