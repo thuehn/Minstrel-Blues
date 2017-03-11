@@ -35,7 +35,6 @@ function reachable ( ... ) return node:reachable ( ... ) end
 function start ( ... ) return node:start ( ... ) end
 function connect_nodes ( ... ) return node:connect_nodes ( ... ) end
 function disconnect_nodes ( ... ) return node:disconnect_nodes ( ... ) end
-function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function run_experiments ( ... ) return node:run_experiments ( ... ) end
 function stop ( ... ) return node:stop ( ... ) end
 function set_date ( ... ) return node:set_date ( ... ) end

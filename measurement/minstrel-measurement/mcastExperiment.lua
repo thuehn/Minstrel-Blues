@@ -1,22 +1,13 @@
--- 1 run: 0.41s user 0.75s system 0% cpu 1:49:45.91 total
+require ('Experiment')
 
 -- runs an multicast experiment with fixed rate and fixed power setting
-McastExperiment = { control = nil, runs = nil, tx_powers = nil, tx_rates = nil, udp_interval = nil, tx_rates = nil, tx_powers = nil
-                  , is_fixed = nil }
+McastExperiment = Experiment:new()
 
 function McastExperiment:new (o)
     local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
-end
-
-function McastExperiment:get_rate( key )
-    return split ( key, "-" ) [1]
-end
-
-function McastExperiment:get_power( key )
-    return split ( key, "-" ) [2]
 end
 
 function McastExperiment:create ( control, data, is_fixed )
@@ -72,52 +63,12 @@ function McastExperiment:keys ( ap_ref )
     return keys
 end
 
-function McastExperiment:prepare_measurement ( ap_ref )
-    ap_ref:create_measurement()
-    ap_ref.stats:enable_rc_stats ( ap_ref.stations )
-end
-
-function McastExperiment:settle_measurement ( ap_ref, key, retrys )
-    ap_ref:restart_wifi ()
-    local linked = ap_ref:wait_linked ( retrys )
-    local visible = ap_ref:wait_station ( retrys )
-    ap_ref:add_monitor ()
-    if ( self.is_fixed == true ) then
-        for _, station in ipairs ( ap_ref.stations ) do
-            self.control:send_info ( " set tx power and tx rate for station " .. station .. " on phy " .. ap_ref.wifi_cur )
-            local tx_rate = self:get_rate ( key )
-            ap_ref.rpc.set_tx_rate ( ap_ref.wifi_cur, station, tx_rate )
-            local tx_rate_new = ap_ref.rpc.get_tx_rate ( ap_ref.wifi_cur, station )
-            if ( tx_rate_new ~= tx_rate ) then
-                self.control:send_error ( "rate not set correctly: should be " .. tx_rate 
-                                          .. " (set) but is " .. ( tx_rate_new or "unset" ) .. " (actual)" )
-            end
-            local tx_power = self:get_power ( key )
-            ap_ref.rpc.set_tx_power ( ap_ref.wifi_cur, station, tx_power )
-            local tx_power_new = ap_ref.rpc.get_tx_power ( ap_ref.wifi_cur, station )
-            if ( tx_power_new ~= tx_power ) then
-                self.control:send_error ( "tx power not set correctly: should be " .. tx_power 
-                                          .. " (set) but is " .. ( tx_power_new or "unset" ) .. " (actual)" )
-            end
-        end
-    end
-    return (linked and visible)
-end
-
 function McastExperiment:start_measurement ( ap_ref, key )
     return ap_ref:start_measurement ( key )
 end
 
 function McastExperiment:stop_measurement ( ap_ref, key )
     ap_ref:stop_measurement ( key )
-end
-
-function McastExperiment:fetch_measurement ( ap_ref, key )
-    ap_ref:fetch_measurement ( key )
-end
-
-function McastExperiment:unsettle_measurement ( ap_ref, key )
-    ap_ref:remove_monitor ()
 end
 
 function McastExperiment:start_experiment ( ap_ref, key )
@@ -145,9 +96,3 @@ function McastExperiment:wait_experiment ( ap_ref )
         ap_ref.rpc.wait_iperf_c( addr )
     end
 end
-
-function create_mcast_measurement ( runs, udp_interval )
-    local mcast_exp = McastExperiment:create( runs, udp_interval )
-    return function ( ap_ref ) return run_experiment ( mcast_exp, ap_ref ) end
-end
-

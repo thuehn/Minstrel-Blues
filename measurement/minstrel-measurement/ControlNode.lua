@@ -480,26 +480,6 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
 
 end
 
--- runs experiment 'exp' for node 'ap_ref'
--- sequentially
--- see run_experiment in Experiment.lua
-function ControlNode:run_experiment ( exp, ap_name )
-
-    local ap_ref = find_node_ref ( ap_name )
-
-    local status
-    local err
-    status, err = pcall ( function () return exp ( ap_ref ) end )
-
-    if ( status == false ) then 
-        self:send_info ( "Error: experiment failed:\n" .. err )
-        return false 
-    end
-    
-    self:copy_stats ( ap_ref )
-
-end
-
 function ControlNode:copy_stats ( ap_ref )
 
     self.stats [ ap_ref.name ] = {}
