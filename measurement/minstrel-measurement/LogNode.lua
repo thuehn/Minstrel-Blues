@@ -58,6 +58,9 @@ end
 -- param from: name of the sender
 -- param msg: the message string to pass to logger
 function LogNode:send ( msgtype, from, msg )
+    if ( string.len ( msg ) > 80 ) then
+       msg = (msg):gsub(("."):rep(80),"%1\n"):sub(1,-2) 
+    end
     local ret = os.time() .. " " .. msgtype .. " : " .. from .. " : " .. ( msg or "" )
     if ( self.use_stdout == true ) then
         print ( ret )
@@ -71,7 +74,10 @@ function LogNode:send ( msgtype, from, msg )
 end
 
 function LogNode:set_cut()
-    local cut = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    local cut = ""
+    for i=1, 80 do
+        cut = cut .. '~'
+    end
     if ( self.use_stdout == true ) then
         print ( cut )
     end
