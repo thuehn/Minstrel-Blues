@@ -27,8 +27,7 @@
 -- /etc/board.json
 -- /etc/diag.sh
 
---TODO: iw info parser
-
+require ('functional')
 pprint = require ('pprint')
 
 local argparse = require "argparse"

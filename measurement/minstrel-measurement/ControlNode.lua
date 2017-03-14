@@ -375,7 +375,7 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
     -- choose smallest set of keys
     -- fixme: still differs over all APs maybe
     -- better each ap should run its own set of keys
-    local min_len = #keys [ 1 ]
+    local min_len = # ( keys [ 1 ] )
     local key_index = 1
     for i, key_list in ipairs ( keys ) do
         if ( #key_list < min_len ) then
@@ -388,6 +388,8 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
     local counter = 1
 
     -- randomize keys
+    -- TODO: randomize ap and station order
+    -- TODO: save ordering
     local keys_random = {}
     math.randomseed ( os.time() )
     local set = {}
@@ -405,9 +407,10 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
     self:send_info ( "Run " .. min_len .. " experiments." )
     for _, key in ipairs ( keys_random ) do 
 
-        local exp_header = "* Start experiment " .. counter .. " of " .. min_len .. " *"
-        local hrule = {}
-        for i=1, string.len ( exp_header ) do hrule = hrule + "*" end
+        local exp_header = "* Start experiment " .. counter .. " of " .. min_len
+                            .. " with key " .. ( key or "none" ) .. " *"
+        local hrule = ""
+        for i=1, string.len ( exp_header ) do hrule = hrule .. "*" end
         self:send_info ( hrule )
         self:send_info ( exp_header )
         self:send_info ( hrule )
@@ -441,11 +444,14 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
             -- end
 
             local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            self:send_debug( "rates names: " .. table_tostring ( rate_names, 80 ) )
+            local msg = "rate names: "
+            self:send_debug( msg .. table_tostring ( rate_names, 80 - string.len ( msg ) ) )
             local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            self:send_debug( "rates indices: " .. table_tostring ( rates, 80 ) )
+            local msg = "rate indices: "
+            self:send_debug( msg .. table_tostring ( rates, 80  - string.len ( msg ) ) )
             local powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            self:send_debug( "power indices: " .. table_tostring ( power, 80 ) )
+            local msg = "power indices: "
+            self:send_debug( msg .. table_tostring ( powers, 80  - string.len ( msg ) ) )
 
             for i, sta_ref in ipairs ( ap_ref.refs ) do
 

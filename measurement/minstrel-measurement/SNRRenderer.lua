@@ -77,7 +77,9 @@ end
 -- y: powers
 function SNRRenderer:run ( basedir )
     local rates_fname = basedir .. "/rates.txt"
+    local rate_indices_fname = basedir .. "/rate_indices.txt"
     local powers_fname = basedir .. "/powers.txt"
+    local power_indices_fname = basedir .. "/power_indices.txt"
     local snrs_min_fname = basedir .. "/snrs-min.txt"
     local snrs_max_fname = basedir .. "/snrs-max.txt"
     local snrs_avg_fname = basedir .. "/snrs-avg.txt"
@@ -101,6 +103,16 @@ function SNRRenderer:run ( basedir )
         rates_file:close()
     end
 
+    local rate_indices_file = io.open ( rate_indices_fname, "w" )
+    if ( rate_indicess_file ~= nil ) then
+        for i, _ in ipairs ( self.rates ) do
+            if ( i ~= 1 ) then rate_indices_file:write (" ") end
+            rate_indices_file:write ( i - 1 )
+        end
+        rate_indices_file:write("\n")
+        rate_indices_file:close()
+    end
+
     local powers_file = io.open ( powers_fname, "w" )
     if ( powers_file ~= nil ) then
         for i, power in ipairs ( self.powers ) do
@@ -111,6 +123,15 @@ function SNRRenderer:run ( basedir )
         powers_file:close()
     end
 
+    local power_indices_file = io.open ( power_indices_fname, "w" )
+    if ( power_indicess_file ~= nil ) then
+        for i, _ in ipairs ( self.powers ) do
+            if ( i ~= 1 ) then power_indices_file:write (" ") end
+            power_indices_file:write ( i - 1 )
+        end
+        power_indices_file:write("\n")
+        power_indices_file:close()
+    end
     local snr_mins = {}
     local snr_maxs = {}
     local snr_avgs = {}

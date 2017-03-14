@@ -13,7 +13,7 @@ end
 function TcpExperiment:create ( control, data, is_fixed )
     local o = TcpExperiment:new( { control = control, runs = data[1]
                                  , tx_powers = data[2], tx_rates = data[3]
-                                 , tcpdata = data[2] 
+                                 , tcpdata = data[4] 
                                  , is_fixed = is_fixed
                                  } )
     return o

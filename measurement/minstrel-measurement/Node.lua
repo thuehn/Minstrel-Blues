@@ -373,7 +373,7 @@ function Node:tx_rate_indices( phy, station )
     local lines = self:get_rc_stats_lines ( phy, station )
     local rates = {}
     for _, rc_line in ipairs ( lines ) do
-        rates [ #rates + 1 ] = rc_line.rate.name
+        rates [ #rates + 1 ] = rc_line.rate.idx
     end
     return rates
 end
@@ -442,7 +442,9 @@ function Node:get_tx_power ( phy, station )
 end
 
 function Node:set_tx_rate ( phy, station, tx_rate_idx )
-    self:send_info ( "Set tx rate index for station " .. station .. " at device " .. phy .. " to " .. tx_rate_idx )
+    self:send_info ( "Set tx rate index for station " .. ( station or "none" )
+                                                      .. " at device " .. ( phy or "none" ) 
+                                                      .. " to " .. ( tx_rate_idx or "none" ) )
     if ( self:write_value_to_sta_debugfs ( phy, station, "fixed_txrate", tx_rate_idx ) == false ) then
         self:send_error ( "Set tx rate level for station " .. station .. " at device " .. phy .. " failed. Unsupported" )
     end
@@ -707,7 +709,7 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
     end
     self:send_info ( "run TCP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
-                                .. " with tcpdata " .. tcpdata)
+                                .. " with tcpdata " .. ( tcpdata or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-c", addr, "-p", self.iperf_port, "-n", tcpdata )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
@@ -745,16 +747,16 @@ end
 
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
 -- iperf -c 224.0.67.0 -u --ttl 1 -t 120 -b 100M -l 1500 -B 10.10.250.2
-function Node:run_multicast ( addr, multicast_addr, ttl, size, interval, wait )
+function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait )
     if ( self.iperf_client_procs [ addr ] ~= nil ) then
         self:send_error (" Iperf client (mcast) not started for address " .. addr .. ". Already running.")
         return nil
     end
     self:send_info ( "run UDP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
-                                .. " with ttl and interval " .. ttl .. ", " .. interval )
+                                .. " with ttl and duration " .. ttl .. ", " .. duration )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port,
-                                         "-T", ttl, "-t", interval, "-b", size, "-B", addr )
+                                         "-T", ttl, "-t", duration, "-b", bitrate, "-B", addr )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
     if ( wait == true ) then
@@ -777,10 +779,10 @@ function Node:wait_iperf_c ( addr )
     end
     self:send_info ( "wait for TCP/UDP client iperf for address " .. addr ) 
     local exit_code = lpc.wait ( self.iperf_client_procs [ addr ].pid )
-    repeat
-        local line = self.iperf_client_procs [ addr ].stdout:read ("*l")
-        if line ~= nil then self:send_info ( line ) end
-    until line == nil
+--    repeat
+--        local line = self.iperf_client_procs [ addr ].stdout:read ("*l")
+--        if line ~= nil then self:send_info ( line ) end
+--    until line == nil
     self.iperf_client_procs [ addr ].stdin:close ()
     self.iperf_client_procs [ addr ].stdout:close ()
     self.iperf_client_procs [ addr ] = nil
@@ -797,10 +799,10 @@ function Node:stop_iperf_server ()
     if ( self:kill ( self.iperf_server_proc.pid ) ) then
         exit_code = lpc.wait ( self.iperf_server_proc.pid )
     end
-    repeat
-        local line = self.iperf_server_proc.stdout:read ("*l")
-        if line ~= nil then self:send_info ( line ) end
-    until line == nil
+--    repeat
+--        local line = self.iperf_server_proc.stdout:read ("*l")
+--        if line ~= nil then self:send_info ( line ) end
+--    until line == nil
     self.iperf_server_proc.stdin:close ()
     self.iperf_server_proc.stdout:close ()
     self.iperf_server_proc = nil

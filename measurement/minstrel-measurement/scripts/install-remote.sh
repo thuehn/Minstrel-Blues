@@ -17,7 +17,7 @@ else
             scp bin/runControl.lua root@${HOST}:/usr/bin/runControl
             scp bin/runLogger.lua root@${HOST}:/usr/bin/runLogger
             scp bin/kill_remote.lua root@${HOST}:/usr/bin/kill_remote
-            scp -r parsers/*.lua root@${HOST}:/usr/lib/lua
+            scp -r parsers/*.lua root@${HOST}:/usr/lib/lua/parsers
             scp -r *.lua root@${HOST}:/usr/lib/lua
        fi
     done

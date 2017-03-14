@@ -46,7 +46,7 @@ end
 -- i.e. 1-0-1 splits into: rate=1 and power=0, runs=1
 -- note: obviously these are real indices, siince encoding of negative values are not possible with
 -- this type of keys
-function TcpExperiment:keys ( ap_ref )
+function Experiment:keys ( ap_ref )
 end
 
 function Experiment:prepare_measurement ( ap_ref )
@@ -106,8 +106,8 @@ function Experiment:wait_experiment ( ap_ref )
     self.control:send_debug("wait_experiment not implemented")
 end
 
-function TcpExperiment:start_experiment ( ap_ref, key )
+function Experiment:start_experiment ( ap_ref, key )
 end
 
-function TcpExperiment:wait_experiment ( ap_ref )
+function Experiment:wait_experiment ( ap_ref )
 end

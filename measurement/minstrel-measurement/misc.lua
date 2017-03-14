@@ -16,8 +16,8 @@ function table_tostring ( tbl, max_line_size )
     lines [ count ] = ""
     for i, elem in ipairs ( tbl ) do
         local elem_str = tostring ( elem )
-        if ( i ~= 1 ) then lines [ count ] = lines [ count ].. ", " end
-        if ( max_line_size ~= nil and ( string.len ( lines [ count ] ) + string.len ( elem_str ) >= max_line_size ) ) then
+        if ( i ~= 1 ) then lines [ count ] = lines [ count ] .. ", " end
+        if ( max_line_size ~= nil and ( ( string.len ( lines [ count ] ) + string.len ( elem_str ) ) >= max_line_size ) ) then
             count = count + 1
             lines [ count ] = ""
         end
