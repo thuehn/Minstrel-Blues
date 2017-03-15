@@ -10,9 +10,7 @@ print (pcap._LIB_VERSION)
 
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
-local fname = "/home/denis/data25x30/lede-sta/lede-sta-0-11-1.pcap"
---local fname = "/home/denis/data25x30/lede-sta/lede-sta-120-11-1.pcap"
---local fname = "tests/test.pcap"
+local fname = "tests/test.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
 	cap:set_filter ("type mgt subtype beacon", nooptimize)
@@ -24,11 +22,20 @@ if (cap ~= nil) then
         local radiotap_data
         radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
         radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
-		local ssid = radiotap_data['ssid']
+		local ssid = radiotap_data [ 'ssid' ]
 		--print ( "ssid: '" .. ssid .. "'" )
 		--print ( ssid == "LEDE" )
-		if ( true or ssid == "LEDE" ) then
-            print ("LEDE")
+        local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
+        local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
+--        if ( true ) then
+--	    if ( ssid == "LEDE" ) then
+	    if ( ssid == "LEDE"
+             and ( da == "f4:f2:6d:22:7c:f0" or sa == "f4:f2:6d:22:7c:f0"
+                    or da == "a0:f3:c1:64:81:7b" or sa == "a0:f3:c1:64:81:7b" ) ) then
+
+            print ( "ssid: " .. ( ssid or "unset" ) )
+            print ( "sa: " .. sa )
+            print ( "da: " .. da )
             --print ( PCAP.to_bytes_hex ( capdata ) )
 			print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
 			--print ( "flags: " .. ( radiotap_header ['flags'] or "not present" ) )

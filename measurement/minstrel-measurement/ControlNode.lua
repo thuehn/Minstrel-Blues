@@ -415,6 +415,7 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
         self:send_info ( exp_header )
         self:send_info ( hrule )
 
+        --[[
         for _, ap_ref in ipairs ( ap_refs ) do
             local free_m = ap_ref:get_free_mem ()
             if ( check_mem ( free_m, ap_ref.name ) == false ) then
@@ -427,6 +428,7 @@ function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
                 end
             end
         end
+        --]]
 
         self:send_info ("*** Settle measurement ***")
 

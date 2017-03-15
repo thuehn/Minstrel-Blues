@@ -621,6 +621,8 @@ end
 -- -U packet-buffered output instead of line buffered (-l)
 -- tcpdump -l -w - | tee -a file
 -- tcpdump -i mon0 -s 150 -U
+--  -B capture buffer size
+--  -s snapshot length ( default 262144)
 function Node:start_tcpdump ( phy, fname )
     if ( self.tcpdump_proc ~= nil ) then
         self:send_error (" Tcpdump not started. Already running.")
@@ -628,8 +630,12 @@ function Node:start_tcpdump ( phy, fname )
     end
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
+    --local snaplen = 0 -- 262144
+    --local snaplen = 150
+    local snaplen = 256
     self:send_info ( "start tcpdump for " .. mon .. " writing to " .. fname )
-    local pid, stdin, stdout = misc.spawn ( tcpdump_bin, "-i", mon, "-s", 150, "-U", "-w", fname )
+    self:send_debug ( tcpdump_bin .. " -i " .. mon .. " -s " .. snaplen .. " -U -w " .. fname )
+    local pid, stdin, stdout = misc.spawn ( tcpdump_bin, "-i", mon, "-s", snaplen, "-U", "-w", fname )
     self.tcpdump_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
@@ -755,6 +761,8 @@ function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait
     self:send_info ( "run UDP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with ttl and duration " .. ttl .. ", " .. duration )
+    self:send_debug ( iperf_bin .. " -u " .. " -c " .. multicast_addr  .. " -p " .. self.iperf_port
+                                .. " -T " .. ttl .. " -t " .. duration .. " -b " .. bitrate .. " -B " .. addr )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port,
                                          "-T", ttl, "-t", duration, "-b", bitrate, "-B", addr )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }

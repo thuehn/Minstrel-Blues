@@ -173,18 +173,42 @@ PCAP.parse_radiotap_data = function ( capdata )
     local ret = {}
     local rest = capdata
 
-    -- skip first 16 bytes
-    for i = 1, 16 do
-        _, rest = PCAP.read_int8 ( rest )
-    end
+    local frame_control_field, rest = PCAP.read_int16 ( rest )
+    --         00
+    -- bit 1,2 version (0)
+    --       00
+    -- type: management frame (0)
+    --   0001
+    -- subtype (8)
+    -- 8 bit flags
+    local duration, rest = PCAP.read_int16 ( rest )
 
-    local bssid = PCAP.read_mac ( rest )
+    -- skip first 10 bytes
+    --for i = 1, 6 do
+    --    _, rest = PCAP.read_int8 ( rest )
+    --end
+
+    -- receiver / destination address
+    local da, rest = PCAP.read_mac ( rest )
+    --print ( PCAP.mac_tostring ( da ) )
+    ret [ 'da' ] = da
+
+    -- transmitter / source address
+    local sa, rest = PCAP.read_mac ( rest )
+    --print ( PCAP.mac_tostring ( sa ) )
+    ret [ 'sa' ] = sa
+
+    local bssid, rest = PCAP.read_mac ( rest )
+    --print ( PCAP.mac_tostring ( bssid ) )
     ret [ 'bssid' ] = bssid
 
-    -- skip next 21 bytes
-    for i = 1, 21 do
+    --print ( PCAP.to_bytes_hex ( rest ) )
+
+    -- skip next 15 bytes
+    for i = 1, 15 do
         _, rest = PCAP.read_int8 ( rest )
     end
+    --print ( PCAP.to_bytes_hex ( rest ) )
 
     -- ssid (not \0 terminated )
     local ssid_len
@@ -193,7 +217,7 @@ PCAP.parse_radiotap_data = function ( capdata )
 
     local ssid
     ssid, rest = PCAP.read_str ( rest, ssid_len )
-    ret['ssid'] = ssid
+    ret [ 'ssid' ] = ssid
     -- ...
 
     -- FCS
@@ -215,6 +239,8 @@ PCAP.parse_radiotap_header = function ( capdata )
     local ret = {}
     local rest = capdata
 
+    --print ( PCAP.to_bytes_hex ( rest ) )
+
     ret ['it_ver'], rest = PCAP.read_int8 ( rest )
     _, rest = PCAP.read_int8 ( rest ) -- 1 byte padding
     ret ['it_len'], rest = PCAP.read_int16 ( rest )
@@ -235,7 +261,7 @@ PCAP.parse_radiotap_header = function ( capdata )
         until ( cont == false )
     end
 
-    --print ( PCAP.to_bytes ( rest ) )
+    -- print ( PCAP.to_bytes_hex ( rest ) )
     --print ( )
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_TSFT' ] )  ) ) then
         --align 8
