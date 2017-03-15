@@ -716,6 +716,7 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
     self:send_info ( "run TCP iperf at port " .. self.iperf_port 
                                 .. " to addr " .. addr 
                                 .. " with tcpdata " .. ( tcpdata or "none" ) )
+    self:send_debug ( iperf_bin .. " -c " .. addr .. " -p " .. self.iperf_port .. " -n " .. tcpdata )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-c", addr, "-p", self.iperf_port, "-n", tcpdata )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
@@ -738,6 +739,8 @@ function Node:run_udp_iperf ( addr, size, rate, interval, wait )
                                 .. " to addr " .. addr 
                                 .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval )
     local bitspersec = size * 8 * rate
+    self:send_debug ( iperf_bin .. " -u " .. " -c " .. addr .. " -p " .. self.iperf_port
+                        .. " -l " .. size .. "B" .. " -b " .. bitspersec .. " -t " .. interval )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", self.iperf_port, 
                                          "-l", size .. "B", "-b", bitspersec, "-t", interval )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
@@ -753,6 +756,7 @@ end
 
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
 -- iperf -c 224.0.67.0 -u --ttl 1 -t 120 -b 100M -l 1500 -B 10.10.250.2
+-- iperf -u -c 224.0.67.0 -p 12000 -T 32 -t 10 -b 1MB -B 192.168.1.1
 function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait )
     if ( self.iperf_client_procs [ addr ] ~= nil ) then
         self:send_error (" Iperf client (mcast) not started for address " .. addr .. ". Already running.")

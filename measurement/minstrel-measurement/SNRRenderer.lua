@@ -1,4 +1,6 @@
 
+local misc = require ('misc')
+
 -- TODO: use lua rClient / rServe for passing data to R
 -- pprint = require ('pprint')
 
@@ -76,10 +78,13 @@ end
 -- x: rates
 -- y: powers
 function SNRRenderer:run ( basedir )
+
     local rates_fname = basedir .. "/rates.txt"
     local rate_indices_fname = basedir .. "/rate_indices.txt"
+    local txrate_indices_fname = basedir .. "/txrate_indices.txt"
     local powers_fname = basedir .. "/powers.txt"
     local power_indices_fname = basedir .. "/power_indices.txt"
+    local txpower_indices_fname = basedir .. "/txpower_indices.txt"
     local snrs_min_fname = basedir .. "/snrs-min.txt"
     local snrs_max_fname = basedir .. "/snrs-max.txt"
     local snrs_avg_fname = basedir .. "/snrs-avg.txt"
@@ -93,6 +98,27 @@ function SNRRenderer:run ( basedir )
         self:add_rate ( rate )
     end
 
+    local rate_indices_file = io.open ( rate_indices_fname, "w" )
+    if ( rate_indices_file ~= nil ) then
+        local txrate_indices_file = io.open ( txrate_indices_fname, "r" )
+        if ( txrate_indices_file ~= nil ) then
+            local content = txrate_indices_file:read ("*a")
+            local txrate_indices = split ( content, " " )
+            for i, rate in ipairs ( self.rates ) do
+                if ( i ~= 1 ) then rate_indices_file:write (" ") end
+                local index = misc.index_of ( tostring ( rate ), txrate_indices )
+                if ( index ~= nil ) then
+                    rate_indices_file:write ( index - 1 )
+                else
+                    rate_indices_file:write ( "nan" )
+                end
+            end
+            rate_indices_file:write("\n")
+            rate_indices_file:close()
+            txrate_indices_file:close()
+        end
+    end
+
     local rates_file = io.open ( rates_fname, "w" )
     if ( rates_file ~= nil ) then
         for i, rate in ipairs ( self.rates ) do
@@ -103,14 +129,25 @@ function SNRRenderer:run ( basedir )
         rates_file:close()
     end
 
-    local rate_indices_file = io.open ( rate_indices_fname, "w" )
-    if ( rate_indicess_file ~= nil ) then
-        for i, _ in ipairs ( self.rates ) do
-            if ( i ~= 1 ) then rate_indices_file:write (" ") end
-            rate_indices_file:write ( i - 1 )
+    local power_indices_file = io.open ( power_indices_fname, "w" )
+    if ( power_indices_file ~= nil ) then
+        local txpower_indices_file = io.open ( txpower_indices_fname, "r" )
+        if ( txpower_indices_file ~= nil ) then
+            local content = txpower_indices_file:read ("*a")
+            local txpower_indices = split ( content, " " )
+            for i, power in ipairs ( self.powers ) do
+                if ( i ~= 1 ) then power_indices_file:write (" ") end
+                local index = misc.index_of ( tostring ( power ), txpower_indices )
+                if ( index ~= nil ) then
+                    power_indices_file:write ( index - 1 )
+                else
+                    power_indices_file:write ( "nan" )
+                end
+            end
+            power_indices_file:write("\n")
+            power_indices_file:close()
+            txpower_indices_file:close()
         end
-        rate_indices_file:write("\n")
-        rate_indices_file:close()
     end
 
     local powers_file = io.open ( powers_fname, "w" )
@@ -123,18 +160,10 @@ function SNRRenderer:run ( basedir )
         powers_file:close()
     end
 
-    local power_indices_file = io.open ( power_indices_fname, "w" )
-    if ( power_indicess_file ~= nil ) then
-        for i, _ in ipairs ( self.powers ) do
-            if ( i ~= 1 ) then power_indices_file:write (" ") end
-            power_indices_file:write ( i - 1 )
-        end
-        power_indices_file:write("\n")
-        power_indices_file:close()
-    end
     local snr_mins = {}
     local snr_maxs = {}
     local snr_avgs = {}
+
     for _, power in ipairs ( self.powers ) do
         if ( snr_mins [ tostring ( power ) ] == nil ) then
             snr_mins [ tostring ( power ) ] = {}

@@ -35,12 +35,18 @@ function reachable ( ... ) return node:reachable ( ... ) end
 function start ( ... ) return node:start ( ... ) end
 function connect_nodes ( ... ) return node:connect_nodes ( ... ) end
 function disconnect_nodes ( ... ) return node:disconnect_nodes ( ... ) end
-function run_experiments ( ... ) return node:run_experiments ( ... ) end
+function init_experiment ( ... ) return node:init_experiment ( ... ) end
+function get_keys ( ... ) return node:get_keys ( ... ) end
+function get_stats ( ... ) return node:get_stats ( ... ) end
+function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function stop ( ... ) return node:stop ( ... ) end
 function set_date ( ... ) return node:set_date ( ... ) end
 function set_dates ( ... ) return node:set_dates ( ... ) end
 function get_pid ( ... ) return node:get_pid ( ... ) end
 function kill ( ... ) return node:kill ( ... ) end
+
+function get_txpowers ( ... ) return node:get_txpowers ( ... ) end
+function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
 function list_nodes ( ... ) return node:list_nodes ( ... ) end
 function list_aps ( ... ) return node:list_aps ( ... ) end
@@ -57,8 +63,6 @@ function set_ani ( ... ) return node:set_ani ( ... ) end
 function set_nameserver (...) return node:set_nameserver (...) end
 function set_nameservers (...) return node:set_nameservers (...) end
 function check_bridges (...) return node:check_bridges (...) end
-
-function get_stats ( ... ) return node:get_stats ( ... ) end
 
 -- make all functions available via RPC
 print ( node:__tostring() )

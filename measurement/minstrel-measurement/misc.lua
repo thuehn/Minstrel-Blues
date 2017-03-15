@@ -37,6 +37,34 @@ function table_tostring ( tbl, max_line_size )
     end
 end
 
+Misc.write_table = function ( table, fname )
+    if ( not isFile ( fname ) ) then
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            for i, j in ipairs ( table ) do
+                if ( i ~= 1 ) then file:write (" ") end
+                    file:write ( tostring ( j ) )
+                end
+                file:write("\n")
+                file:close()
+            end
+        end
+end
+
+Misc.index_of = function ( value, table )
+    for i, v in ipairs ( table ) do
+        if ( v == value ) then return i end
+    end
+    return nil
+end
+
+Misc.key_of = function ( value, table )
+    for k, v in pairs ( table ) do
+        if ( v == value ) then return k end
+    end
+    return nil
+end
+
 function copy_map ( from )
     to = {}
     for key, data in pairs ( from ) do
@@ -45,11 +73,17 @@ function copy_map ( from )
     return to
 end
 
+function merge_map ( from, to )
+    for key, data in pairs ( from ) do
+        to [ key ] = data
+    end
+end
+
 -- https://stackoverflow.com/questions/1426954/split-string-in-lua
 function split(s, delimiter)
     local result = {};
     for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-        table.insert(result, match);
+        table.insert(result, match)
     end
     return result;
 end

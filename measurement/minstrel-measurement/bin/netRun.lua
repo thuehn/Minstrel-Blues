@@ -315,7 +315,7 @@ if ( args.no_measurement == false ) then
         print ( "Set date/time to " .. cur_time )
     else
         print ( "Set date/time failed: " .. err )
-        print ( "Time is: " .. cur_time )
+        print ( "Time is: " .. ( cur_time or "unset" ) )
     end
 
     for _, ap_config in ipairs ( aps_config ) do
@@ -326,7 +326,7 @@ if ( args.no_measurement == false ) then
         ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], sta_config['rsa_key'] )
     end
 
-    ctrl_pid = ctrl_rpc.get_pid()
+    ctrl_pid = ctrl_rpc.get_pid ()
 
     print ( "Control node with IP: " .. ( ctrl_rpc.get_ctrl_addr () or "unset" ) )
     if ( ctrl_ref.ctrl.addr == nil ) then
@@ -514,14 +514,15 @@ if ( args.no_measurement == false ) then
         show_config_error ( parser, "command")
     end
 
-    local status, err = ctrl_rpc.run_experiments ( args.command, data, ap_names, args.enable_fixed )
+    ctrl_ref:init_experiments ( args.command, data, ap_names, args.enable_fixed )
+    local status, err = ctrl_ref:run_experiments ( args.command, data, ap_names, args.enable_fixed )
     if ( status == false ) then
         print ( "err: experiments failed: " .. ( err or "unknown error" ) )
     end
 
     if (status == true) then
 
-        local all_stats = ctrl_rpc.get_stats()
+        local all_stats = ctrl_ref.stats
         for name, stats in pairs ( all_stats ) do
 
             local measurement = Measurement:create ( name, nil, args.output )

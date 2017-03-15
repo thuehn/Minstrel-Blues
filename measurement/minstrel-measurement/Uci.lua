@@ -51,9 +51,11 @@ function set_resolvconf ( nameserver )
     -- overwrite resolv.conf
     if ( nameserver ~= nil ) then
         local file = io.open ( fname, "w" )
-        file:write ( "nameserver " .. nameserver )
-        file:flush()
-        file:close()
+        if ( file ~= nil ) then
+            file:write ( "nameserver " .. nameserver )
+            file:flush()
+            file:close()
+        end
     end
 end
 

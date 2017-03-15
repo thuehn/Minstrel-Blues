@@ -44,7 +44,6 @@ function McastExperiment:keys ( ap_ref )
     if ( self.is_fixed == true ) then
         self.control:send_debug ( "run multicast experiment for rates " .. table_tostring ( self.tx_rates ) )
         self.control:send_debug ( "run multicast experiment for powers " .. table_tostring ( self.tx_powers ) )
-        self.tx_powers = split ( self.tx_powers, "," )
     end
 
     for run = 1, self.runs do
@@ -77,25 +76,21 @@ function McastExperiment:start_experiment ( ap_ref, key )
     local wait = false
     local ap_wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
 
-    for i, sta_ref in ipairs ( ap_ref.refs ) do
-        -- start iperf client on AP
-        local addr = "224.0.67.0"
-        local ttl = 32
-        local size = "100M"
-        local wifi_addr = ap_ref:get_addr ( sta_ref.wifi_cur )
+    -- start iperf client on AP
+    local addr = "224.0.67.0"
+    local ttl = 1
+    local size = "1M"
+    local wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
 
-        self.control:send_debug ( "run multicast udp client with multicast addr " 
-                                    .. ( addr or "unset" )
-                                    .. " local addr " .. ( wifi_addr or "unset" ) )
+    self.control:send_debug ( "run multicast udp client with multicast addr " 
+                               .. ( addr or "unset" )
+                               .. " local addr " .. ( wifi_addr or "unset" ) )
 
-        ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait )
-    end
+    ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait )
 end
 
 function McastExperiment:wait_experiment ( ap_ref )
-    -- wait for clients on AP
-    for _, sta_ref in ipairs ( ap_ref.refs ) do
-        local addr = sta_ref:get_addr ( sta_ref.wifi_cur )
-        ap_ref.rpc.wait_iperf_c( addr )
-    end
+    -- wait for client on AP
+    local wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
+    ap_ref.rpc.wait_iperf_c ( wifi_addr )
 end

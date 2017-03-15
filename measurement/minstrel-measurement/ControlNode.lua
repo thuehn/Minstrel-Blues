@@ -35,8 +35,10 @@ function ControlNode:create ( name, ctrl, port, log_port, log_file, output_dir )
                                 , ap_refs = {}     -- list of access point nodes
                                 , sta_refs = {}    -- list of station nodes
                                 , node_refs = {}   -- list of all nodes
-                                , stats = {}   -- maps node name to statistics
                                 , pids = {}    -- maps node name to process id of lua node
+                                , exp = nil
+                                , stats = {}
+                                , keys = {}
                                 } )
 
     if ( o.ctrl.addr == nil ) then
@@ -198,10 +200,6 @@ function ControlNode:check_bridges ()
     return no_bridges
 end
 
-function ControlNode:get_stats()
-    return self.stats
-end
-
 function ControlNode:reachable ()
     function node_reachable ( ip )
         local ping, exit_code = misc.execute ( "ping", "-c1", ip)
@@ -308,218 +306,58 @@ function ControlNode:stop()
     stop_logger ( self.pids['logger'] )
 end
 
--- runs experiment 'exp' for all nodes 'ap_refs'
--- in parallel
--- see run_experiment in Experiment.lua for
--- a sequential variant
--- fixme: exp userdata over rpc not possible
-function ControlNode:run_experiments ( command, args, ap_names, is_fixed )
-
-    function check_mem ( mem, name )
-        -- local warn_threshold = 40960
-        local warn_threshold = 10240
-        local error_threshold = 8192
-        -- local error_threshold = 20280
-        if ( mem < error_threshold ) then
-            self:send_error ( name .. " is running out of memory. stop here" )
-            return false
-        elseif ( mem < warn_threshold ) then
-            self:send_warning ( name .. " has low memory." )
-        end
-        return true
-    end
-
-    function find_rate ( rate_name, rate_names, rate_indices )
-        rate_name = string.gsub ( rate_name, " ", "" )
-        rate_name = string.gsub ( rate_name, "MBit/s", "M" )
-        rate_name = string.gsub ( rate_name, "1M", "1.0M" )
-        --print ( "'" .. rate_name .. "'" )
-        for i, name in ipairs ( rate_names ) do
-            if ( name == rate_name ) then return rate_indices [ i ] end
-        end
-        self:send_warning ( "rate name doesn't match: '" .. rate_name .. "'" )
-        return nil
-    end
-
-    self:send_info ("")
-
-    local exp
+function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
     if ( command == "tcp") then
-        exp = TcpExperiment:create ( self, args, is_fixed )
+        self.exp = TcpExperiment:create ( self, args, is_fixed )
     elseif ( command == "mcast") then
-        exp = McastExperiment:create ( self, args, is_fixed )
+        self.exp = McastExperiment:create ( self, args, is_fixed )
     elseif ( command == "udp") then
-        exp = UdpExperiment:create ( self, args, is_fixed )
+        self.exp = UdpExperiment:create ( self, args, is_fixed )
     else
         return false
     end
 
-    local ret = true
-    local ap_refs = {}
+    self.ap_refs = {}
     for _, name in ipairs ( ap_names ) do
         local ap_ref = self:find_node_ref ( name )
-        ap_refs [ #ap_refs + 1 ] = ap_ref
-    end
-
-    self:send_info ("*** Prepare measurement ***")
-    for _, ap_ref in ipairs ( ap_refs ) do
-        exp:prepare_measurement ( ap_ref )
+        self.ap_refs [ #self.ap_refs + 1 ] = ap_ref
     end
 
     self:send_info ("*** Generate measurement keys ***")
-    local keys = {}
-    for i, ap_ref in ipairs ( ap_refs ) do
-        keys[i] = exp:keys ( ap_ref )
+    self.keys = {}
+    for i, ap_ref in ipairs ( self.ap_refs ) do
+        self.keys[i] = self.exp:keys ( ap_ref )
     end
+end
 
-    -- choose smallest set of keys
-    -- fixme: still differs over all APs maybe
-    -- better each ap should run its own set of keys
-    local min_len = # ( keys [ 1 ] )
-    local key_index = 1
-    for i, key_list in ipairs ( keys ) do
-        if ( #key_list < min_len ) then
-            min_len = #key_list
-            key_index = i
+function ControlNode:get_txpowers ()
+    local powers = {}
+    for i, ap_ref in ipairs ( self.ap_refs ) do
+        powers [ ap_ref.name ] = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] ) 
+        for _, sta_ref in ipairs ( ap_ref.refs ) do
+            powers [ sta_ref.name ] = powers [ ap_ref.name ]
         end
     end
+    return powers
+end
 
-    local stop = false
-    local counter = 1
-
-    -- randomize keys
-    -- TODO: randomize ap and station order
-    -- TODO: save ordering
-    local keys_random = {}
-    math.randomseed ( os.time() )
-    local set = {}
-    while table_size ( keys_random ) < table_size ( keys [ key_index ] ) do
-
-        local nxt = math.random (1, table_size ( keys [ key_index ] ) )
-        if ( set [ nxt ] ~= true ) then
-            set [ nxt ] = true
-            keys_random [ #keys_random + 1 ] = keys [ key_index ] [ nxt ]
+function ControlNode:get_txrates ()
+    local rates = {}
+    for i, ap_ref in ipairs ( self.ap_refs ) do
+        rates [ ap_ref.name ] = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] ) 
+        for _, sta_ref in ipairs ( ap_ref.refs ) do
+            rates [ sta_ref.name ] = rates [ ap_ref.name ]
         end
-
     end
+    return rates
+end
 
-    -- run expriments
-    self:send_info ( "Run " .. min_len .. " experiments." )
-    for _, key in ipairs ( keys_random ) do 
+function ControlNode:get_keys ()
+    return self.keys
+end
 
-        local exp_header = "* Start experiment " .. counter .. " of " .. min_len
-                            .. " with key " .. ( key or "none" ) .. " *"
-        local hrule = ""
-        for i=1, string.len ( exp_header ) do hrule = hrule .. "*" end
-        self:send_info ( hrule )
-        self:send_info ( exp_header )
-        self:send_info ( hrule )
-
-        --[[
-        for _, ap_ref in ipairs ( ap_refs ) do
-            local free_m = ap_ref:get_free_mem ()
-            if ( check_mem ( free_m, ap_ref.name ) == false ) then
-                return ret
-            end
-            for _, sta_ref in ipairs ( ap_ref.refs ) do
-                local free_m = sta_ref:get_free_mem ()
-                if ( check_mem ( free_m, sta_ref.name ) == false ) then
-                    return ret
-                end
-            end
-        end
-        --]]
-
-        self:send_info ("*** Settle measurement ***")
-
-        for _, ap_ref in ipairs ( ap_refs ) do
-            -- self:send_debug ( ap_ref:__tostring() )
-            -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
-            --     self:send_debug ( "station: " .. station )
-            -- end
-            if ( exp:settle_measurement ( ap_ref, key, 10 ) == false ) then
-                self:send_error ( "experiment aborted, settledment failed. please check the wifi connnections." )
-                return ret
-            end
-            -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
-            --     self:send_debug ( "station: " .. station )
-            -- end
-
-            local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            local msg = "rate names: "
-            self:send_debug( msg .. table_tostring ( rate_names, 80 - string.len ( msg ) ) )
-            local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            local msg = "rate indices: "
-            self:send_debug( msg .. table_tostring ( rates, 80  - string.len ( msg ) ) )
-            local powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
-            local msg = "power indices: "
-            self:send_debug( msg .. table_tostring ( powers, 80  - string.len ( msg ) ) )
-
-            for i, sta_ref in ipairs ( ap_ref.refs ) do
-
-                local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
-                if ( rate_name ~= nil ) then
-                    local rate_idx = find_rate ( rate_name, rate_names, rates )
-                    self:send_debug ( " rate_idx: " .. ( rate_idx or "unset" ) )
-                end
-
-                local signal = sta_ref.rpc.get_linked_signal ( sta_ref.wifi_cur )
-            end
-
-        end
-
-        self:send_info ( "Waiting one extra second for initialised debugfs" )
-        posix.sleep (1)
-
-        self:send_info ("*** Start Measurement ***" )
-
-        -- -------------------------------------------------------
-        for _, ap_ref in ipairs ( ap_refs ) do
-             exp:start_measurement (ap_ref, key )
-        end
-
-        -- -------------------------------------------------------
-        -- Experiment
-        -- -------------------------------------------------------
-
-        self:send_info ("*** Start Experiment ***" )
-        for _, ap_ref in ipairs ( ap_refs ) do
-             exp:start_experiment ( ap_ref, key )
-        end
-    
-        self:send_info ("*** Wait Experiment ***" )
-        for _, ap_ref in ipairs ( ap_refs ) do
-            exp:wait_experiment ( ap_ref, 5 )
-        end
-
-        -- -------------------------------------------------------
-
-        self:send_info ("*** Stop Measurement ***" )
-        for _, ap_ref in ipairs ( ap_refs ) do
-            exp:stop_measurement (ap_ref, key )
-        end
-
-        self:send_info ("*** Fetch Measurement ***" )
-        for _, ap_ref in ipairs ( ap_refs ) do
-            exp:fetch_measurement (ap_ref, key )
-        end
-
-        self:send_info ("*** Unsettle measurement ***" )
-        for _, ap_ref in ipairs ( ap_refs ) do
-            exp:unsettle_measurement ( ap_ref, key )
-        end
-
-        counter = counter + 1
-    end
-
-    self:send_info ( "*** Copy stats from nodes. ***" )
-    for _, ap_ref in ipairs ( ap_refs ) do
-        self:copy_stats ( ap_ref )
-    end
-
-    self:send_info ("*** Transfer Measurement Result")
-    return ret
-
+function ControlNode:get_stats ()
+    return self.stats
 end
 
 function ControlNode:copy_stats ( ap_ref )
@@ -538,6 +376,125 @@ function ControlNode:copy_stats ( ap_ref )
         self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
     end
 
+end
+
+-- runs experiment 'exp' for all nodes 'ap_refs'
+-- in parallel
+function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, number, count )
+
+    function find_rate ( rate_name, rate_names, rate_indices )
+        rate_name = string.gsub ( rate_name, " ", "" )
+        rate_name = string.gsub ( rate_name, "MBit/s", "M" )
+        rate_name = string.gsub ( rate_name, "1M", "1.0M" )
+        --print ( "'" .. rate_name .. "'" )
+        for i, name in ipairs ( rate_names ) do
+            if ( name == rate_name ) then return rate_indices [ i ] end
+        end
+        print ( "rate name doesn't match: '" .. rate_name .. "'" )
+        return nil
+    end
+
+
+    local exp_header = "* Start experiment " .. number .. " of " .. count
+                            .. " with key " .. ( key or "none" ) .. " *"
+    local hrule = ""
+    for i=1, string.len ( exp_header ) do hrule = hrule .. "*" end
+    self:send_info ( hrule )
+    self:send_info ( exp_header )
+    self:send_info ( hrule )
+
+    self:send_info ("*** Prepare measurement ***")
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        self.exp:prepare_measurement ( ap_ref )
+    end
+
+    self:send_info ("*** Settle measurement ***")
+
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        -- self:send_debug ( ap_ref:__tostring() )
+        -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
+        --     self:send_debug ( "station: " .. station )
+        -- end
+        if ( self.exp:settle_measurement ( ap_ref, key, 10 ) == false ) then
+            self:send_error ( "experiment aborted, settledment failed. please check the wifi connnections." )
+            return false
+        end
+        -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
+        --     self:send_debug ( "station: " .. station )
+        -- end
+
+        local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations[1] )
+        local msg = "rate names: "
+        self:send_debug( msg .. table_tostring ( rate_names, 80 - string.len ( msg ) ) )
+
+        local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
+        local msg = "rate indices: "
+        self:send_debug( msg .. table_tostring ( rates, 80  - string.len ( msg ) ) )
+
+        local powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
+        local msg = "power indices: "
+        self:send_debug( msg .. table_tostring ( powers, 80  - string.len ( msg ) ) )
+
+        for i, sta_ref in ipairs ( ap_ref.refs ) do
+
+            local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
+            if ( rate_name ~= nil ) then
+                local rate_idx = find_rate ( rate_name, rate_names, rates )
+                self:send_debug ( " rate_idx: " .. ( rate_idx or "unset" ) )
+            end
+
+            local signal = sta_ref.rpc.get_linked_signal ( sta_ref.wifi_cur )
+        end
+
+    end
+
+    self:send_info ( "Waiting one extra second for initialised debugfs" )
+    posix.sleep (1)
+
+    self:send_info ("*** Start Measurement ***" )
+
+    -- -------------------------------------------------------
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+         self.exp:start_measurement (ap_ref, key )
+    end
+
+    -- -------------------------------------------------------
+    -- Experiment
+    -- -------------------------------------------------------
+
+    self:send_info ("*** Start Experiment ***" )
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+         self.exp:start_experiment ( ap_ref, key )
+    end
+    
+    self:send_info ("*** Wait Experiment ***" )
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        self.exp:wait_experiment ( ap_ref, 5 )
+    end
+
+    -- -------------------------------------------------------
+
+    self:send_info ("*** Stop Measurement ***" )
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        self.exp:stop_measurement (ap_ref, key )
+    end
+
+    self:send_info ("*** Fetch Measurement ***" )
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        self.exp:fetch_measurement (ap_ref, key )
+    end
+
+    self:send_info ("*** Unsettle measurement ***" )
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        self.exp:unsettle_measurement ( ap_ref, key )
+    end
+
+    self:send_info ( "*** Copy stats from nodes. ***" )
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        self:copy_stats ( ap_ref )
+    end
+
+    return true
 end
 
 -- -------------------------
