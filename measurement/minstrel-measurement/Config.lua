@@ -118,7 +118,7 @@ Config.select_config = function ( all_configs, name )
 
     if ( node == nil ) then return nil end
     if ( node.name ~= name ) then
-        print ( "Error: no configuration for node with name '" .. name .. "' found")
+        print ( "Error: select_config: no configuration for node with name '" .. name .. "' found")
         return nil
     end
     return node
@@ -130,7 +130,7 @@ Config.select_configs = function ( all_configs, names )
         for _, name in ipairs ( names ) do
             local node = Config.find_node ( name, all_configs )
             if ( node == nil ) then
-                print ( "Error: no configuration for node with name '" .. name .. "' found")
+                print ( "Error: select configs: no configuration for node with name '" .. name .. "' found")
                 return {}
             end
             configs [ #configs + 1 ] = node 

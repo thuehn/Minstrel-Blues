@@ -91,6 +91,7 @@ parser:option ("--tx_rates", "TX rate indices")
 parser:option ("--tx_powers", "TX power indices")
 
 parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes", false )
+parser:flag ("--disable_synchronize", "Don't synchronize time in network", false )
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 
 parser:flag ("--run_check", "No rpc connections, no meaurements", false )
@@ -151,6 +152,19 @@ if ( has_config ) then
 
     -- overwrite config file setting with command line settings
 
+    if ( args.con ~= nil and args.con ~= {} ) then
+        connections = {}
+    end
+
+    for _, con in ipairs ( args.con ) do
+        local ap, stas, err = parse_argparse_con ( con )
+        if ( err == nil ) then
+            connections [ ap ] = stas
+        else
+            print ( err )
+        end
+    end
+
     Config.set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
     Config.set_config_from_arg ( log, 'ctrl_if', args.log_if )
     
@@ -185,19 +199,20 @@ else
     sta_setups = Config.create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
     Config.copy_config_nodes ( ap_setups, nodes )
     Config.copy_config_nodes ( sta_setups, nodes )
-end
 
-if ( args.con ~= nil and args.con ~= {} ) then
-   connections = {}
-end
-
-for _, con in ipairs ( args.con ) do
-    local ap, stas, err = parse_argparse_con ( con )
-    if ( err == nil ) then
-        connections [ ap ] = stas
-    else
-        print ( err )
+    if ( args.con ~= nil and args.con ~= {} ) then
+        connections = {}
     end
+
+    for _, con in ipairs ( args.con ) do
+        local ap, stas, err = parse_argparse_con ( con )
+        if ( err == nil ) then
+            connections [ ap ] = stas
+        else
+            print ( err )
+        end
+    end
+
 end
 
 if ( args.no_measurement == false and table_size ( connections ) == 0 ) then
@@ -237,12 +252,15 @@ print ( "Control: " .. Config.cnode_to_string ( ctrl_config ) )
 print ( )
 print ( "Access Points:" )
 print ( "--------------" )
+
 for _, ap in ipairs ( aps_config ) do
     print ( Config.cnode_to_string ( ap ) )
 end
+
 print ( )
 print ( "Stations:" )
 print ( "---------" )
+
 for _, sta_config in ipairs ( stas_config ) do
     print ( Config.cnode_to_string ( sta_config ) )
 end
@@ -308,14 +326,16 @@ if ( args.no_measurement == false ) then
     print ()
 
     --synchronize time
-    local err
-    local time = os.date("*t", os.time() )
-    local cur_time, err = ctrl_rpc.set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
-    if ( err == nil ) then
-        print ( "Set date/time to " .. cur_time )
-    else
-        print ( "Set date/time failed: " .. err )
-        print ( "Time is: " .. ( cur_time or "unset" ) )
+    if ( args.disable_synchronize == false ) then
+        local err
+        local time = os.date("*t", os.time() )
+        local cur_time, err = ctrl_rpc.set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+        if ( err == nil ) then
+            print ( "Set date/time to " .. cur_time )
+        else
+            print ( "Set date/time failed: " .. err )
+            print ( "Time is: " .. ( cur_time or "unset" ) )
+        end
     end
 
     for _, ap_config in ipairs ( aps_config ) do
@@ -404,7 +424,9 @@ if ( args.no_measurement == false ) then
     end
 
     -- synchonize time
-    ctrl_rpc.set_dates ()
+    if ( args.disable_synchronize == false ) then
+        ctrl_rpc.set_dates ()
+    end
 
     -- set nameserver on all nodes
     ctrl_rpc.set_nameservers ( args.nameserver or nameserver )

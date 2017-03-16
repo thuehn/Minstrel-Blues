@@ -7,7 +7,7 @@
 - no bridge eth0
 - firewall all accept
 - dhcp eth0
-- disbale only dhcp
+- disable only dhcp
 - enable wifi
 - set ssid / passphrase
 - add host keys

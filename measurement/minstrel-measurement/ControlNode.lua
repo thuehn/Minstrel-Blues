@@ -162,9 +162,12 @@ function ControlNode:get_ssid ( name )
     self:send_info ( "get ssid " .. (name or "none" ) )
     local node_ref = self:find_node_ref ( name )
     if ( node_ref ~= nil ) then
-        self:send_info ( "get ssid node_ref " .. ( node_ref.name or "none" ) )
+        self:send_info ( "get ssid from node_ref " .. ( node_ref.name or "none" ) )
+        return node_ref.rpc.get_ssid ( node_ref.wifi_cur )
+    else
+        self:send_error ( "get ssid from node_ref " .. ( node_ref.name or "none" ) .. "failed. Not found" )
     end
-    return node_ref.rpc.get_ssid ( node_ref.wifi_cur )
+    return nil
 end
 
 function ControlNode:add_station ( ap, sta )

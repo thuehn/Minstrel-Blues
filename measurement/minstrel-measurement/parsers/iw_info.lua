@@ -87,7 +87,9 @@ function parse_iwinfo ( iwinfo )
 
     state, rest = parse_str ( rest, "ssid " )
     if ( state == true ) then
-        ssid, rest = parse_ide ( rest )
+        local add_chars = {}
+        add_chars[1] = '-'
+        ssid, rest = parse_ide ( rest, add_chars )
         rest = skip_layout( rest )
     end
 

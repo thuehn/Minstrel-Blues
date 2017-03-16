@@ -100,7 +100,9 @@ function parse_iwlink ( iwlink )
     rest = skip_layout( rest )
 
     state, rest = parse_str ( rest, "SSID: " )
-    ssid, rest = parse_ide ( rest )
+    local add_chars = {}
+    add_chars[1] = '-'
+    ssid, rest = parse_ide ( rest, add_chars )
     rest = skip_layout( rest )
 
     state, rest = parse_str ( rest, "freq: " )

@@ -5,14 +5,14 @@ require ('misc')
 local iwinfo0 = parse_iwinfo ( "" )
 assert ( iwinfo0.iface == nil )
 
-local iwinfo1_str = "Interface wlan0\n	ifindex 9\n	wdev 0x2\n	addr f4:f2:6d:22:7c:f0\n	ssid LEDE\n	type AP\n	wiphy 0\n	channel 11 (2462 MHz), width: 20 MHz, center1: 2462 MHz\n	txpower 25.00 dBm\n"
+local iwinfo1_str = "Interface wlan0\n	ifindex 9\n	wdev 0x2\n	addr f4:f2:6d:22:7c:f0\n	ssid LEDE-ctrl\n	type AP\n	wiphy 0\n	channel 11 (2462 MHz), width: 20 MHz, center1: 2462 MHz\n	txpower 25.00 dBm\n"
 local iwinfo1 = parse_iwinfo ( iwinfo1_str )
 
 assert ( iwinfo1.iface == "wlan0" )
 assert ( iwinfo1.ifindex == 9 )
 assert ( iwinfo1.wdev == "0x2" )
 assert ( iwinfo1.mac == "f4:f2:6d:22:7c:f0" )
-assert ( iwinfo1.ssid == "LEDE" )
+assert ( iwinfo1.ssid == "LEDE-ctrl" )
 assert ( iwinfo1.mode == "AP" )
 assert ( iwinfo1.phy == 0 )
 assert ( iwinfo1.channel == 11 )
