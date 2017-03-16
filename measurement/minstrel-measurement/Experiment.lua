@@ -105,9 +105,3 @@ end
 function Experiment:wait_experiment ( ap_ref )
     self.control:send_debug("wait_experiment not implemented")
 end
-
-function Experiment:start_experiment ( ap_ref, key )
-end
-
-function Experiment:wait_experiment ( ap_ref )
-end

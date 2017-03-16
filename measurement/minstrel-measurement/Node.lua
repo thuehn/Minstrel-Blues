@@ -144,7 +144,7 @@ function Node:get_ssid ( phy )
 end
 
 function Node:restart_wifi()
-    local wifi, err = misc.execute ( "wifi" )
+    local wifi, err = misc.execute ( "/sbin/wifi" )
     self:send_info( "restart wifi: " .. wifi )
     return true
 end
@@ -193,9 +193,11 @@ function Node:list_stations ( phy )
     local iface = dev.iface
     local stations = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
     local out = {}
-    for _, name in ipairs ( scandir ( stations ) ) do
-        if ( name ~= "." and name ~= "..") then
-            out [ #out + 1 ] = name
+    if ( isDir ( stations ) ) then
+        for _, name in ipairs ( scandir ( stations ) ) do
+            if ( name ~= "." and name ~= "..") then
+                out [ #out + 1 ] = name
+            end
         end
     end
     return out
@@ -387,10 +389,7 @@ function Node:tx_power_indices ( phy, station )
     return tx_powers
 end
 
-function Node:write_value_to_sta_debugfs ( phy, station, file, value )
-    local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/" .. file
+function Node:write_value_to_sta_debugfs ( fname, value )
     if ( not isFile ( fname ) ) then
         self:send_error ( "file doesn't exists: " .. fname )
     end
@@ -404,10 +403,7 @@ function Node:write_value_to_sta_debugfs ( phy, station, file, value )
     return false
 end
 
-function Node:read_value_from_sta_debugfs ( phy, station, file )
-    local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/" .. file
+function Node:read_value_from_sta_debugfs ( fname )
     if ( not isFile ( fname ) ) then
         self:send_error ( "file doesn't exists: " .. fname )
     end
@@ -424,15 +420,21 @@ end
 -- set the power level by index (i.e. 25 is the index of the highest power level, sometimes 50)
 -- usally two different power levels differs by a multiple of 1mW (25 levels) or 0.5mW (50 power levels)
 function Node:set_tx_power ( phy, station, tx_power )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
     self:send_info ( "Set tx power level for station " .. station .. " at device " .. phy .. " to " .. tx_power )
-    if ( self:write_value_to_sta_debugfs ( phy, station, "fixed_txpower", tx_power ) == false ) then
+    if ( self:write_value_to_sta_debugfs ( fname, tx_power ) == false ) then
         self:send_error ( "Set tx power level for station " .. station .. " at device " .. phy .. " failed. Unsupported" )
     end
 end
 
 function Node:get_tx_power ( phy, station )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
     self:send_info ( "Get tx power level for station " .. station .. " from device " .. phy )
-    local level = self:read_value_from_sta_debugfs ( phy, station, "fixed_txpower" )
+    local level = self:read_value_from_sta_debugfs ( fname )
     if ( level ~= nil ) then
         self:send_info(" tx power level for station " .. station .. " at device " .. phy .. " is " .. level)
     else
@@ -441,18 +443,48 @@ function Node:get_tx_power ( phy, station )
     return level
 end
 
+-- /etc/config/wireless: add  option txpower '20' to config wifi-device 'radio{0,1}' section
+-- needs "/sbin/wifi;" call after
+function Node:set_global_tx_power ( phy, tx_power )
+    local var = "wireless.radio"
+    var = var .. string.sub ( phy, 4, string.len ( phy ) )
+    var = var .. ".txpower"
+    local _, exit_code = uci.set_var ( var, tx_power )
+end
+
+-- /etc/config/wireless: add  option txpower '20' to config wifi-device 'radio{0,1}' section
+function Node:get_global_tx_power ( phy )
+    local var = "wireless.radio"
+    var = var .. string.sub ( phy, 4, string.len ( phy ) )
+    var = var .. ".txpower"
+    local value = uci.get_var ( var )
+    if ( value ~= nil ) then
+        self:send_info(" global tx power level at device " .. phy .. " is " .. value, type ( value ) )
+        return tonumber ( value )
+    else
+        self:send_error ( "Get global tx power level from device " .. phy .. " failed. Unsupported" )
+        return nil
+    end
+end
+
 function Node:set_tx_rate ( phy, station, tx_rate_idx )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txrate"
     self:send_info ( "Set tx rate index for station " .. ( station or "none" )
-                                                      .. " at device " .. ( phy or "none" ) 
+                                                      .. " at device " .. ( phy or "none" )
                                                       .. " to " .. ( tx_rate_idx or "none" ) )
-    if ( self:write_value_to_sta_debugfs ( phy, station, "fixed_txrate", tx_rate_idx ) == false ) then
+    if ( self:write_value_to_sta_debugfs ( fname, tx_rate_idx ) == false ) then
         self:send_error ( "Set tx rate level for station " .. station .. " at device " .. phy .. " failed. Unsupported" )
     end
 end
 
 function Node:get_tx_rate ( phy, station )
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txrate"
     self:send_info ( "Get tx rate index for station " .. station .. " from device " .. phy )
-    local rate = self:read_value_from_sta_debugfs ( phy, station, "fixed_txrate" )
+    local rate = self:read_value_from_sta_debugfs ( fname )
     if ( rate ~= nil ) then
         self:send_info(" tx rate index for station " .. station .. " at device " .. phy .. " is " .. rate)
     else
@@ -461,6 +493,28 @@ function Node:get_tx_rate ( phy, station )
     return rate
 end
 
+-- /sys/kernel/debug/ieee80211/phy0/rc/fixed_rate_idx
+function Node:set_global_tx_rate ( phy, tx_rate_idx )
+    local fname = debugfs .. "/" .. phy .."/rc/fixed_rate_idx"
+    self:send_info ( "Set global tx rate index at device " .. ( phy or "none" )
+                                                      .. " to " .. ( tx_rate_idx or "none" ) )
+    if ( self:write_value_to_sta_debugfs ( fname, tx_rate_idx ) == false ) then
+        self:send_error ( "Set global tx rate level at device " .. phy .. " failed. Unsupported" )
+    end
+end
+
+-- /sys/kernel/debug/ieee80211/phy0/rc/fixed_rate_idx
+function Node:get_global_tx_rate ( phy )
+    local fname = debugfs .. "/" .. phy .."/rc/fixed_rate_idx"
+    self:send_info ( "Get global tx rate index from device " .. phy )
+    local rate = self:read_value_from_sta_debugfs ( fname )
+    if ( rate ~= nil ) then
+        self:send_info(" global tx rate index at device " .. phy .. " is " .. rate)
+    else
+        self:send_error ( "Get global tx rate index from device " .. phy .. " failed. Unsupported" )
+    end
+    return rate
+end
 -- --------------------------
 -- rc_stats
 -- --------------------------

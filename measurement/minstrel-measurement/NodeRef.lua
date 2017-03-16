@@ -100,6 +100,7 @@ function NodeRef:create_measurement()
 end
 
 function NodeRef:restart_wifi( )
+    self.rpc.restart_wifi ()
 end
 
 function NodeRef:add_monitor( )

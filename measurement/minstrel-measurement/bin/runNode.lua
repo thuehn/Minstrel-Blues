@@ -45,10 +45,16 @@ function has_lease(...) return node:has_lease(...) end
 function tx_rate_indices(...) return node:tx_rate_indices(...) end
 function tx_rate_names(...) return node:tx_rate_names(...) end
 function tx_power_indices(...) return node:tx_power_indices(...) end
+
 function set_tx_rate(...) return node:set_tx_rate(...) end
 function get_tx_rate(...) return node:get_tx_rate(...) end
 function set_tx_power(...) return node:set_tx_power(...) end
 function get_tx_power(...) return node:get_tx_power(...) end
+
+function set_global_tx_rate(...) return node:set_global_tx_rate(...) end
+function get_global_tx_rate(...) return node:get_global_tx_rate(...) end
+function set_global_tx_power(...) return node:set_global_tx_power(...) end
+function get_global_tx_power(...) return node:get_global_tx_power(...) end
 
 -- cpuage
 function start_cpusage(...) return node:start_cpusage(...) end

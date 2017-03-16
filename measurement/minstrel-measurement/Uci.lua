@@ -5,7 +5,12 @@ Uci.uci_bin = "/sbin/uci"
 
 Uci.set_var = function ( var, value )
     if ( isFile ( Uci.uci_bin ) and var ~= nil and value ~= nil ) then
-        local _, exit_code = misc.execute ( Uci.uci_bin, "set", var .. "='" .. tostring ( value ) .. "'" )
+        if ( type ( value ) == "string" ) then
+            value = "'" .. value .. "'"
+        else
+            value = tostring ( value )
+        end
+        local _, exit_code = misc.execute ( Uci.uci_bin, "set", var .. "=" .. value )
         if ( exit_code == 0 ) then
             return true
         end
@@ -17,7 +22,11 @@ Uci.get_var = function ( var )
     if ( isFile ( Uci.uci_bin ) and var ~= nil ) then
         local line, exit_code = misc.execute ( Uci.uci_bin, "get", var )
         if ( exit_code == 0 ) then
-            return line
+            if ( string.sub ( line, 1, 1 ) == "'" ) then
+                local value = string.sub ( line, 2, string.len ( line ) - 1 )
+            else
+                return line
+            end
         end
     end
     return nil

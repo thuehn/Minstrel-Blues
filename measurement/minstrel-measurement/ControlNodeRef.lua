@@ -36,6 +36,10 @@ function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir )
     return o
 end
 
+function ControlNodeRef:restart_wifi_debug ()
+    self.rpc.restart_wifi_debug()
+end
+
 function ControlNodeRef:init ( rpc )
     self.rpc = rpc
 end

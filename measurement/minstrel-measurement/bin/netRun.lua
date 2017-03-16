@@ -48,7 +48,7 @@ require ('SNRRenderer')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
-parser:argument("command", "tcp, udp, mcast")
+parser:argument("command", "tcp, udp, mcast, noop")
 
 -- TODO: use networks instead of hosts, each ap
 
@@ -106,7 +106,7 @@ parser:flag ("-v --verbose", "", false )
 local args = parser:parse()
 
 args.command = string.lower ( args.command )
-if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast") then
+if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast" and args.command ~= "noop" ) then
     Config.show_config_error ( parser, "command", false )
 end
 
@@ -489,7 +489,6 @@ if ( args.no_measurement == false ) then
 
     -- -----------------------
 
-
     local runs = tonumber ( args.runs )
 
     for _, node_name in ipairs ( ctrl_rpc.list_nodes() ) do
@@ -510,11 +509,18 @@ if ( args.no_measurement == false ) then
                , args.packet_sizes, args.cct_intervals
                , args.packet_rates, args.interval 
                }
+    elseif ( args.command == "noop" ) then
+        data = { runs, args.tx_powers, args.tx_rates
+               }
     else
         show_config_error ( parser, "command")
     end
 
     ctrl_ref:init_experiments ( args.command, data, ap_names, args.enable_fixed )
+
+    --ctrl_ref:restart_wifi_debug ()
+    --posix.sleep (20)
+
     local status, err = ctrl_ref:run_experiments ( args.command, data, ap_names, args.enable_fixed )
     if ( status == false ) then
         print ( "err: experiments failed: " .. ( err or "unknown error" ) )
@@ -626,7 +632,7 @@ else -- args.no_measurement
 
 end
 
-print ("Analayse and plot SNR")
+print ("Analyse and plot SNR")
 for _, measurement in ipairs ( measurements ) do
 
     local analyser

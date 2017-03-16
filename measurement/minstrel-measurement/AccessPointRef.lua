@@ -47,7 +47,7 @@ end
 function AccessPointRef:wait_station ( runs )
     local retrys = runs
     repeat
-        local wifi_stations_cur = self.rpc.visible_stations( self.wifi_cur )
+        local wifi_stations_cur = self.rpc.visible_stations ( self.wifi_cur )
         local miss = false
         for _, str in ipairs ( self.stations ) do
             if ( table.contains ( wifi_stations_cur, str ) == false ) then
@@ -80,14 +80,16 @@ function AccessPointRef:create_measurement()
     end
 end
 
-function AccessPointRef:restart_wifi( )
-    NodeRef.restart_wifi( self )
+function AccessPointRef:restart_wifi ()
+    --fixme: router reboot when "/sbin/wifi" is executed on AP
+    --NodeRef.restart_wifi ( self )
+    --posix.sleep ( 20 )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:restart_wifi()
+        sta_ref:restart_wifi ()
     end
 end
 
-function AccessPointRef:add_monitor( )
+function AccessPointRef:add_monitor ()
     NodeRef.add_monitor( self, self.wifi_cur )
     for i, sta_ref in ipairs ( self.refs ) do
         sta_ref:add_monitor()

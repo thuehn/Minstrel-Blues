@@ -21,6 +21,7 @@ require ('StationRef')
 require ('tcpExperiment')
 require ('udpExperiment')
 require ('mcastExperiment')
+require ('EmptyExperiment')
 
 ControlNode = NodeBase:new()
 
@@ -76,6 +77,16 @@ function ControlNode:__tostring()
         out = out .. sta_ref:__tostring()
     end
     return out
+end
+
+function ControlNode:restart_wifi_debug()
+    if ( table_size ( self.ap_refs ) == 0 ) then
+        self:send_warning ( "Cannot start wifi on APs. Not initialized" )
+        print ( "Cannot start wifi on APs. Not initialized" )
+    end
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        ap_ref.rpc.restart_wifi()
+    end
 end
 
 function ControlNode:get_ctrl_addr ()
@@ -313,14 +324,10 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
         self.exp = McastExperiment:create ( self, args, is_fixed )
     elseif ( command == "udp") then
         self.exp = UdpExperiment:create ( self, args, is_fixed )
+    elseif ( command == "noop" ) then
+        self.exp = EmptyExperiment:create ( self, args, is_fixed )
     else
         return false
-    end
-
-    self.ap_refs = {}
-    for _, name in ipairs ( ap_names ) do
-        local ap_ref = self:find_node_ref ( name )
-        self.ap_refs [ #self.ap_refs + 1 ] = ap_ref
     end
 
     self:send_info ("*** Generate measurement keys ***")
@@ -328,6 +335,7 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
     for i, ap_ref in ipairs ( self.ap_refs ) do
         self.keys[i] = self.exp:keys ( ap_ref )
     end
+    return true
 end
 
 function ControlNode:get_txpowers ()

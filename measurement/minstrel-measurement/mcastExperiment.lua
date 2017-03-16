@@ -1,5 +1,7 @@
 require ('Experiment')
 
+local posix = require ('posix') -- sleep
+
 -- runs an multicast experiment with fixed rate and fixed power setting
 McastExperiment = Experiment:new()
 
@@ -62,6 +64,38 @@ function McastExperiment:keys ( ap_ref )
     end
 
     return keys
+end
+
+function McastExperiment:settle_measurement ( ap_ref, key, retrys )
+    if ( self.is_fixed == true ) then
+        local tx_rate = self:get_rate ( key )
+        ap_ref.rpc.set_global_tx_rate ( ap_ref.wifi_cur, tx_rate )
+        local tx_rate_new = ap_ref.rpc.get_global_tx_rate ( ap_ref.wifi_cur )
+        if ( tx_rate_new ~= tx_rate ) then
+            self.control:send_error ( "global rate not set correctly: should be " .. tx_rate
+                                      .. " (set) but is " .. ( tx_rate_new or "unset" ) .. " (actual)" )
+        end
+    end
+    if ( self.is_fixed == true ) then
+        local tx_power = self:get_power ( key )
+        ap_ref.rpc.set_global_tx_power ( ap_ref.wifi_cur, tx_power )
+        local tx_power_new = ap_ref.rpc.get_global_tx_power ( ap_ref.wifi_cur )
+        if ( tx_power_new ~= tx_power ) then
+            self.control:send_error ( "global tx power not set correctly: should be " .. tx_power
+                                      .. " (set) but is " .. ( tx_power_new or "unset" ) .. " (actual)" )
+        end
+    end
+    --fixme: router reboot when "/sbin/wifi" is executed on AP
+    --ap_ref.rpc.restart_wifi()
+    --posix.sleep( 10 )
+    ap_ref:restart_wifi ()
+    self.control:send_info ("wifi restarted")
+    self.control:send_info ("wait station")
+    local visible = ap_ref:wait_station ( retrys )
+    self.control:send_info ("wait linked")
+    local linked = ap_ref:wait_linked ( retrys )
+    ap_ref:add_monitor ()
+    return (linked and visible)
 end
 
 function McastExperiment:start_measurement ( ap_ref, key )

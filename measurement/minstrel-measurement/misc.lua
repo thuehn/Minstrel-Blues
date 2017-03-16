@@ -67,15 +67,19 @@ end
 
 function copy_map ( from )
     to = {}
-    for key, data in pairs ( from ) do
-        to [ key ] = data
+    if ( from ~= nil ) then
+        for key, data in pairs ( from ) do
+            to [ key ] = data
+        end
     end
     return to
 end
 
 function merge_map ( from, to )
-    for key, data in pairs ( from ) do
-        to [ key ] = data
+    if ( from ~= nil and to ~= nil ) then
+        for key, data in pairs ( from ) do
+            to [ key ] = data
+        end
     end
 end
 
