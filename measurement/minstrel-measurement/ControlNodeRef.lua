@@ -36,12 +36,28 @@ function ControlNodeRef:create( name, ctrl_if, ctrl_ip, output_dir )
     return o
 end
 
+function ControlNodeRef:__tostring ()
+    return self.rpc.__tostring ()
+end
+
+function ControlNodeRef:get_pid ()
+    return self.rpc.get_pid ()
+end
+
+function ControlNodeRef:check_bridges ()
+    return self.rpc.check_bridges ()
+end
+
 function ControlNodeRef:restart_wifi_debug ()
     self.rpc.restart_wifi_debug()
 end
 
-function ControlNodeRef:init ( rpc )
-    self.rpc = rpc
+function ControlNodeRef:set_nameserver ( nameserver )
+    self.rpc.set_nameserver ( nameserver )
+end
+
+function ControlNodeRef:set_nameservers ( nameserver )
+    self.rpc.set_nameservers ( nameserver )
 end
 
 function ControlNodeRef:get_board ()
@@ -50,6 +66,106 @@ end
 
 function ControlNodeRef:get_boards ()
     return self.rpc.get_boards ()
+end
+
+function ControlNodeRef:set_date ( ... )
+    return self.rpc.set_date ( ... )
+end
+
+function ControlNodeRef:set_dates ()
+    return self.rpc.set_dates ()
+end
+
+function ControlNodeRef:set_ani ( enabled )
+    for _, node_name in ipairs ( self:list_nodes() ) do
+        self.rpc.set_ani ( node_name, enabled )
+    end
+end
+
+function ControlNodeRef:add_aps ( ap_configs )
+    for _, ap_config in ipairs ( ap_configs ) do
+        self.rpc.add_ap ( ap_config.name,  ap_config.ctrl_if, ap_config.rsa_key_file )
+    end
+end
+
+function ControlNodeRef:add_stas ( sta_configs )
+    for _, sta_config in ipairs ( sta_configs ) do
+        self.rpc.add_sta ( sta_config.name,  sta_config.ctrl_if, sta_config.rsa_key_file )
+    end
+end
+
+function ControlNodeRef:list_nodes ()
+    return self.rpc.list_nodes ()
+end
+
+function ControlNodeRef:list_aps ()
+    return self.rpc.list_aps ()
+end
+
+function ControlNodeRef:list_stations ( ap_name )
+    return self.rpc.list_stations ( ap_name )
+end
+
+function ControlNodeRef:start_nodes ( log_addr, log_port )
+    return self.rpc.start_nodes ( log_addr, log_port )
+end
+
+function ControlNodeRef:connect_nodes ( port )
+    return self.rpc.connect_nodes ( port )
+end
+
+function ControlNodeRef:disconnect_nodes ()
+    return self.rpc.disconnect_nodes ()
+end
+
+function ControlNodeRef:prepare_aps ()
+    local ap_names = self.rpc.list_aps()
+    for _, ap_name in ipairs ( ap_names ) do
+        local wifis = self.rpc.list_phys ( ap_name )
+        self.rpc.set_phy ( ap_name, wifis[1] )
+        if ( self.rpc.enable_wifi ( ap_name, true ) == true ) then
+            local ssid = self.rpc.get_ssid ( ap_name )
+            print ( "SSID: " .. ssid )
+        end
+    end
+end
+
+function ControlNodeRef:prepare_stas ()
+    for _, sta_name in ipairs ( self.rpc.list_stas() ) do
+        local wifis = self.rpc.list_phys ( sta_name )
+        self.rpc.set_phy ( sta_name, wifis[1] )
+        self.rpc.enable_wifi ( sta_name, true )
+    end
+end
+
+-- set mode of AP to 'ap'
+-- set mode of STA to 'sta'
+-- set ssid of AP and STA to ssid
+-- fixme: set interface static address
+-- fixme: setup dhcp server for wlan0
+function ControlNodeRef:associate_stas ( connections )
+    for ap, stas in pairs ( connections ) do
+        for _, sta in ipairs ( stas ) do
+            print ( " connect " .. ap .. " with " .. sta )
+            self.rpc.add_station ( ap, sta )
+        end
+    end
+
+end
+
+function ControlNodeRef:link_stas ( connections )
+    for ap, stas in pairs ( connections ) do
+        local ssid = self.rpc.get_ssid ( ap )
+        if ( ssid ~= nil ) then
+            print ( "SSID: " .. ssid )
+            for _, sta in ipairs ( stas ) do
+                self.rpc.link_to_ssid ( sta, ssid ) 
+            end
+        else
+            return false
+        end
+    end
+    return true
 end
 
 function ControlNodeRef:start ( ctrl_port, log_file, log_port )
@@ -93,12 +209,18 @@ function ControlNodeRef:start_remote ( ctrl_port, log_file, log_port )
 end
 
 function ControlNodeRef:connect ( ctrl_port )
-    return net.connect ( self.ctrl.addr, ctrl_port, 10, self.name, 
-                         function ( msg ) print ( msg ) end )
+    self.rpc = net.connect ( self.ctrl.addr, ctrl_port, 10, self.name, 
+                               function ( msg ) print ( msg ) end )
+    return self.rpc
 end
 
-function ControlNodeRef:disconnect ( slave )
-    net.disconnect ( slave )
+function ControlNodeRef:disconnect ()
+    net.disconnect ( self.rpc )
+end
+
+
+function ControlNodeRef:stop_control ()
+    self.rpc.stop()
 end
 
 function ControlNodeRef:stop ( pid )
@@ -135,6 +257,22 @@ function ControlNodeRef:init_experiments ( command, args, ap_names, is_fixed )
     end
 
     return ret
+end
+
+function ControlNodeRef:reachable ()
+    local reached = self.rpc.reachable()
+    if ( table_size ( reached ) == 0 ) then
+        print ( "No hosts reachables" )
+        return false
+    end
+    for addr, reached in pairs ( reached ) do
+        if ( reached ) then
+            print ( addr .. ": ONLINE" )
+        else
+            print ( addr .. ": OFFLINE" )
+        end
+    end
+    return true
 end
 
 function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )

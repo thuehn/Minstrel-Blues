@@ -30,7 +30,6 @@ function restart_wifi_debug ( ... ) return node:restart_wifi_debug() end
 function get_board ( ... ) return node:get_board ( ... ) end
 function get_boards ( ... ) return node:get_boards ( ... ) end
 
-function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 function add_ap ( ... ) return node:add_ap ( ... ) end
 function add_sta ( ... ) return node:add_sta ( ... ) end
 function reachable ( ... ) return node:reachable ( ... ) end

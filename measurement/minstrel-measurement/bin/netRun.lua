@@ -94,7 +94,6 @@ parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes
 parser:flag ("--disable_synchronize", "Don't synchronize time in network", false )
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 
-parser:flag ("--run_check", "No rpc connections, no meaurements", false )
 parser:flag ("--dry_run", "Don't measure anything", false )
 
 parser:option ("--nameserver", "local nameserver" )
@@ -271,27 +270,26 @@ local measurements = {}
 if ( args.no_measurement == false ) then
     
     local ctrl_pid
-    local ctrl_rpc
     local ctrl_ref
     local net
 
     function cleanup ()
-        if ( ctrl_rpc == nil ) then return true end
+        if ( ctrl_ref.rpc == nil ) then return true end
 
         print ( " disconnect nodes " )
-        ctrl_rpc.disconnect_nodes()
+        ctrl_ref:disconnect_nodes ()
 
         -- kill nodes if desired by the user
         if ( args.disable_autostart == false ) then
             print ( "stop control" )
-            ctrl_rpc.stop()
+            ctrl_ref:stop_control ()
             if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
                 ctrl_ref:stop_remote ( ctrl_ref.ctrl.addr, ctrl_pid )
             else
                 ctrl_ref:stop ( ctrl_pid )
             end
         end
-        ctrl_ref.disconnect ( ctrl_rpc )
+        ctrl_ref:disconnect ()
     end
 
     -- local ctrl iface
@@ -314,14 +312,14 @@ if ( args.no_measurement == false ) then
 
     -- connect to control
 
-    ctrl_rpc = ctrl_ref:connect ( args.ctrl_port )
-    if ( ctrl_rpc == nil) then
+    ctrl_ref:connect ( args.ctrl_port )
+    if ( ctrl_ref.rpc == nil) then
         print ( "Connection to control node faild" )
         os.exit (1)
     end
     print ()
+    ctrl_pid = ctrl_ref:get_pid ()
 
-    ctrl_ref:init ( ctrl_rpc )
     print ( "Control board: " .. ( ctrl_ref:get_board () or "unknown" ) )
     print ()
 
@@ -329,7 +327,7 @@ if ( args.no_measurement == false ) then
     if ( args.disable_synchronize == false ) then
         local err
         local time = os.date("*t", os.time() )
-        local cur_time, err = ctrl_rpc.set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+        local cur_time, err = ctrl_ref:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
         if ( err == nil ) then
             print ( "Set date/time to " .. cur_time )
         else
@@ -338,25 +336,13 @@ if ( args.no_measurement == false ) then
         end
     end
 
-    for _, ap_config in ipairs ( aps_config ) do
-        ctrl_rpc.add_ap ( ap_config.name,  ap_config['ctrl_if'], ap_config['rsa_key'] )
-    end
-
-    for _, sta_config in ipairs ( stas_config ) do
-        ctrl_rpc.add_sta ( sta_config.name,  sta_config['ctrl_if'], sta_config['rsa_key'] )
-    end
-
-    ctrl_pid = ctrl_rpc.get_pid ()
-
-    print ( "Control node with IP: " .. ( ctrl_rpc.get_ctrl_addr () or "unset" ) )
-    if ( ctrl_ref.ctrl.addr == nil ) then
-        ctrl_ref.ctrl.addr = ctrl_rpc.get_ctrl_addr ()
-    end
-    print ()
+    -- add station and accesspoint references to control
+    ctrl_ref:add_aps ( aps_config )
+    ctrl_ref:add_stas ( stas_config )
 
     -- -------------------------------------------------------------------
 
-    if ( table_size ( ctrl_rpc.list_nodes() ) == 0 ) then
+    if ( table_size ( ctrl_ref:list_nodes() ) == 0 ) then
         error ("no nodes present")
         cleanup ()
         os.exit (1)
@@ -367,36 +353,21 @@ if ( args.no_measurement == false ) then
     print ( )
 
     if ( nameserver ~= nil or args.nameserver ~= nil ) then
-        ctrl_rpc.set_nameserver ( args.nameserver or nameserver )
+        ctrl_ref:set_nameserver ( args.nameserver or nameserver )
     end
 
     -- check reachability 
     if ( args.disable_reachable == false ) then
-        local reached = ctrl_rpc.reachable()
-        if ( table_size ( reached ) == 0 ) then
-            print ( "No hosts reachables" )
+        if ( ctrl_ref:reachable () == false ) then
             cleanup ()
             os.exit (1)
-        end
-        for addr, reached in pairs ( reached ) do
-            if ( reached ) then
-                print ( addr .. ": ONLINE" )
-            else
-                print ( addr .. ": OFFLINE" )
-            end
         end
     end
     print ()
 
-    if ( args.run_check == true ) then
-        print ( "all checks done. quit here" )
-        cleanup ()
-        os.exit (1)
-    end
-
     -- and auto start nodes
     if ( args.disable_autostart == false ) then
-        if ( ctrl_rpc.start ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
+        if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
             cleanup ()
             print ( "Error: Not all nodes started")
             os.exit (1)
@@ -410,7 +381,7 @@ if ( args.no_measurement == false ) then
 
     -- and connect to nodes
     print ( "connect to nodes at port " .. args.ctrl_port )
-    if ( ctrl_rpc.connect_nodes ( args.ctrl_port ) == false ) then
+    if ( ctrl_ref:connect_nodes ( args.ctrl_port ) == false ) then
         print ( "connections to nodes failed!" )
         cleanup ()
         os.exit (1)
@@ -425,81 +396,48 @@ if ( args.no_measurement == false ) then
 
     -- synchonize time
     if ( args.disable_synchronize == false ) then
-        ctrl_rpc.set_dates ()
+        ctrl_ref:set_dates ()
     end
 
     -- set nameserver on all nodes
-    ctrl_rpc.set_nameservers ( args.nameserver or nameserver )
+    ctrl_ref:set_nameservers ( args.nameserver or nameserver )
 
     print ( "Prepare APs" )
-    local ap_names = ctrl_rpc.list_aps()
-    for _, ap_name in ipairs (ap_names ) do
-        local wifis = ctrl_rpc.list_phys ( ap_name )
-        ctrl_rpc.set_phy ( ap_name, wifis[1] )
-        if ( ctrl_rpc.enable_wifi ( ap_name, true ) == true ) then
-            local ssid = ctrl_rpc.get_ssid ( ap_name )
-            print ( "SSID: " .. ssid )
-        end
-    end
-
+    ctrl_ref:prepare_aps ()
     print ()
 
     print ( "Prepare STAs" )
-    for _, sta_name in ipairs ( ctrl_rpc.list_stas() ) do
-        local wifis = ctrl_rpc.list_phys ( sta_name )
-        ctrl_rpc.set_phy ( sta_name, wifis[1] )
-        ctrl_rpc.enable_wifi ( sta_name, true )
-    end
-
-    --fixme: connections may contain more stations than args.sta
+    ctrl_ref:prepare_stas ()
 
     print ( "Associate AP with STAs" )
-    for ap, stas in pairs ( connections ) do
-        for _, sta in ipairs ( stas ) do
-            print ( " connect " .. ap .. " with " .. sta )
-            ctrl_rpc.add_station ( ap, sta )
-        end
+    ctrl_ref:associate_stas ( connections )
+
+    print ( "Connect STAs to APs SSID" )
+    if ( ctrl_ref:link_stas ( connections ) == false ) then
+        print ( "error: cannot get ssid from acceesspoint" )
+        cleanup ()
+        os.exit (1)
     end
 
     -- check bridges
-    local all_bridgeless = ctrl_rpc.check_bridges()
+    local all_bridgeless = ctrl_ref:check_bridges()
     if ( not all_bridgeless ) then
         print ( "Some nodes have a bridged setup, stop here. See log for details." )
         cleanup ()
         os.exit (1)
     end
 
-    print ( "Connect STAs to APs SSID" )
-    -- set mode of AP to 'ap'
-    -- set mode of STA to 'sta'
-    -- set ssid of AP and STA to ssid
-    -- fixme: set interface static address
-    -- fixme: setup dhcp server for wlan0
-    for ap, stas in pairs ( connections ) do
-        local ssid = ctrl_rpc.get_ssid ( ap )
-        if ( ssid ~= nil ) then
-            print ( "SSID: " .. ssid )
-            for _, sta in ipairs ( stas ) do
-                ctrl_rpc.link_to_ssid ( sta, ssid ) 
-            end
-        else
-            print ( "error: cannot get ssid from acceesspoint" )
-            cleanup ()
-            os.exit (1)
-        end
-    end
-
     print()
 
-    for _, ap_name in ipairs ( ap_names ) do
+    for _, ap_name in ipairs ( ctrl_ref:list_aps() ) do
         print ( "STATIONS on " .. ap_name )
         print ( "==================")
-        local wifi_stations = ctrl_rpc.list_stations ( ap_name )
+        local wifi_stations = ctrl_ref:list_stations ( ap_name )
         map ( print, wifi_stations )
         print ()
     end
 
-    print ( ctrl_rpc.__tostring() )
+    print ( ctrl_ref:__tostring() )
     print ( )
 
     if ( args.dry_run ) then 
@@ -513,9 +451,7 @@ if ( args.no_measurement == false ) then
 
     local runs = tonumber ( args.runs )
 
-    for _, node_name in ipairs ( ctrl_rpc.list_nodes() ) do
-        ctrl_rpc.set_ani ( node_name, not args.disable_ani )
-    end
+    ctrl_ref:set_ani ( not args.disable_ani )
 
     local data
     if ( args.command == "tcp" ) then
@@ -538,12 +474,12 @@ if ( args.no_measurement == false ) then
         show_config_error ( parser, "command")
     end
 
-    ctrl_ref:init_experiments ( args.command, data, ap_names, args.enable_fixed )
+    ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
 
     --ctrl_ref:restart_wifi_debug ()
     --posix.sleep (20)
 
-    local status, err = ctrl_ref:run_experiments ( args.command, data, ap_names, args.enable_fixed )
+    local status, err = ctrl_ref:run_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
     if ( status == false ) then
         print ( "err: experiments failed: " .. ( err or "unknown error" ) )
     end

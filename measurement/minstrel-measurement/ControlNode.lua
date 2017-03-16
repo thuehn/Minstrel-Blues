@@ -89,10 +89,6 @@ function ControlNode:restart_wifi_debug()
     end
 end
 
-function ControlNode:get_ctrl_addr ()
-    return net.get_addr ( self.ctrl.iface )
-end
-
 function ControlNode:add_ap ( name, ctrl_if, rsa_key )
     self:send_info ( " add access point " .. name )
     local ctrl = NetIF:create ( ctrl_if )
@@ -236,7 +232,7 @@ function ControlNode:reachable ()
     return reached
 end
 
-function ControlNode:start( log_addr, log_port )
+function ControlNode:start_nodes ( log_addr, log_port )
 
     function start_node ( node_ref, log_addr )
 
