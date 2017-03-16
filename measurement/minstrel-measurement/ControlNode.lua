@@ -243,14 +243,15 @@ function ControlNode:start_nodes ( log_addr, log_port )
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
-        self:send_info ( remote_cmd )
+        self:send_info ( "ssh " .. "-i " .. ( node_ref.rsa_key or "none" )
+                        .. " root@" .. ( node_ref.ctrl.addr or "none" ) .. " " .. remote_cmd )
         local pid, _, _ = misc.spawn ( "ssh", "-i", node_ref.rsa_key, 
-                                      "root@" .. node_ref.ctrl.addr, remote_cmd )
+                                      "root@" .. ( node_ref.ctrl.addr or "none" ), remote_cmd )
         return pid
     end
 
     for _, node_ref in ipairs ( self.node_refs ) do
-        self.pids [ node_ref.name ] = start_node( node_ref, log_addr )
+        self.pids [ node_ref.name ] = start_node ( node_ref, log_addr )
     end
     return true
 end
@@ -293,8 +294,7 @@ function ControlNode:stop()
             self:send_error ( "logger not stopped: pid is not set" )
         else
             self:send_info ( "stop logger with pid " .. pid )
-            ps.kill ( pid, ps.SIGINT )
-            ps.kill ( pid, ps.SIGINT )
+            ps.kill ( pid )
             lpc.wait ( pid )
         end
     end
@@ -307,13 +307,14 @@ function ControlNode:stop()
         local ssh
         local exit_code
         local remote = "root@" .. node_ref.ctrl.addr
-        local remote_cmd = "/usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
+        local remote_cmd = "lua /usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
+        self:send_debug ( remote_cmd )
         ssh, exit_code = misc.execute ( "ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
         if ( exit_code ~= 0 ) then
             self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed" )
         end
     end
-    stop_logger ( self.pids['logger'] )
+    stop_logger ( self.pids ['logger'] )
 end
 
 function ControlNode:init_experiment ( command, args, ap_names, is_fixed )

@@ -84,13 +84,13 @@ end
 
 function ControlNodeRef:add_aps ( ap_configs )
     for _, ap_config in ipairs ( ap_configs ) do
-        self.rpc.add_ap ( ap_config.name,  ap_config.ctrl_if, ap_config.rsa_key_file )
+        self.rpc.add_ap ( ap_config.name,  ap_config.ctrl_if, ap_config.rsa_key )
     end
 end
 
 function ControlNodeRef:add_stas ( sta_configs )
     for _, sta_config in ipairs ( sta_configs ) do
-        self.rpc.add_sta ( sta_config.name,  sta_config.ctrl_if, sta_config.rsa_key_file )
+        self.rpc.add_sta ( sta_config.name,  sta_config.ctrl_if, sta_config.rsa_key )
     end
 end
 
@@ -230,7 +230,7 @@ function ControlNodeRef:stop ( pid )
 end
 
 function ControlNodeRef:stop_remote ( addr, pid )
-    local remote_cmd = "/usr/bin/kill_remote " .. pid .. " --INT -n 2"
+    local remote_cmd = "lua /usr/bin/kill_remote " .. pid .. " --INT -i 2"
     local ssh, exit_code = misc.execute ( "ssh", "root@" .. addr, remote_cmd )
     if ( exit_code == 0 ) then
         return true, nil

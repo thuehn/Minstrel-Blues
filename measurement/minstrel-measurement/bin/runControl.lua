@@ -33,7 +33,7 @@ function get_boards ( ... ) return node:get_boards ( ... ) end
 function add_ap ( ... ) return node:add_ap ( ... ) end
 function add_sta ( ... ) return node:add_sta ( ... ) end
 function reachable ( ... ) return node:reachable ( ... ) end
-function start ( ... ) return node:start ( ... ) end
+function start_nodes ( ... ) return node:start_nodes ( ... ) end
 function connect_nodes ( ... ) return node:connect_nodes ( ... ) end
 function disconnect_nodes ( ... ) return node:disconnect_nodes ( ... ) end
 function init_experiment ( ... ) return node:init_experiment ( ... ) end
