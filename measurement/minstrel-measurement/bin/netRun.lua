@@ -484,8 +484,6 @@ if (status == true) then
                             .. "': " .. ( err or "unknown error" ) )
         end
 
-        print ( name )
-        print ( mac )
         print ( measurement:__tostring() )
         print ( )
     end

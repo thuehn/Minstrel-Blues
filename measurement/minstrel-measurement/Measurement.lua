@@ -42,6 +42,66 @@ function Measurement:create ( name, mac, rpc, output_dir )
     return o
 end
 
+function Measurement.parse ( name, input_dir )
+
+    local measurement = Measurement:create ( name, nil, nil, input_dir )
+    measurement.tcpdump_pcaps = {}
+
+    for _, fname in ipairs ( ( scandir ( input_dir .. "/" .. name ) ) ) do
+
+        if ( fname ~= "." and fname ~= ".."
+            and not isDir ( input_dir .. "/" .. name .. "/" .. fname )
+            and isFile ( input_dir .. "/" .. name .. "/" .. fname ) ) then
+
+            if ( string.sub ( fname, #fname - 4, #fname ) == ".pcap" ) then
+
+                -- lede-ap-1.pcap
+                local key = string.sub ( fname, #name + 2, #fname - 5 )
+                measurement.tcpdump_pcaps [ key ] = ""
+
+            elseif ( string.sub ( fname, #fname - 3, #fname ) == ".txt" ) then
+
+                -- lede-ap-1-regmon_stats.txt
+                if ( string.sub ( fname, #fname - 15, #fname - 4 ) == "regmon_stats" ) then
+                    local key = string.sub ( fname, #name + 2, #fname - 17 )
+                    measurement.regmon_stats [ key ] = ""
+                -- lede-ap-1-cpusage_stats.txt
+                elseif ( string.sub ( fname, #fname - 16, #fname - 4 ) == "cpusage_stats" ) then
+                    local key = string.sub ( fname, #name + 2, #fname - 18 )
+                    measurement.cpusage_stats [ key ] = ""
+                -- lede-ap-1-rc_stats-a0:f3:c1:64:81:7b.txt
+                elseif ( string.sub ( fname, #fname - 29, #fname - 22 ) == "rc_stats" ) then
+                    local key = string.sub ( fname, #name + 2, #fname - 31 )
+                    local station = string.sub ( fname, #name + #key + 12, #fname - 4 )
+                    if (measurement.stations == nil ) then
+                        measurement.stations = {}
+                    end
+                    local exists = false
+                    for _, s in ipairs ( measurement.stations ) do
+                        if ( s == station ) then
+                            exists = true
+                            break
+                        end
+                    end
+                    measurement.rc_stats_enabled = true
+                    if ( exists == false ) then
+                        measurement.stations [ #measurement.stations + 1 ] = station
+                    end
+                    if ( measurement.rc_stats [ station ] == nil ) then
+                        measurement.rc_stats [ station ] = {}
+                    end
+                    measurement.rc_stats [ station ] [ key ] = ""
+                end
+
+            end
+                        
+        end
+    end
+
+    measurement:read ()
+    return measurement
+end
+
 function Measurement:read ()
     if ( self.output_dir == nil ) then
         return false, "output dir unset"
@@ -179,6 +239,8 @@ end
 
 function Measurement:__tostring () 
     local out = "Measurement\n==========\n"
+    out = out .. self.node_name .. "\n"
+    out = out .. self.node_mac .. "\n"
     -- regmon stats
     out = out .. "regmon: " .. table_size ( self.regmon_stats ) .. " stats\n"
     local key
