@@ -119,10 +119,16 @@ function ControlNode:list_stas ()
 end
 
 function ControlNode:list_nodes ()
-    self:send_info ( " query nodes" )
+    self:send_info ( "query nodes" )
     local names = {}
     for _,v in ipairs ( self.node_refs ) do names [ #names + 1 ] = v.name end
     return names
+end
+
+function ControlNode:get_mac ( node_name )
+    local node_ref = self:find_node_ref ( node_name )
+    if ( node_ref == nil ) then return nil end
+    return node_ref:get_mac ()
 end
 
 function ControlNode:list_phys ( name )

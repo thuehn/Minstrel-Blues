@@ -458,11 +458,13 @@ end
 
 if (status == true) then
 
+    print ()
     local all_stats = ctrl_ref.stats
     for name, stats in pairs ( all_stats ) do
 
         -- fixme: move to ControlNodeRef
-        local measurement = Measurement:create ( name, nil, args.output )
+        local mac = ctrl_ref:get_mac( name )
+        local measurement = Measurement:create ( name, mac, nil, args.output )
         measurements [ #measurements + 1 ] = measurement
         measurement.regmon_stats = copy_map ( stats.regmon_stats )
         measurement.tcpdump_pcaps = copy_map ( stats.tcpdump_pcaps )
@@ -483,6 +485,7 @@ if (status == true) then
         end
 
         print ( name )
+        print ( mac )
         print ( measurement:__tostring() )
         print ( )
     end

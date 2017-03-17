@@ -96,7 +96,7 @@ function NodeRef:wait_linked ( runs )
 end
 
 function NodeRef:create_measurement()
-    self.stats = Measurement:create ( self.name, self.rpc, self.output_dir )
+    self.stats = Measurement:create ( self.name, self.macs [ self.wifi_cur ], self.rpc, self.output_dir )
 end
 
 function NodeRef:restart_wifi( )

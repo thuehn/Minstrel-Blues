@@ -11,6 +11,7 @@ pprint = require('pprint')
 
 Measurement = { rpc_node = nil
               , node_name = nil
+              , node_mac = nil
               , regmon_stats = nil
               , tcpdump_pcaps = nil
               , cpusage_stats = nil
@@ -27,9 +28,10 @@ function Measurement:new (o)
     return o
 end
 
-function Measurement:create ( name, rpc, output_dir )
+function Measurement:create ( name, mac, rpc, output_dir )
     local o = Measurement:new( { rpc_node = rpc
                                , node_name = name
+                               , node_mac = mac
                                , regmon_stats = {}
                                , tcpdump_pcaps = {}
                                , cpusage_stats = {}
@@ -46,6 +48,14 @@ function Measurement:read ()
     end
 
     local base_dir = self.output_dir .. "/" .. self.node_name
+
+    -- mac
+    local fname = base_dir .. "/mac.txt"
+    local file = io.open ( fname )
+    if ( file ~= nil ) then
+        self.node_mac = file:read ( "*a" )
+        file:close()
+    end
 
     -- regmon stats
     for key, stats in pairs ( self.regmon_stats ) do
@@ -112,6 +122,16 @@ function Measurement:write ()
     local status, err = lfs.mkdir ( base_dir )
     if ( status == false ) then 
         return false, err
+    end
+
+    -- mac 
+    if ( self.node_mac ~= nil ) then
+        local fname = base_dir .. "/mac.txt"
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            file:write ( self.node_mac .. '\n' )
+            file:close()
+        end
     end
 
     -- regmon stats

@@ -102,6 +102,10 @@ function ControlNodeRef:list_aps ()
     return self.rpc.list_aps ()
 end
 
+function ControlNodeRef:get_mac ( node_name )
+    return self.rpc.get_mac ( node_name )
+end
+
 function ControlNodeRef:list_stations ( ap_name )
     return self.rpc.list_stations ( ap_name )
 end

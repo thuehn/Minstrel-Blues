@@ -4,7 +4,6 @@ local argparse = require "argparse"
 require ('Measurement')
 
 require ('FXsnrAnalyser')
-require ('DYNsnrAnalyser')
 require ('SNRRenderer')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
@@ -13,13 +12,15 @@ parser:argument("input", "measurement / analyse data directory","/tmp")
 
 local args = parser:parse()
 
+local measurements = {}
+
 for _, name in ipairs ( ( scandir ( args.input ) ) ) do
 
     if ( name ~= "." and name ~= ".."  and isDir ( args.input .. "/" .. name ) ) then
                        
-        if ( Config.find_node ( name, nodes ) ~= nil ) then
+        --if ( Config.find_node ( name, nodes ) ~= nil ) then
 
-            local measurement = Measurement:create ( name, nil, args.input )
+            local measurement = Measurement:create ( name, nil, nil, args.input )
             measurement.tcpdump_pcaps = {}
             measurements [ #measurements + 1 ] = measurement
 
@@ -76,23 +77,17 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
 
             measurement:read ()
             print ( measurement:__tostring () )
-        end
+        --end
     end
 end
 
 print ("Analyse and plot SNR")
 for _, measurement in ipairs ( measurements ) do
 
-    local analyser
-    if ( args.enable_fixed == true ) then
-        analyser = FXsnrAnalyser:create ()
-    else
-        analyser = DYNsnrAnalyser:create ()
-
-    end
+    local analyser = FXsnrAnalyser:create ()
     analyser:add_measurement ( measurement )
     local snrs = analyser:snrs ()
-    --pprint ( snrs )
+    pprint ( snrs )
     --print ( )
 
     local renderer = SNRRenderer:create ( snrs )
