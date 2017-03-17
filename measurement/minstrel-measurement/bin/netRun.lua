@@ -230,6 +230,8 @@ for _, sta_config in ipairs ( stas_config ) do
 end
 print ( )
 
+Config.save ( args.output, ctrl_config, aps_config, stas_config )
+
 local measurements = {}
 
 local ctrl_pid
@@ -464,7 +466,9 @@ if (status == true) then
 
         -- fixme: move to ControlNodeRef
         local mac = ctrl_ref:get_mac( name )
-        local measurement = Measurement:create ( name, mac, nil, args.output )
+        local opposite_macs = ctrl_ref:get_opposite_macs ( name )
+        print ( name, ap_mac )
+        local measurement = Measurement:create ( name, mac, opposite_macs, nil, args.output )
         measurements [ #measurements + 1 ] = measurement
         measurement.regmon_stats = copy_map ( stats.regmon_stats )
         measurement.tcpdump_pcaps = copy_map ( stats.tcpdump_pcaps )

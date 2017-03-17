@@ -131,6 +131,12 @@ function ControlNode:get_mac ( node_name )
     return node_ref:get_mac ()
 end
 
+function ControlNode:get_opposite_macs ( node_name )
+    local node_ref = self:find_node_ref ( node_name )
+    if ( node_ref == nil ) then return nil end
+    return node_ref:get_opposite_macs ()
+end
+
 function ControlNode:list_phys ( name )
     local node_ref = self:find_node_ref ( name )
     if ( node_ref == nil ) then return {} end
@@ -179,6 +185,7 @@ function ControlNode:add_station ( ap, sta )
     if ( ap_ref == nil or sta_ref == nil ) then return nil end
     local mac = sta_ref.rpc.get_mac ( sta_ref.wifi_cur )
     ap_ref:add_station ( mac, sta_ref )
+    sta_ref:set_ap_ref ( ap_ref )
 end
 
 function ControlNode:list_stations ( ap )

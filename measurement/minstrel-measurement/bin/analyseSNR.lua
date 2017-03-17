@@ -1,5 +1,7 @@
 
-local argparse = require "argparse"
+local argparse = require ('argparse')
+local pprint = require ('pprint')
+local config = require ('Config')
 
 require ('Measurement')
 
@@ -26,16 +28,18 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
     end
 end
 
+local _, aps, stas = Config.read ( args.input )
+
 print ("Analyse and plot SNR")
 for _, measurement in ipairs ( measurements ) do
 
-    local analyser = FXsnrAnalyser:create ()
+    local analyser = FXsnrAnalyser:create ( aps, stas )
     analyser:add_measurement ( measurement )
     local snrs = analyser:snrs ()
     pprint ( snrs )
     --print ( )
 
-    local renderer = SNRRenderer:create ( snrs )
+    local renderer = SNRRenderer:create ( snrs, aps, stas )
 
     local dirname = args.input .. "/" .. measurement.node_name
     renderer:run ( dirname )

@@ -12,6 +12,7 @@ pprint = require('pprint')
 Measurement = { rpc_node = nil
               , node_name = nil
               , node_mac = nil
+              , opposite_macs = nil
               , regmon_stats = nil
               , tcpdump_pcaps = nil
               , cpusage_stats = nil
@@ -28,10 +29,11 @@ function Measurement:new (o)
     return o
 end
 
-function Measurement:create ( name, mac, rpc, output_dir )
+function Measurement:create ( name, mac, opposite_macs, rpc, output_dir )
     local o = Measurement:new( { rpc_node = rpc
                                , node_name = name
                                , node_mac = mac
+                               , opposite_macs = opposite_macs
                                , regmon_stats = {}
                                , tcpdump_pcaps = {}
                                , cpusage_stats = {}
@@ -44,7 +46,7 @@ end
 
 function Measurement.parse ( name, input_dir )
 
-    local measurement = Measurement:create ( name, nil, nil, input_dir )
+    local measurement = Measurement:create ( name, nil, nil, nil, input_dir )
     measurement.tcpdump_pcaps = {}
 
     for _, fname in ipairs ( ( scandir ( input_dir .. "/" .. name ) ) ) do
@@ -114,6 +116,21 @@ function Measurement:read ()
     local file = io.open ( fname )
     if ( file ~= nil ) then
         self.node_mac = file:read ( "*a" )
+        if ( self.node_mac ~= nil ) then
+            self.node_mac = string.sub ( self.node_mac, 1, string.len ( self.node_mac) - 1 )
+        end
+        file:close()
+    end
+
+    -- opposite macs
+    local fname = base_dir .. "/opposite_macs.txt"
+    local file = io.open ( fname )
+    if ( file ~= nil ) then
+        local content = file:read ( "*a" )
+        if ( content ~= nil ) then
+            self.opposite_macs = split ( content, "\n" )
+            table.remove ( self.opposite_macs, #self.opposite_macs )
+        end
         file:close()
     end
 
@@ -190,6 +207,18 @@ function Measurement:write ()
         local file = io.open ( fname, "w" )
         if ( file ~= nil ) then
             file:write ( self.node_mac .. '\n' )
+            file:close()
+        end
+    end
+
+    -- opposite macs
+    if ( self.opposite_macs ~= nil ) then
+        local fname = base_dir .. "/opposite_macs.txt"
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            for _, mac in ipairs ( self.opposite_macs ) do
+                file:write ( mac .. '\n' )
+            end
             file:close()
         end
     end

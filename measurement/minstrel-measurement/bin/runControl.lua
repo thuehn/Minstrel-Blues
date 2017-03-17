@@ -50,6 +50,7 @@ function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
 function list_nodes ( ... ) return node:list_nodes ( ... ) end
 function get_mac ( ... ) return node:get_mac ( ... ) end
+function get_opposite_macs ( ... ) return node:get_opposite_macs ( ... ) end
 function list_aps ( ... ) return node:list_aps ( ... ) end
 function list_stas ( ... ) return node:list_stas ( ... ) end
 function list_phys ( ... ) return node:list_phys ( ... ) end

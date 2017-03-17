@@ -5,7 +5,7 @@ require ('NodeRef')
 AccessPointRef = NodeRef:new()
 
 function AccessPointRef:create ( name, ctrl, rsa_key, output_dir )
-    local o = AccessPointRef:new { name = name, ctrl = ctrl, rsa_key = rsa_key, output_dir = output_dir, stations = {} }
+    local o = AccessPointRef:new { name = name, ctrl = ctrl, rsa_key = rsa_key, output_dir = output_dir, refs = {}, stations = {} }
     o.ctrl:get_addr()
     return o
 end
@@ -39,6 +39,11 @@ function AccessPointRef:add_station ( mac, ref )
     end
     self.stations [ #self.stations + 1 ] = mac
     self.refs [ #self.refs + 1 ] = ref
+end
+
+-- all macs of linked stations are returned
+function AccessPointRef:get_opposite_macs ()
+    return self.stations
 end
 
 -- waits until all stations appears on ap

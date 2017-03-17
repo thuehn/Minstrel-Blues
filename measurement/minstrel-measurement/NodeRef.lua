@@ -12,7 +12,7 @@ NodeRef = { name = nil
           , wifi_cur = nil
           , addrs = nil
           , macs = nil
-          , refs = nil
+--          , refs = nil
           , stats = nil
           , output_dir = nil
           }
@@ -51,11 +51,11 @@ function NodeRef:get_addr ()
     return self.addrs [ self.wifi_cur ]
 end
 
-function NodeRef:get_mac ( )
+function NodeRef:get_mac ()
     return self.macs [ self.wifi_cur ]
 end
 
-function NodeRef:__tostring() 
+function NodeRef:__tostring ()
     local out = ""
     out = out .. self.name .. " :: " 
           .. "ctrl: " .. tostring ( self.ctrl ) .. "\n\t"
@@ -96,7 +96,7 @@ function NodeRef:wait_linked ( runs )
 end
 
 function NodeRef:create_measurement()
-    self.stats = Measurement:create ( self.name, self.macs [ self.wifi_cur ], self.rpc, self.output_dir )
+    self.stats = Measurement:create ( self.name, self:get_mac (), self:get_opposite_macs (), self.rpc, self.output_dir )
 end
 
 function NodeRef:restart_wifi( )

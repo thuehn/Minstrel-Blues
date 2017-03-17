@@ -2,8 +2,12 @@ require ('misc')
 require ('pcap')
 require ('parsers/radiotap')
 
-FXsnrAnalyser = { measurements = nil
-           }
+local misc = require ('misc')
+
+FXsnrAnalyser = { aps = nil
+                , stas = nil
+                , measurements = nil
+                }
 
 function FXsnrAnalyser:new (o)
     local o = o or {}
@@ -12,8 +16,8 @@ function FXsnrAnalyser:new (o)
     return o
 end
 
-function FXsnrAnalyser:create ()
-    local o = FXsnrAnalyser:new( {} )
+function FXsnrAnalyser:create ( aps, stas )
+    local o = FXsnrAnalyser:new( { aps = aps, stas = stas } )
     o.measurements = {}
     return o
 end
@@ -67,6 +71,21 @@ function FXsnrAnalyser:avg ( t )
     return ( sum / count )
 end
 
+function FXsnrAnalyser:read_ssid ( dir, name )
+    local ssid = nil
+    local fname = dir .. "/" .. name .. "/ssid.txt"
+    print ( fname )
+    local file = io.open ( fname )
+    if ( file ~= nil ) then
+        local content = file:read ( "*a" )
+        if ( content ~= nil ) then
+            ssid = string.sub ( content, 1, #content - 1 )
+        end
+        file:close()
+    end
+    return ssid
+end
+
 -- returns list of SNRs stats (MIN/MAX/AVG) for each measurement
 -- stored in map indexed by a string concatenated by power and rate 
 -- and MIN/MAX/AVG seperated by "-"
@@ -92,7 +111,12 @@ function FXsnrAnalyser:snrs ()
             -- local file = io.open(fname, "wb")
             --file:write ( stats )
             --file:close()
-            local cap = pcap.open_offline( fname )
+            local ssid_m = self:read_ssid ( measurement.output_dir, measurement.node_name )
+            print ( ssid_m )
+            print ( measurement.node_name )
+            print ( "mac: " .. measurement.node_mac )
+            print ( "macs: " .. table_tostring ( measurement.opposite_macs ) )
+            local cap = pcap.open_offline ( fname )
             if (cap ~= nil) then
 	            cap:set_filter ("type mgt subtype beacon", nooptimize)
             
@@ -103,7 +127,11 @@ function FXsnrAnalyser:snrs ()
                     radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
                     radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
 		            local ssid = radiotap_data['ssid']
-                    if ( ssid == "LEDE" ) then
+                    local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
+                    local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
+                    if ( ssid == ssid_m
+                        and ( ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac ) )
+                                  or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) ) then
                 	    --print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
                         --print ( ssid )
                         --print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )

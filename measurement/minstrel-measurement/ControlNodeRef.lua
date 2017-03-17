@@ -106,6 +106,10 @@ function ControlNodeRef:get_mac ( node_name )
     return self.rpc.get_mac ( node_name )
 end
 
+function ControlNodeRef:get_opposite_macs ( node_name )
+    return self.rpc.get_opposite_macs ( node_name )
+end
+
 function ControlNodeRef:list_stations ( ap_name )
     return self.rpc.list_stations ( ap_name )
 end
@@ -157,13 +161,26 @@ function ControlNodeRef:associate_stas ( connections )
 
 end
 
+function ControlNodeRef:save_ssid ( name, ssid )
+
+    local fname = self.output_dir .. "/" .. name .. "/ssid.txt"
+    local file = io.open ( fname, "w" )
+    if ( file ~= nil ) then
+        file:write ( ssid .. "\n" )
+        file:close()
+    end
+
+end
+
 function ControlNodeRef:link_stas ( connections )
     for ap, stas in pairs ( connections ) do
         local ssid = self.rpc.get_ssid ( ap )
         if ( ssid ~= nil ) then
             print ( "SSID: " .. ssid )
+            self:save_ssid ( ap, ssid )
             for _, sta in ipairs ( stas ) do
                 self.rpc.link_to_ssid ( sta, ssid ) 
+                self:save_ssid ( sta, ssid )
             end
         else
             return false

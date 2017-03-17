@@ -194,4 +194,73 @@ Config.read_connections = function ( cons )
 
 end
 
+Config.save = function ( dir, ctrl, aps, stas )
+    -- ctrl
+    local fname = dir .. "/control.txt"
+    local file = io.open ( fname, "w" )
+    if ( file ~= nil ) then
+        file:write ( ctrl.name .. "\n" )
+        file:close ()
+    end
+    -- aps
+    local fname = dir .. "/accesspoints.txt"
+    local file = io.open ( fname, "w" )
+    if ( file ~= nil ) then
+        for _, ap in ipairs ( aps ) do
+            file:write ( ap.name .. "\n" )
+        end
+        file:close ()
+    end
+    -- stas
+    local fname = dir .. "/stations.txt"
+    local file = io.open ( fname, "w" )
+    if ( file ~= nil ) then
+        for _, sta in ipairs ( stas ) do
+            file:write ( sta.name .. "\n" )
+        end
+        file:close ()
+    end
+end
+
+Config.read = function ( dir )
+    local ctrl = nil
+    local aps = {}
+    local stas = {}
+    -- ctrl
+    local fname = dir .. "/control.txt"
+    local file = io.open ( fname )
+    if ( file ~= nil ) then
+        local content = file:read ( "*a" )
+        if ( content ~= nil ) then
+            ctrl = split ( content, "\n" ) [1]
+        end
+        file:close ()
+    end
+    -- aps
+    local fname = dir .. "/accesspoints.txt"
+    local file = io.open ( fname )
+    if ( file ~= nil ) then
+        local content = file:read ( "*a" )
+        if ( content ~= nil ) then
+            aps = split ( content, "\n" )
+            table.remove ( aps, #aps )
+        end
+        file:close ()
+    end
+    -- stas
+    local fname = dir .. "/stations.txt"
+    local file = io.open ( fname )
+    if ( file ~= nil ) then
+        local content = file:read ( "*a" )
+        if ( content ~= nil ) then
+            stas = split ( content, "\n" )
+            table.remove ( stas, #stas )
+        end
+        file:close ()
+    end
+
+    return ctrl, aps, stas
+end
+
+
 return Config
