@@ -1,4 +1,6 @@
 
+require ('parsers/argparse_con')
+
 -- globals
 ctrl = nil -- var in config file
 nodes = {} -- table in config file
@@ -172,6 +174,24 @@ Config.stations = function ( nodes, connections )
         end
     end
     return stations
+end
+
+-- global var connections
+Config.read_connections = function ( cons )
+    if ( cons ~= nil and cons ~= {} ) then
+        connections = {}
+    end
+
+    for _, con in ipairs ( cons ) do
+        local ap, stas, err = parse_argparse_con ( con )
+        if ( err == nil ) then
+            connections [ ap ] = stas
+        else
+            print ( err )
+        end
+    end
+
+
 end
 
 return Config

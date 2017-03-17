@@ -181,31 +181,6 @@ function Measurement:__tostring ()
     out = out .. "pcaps: " .. table_size ( self.tcpdump_pcaps ) .. " stats\n"
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         out = out .. "tcpdump_pcap-" .. key .. ":\n"
-        out = out .. "timestamp, wirelen, #capdata\n"
-        if ( self.output_dir ~= nil ) then 
-            local fname = self.output_dir .. "/" .. self.node_name 
-                            .. "/" .. self.node_name .. "-" .. key .. ".pcap.1"
-            local file = io.open(fname, "wb")
-            file:write ( stats )
-            file:close()
-            local cap = pcap.open_offline( fname )
-            if (cap ~= nil) then
-                -- cap:set_filter(filter, nooptimize)
-                local count = 0
-                for capdata, timestamp, wirelen in cap.next, cap do
-                    if (false) then
-                        out = out .. tostring(timestamp) .. ", " .. tostring(wirelen) .. ", " .. tostring(#capdata) .. "\n"
-                    else
-                        count = count + 1
-                    end
-                end
-                out = out .. tostring(count) .. "\n"
-                cap:close()
-            else
-                print ("Measurement: pcap open failed: " .. fname)
-            end
-            os.remove ( fname )
-        end
     end
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then

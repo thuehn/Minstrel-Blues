@@ -220,7 +220,8 @@ end
 
 
 function ControlNodeRef:stop_control ()
-    self.rpc.stop()
+    local log = self.rpc.stop()
+    return log
 end
 
 function ControlNodeRef:stop ( pid )

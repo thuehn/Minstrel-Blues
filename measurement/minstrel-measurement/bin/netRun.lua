@@ -2,10 +2,7 @@
 
 -- TODO:
 -- - rpc: transfer tcpdump binary lines/packages and stats online to support large experiment with low ram
--- built test client with command line arg which router should run the test
---   -- unit test (rpc in init of the unit tests base class)
 -- implement experiments as list of closures
--- cleanup nodes before os.exit
 -- erease debug table in production ( debug = nil )
 -- sample rate rc_stats, regmon-stats, cpusage (how many updates / second) from luci regmon
 -- init scripts for nodes
@@ -20,18 +17,13 @@
 -- MCS has is own ordering: modulation & coding x channel Mhz x short/long gard interval (SGI/GI)
 -- rc_stats: mode guard # -> idx
 -- plugin support with loadfile
---
--- rates 0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 120, 121, 122, 123
--- powers 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
-
--- /etc/board.json
--- /etc/diag.sh
+-- collectd iw info (STA, AP) and iw link (STA) trace
+-- derive MeshRef from AcceesspointRef
 
 require ('functional')
 pprint = require ('pprint')
 
 local argparse = require "argparse"
-require ('parsers/argparse_con')
 
 local posix = require ('posix') -- sleep
 
@@ -42,9 +34,6 @@ require ('Config')
 require ('NetIF')
 require ('ControlNodeRef')
 require ('Measurement')
-require ('FXsnrAnalyser')
-require ('DYNsnrAnalyser')
-require ('SNRRenderer')
 
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
@@ -74,8 +63,7 @@ parser:option ("--log", "Logger host name")
 parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("--log_if", "RPC Interface of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
--- TODO: replace "/tmp/minstrelm.log" with output_dir/minstrelm.log
-parser:option ("-l --log_file", "Logging to File", "/tmp/measurement.log" )
+parser:option ("-l --log_file", "Logging to File", "measurement.log" )
 
 parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
 
@@ -98,7 +86,6 @@ parser:flag ("--dry_run", "Don't measure anything", false )
 
 parser:option ("--nameserver", "local nameserver" )
 
-parser:flag ("--no_measurement","Disables measurement and reads data from output directory.",false)
 parser:option ("-O --output", "measurement / analyse data directory","/tmp")
 
 parser:flag ("-v --verbose", "", false )
@@ -151,18 +138,7 @@ if ( has_config ) then
 
     -- overwrite config file setting with command line settings
 
-    if ( args.con ~= nil and args.con ~= {} ) then
-        connections = {}
-    end
-
-    for _, con in ipairs ( args.con ) do
-        local ap, stas, err = parse_argparse_con ( con )
-        if ( err == nil ) then
-            connections [ ap ] = stas
-        else
-            print ( err )
-        end
-    end
+    Config.read_connections ( args.con )
 
     Config.set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
     Config.set_config_from_arg ( log, 'ctrl_if', args.log_if )
@@ -199,22 +175,11 @@ else
     Config.copy_config_nodes ( ap_setups, nodes )
     Config.copy_config_nodes ( sta_setups, nodes )
 
-    if ( args.con ~= nil and args.con ~= {} ) then
-        connections = {}
-    end
-
-    for _, con in ipairs ( args.con ) do
-        local ap, stas, err = parse_argparse_con ( con )
-        if ( err == nil ) then
-            connections [ ap ] = stas
-        else
-            print ( err )
-        end
-    end
+    Config.read_connections ( args.con )
 
 end
 
-if ( args.no_measurement == false and table_size ( connections ) == 0 ) then
+if ( table_size ( connections ) == 0 ) then
     print ( "Error: no connections specified" )
     os.exit (1)
 end
@@ -267,347 +232,260 @@ print ( )
 
 local measurements = {}
 
-if ( args.no_measurement == false ) then
-    
-    local ctrl_pid
-    local ctrl_ref
-    local net
+local ctrl_pid
+local ctrl_ref
+local net
 
-    function cleanup ()
-        if ( ctrl_ref.rpc == nil ) then return true end
+function cleanup ()
+    if ( ctrl_ref.rpc == nil ) then return true end
 
-        print ( " disconnect nodes " )
-        ctrl_ref:disconnect_nodes ()
+    print ( " disconnect nodes " )
+    ctrl_ref:disconnect_nodes ()
 
-        -- kill nodes if desired by the user
-        if ( args.disable_autostart == false ) then
-            print ( "stop control" )
-            ctrl_ref:stop_control ()
-            if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
-                ctrl_ref:stop_remote ( ctrl_ref.ctrl.addr, ctrl_pid )
-            else
-                ctrl_ref:stop ( ctrl_pid )
-            end
-        end
-        ctrl_ref:disconnect ()
-    end
-
-    -- local ctrl iface
-    net = NetIF:create ( "eth0" )
-    net:get_addr()
-    ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
-                                     , ctrl_config['ctrl_if'], args.ctrl_ip 
-                                     , args.output
-                                     )
-
+    -- kill nodes if desired by the user
     if ( args.disable_autostart == false ) then
+        print ( "stop control" )
+        local log = ctrl_ref:stop_control ()
+        if ( log ~= nil ) then
+            local fname = args.output .. "/" .. args.log_file
+            local file = io.open ( fname, "w" )
+            if ( file ~= nil ) then
+               file:write ( log ) 
+            end
+            file:close()
+        end
         if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
-            ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port, args.log_file, args.log_port )
+            ctrl_ref:stop_remote ( ctrl_ref.ctrl.addr, ctrl_pid )
         else
-            ctrl_pid = ctrl_ref:start ( args.ctrl_port, args.log_file, args.log_port )
+            ctrl_ref:stop ( ctrl_pid )
         end
     end
+    ctrl_ref:disconnect ()
+end
 
-    -- ---------------------------------------------------------------
+-- local ctrl iface
+net = NetIF:create ( "eth0" )
+net:get_addr()
+ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
+                                 , ctrl_config['ctrl_if'], args.ctrl_ip
+                                 , args.output
+                                 )
 
-    -- connect to control
-
-    ctrl_ref:connect ( args.ctrl_port )
-    if ( ctrl_ref.rpc == nil) then
-        print ( "Connection to control node faild" )
-        os.exit (1)
-    end
-    print ()
-    ctrl_pid = ctrl_ref:get_pid ()
-
-    print ( "Control board: " .. ( ctrl_ref:get_board () or "unknown" ) )
-    print ()
-
-    --synchronize time
-    if ( args.disable_synchronize == false ) then
-        local err
-        local time = os.date("*t", os.time() )
-        local cur_time, err = ctrl_ref:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
-        if ( err == nil ) then
-            print ( "Set date/time to " .. cur_time )
-        else
-            print ( "Set date/time failed: " .. err )
-            print ( "Time is: " .. ( cur_time or "unset" ) )
-        end
-    end
-
-    -- add station and accesspoint references to control
-    ctrl_ref:add_aps ( aps_config )
-    ctrl_ref:add_stas ( stas_config )
-
-    -- -------------------------------------------------------------------
-
-    if ( table_size ( ctrl_ref:list_nodes() ) == 0 ) then
-        error ("no nodes present")
-        cleanup ()
-        os.exit (1)
-    end
-
-    print ( "Reachability:" )
-    print ( "=============" )
-    print ( )
-
-    if ( nameserver ~= nil or args.nameserver ~= nil ) then
-        ctrl_ref:set_nameserver ( args.nameserver or nameserver )
-    end
-
-    -- check reachability 
-    if ( args.disable_reachable == false ) then
-        if ( ctrl_ref:reachable () == false ) then
-            cleanup ()
-            os.exit (1)
-        end
-    end
-    print ()
-
-    -- and auto start nodes
-    if ( args.disable_autostart == false ) then
-        if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
-            cleanup ()
-            print ( "Error: Not all nodes started")
-            os.exit (1)
-        end
-    end
-
-    -- ----------------------------------------------------------
-
-    print ( "Wait 3 seconds for nodes initialisation" )
-    posix.sleep (3)
-
-    -- and connect to nodes
-    print ( "connect to nodes at port " .. args.ctrl_port )
-    if ( ctrl_ref:connect_nodes ( args.ctrl_port ) == false ) then
-        print ( "connections to nodes failed!" )
-        cleanup ()
-        os.exit (1)
+if ( args.disable_autostart == false ) then
+    if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
+        ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port, args.log_file, args.log_port )
     else
-        print ("All nodes connected")
+        ctrl_pid = ctrl_ref:start ( args.ctrl_port, args.log_file, args.log_port )
     end
-    print ()
+end
 
-    for node_name, board in pairs ( ctrl_ref:get_boards () ) do
-        print ( node_name .. " board: " .. board )
-    end
+-- ---------------------------------------------------------------
 
-    -- synchonize time
-    if ( args.disable_synchronize == false ) then
-        ctrl_ref:set_dates ()
-    end
+-- connect to control
 
-    -- set nameserver on all nodes
-    ctrl_ref:set_nameservers ( args.nameserver or nameserver )
+ctrl_ref:connect ( args.ctrl_port )
+if ( ctrl_ref.rpc == nil) then
+    print ( "Connection to control node faild" )
+    os.exit (1)
+end
+print ()
+ctrl_pid = ctrl_ref:get_pid ()
 
-    print ( "Prepare APs" )
-    ctrl_ref:prepare_aps ()
-    print ()
+print ( "Control board: " .. ( ctrl_ref:get_board () or "unknown" ) )
+print ()
 
-    print ( "Prepare STAs" )
-    ctrl_ref:prepare_stas ()
-
-    print ( "Associate AP with STAs" )
-    ctrl_ref:associate_stas ( connections )
-
-    print ( "Connect STAs to APs SSID" )
-    if ( ctrl_ref:link_stas ( connections ) == false ) then
-        print ( "error: cannot get ssid from acceesspoint" )
-        cleanup ()
-        os.exit (1)
-    end
-
-    -- check bridges
-    local all_bridgeless = ctrl_ref:check_bridges()
-    if ( not all_bridgeless ) then
-        print ( "Some nodes have a bridged setup, stop here. See log for details." )
-        cleanup ()
-        os.exit (1)
-    end
-
-    print()
-
-    for _, ap_name in ipairs ( ctrl_ref:list_aps() ) do
-        print ( "STATIONS on " .. ap_name )
-        print ( "==================")
-        local wifi_stations = ctrl_ref:list_stations ( ap_name )
-        map ( print, wifi_stations )
-        print ()
-    end
-
-    print ( ctrl_ref:__tostring() )
-    print ( )
-
-    if ( args.dry_run ) then 
-        print ( "dry run is set, quit here" )
-        cleanup ()
-        os.exit (1)
-    end
-    print ( )
-
-    -- -----------------------
-
-    local runs = tonumber ( args.runs )
-
-    ctrl_ref:set_ani ( not args.disable_ani )
-
-    local data
-    if ( args.command == "tcp" ) then
-        data = { runs, args.tx_powers, args.tx_rates
-               , args.tcpdata 
-               }
-    elseif ( args.command == "mcast" ) then
-        data = { runs, args.tx_powers, args.tx_rates
-               , args.interval 
-               }
-    elseif ( args.command == "udp" ) then
-        data = { runs, args.tx_powers, args.tx_rates
-               , args.packet_sizes, args.cct_intervals
-               , args.packet_rates, args.interval 
-               }
-    elseif ( args.command == "noop" ) then
-        data = { runs, args.tx_powers, args.tx_rates
-               }
+--synchronize time
+if ( args.disable_synchronize == false ) then
+    local err
+    local time = os.date("*t", os.time() )
+    local cur_time, err = ctrl_ref:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+    if ( err == nil ) then
+        print ( "Set date/time to " .. cur_time )
     else
-        show_config_error ( parser, "command")
+        print ( "Set date/time failed: " .. err )
+        print ( "Time is: " .. ( cur_time or "unset" ) )
     end
+end
 
-    ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
+-- add station and accesspoint references to control
+ctrl_ref:add_aps ( aps_config )
+ctrl_ref:add_stas ( stas_config )
 
-    --ctrl_ref:restart_wifi_debug ()
-    --posix.sleep (20)
+-- -------------------------------------------------------------------
 
-    local status, err = ctrl_ref:run_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
-    if ( status == false ) then
-        print ( "err: experiments failed: " .. ( err or "unknown error" ) )
-    end
-
-    if (status == true) then
-
-        local all_stats = ctrl_ref.stats
-        for name, stats in pairs ( all_stats ) do
-
-            local measurement = Measurement:create ( name, nil, args.output )
-            measurements [ #measurements + 1 ] = measurement
-            measurement.regmon_stats = copy_map ( stats.regmon_stats )
-            measurement.tcpdump_pcaps = copy_map ( stats.tcpdump_pcaps )
-            measurement.cpusage_stats = copy_map ( stats.cpusage_stats )
-
-            local stations = {}
-            for station, _ in pairs ( stats.rc_stats ) do
-                stations [ #stations + 1 ] = station
-            end
-            measurement:enable_rc_stats ( stations ) -- resets rc_stats
-            measurement.rc_stats = copy_map ( stats.rc_stats )
-            measurement.output_dir = args.output
-
-            local status, err = measurement:write ()
-            if ( status == false ) then
-                print ( "err: can't access directory '" ..  ( args.output or "unset" ) 
-                                .. "': " .. ( err or "unknown error" ) )
-            end
-
-            print ( name )
-            print ( measurement:__tostring() )
-            print ( )
-        end
-    end
-
+if ( table_size ( ctrl_ref:list_nodes() ) == 0 ) then
+    error ("no nodes present")
     cleanup ()
+    os.exit (1)
+end
 
-else -- args.no_measurement
+print ( "Reachability:" )
+print ( "=============" )
+print ( )
 
-    print ( "measurement disabled: scan output directory " .. args.output )
+if ( nameserver ~= nil or args.nameserver ~= nil ) then
+    ctrl_ref:set_nameserver ( args.nameserver or nameserver )
+end
 
-    for _, name in ipairs ( ( scandir ( args.output ) ) ) do
+-- check reachability 
+if ( args.disable_reachable == false ) then
+    if ( ctrl_ref:reachable () == false ) then
+        cleanup ()
+        os.exit (1)
+    end
+end
+print ()
 
-        if ( name ~= "." and name ~= ".."  and isDir ( args.output .. "/" .. name ) ) then
-                       
-            if ( Config.find_node ( name, nodes ) ~= nil ) then
+-- and auto start nodes
+if ( args.disable_autostart == false ) then
+    if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
+        cleanup ()
+        print ( "Error: Not all nodes started")
+        os.exit (1)
+    end
+end
 
-                local measurement = Measurement:create ( name, nil, args.output )
-                measurement.tcpdump_pcaps = {}
-                measurements [ #measurements + 1 ] = measurement
+-- ----------------------------------------------------------
 
-                for _, fname in ipairs ( ( scandir ( args.output .. "/" .. name ) ) ) do
+print ( "Wait 3 seconds for nodes initialisation" )
+posix.sleep (3)
 
-                    if ( fname ~= "." and fname ~= ".."
-                        and not isDir ( args.output .. "/" .. name .. "/" .. fname )
-                        and isFile ( args.output .. "/" .. name .. "/" .. fname ) ) then
+-- and connect to nodes
+print ( "connect to nodes at port " .. args.ctrl_port )
+if ( ctrl_ref:connect_nodes ( args.ctrl_port ) == false ) then
+    print ( "connections to nodes failed!" )
+    cleanup ()
+    os.exit (1)
+else
+    print ("All nodes connected")
+end
+print ()
 
-                        if ( string.sub ( fname, #fname - 4, #fname ) == ".pcap" ) then
+for node_name, board in pairs ( ctrl_ref:get_boards () ) do
+    print ( node_name .. " board: " .. board )
+end
 
-                            -- lede-ap-1.pcap
-                            local key = string.sub ( fname, #name + 2, #fname - 5 )
-                            measurement.tcpdump_pcaps [ key ] = ""
+-- synchonize time
+if ( args.disable_synchronize == false ) then
+    ctrl_ref:set_dates ()
+end
 
-                        elseif ( string.sub ( fname, #fname - 3, #fname ) == ".txt" ) then
+-- set nameserver on all nodes
+ctrl_ref:set_nameservers ( args.nameserver or nameserver )
 
-                            -- lede-ap-1-regmon_stats.txt
-                            if ( string.sub ( fname, #fname - 15, #fname - 4 ) == "regmon_stats" ) then
-                                local key = string.sub ( fname, #name + 2, #fname - 17 )
-                                measurement.regmon_stats [ key ] = ""
-                            -- lede-ap-1-cpusage_stats.txt
-                            elseif ( string.sub ( fname, #fname - 16, #fname - 4 ) == "cpusage_stats" ) then
-                                local key = string.sub ( fname, #name + 2, #fname - 18 )
-                                measurement.cpusage_stats [ key ] = ""
-                            -- lede-ap-1-rc_stats-a0:f3:c1:64:81:7b.txt
-                            elseif ( string.sub ( fname, #fname - 29, #fname - 22 ) == "rc_stats" ) then
-                                local key = string.sub ( fname, #name + 2, #fname - 31 )
-                                local station = string.sub ( fname, #name + #key + 12, #fname - 4 )
-                                if (measurement.stations == nil ) then
-                                    measurement.stations = {}
-                                end
-                                local exists = false
-                                for _, s in ipairs ( measurement.stations ) do
-                                    if ( s == station ) then
-                                        exists = true
-                                        break
-                                    end
-                                end
-                                measurement.rc_stats_enabled = true
-                                if ( exists == false ) then
-                                    measurement.stations [ #measurement.stations + 1 ] = station
-                                end
-                                if ( measurement.rc_stats [ station ] == nil ) then
-                                    measurement.rc_stats [ station ] = {}
-                                end
-                                measurement.rc_stats [ station ] [ key ] = ""
-                            end
+print ( "Prepare APs" )
+ctrl_ref:prepare_aps ()
+print ()
 
-                        end
-                        
-                    end
-                end
+print ( "Prepare STAs" )
+ctrl_ref:prepare_stas ()
 
-                measurement:read ()
-                print ( measurement:__tostring () )
-            end
+print ( "Associate AP with STAs" )
+ctrl_ref:associate_stas ( connections )
+
+print ( "Connect STAs to APs SSID" )
+local all_linked = ctrl_ref:link_stas ( connections )
+if ( all_linked == false ) then
+    print ( "error: cannot get ssid from acceesspoint" )
+    cleanup ()
+    os.exit (1)
+end
+
+-- check bridges
+local all_bridgeless = ctrl_ref:check_bridges()
+if ( not all_bridgeless ) then
+    print ( "Some nodes have a bridged setup, stop here. See log for details." )
+    cleanup ()
+    os.exit (1)
+end
+
+print()
+
+for _, ap_name in ipairs ( ctrl_ref:list_aps() ) do
+    print ( "STATIONS on " .. ap_name )
+    print ( "==================")
+    local wifi_stations = ctrl_ref:list_stations ( ap_name )
+    map ( print, wifi_stations )
+    print ()
+end
+
+print ( ctrl_ref:__tostring() )
+print ( )
+
+if ( args.dry_run ) then 
+    print ( "dry run is set, quit here" )
+    cleanup ()
+    os.exit (1)
+end
+print ( )
+
+-- -----------------------
+
+local runs = tonumber ( args.runs )
+
+ctrl_ref:set_ani ( not args.disable_ani )
+
+local data
+if ( args.command == "tcp" ) then
+    data = { runs, args.tx_powers, args.tx_rates
+           , args.tcpdata
+           }
+elseif ( args.command == "mcast" ) then
+    data = { runs, args.tx_powers, args.tx_rates
+           , args.interval
+           }
+elseif ( args.command == "udp" ) then
+    data = { runs, args.tx_powers, args.tx_rates
+           , args.packet_sizes, args.cct_intervals
+           , args.packet_rates, args.interval
+           }
+elseif ( args.command == "noop" ) then
+    data = { runs, args.tx_powers, args.tx_rates
+           }
+else
+    show_config_error ( parser, "command")
+end
+
+ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
+
+--ctrl_ref:restart_wifi_debug ()
+--posix.sleep (20)
+
+local status, err = ctrl_ref:run_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
+if ( status == false ) then
+    print ( "err: experiments failed: " .. ( err or "unknown error" ) )
+end
+
+if (status == true) then
+
+    local all_stats = ctrl_ref.stats
+    for name, stats in pairs ( all_stats ) do
+
+        -- fixme: move to ControlNodeRef
+        local measurement = Measurement:create ( name, nil, args.output )
+        measurements [ #measurements + 1 ] = measurement
+        measurement.regmon_stats = copy_map ( stats.regmon_stats )
+        measurement.tcpdump_pcaps = copy_map ( stats.tcpdump_pcaps )
+        measurement.cpusage_stats = copy_map ( stats.cpusage_stats )
+
+        local stations = {}
+        for station, _ in pairs ( stats.rc_stats ) do
+            stations [ #stations + 1 ] = station
         end
-    end
+        measurement:enable_rc_stats ( stations ) -- resets rc_stats
+        measurement.rc_stats = copy_map ( stats.rc_stats )
+        measurement.output_dir = args.output
 
+        local status, err = measurement:write ()
+        if ( status == false ) then
+            print ( "err: can't access directory '" ..  ( args.output or "unset" )
+                            .. "': " .. ( err or "unknown error" ) )
+        end
+
+        print ( name )
+        print ( measurement:__tostring() )
+        print ( )
+    end
 end
 
-print ("Analyse and plot SNR")
-for _, measurement in ipairs ( measurements ) do
-
-    local analyser
-    if ( args.enable_fixed == true ) then
-        analyser = FXsnrAnalyser:create ()
-    else
-        analyser = DYNsnrAnalyser:create ()
-
-    end
-    analyser:add_measurement ( measurement )
-    local snrs = analyser:snrs ()
-    --pprint ( snrs )
-    --print ( )
-
-    local renderer = SNRRenderer:create ( snrs )
-
-    local dirname = args.output .. "/" .. measurement.node_name
-    renderer:run ( dirname )
-
-end
+cleanup ()

@@ -9,7 +9,6 @@ local parser = argparse ( "runControl", "Run mintrel measurement control node." 
 parser:option ("--ctrl_if", "Control Interface name", "eth0" )
 parser:option ("-C --port", "RPC port", "12346" )
 
--- TODO: replace "/tmp/minstrelm.log" with output_dir/minstrelm.log
 parser:option ("--log_file", "Logging file name", "minstrelm.log" )
 parser:option ("-L --log_port", "Logging port", "12347" )
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)

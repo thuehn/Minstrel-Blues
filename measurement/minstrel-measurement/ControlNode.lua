@@ -48,7 +48,7 @@ function ControlNode:create ( name, ctrl, port, log_port, log_file, output_dir )
     end
 
     if ( log_port ~= nil and log_file ~= nil ) then
-        local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", log_file 
+        local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", "/tmp/" .. log_file 
                                     , "--port", log_port )
         o.pids = {}
         o.pids ['logger'] = pid
@@ -65,6 +65,7 @@ function ControlNode:__tostring()
     end
     local out = "control if: " .. net .. "\n"
     out = out .. "control port: " .. ( self.port or "none" ) .. "\n"
+    out = out .. "output: " .. ( self.output_dir or "none" ) .. "\n"
     out = out .. "log file: " .. ( self.log_file or "none" ) .."\n"
     out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
@@ -314,7 +315,19 @@ function ControlNode:stop()
             self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed" )
         end
     end
+
     stop_logger ( self.pids ['logger'] )
+
+    -- transfer log
+    local fname = "/tmp/" .. self.log_file
+    local file = io.open ( fname )
+    if ( file ~= nil ) then
+        local log = file:read ("*a")
+        file:close()
+        return log
+    else
+        return nil
+    end
 end
 
 function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
