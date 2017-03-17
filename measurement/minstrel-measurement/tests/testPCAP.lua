@@ -23,19 +23,23 @@ if (cap ~= nil) then
         radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
         radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
 		local ssid = radiotap_data [ 'ssid' ]
+		local frame_type = radiotap_data [ 'type' ]
+		local frame_subtype = radiotap_data [ 'subtype' ]
 		--print ( "ssid: '" .. ssid .. "'" )
 		--print ( ssid == "LEDE" )
         local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
         local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
---        if ( true ) then
+        if ( true ) then
 --	    if ( ssid == "LEDE" ) then
-	    if ( ssid == "LEDE"
-             and ( da == "f4:f2:6d:22:7c:f0" or sa == "f4:f2:6d:22:7c:f0"
-                    or da == "a0:f3:c1:64:81:7b" or sa == "a0:f3:c1:64:81:7b" ) ) then
+--	    if ( ssid == "LEDE"
+--             and ( da == "f4:f2:6d:22:7c:f0" or sa == "f4:f2:6d:22:7c:f0"
+--                    or da == "a0:f3:c1:64:81:7b" or sa == "a0:f3:c1:64:81:7b" ) ) then
 
             print ( "ssid: " .. ( ssid or "unset" ) )
             print ( "sa: " .. sa )
             print ( "da: " .. da )
+            print ( "type: " .. frame_type )
+            print ( "subtype: " .. frame_subtype )
             --print ( PCAP.to_bytes_hex ( capdata ) )
 			print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
 			--print ( "flags: " .. ( radiotap_header ['flags'] or "not present" ) )

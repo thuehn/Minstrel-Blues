@@ -43,6 +43,36 @@ PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_PASSIVE" ] = 10
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_DYN" ] = 11
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_GFSK" ] = 12
 
+-- type 0: - management frame
+PCAP.radiotap_mgmt_frametype = {}
+PCAP.radiotap_mgmt_frametype [ 1 ] = nil
+PCAP.radiotap_mgmt_frametype [ 2 ] = nil
+PCAP.radiotap_mgmt_frametype [ 3 ] = nil
+PCAP.radiotap_mgmt_frametype [ 4 ] = nil
+PCAP.radiotap_mgmt_frametype [ 5 ] = "PROBE_REQUEST"
+PCAP.radiotap_mgmt_frametype [ 6 ] = "PROBE_RESPONSE"
+PCAP.radiotap_mgmt_frametype [ 7 ] = nil
+PCAP.radiotap_mgmt_frametype [ 8 ] = nil
+PCAP.radiotap_mgmt_frametype [ 9 ] = "BEACON"
+PCAP.radiotap_mgmt_frametype [ 10 ] = nil
+PCAP.radiotap_mgmt_frametype [ 11 ] = nil
+PCAP.radiotap_mgmt_frametype [ 12 ] = nil
+PCAP.radiotap_mgmt_frametype [ 13 ] = nil
+PCAP.radiotap_mgmt_frametype [ 14 ] = "ACTION"
+PCAP.radiotap_mgmt_frametype [ 15 ] = nil
+PCAP.radiotap_mgmt_frametype [ 16 ] = nil
+
+-- type 1: control frame
+PCAP.radiotap_ctrl_frametype = {}
+PCAP.radiotap_ctrl_frametype [ 10 ] = "80211_BLOCK_ACK"
+PCAP.radiotap_ctrl_frametype [ 14 ] = "ACKNOWLEDGEMENT"
+
+-- type 2: data frame
+PCAP.radiotap_data_frametype = {}
+PCAP.radiotap_data_frametype [ 1 ] = "DATA"
+PCAP.radiotap_data_frametype [ 5 ] = "NULL_FUNCTION"
+PCAP.radiotap_data_frametype [ 9 ] = "QOS_DATA"
+
 -- converts a number 'mask' with size 'len'
 -- into a string in binary representation
 -- (in reversed order)
@@ -173,14 +203,50 @@ PCAP.parse_radiotap_data = function ( capdata )
     local ret = {}
     local rest = capdata
 
-    local frame_control_field, rest = PCAP.read_int16 ( rest )
+    --local frame_control_field, rest = PCAP.read_int16 ( rest )
+
+    local mask, rest = PCAP.read_int8 ( rest )
     --         00
     -- bit 1,2 version (0)
+    local version = 0
+    if ( PCAP.hasbit ( mask, PCAP.bit (1) ) ) then
+        version = version + 1
+    end
+    if ( PCAP.hasbit ( mask, PCAP.bit (2) ) ) then
+        version = version + 2
+    end
+
     --       00
     -- type: management frame (0)
+    local frame_type = 0
+    if ( PCAP.hasbit ( mask, PCAP.bit (3) ) ) then
+        frame_type = frame_type + 1
+    end
+    if ( PCAP.hasbit ( mask, PCAP.bit (4) ) ) then
+        frame_type = frame_type + 2
+    end
+    ret ['type'] = frame_type
+
     --   0001
     -- subtype (8)
+    local frame_subtype = 0
+    if ( PCAP.hasbit ( mask, PCAP.bit (5) ) ) then
+        frame_subtype = frame_subtype + 1
+    end
+    if ( PCAP.hasbit ( mask, PCAP.bit (6) ) ) then
+        frame_subtype = frame_subtype + 2
+    end
+    if ( PCAP.hasbit ( mask, PCAP.bit (7) ) ) then
+        frame_subtype = frame_subtype + 4
+    end
+    if ( PCAP.hasbit ( mask, PCAP.bit (8) ) ) then
+        frame_subtype = frame_subtype + 8
+    end
+    ret ['subtype'] = frame_subtype
+
     -- 8 bit flags
+    local flags, rest = PCAP.read_int8 ( rest )
+
     local duration, rest = PCAP.read_int16 ( rest )
 
     -- skip first 10 bytes

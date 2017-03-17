@@ -75,7 +75,7 @@ function NodeRef:__tostring ()
             out = out .. wifi .. ", addr " .. addr
         end
     end
-    return out        
+    return out
 end
 
 -- wait for station is linked to ssid

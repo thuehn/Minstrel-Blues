@@ -126,10 +126,16 @@ function FXsnrAnalyser:snrs ()
                     local radiotap_data
                     radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
                     radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
-		            local ssid = radiotap_data['ssid']
+		            local ssid = radiotap_data [ 'ssid' ]
+		            local frame_type = radiotap_data [ 'type' ]
+                    --print ( "type:" .. frame_type )
+		            local frame_subtype = radiotap_data [ 'subtype' ]
+                    --print ( "subtype:" .. frame_subtype )
                     local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
                     local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
                     if ( ssid == ssid_m
+                        and frame_type == 2
+                        and PCAP.radiotap_data_frametype [ frame_subtype + 1  ] == "DATA"
                         and ( ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac ) )
                                   or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) ) then
                 	    --print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
