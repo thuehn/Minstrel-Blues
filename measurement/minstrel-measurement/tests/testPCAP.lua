@@ -10,10 +10,12 @@ print (pcap._LIB_VERSION)
 
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
-local fname = "tests/test.pcap"
+--local fname = "tests/test.pcap"
+local fname = "/home/denis/data-tcp-17.03.2017-4/lede-sta/lede-sta-0-13-1.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
-	cap:set_filter ("type mgt subtype beacon", nooptimize)
+	--cap:set_filter ("type mgt subtype beacon", nooptimize)
+	--cap:set_filter ("type data subtype data", nooptimize)
     for capdata, timestamp, wirelen in cap.next, cap do
         -- print ( timestamp, wirelen, #capdata )
         -- pprint ( capdata )

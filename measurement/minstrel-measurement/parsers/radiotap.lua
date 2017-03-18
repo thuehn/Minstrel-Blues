@@ -270,20 +270,22 @@ PCAP.parse_radiotap_data = function ( capdata )
 
     --print ( PCAP.to_bytes_hex ( rest ) )
 
-    -- skip next 15 bytes
-    for i = 1, 15 do
-        _, rest = PCAP.read_int8 ( rest )
+    if ( frame_type == 0 and frame_subtype == 8 ) then
+
+        -- skip next 15 bytes
+        for i = 1, 15 do
+            _, rest = PCAP.read_int8 ( rest )
+        end
+
+        -- ssid (not \0 terminated )
+        local ssid_len
+        ssid_len, rest = PCAP.read_int8 ( rest )
+        ssid_len = tonumber ( ssid_len )
+
+        local ssid
+        ssid, rest = PCAP.read_str ( rest, ssid_len )
+        ret [ 'ssid' ] = ssid
     end
-    --print ( PCAP.to_bytes_hex ( rest ) )
-
-    -- ssid (not \0 terminated )
-    local ssid_len
-    ssid_len, rest = PCAP.read_int8 ( rest )
-    ssid_len = tonumber ( ssid_len )
-
-    local ssid
-    ssid, rest = PCAP.read_str ( rest, ssid_len )
-    ret [ 'ssid' ] = ssid
     -- ...
 
     -- FCS

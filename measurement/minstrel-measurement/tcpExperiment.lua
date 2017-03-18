@@ -60,6 +60,16 @@ function TcpExperiment:keys ( ap_ref )
     return keys
 end
 
+function TcpExperiment:start_measurement ( ap_ref, key )
+    ap_ref:start_measurement ( key )
+    ap_ref:start_tcp_iperf_s ()
+end
+
+function TcpExperiment:stop_measurement ( ap_ref, key )
+    ap_ref:stop_iperf_servers()
+    ap_ref:stop_measurement ( key )
+end
+
 function TcpExperiment:start_experiment ( ap_ref, key )
     -- start iperf clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do

@@ -82,11 +82,9 @@ end
 
 function Experiment:start_measurement ( ap_ref, key )
     ap_ref:start_measurement ( key )
-    ap_ref:start_iperf_servers ()
 end
 
 function Experiment:stop_measurement ( ap_ref, key )
-    ap_ref:stop_iperf_servers()
     ap_ref:stop_measurement ( key )
 end
 

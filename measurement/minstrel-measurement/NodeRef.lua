@@ -123,8 +123,12 @@ function NodeRef:fetch_measurement( key )
     self.stats:fetch ( self.wifi_cur, key )
 end
 
-function NodeRef:start_iperf_server()
+function NodeRef:start_tcp_iperf_s()
     local proc = self.rpc.start_tcp_iperf_s()
+end
+
+function NodeRef:start_udp_iperf_s()
+    local proc = self.rpc.start_udp_iperf_s()
 end
 
 function NodeRef:stop_iperf_server()

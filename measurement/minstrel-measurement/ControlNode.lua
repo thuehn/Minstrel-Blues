@@ -1,5 +1,5 @@
 
---pprint = require ('pprint')
+local pprint = require ('pprint')
 
 local ps = require ('posix.signal') --kill
 local posix = require ('posix') -- sleep
@@ -344,6 +344,7 @@ function ControlNode:stop()
 end
 
 function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
+
     if ( command == "tcp") then
         self.exp = TcpExperiment:create ( self, args, is_fixed )
     elseif ( command == "mcast") then

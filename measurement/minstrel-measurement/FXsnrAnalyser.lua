@@ -101,7 +101,10 @@ function FXsnrAnalyser:snrs ()
 
         for key, stats in pairs ( measurement.tcpdump_pcaps ) do
         
-            if ( table_size ( split ( key, "-" ) ) ~= 3 ) then break end
+            if ( table_size ( split ( key, "-" ) ) < 3 ) then
+                print ( "ERROR: unsupported key encoding" )
+                break
+            end
 
             local rate = self:get_rate ( key )
             local power = self:get_power ( key )
@@ -118,6 +121,7 @@ function FXsnrAnalyser:snrs ()
             print ( "macs: " .. table_tostring ( measurement.opposite_macs ) )
             local cap = pcap.open_offline ( fname )
             if (cap ~= nil) then
+	            --cap:set_filter ("type data subtype data", nooptimize)
 	            cap:set_filter ("type mgt subtype beacon", nooptimize)
             
                 for capdata, timestamp, wirelen in cap.next, cap do
@@ -128,19 +132,19 @@ function FXsnrAnalyser:snrs ()
                     radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
 		            local ssid = radiotap_data [ 'ssid' ]
 		            local frame_type = radiotap_data [ 'type' ]
-                    --print ( "type:" .. frame_type )
 		            local frame_subtype = radiotap_data [ 'subtype' ]
-                    --print ( "subtype:" .. frame_subtype )
                     local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
                     local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
-                    if ( ssid == ssid_m
-                        and frame_type == 2
-                        and PCAP.radiotap_data_frametype [ frame_subtype + 1  ] == "DATA"
-                        and ( ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac ) )
-                                  or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) ) then
+                    --if ( ssid == ssid_m
+                        -- and frame_type == 2
+                        --and PCAP.radiotap_data_frametype [ frame_subtype + 1  ] == "DATA"
+                    if ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac )
+                                  or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) then
                 	    --print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
                         --print ( ssid )
-                        --print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
+                        print ( "subtype:" .. frame_subtype )
+                        print ( "type:" .. frame_type )
+                        print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
                         --print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
                         if ( radiotap_header ['antenna_signal'] ~= nil ) then
                             snrs [ #snrs + 1 ] = radiotap_header ['antenna_signal']

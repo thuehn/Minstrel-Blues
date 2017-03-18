@@ -35,7 +35,7 @@ require ('NetIF')
 require ('ControlNodeRef')
 require ('Measurement')
 
-local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
+local parser = argparse( "netRun", "Run minstrel blues multi AP / multi STA mesurement" )
 
 parser:argument("command", "tcp, udp, mcast, noop")
 
@@ -69,10 +69,9 @@ parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
 
 parser:option ("--runs", "Number of iterations", "1" )
 parser:option ("-T --tcpdata", "Amount of TCP data", "5MB" )
-parser:option ("-S --packet_sizes", "Amount of UDP data", "1500" )
-parser:option ("-R --packet_rates", "Rates of UDP data", "50,200,600,1200" )
-parser:option ("-I --cct_intervals", "send iperf traffic intervals in milliseconds", "20000,50,100,1000" )
-parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" )
+parser:option ("-R --packet_rates", "Rates of UDP data", "10M,100M" )
+parser:option ("-t --udp_durations", "how long iperf sends UDP traffic", "10,20,30" )
+parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" ) --fixme: ???
 
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
 parser:option ("--tx_rates", "TX rate indices")
@@ -427,6 +426,12 @@ local runs = tonumber ( args.runs )
 
 ctrl_ref:set_ani ( not args.disable_ani )
 
+pprint ( args.runs )
+pprint ( args.tx_rates )
+pprint ( args.tx_powers )
+pprint ( args.packet_rates )
+pprint ( args.udp_durations )
+
 local data
 if ( args.command == "tcp" ) then
     data = { runs, args.tx_powers, args.tx_rates
@@ -438,8 +443,7 @@ elseif ( args.command == "mcast" ) then
            }
 elseif ( args.command == "udp" ) then
     data = { runs, args.tx_powers, args.tx_rates
-           , args.packet_sizes, args.cct_intervals
-           , args.packet_rates, args.interval
+           , args.packet_rates, args.udp_durations
            }
 elseif ( args.command == "noop" ) then
     data = { runs, args.tx_powers, args.tx_rates
@@ -447,6 +451,9 @@ elseif ( args.command == "noop" ) then
 else
     show_config_error ( parser, "command")
 end
+
+pprint ( "init" )
+pprint ( data )
 
 ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
 

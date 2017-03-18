@@ -752,6 +752,7 @@ function Node:start_udp_iperf_s ()
         return nil
     end
     self:send_info ( "start UDP iperf server at port " .. self.iperf_port )
+    self:send_info ( iperf_bin .. " -s -u -p " .. ( self.iperf_port or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-u", "-p", self.iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     for i=1,5 do
@@ -784,19 +785,25 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
 end
 
 -- iperf -u -c 192.168.1.240 -p 12000 -l 1500B -b 600000 -t 240
-function Node:run_udp_iperf ( addr, size, rate, interval, wait )
+--function Node:run_udp_iperf ( addr, size, rate, interval, wait )
+function Node:run_udp_iperf ( addr, rate, duration, wait )
     if ( self.iperf_client_procs [ addr ] ~= nil ) then
         self:send_error (" Iperf client (udp) not started for address " .. addr .. ". Already running.")
         return nil
     end
-    self:send_info ( "run UDP iperf at port " .. self.iperf_port 
-                                .. " to addr " .. addr 
-                                .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval )
-    local bitspersec = size * 8 * rate
-    self:send_debug ( iperf_bin .. " -u " .. " -c " .. addr .. " -p " .. self.iperf_port
-                        .. " -l " .. size .. "B" .. " -b " .. bitspersec .. " -t " .. interval )
+    self:send_info ( "run UDP iperf at port " .. ( self.iperf_port or "none" )
+                                .. " to addr " .. ( addr or "none" )
+                                .. " with rate " .. rate .. " and duration " .. duration )
+    --self:send_info ( "run UDP iperf at port " .. ( self.iperf_port or "none" )
+    --                            .. " to addr " .. ( addr or "none" )
+    --                            .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval )
+    --local bitspersec = size * 8 * rate
+    self:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. self.iperf_port
+                        .. " -b " .. rate .. " -t " .. duration )
+
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", self.iperf_port, 
-                                         "-l", size .. "B", "-b", bitspersec, "-t", interval )
+                                            "-b", rate, "-t", duration )
+
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
     if ( wait == true ) then

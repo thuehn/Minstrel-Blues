@@ -86,6 +86,7 @@ end
 -- https://stackoverflow.com/questions/1426954/split-string-in-lua
 function split(s, delimiter)
     local result = {};
+    if ( s == nil or delimiter == nil ) then return result end
     for match in (s..delimiter):gmatch("(.-)"..delimiter) do
         table.insert(result, match)
     end
