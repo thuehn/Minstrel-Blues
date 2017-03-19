@@ -62,7 +62,8 @@ end
 
 function TcpExperiment:start_measurement ( ap_ref, key )
     ap_ref:start_measurement ( key )
-    ap_ref:start_tcp_iperf_s ()
+    local tcp = true
+    ap_ref:start_tcp_iperf_s ( tcp )
 end
 
 function TcpExperiment:stop_measurement ( ap_ref, key )

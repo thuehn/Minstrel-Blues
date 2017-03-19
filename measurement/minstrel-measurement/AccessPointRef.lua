@@ -138,9 +138,13 @@ function AccessPointRef:fetch_measurement( key )
     end
 end
 
-function AccessPointRef:start_iperf_servers()
+function AccessPointRef:start_iperf_servers ( tcp )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:start_iperf_server ()
+        if ( tcp == true ) then
+            sta_ref:start_tcp_iperf_s ()
+        else
+            sta_ref:start_udp_iperf_s ()
+        end
     end
 end
 

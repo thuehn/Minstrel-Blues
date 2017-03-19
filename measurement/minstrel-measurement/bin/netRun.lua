@@ -426,12 +426,6 @@ local runs = tonumber ( args.runs )
 
 ctrl_ref:set_ani ( not args.disable_ani )
 
-pprint ( args.runs )
-pprint ( args.tx_rates )
-pprint ( args.tx_powers )
-pprint ( args.packet_rates )
-pprint ( args.udp_durations )
-
 local data
 if ( args.command == "tcp" ) then
     data = { runs, args.tx_powers, args.tx_rates
