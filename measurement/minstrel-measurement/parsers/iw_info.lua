@@ -87,8 +87,12 @@ function parse_iwinfo ( iwinfo )
 
     state, rest = parse_str ( rest, "ssid " )
     if ( state == true ) then
+        -- special characters are allowed in SSIDs
+        -- colon, underscore, dot, spaces, period, ...
+        -- but avoid pipe
         local add_chars = {}
-        add_chars[1] = '-'
+        add_chars[1] = '-'; add_chars[2] = '_'
+        add_chars[3] = "."; add_chars[4] = ':'
         ssid, rest = parse_ide ( rest, add_chars )
         rest = skip_layout( rest )
     end

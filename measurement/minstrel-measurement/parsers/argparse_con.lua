@@ -10,6 +10,7 @@ function parse_argparse_con ( str )
     local ap
     local stas = {}
     
+    -- allowed chars: a-z, A-Z, 0-9, '-', '.'
     local add_chars = {}
     add_chars[1] = '-'
     add_chars[2] = '.'

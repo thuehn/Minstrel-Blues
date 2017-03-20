@@ -99,6 +99,9 @@ function parse_iwlink ( iwlink )
     state, rest = parse_str ( rest, ")" )
     rest = skip_layout( rest )
 
+    -- special characters are allowed in SSIDs
+    -- colon, underscore, dot, spaces, period, ...
+    -- but avoid pipe
     state, rest = parse_str ( rest, "SSID: " )
     local add_chars = {}
     add_chars[1] = '-'
