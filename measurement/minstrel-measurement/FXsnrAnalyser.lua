@@ -93,6 +93,8 @@ function FXsnrAnalyser:snrs ()
     
     for _, measurement in ipairs ( self.measurements ) do
 
+        --if ( measurement.node_name == "lede-ap" ) then
+
         for key, stats in pairs ( measurement.tcpdump_pcaps ) do
 
             local snrs = {}
@@ -135,10 +137,11 @@ function FXsnrAnalyser:snrs ()
                     local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
                     -- if ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac )
                     --              or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) then
-                    if ( ( ( da == "ff::ff:ff:ff:ff:ff" and ( sa == measurement.node_mac ) )
-                            or ( da == "ff:ff:ff:ff:ff:ff" and misc.index_of ( sa, measurement.opposite_macs ) ~= nil )
-                            or ( da == measurement.node_mac and misc.index_of ( sa, measurement.opposite_macs ) ~= nil )
-                            or ( misc.index_of ( da, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) )
+                    if ( (
+                            ( da == "ff::ff:ff:ff:ff:ff" and ( sa == measurement.node_mac ) ) or
+                            ( da == "ff:ff:ff:ff:ff:ff" and misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or
+                            ( da == measurement.node_mac and misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or
+                            ( misc.index_of ( da, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) )
                         and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ]
                         and ( frame_subtype + 1 == PCAP.radiotap_data_frametype [ "DATA" ]
                              or  frame_subtype + 1 == PCAP.radiotap_data_frametype [ "QOS_DATA" ] ) ) then
@@ -167,6 +170,7 @@ function FXsnrAnalyser:snrs ()
                 ret [ power .. "-" .. rate .. "-AVG" ] = self:avg ( snrs )
             end
         end
+        --end
     end
 
     return ret

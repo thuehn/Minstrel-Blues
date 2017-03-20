@@ -315,7 +315,7 @@ PCAP.parse_radiotap_header = function ( capdata )
     --print ()
 
     ret ['it_ver'], rest, pos = PCAP.read_int8 ( rest, pos )
-    _, rest, pos = PCAP.read_int8 ( rest, pos ) -- 1 byte padding
+    _, rest, pos = PCAP.read_int8 ( rest, pos ) -- 1 byte fixed padding
     ret ['it_len'], rest, pos = PCAP.read_int16 ( rest, pos )
     ret ['it_present'], rest, pos = PCAP.read_int32 ( rest, pos )
     
@@ -367,14 +367,14 @@ PCAP.parse_radiotap_header = function ( capdata )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_TX_ATTENUATION' ] )  ) ) then
         rest, pos = PCAP.align ( rest, 2, pos )
-        ret['antenna_noise'], rest, pos = PCAP.read_int16 ( rest, pos )
+        ret['tx_attenuation'], rest, pos = PCAP.read_int16 ( rest, pos )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_DBM_TX_POWER' ] )  ) ) then
-        rest, pos = PCAP.align ( rest, 1, pos )
+        rest, pos = PCAP.align ( rest, 1, pos ) -- fixme: always true, ???
         ret['tx_power'], rest, pos = PCAP.read_int8_signed ( rest, pos )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_ANTENNA' ] )  ) ) then
-        ret['db_antenna_signal'], rest, pos = PCAP.read_int8 ( rest, pos )
+        ret['db_antenna'], rest, pos = PCAP.read_int8 ( rest, pos )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_DB_ANTSIGNAL' ] )  ) ) then
         ret['db_antenna_signal'], rest, pos = PCAP.read_int8 ( rest, pos )
@@ -384,8 +384,10 @@ PCAP.parse_radiotap_header = function ( capdata )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_RX_FLAGS' ] )  ) ) then
         rest, pos = PCAP.align ( rest, 2, pos )
-        ret['db_antenna_noise'], rest, pos = PCAP.read_int16 ( rest, pos )
+        ret['rx_flags'], rest, pos = PCAP.read_int16 ( rest, pos )
     end
+    -- ...
+    -- antenna 0, data antenna 0, antenna 1, data antenna 1
 
     return ret, string.sub ( capdata, ret['it_len'] + 1 ), pos
 end
