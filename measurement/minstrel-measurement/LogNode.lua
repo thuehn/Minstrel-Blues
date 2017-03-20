@@ -24,6 +24,7 @@ LogNode = { name = nil
           , fname = nil
           , logfile = nil
           , use_stdout = nil
+          , append_mode = nil
           }
 
 -- create an object table with LogNode prototype
@@ -31,7 +32,7 @@ LogNode = { name = nil
 -- param o: initializer table, i.e. {name = "Logger", fname = "/tmp/lua.log"} (maybe nil)
 function LogNode:new (o)
     local o = o or {}
-    setmetatable(o, self)
+    setmetatable ( o, self )
     self.__index = self
     return o
 end
@@ -40,9 +41,17 @@ end
 -- and open the log file in append mode
 -- param name: a name for the logging node
 -- param fname: the name of the log file
-function LogNode:create( name, fname, use_stdout )
-    local o = LogNode:new({ name = name, fname = fname, use_stdout = use_stdout })
-    o.logfile = io.open ( fname, "a")
+function LogNode:create( name, fname, use_stdout, append_mode )
+    local o = LogNode:new( { name = name
+                           , fname = fname
+                           , use_stdout = use_stdout
+                           , append_mode = append_mode
+                           } )
+    local mode = "w"
+    if ( append_mode == true ) then
+        mode = "a"
+    end
+    o.logfile = io.open ( fname, mode)
     return o
 end
 

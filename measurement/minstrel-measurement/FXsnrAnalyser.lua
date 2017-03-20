@@ -85,6 +85,13 @@ function FXsnrAnalyser:read_ssid ( dir, name )
     return ssid
 end
 
+-- Filter for all data frames:              wlan.fc.type == 2
+-- Filter for Data:                         wlan.fc.type_subtype == 32
+-- Filter for QoS Data:                     wlan.fc.type_subtype == 40
+-- Filter by the source address (SA):       wlan.sa == MAC_address
+-- Filter by the destination address (DA):  wlan.da == MAC_address
+-- radiotap.dbm_antsignal
+
 -- returns list of SNRs stats (MIN/MAX/AVG) for each measurement
 -- stored in map indexed by a string concatenated by power and rate 
 -- and MIN/MAX/AVG seperated by "-"
@@ -138,8 +145,8 @@ function FXsnrAnalyser:snrs ()
                     -- if ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac )
                     --              or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) then
                     if ( (
-                            ( da == "ff::ff:ff:ff:ff:ff" and ( sa == measurement.node_mac ) ) or
-                            ( da == "ff:ff:ff:ff:ff:ff" and misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or
+                     --       ( da == "ff::ff:ff:ff:ff:ff" and ( sa == measurement.node_mac ) ) or
+                     --       ( da == "ff:ff:ff:ff:ff:ff" and misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or
                             ( da == measurement.node_mac and misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or
                             ( misc.index_of ( da, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) )
                         and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ]

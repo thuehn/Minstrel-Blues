@@ -16,11 +16,12 @@ local parser = argparse("runLogger", "Run a minimalistic RPC enabled message log
 parser:argument("filename", "Filename for logging.")
 parser:option ("--port", "RPC port", "12347" )
 parser:flag ("--use_stdout", "Log to stdout additionally", false )
+parser:flag ("-a --append", "Open log file in append mode", false )
 
 parser:option ("--log_if", "RPC Interface name", "eth0" )
 
 local args = parser:parse()
-local node = LogNode:create("Logger", args.filename, args.use_stdout )
+local node = LogNode:create("Logger", args.filename, args.use_stdout, args.append )
 node:send_info ( node.name, node:__tostring())
 
 -- shortcut to logger instance to simplify access
