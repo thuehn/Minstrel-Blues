@@ -328,19 +328,18 @@ PCAP.parse_radiotap_header = function ( capdata )
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_TSFT' ] )  ) ) then
         --align 8
         ret['tsft'], rest = PCAP.read_int64 ( rest )
+        --tests/test.pcap
+        --_, rest = PCAP.read_int32 ( rest )
         -- print ( ret['tsft'] )
     end
-    --tests/test.pcap
-    _, rest = PCAP.read_int32 ( rest )
-    --print ( PCAP.to_bytes_hex ( rest ) )
-    --print ( )
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_FLAGS' ] )  ) ) then
         ret['flags'], rest = PCAP.read_int8 ( rest )
-        -- fixme: one byte extra ( maybe padding )
-        --_, rest = PCAP.read_int8 ( rest )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_RATE' ] )  ) ) then
         ret['rate'], rest = PCAP.read_int8 ( rest )
+    else
+        -- fixme: one byte extra ( maybe padding ) when rate not set
+        _, rest = PCAP.read_int8 ( rest )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_CHANNEL' ] )  ) ) then
         --align 2

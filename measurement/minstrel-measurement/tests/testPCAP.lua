@@ -8,8 +8,8 @@ require ('parsers/radiotap')
 
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
---local fname = "tests/test.pcap"
-local fname = "/home/denis/data-udp-20.03.2017-2/lede-sta/lede-sta-0-9-10-10M-1.pcap"
+local fname = "tests/test.pcap"
+--local fname = "/home/denis/data-udp-20.03.2017-2/lede-sta/lede-sta-0-9-10-10M-1.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
 	--cap:set_filter ("type mgt subtype beacon", nooptimize)
@@ -29,22 +29,22 @@ if (cap ~= nil) then
 		--print ( ssid == "LEDE" )
         local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
         local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
-        if ( ( ( da == "ff::ff:ff:ff:ff:ff" and ( sa == "f4:f2:6d:22:7c:f0" ) )
-                or ( da == "ff:ff:ff:ff:ff:ff" and sa == "a0:f3:c1:64:81:7b" )
-                or ( da == "f4:f2:6d:22:7c:f0" and sa == "a0:f3:c1:64:81:7b" )
-                or ( da == "a0:f3:c1:64:81:7b" and sa == "f4:f2:6d:22:7c:f0" ) )
-            and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ]
-            and ( frame_subtype + 1 == PCAP.radiotap_data_frametype [ "DATA" ]
-                 or  frame_subtype + 1 == PCAP.radiotap_data_frametype [ "QOS_DATA" ] ) ) then
-
+--        if ( ( ( da == "ff::ff:ff:ff:ff:ff" and ( sa == "f4:f2:6d:22:7c:f0" ) )
+--                or ( da == "ff:ff:ff:ff:ff:ff" and sa == "a0:f3:c1:64:81:7b" )
+--                or ( da == "f4:f2:6d:22:7c:f0" and sa == "a0:f3:c1:64:81:7b" )
+--                or ( da == "a0:f3:c1:64:81:7b" and sa == "f4:f2:6d:22:7c:f0" ) )
+--            and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ]
+--            and ( frame_subtype + 1 == PCAP.radiotap_data_frametype [ "DATA" ]
+--                 or  frame_subtype + 1 == PCAP.radiotap_data_frametype [ "QOS_DATA" ] ) ) then
+        if ( true ) then
             --print ( "ssid: " .. ( ssid or "unset" ) )
             --print ( "sa: " .. sa )
             --print ( "da: " .. da )
             --print ( "type: " .. frame_type )
             --print ( "subtype: " .. frame_subtype )
             --print ( PCAP.to_bytes_hex ( capdata ) )
-			--print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
-			--print ( "flags: " .. ( radiotap_header ['flags'] or "not present" ) )
+			print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
+			print ( "flags: " .. ( radiotap_header ['flags'] or "not present" ) )
 			--print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
 			--print ( "channel: " .. ( radiotap_header ['channel'] or "not present" ) )
 			--local channel_flags = "not present"
