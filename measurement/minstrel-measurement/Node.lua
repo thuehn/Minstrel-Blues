@@ -743,6 +743,7 @@ function Node:start_tcp_iperf_s ()
         return nil
     end
     self:send_info ( "start TCP iperf server at port " .. self.iperf_port )
+    self:send_debug ( iperf_bin .. " -s -p " .. ( self.iperf_port or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-p", self.iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     for i=1,4 do
@@ -762,7 +763,7 @@ function Node:start_udp_iperf_s ()
         return nil
     end
     self:send_info ( "start UDP iperf server at port " .. self.iperf_port )
-    self:send_info ( iperf_bin .. " -s -u -p " .. ( self.iperf_port or "none" ) )
+    self:send_debug ( iperf_bin .. " -s -u -p " .. ( self.iperf_port or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-u", "-p", self.iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     for i=1,5 do
