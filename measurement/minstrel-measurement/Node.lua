@@ -341,7 +341,10 @@ function Node:get_rc_stats_lines ( phy, station )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" .. station .. "/rc_stats_csv"
     local lines = {}
-    local file = io.open ( fname )
+    local file = nil
+    if ( fname ~= nil ) then
+        file = io.open ( fname )
+    end
     if ( file ~= nil ) then
         local content = file:read ("*a")
         for i, line in ipairs ( split ( content, "\n" ) ) do
@@ -393,7 +396,10 @@ function Node:write_value_to_sta_debugfs ( fname, value )
     if ( not isFile ( fname ) ) then
         self:send_error ( "file doesn't exists: " .. fname )
     end
-    local file = io.open ( fname, "w" )
+    local file = nil
+    if ( fname ~= nil ) then
+        file = io.open ( fname, "w" )
+    end
     if ( file ~= nil ) then
         file:write ( tostring ( value ) )
         file:flush()
@@ -407,7 +413,10 @@ function Node:read_value_from_sta_debugfs ( fname )
     if ( not isFile ( fname ) ) then
         self:send_error ( "file doesn't exists: " .. fname )
     end
-    local file = io.open ( fname, "r" )
+    local file = nil
+    if ( fname ~= nil ) then
+        file = io.open ( fname, "r" )
+    end
     local value
     if ( file ~= nil ) then
         local content = file:read ("*a")
@@ -687,6 +696,7 @@ function Node:start_tcpdump ( phy, fname )
     --local snaplen = 0 -- 262144
     --local snaplen = 150
     local snaplen = 256
+    local snaplen = 512
     self:send_info ( "start tcpdump for " .. mon .. " writing to " .. fname )
     self:send_debug ( tcpdump_bin .. " -i " .. mon .. " -s " .. snaplen .. " -U -w " .. fname )
     local pid, stdin, stdout = misc.spawn ( tcpdump_bin, "-i", mon, "-s", snaplen, "-U", "-w", fname )

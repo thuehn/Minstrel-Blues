@@ -74,7 +74,6 @@ end
 function FXsnrAnalyser:read_ssid ( dir, name )
     local ssid = nil
     local fname = dir .. "/" .. name .. "/ssid.txt"
-    print ( fname )
     local file = io.open ( fname )
     if ( file ~= nil ) then
         local content = file:read ( "*a" )
@@ -94,12 +93,9 @@ function FXsnrAnalyser:snrs ()
     
     for _, measurement in ipairs ( self.measurements ) do
 
-        local snrs = {}
-        local min_snr
-        local max_snr
-        local avg_snr
-
         for key, stats in pairs ( measurement.tcpdump_pcaps ) do
+
+            local snrs = {}
         
             if ( table_size ( split ( key, "-" ) ) < 3 ) then
                 print ( "ERROR: unsupported key encoding" )
@@ -111,18 +107,19 @@ function FXsnrAnalyser:snrs ()
 
             local fname = measurement.output_dir .. "/" .. measurement.node_name 
                             .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
+            print ( fname )
             -- local file = io.open(fname, "wb")
             --file:write ( stats )
             --file:close()
             local ssid_m = self:read_ssid ( measurement.output_dir, measurement.node_name )
-            print ( ssid_m )
-            print ( measurement.node_name )
-            print ( "mac: " .. measurement.node_mac )
-            print ( "macs: " .. table_tostring ( measurement.opposite_macs ) )
+            --print ( ssid_m )
+            --print ( measurement.node_name )
+            --print ( "mac: " .. measurement.node_mac )
+            --print ( "macs: " .. table_tostring ( measurement.opposite_macs ) )
             local cap = pcap.open_offline ( fname )
-            if (cap ~= nil) then
+            if ( cap ~= nil ) then
 	            --cap:set_filter ("type data subtype data", nooptimize)
-	            cap:set_filter ("type mgt subtype beacon", nooptimize)
+	            --cap:set_filter ("type mgt subtype beacon", nooptimize)
             
                 for capdata, timestamp, wirelen in cap.next, cap do
                     local rest = capdata
@@ -135,16 +132,18 @@ function FXsnrAnalyser:snrs ()
 		            local frame_subtype = radiotap_data [ 'subtype' ]
                     local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
                     local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
-                    --if ( ssid == ssid_m
-                        -- and frame_type == 2
-                        --and PCAP.radiotap_data_frametype [ frame_subtype + 1  ] == "DATA"
-                    if ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac )
-                                  or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) then
+                    -- if ( da == "ff:ff:ff:ff:ff:ff" and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil or sa == measurement.node_mac )
+                    --              or ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) ) then
+                    if ( ( ( da == "ff::ff:ff:ff:ff:ff" and ( sa == measurement.node_mac ) )
+                            or ( da == "ff:ff:ff:ff:ff:ff" and misc.index_of ( sa, measurement.opposite_macs ) ~= nil )
+                            or ( da == measurement.node_mac and misc.index_of ( sa, measurement.opposite_macs ) ~= nil )
+                            or ( misc.index_of ( da, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) )
+                        and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ] ) then
                 	    --print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
                         --print ( ssid )
-                        print ( "subtype:" .. frame_subtype )
-                        print ( "type:" .. frame_type )
-                        print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ) )
+                        --print ( "subtype:" .. frame_subtype )
+                        --print ( "type:" .. frame_type )
+                        print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ), frame_type, frame_subtype )
                         --print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
                         if ( radiotap_header ['antenna_signal'] ~= nil ) then
                             snrs [ #snrs + 1 ] = radiotap_header ['antenna_signal']

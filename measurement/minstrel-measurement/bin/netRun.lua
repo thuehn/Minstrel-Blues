@@ -446,9 +446,6 @@ else
     show_config_error ( parser, "command")
 end
 
-pprint ( "init" )
-pprint ( data )
-
 ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
 
 --ctrl_ref:restart_wifi_debug ()

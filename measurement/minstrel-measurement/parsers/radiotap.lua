@@ -43,35 +43,28 @@ PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_PASSIVE" ] = 10
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_DYN" ] = 11
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_GFSK" ] = 12
 
+PCAP.radiotab_frametype = {}
+PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_MGMT" ] = 1
+PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_CTRL" ] = 2
+PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ] = 3
+
 -- type 0: - management frame
 PCAP.radiotap_mgmt_frametype = {}
-PCAP.radiotap_mgmt_frametype [ 1 ] = nil
-PCAP.radiotap_mgmt_frametype [ 2 ] = nil
-PCAP.radiotap_mgmt_frametype [ 3 ] = nil
-PCAP.radiotap_mgmt_frametype [ 4 ] = nil
-PCAP.radiotap_mgmt_frametype [ 5 ] = "PROBE_REQUEST"
-PCAP.radiotap_mgmt_frametype [ 6 ] = "PROBE_RESPONSE"
-PCAP.radiotap_mgmt_frametype [ 7 ] = nil
-PCAP.radiotap_mgmt_frametype [ 8 ] = nil
-PCAP.radiotap_mgmt_frametype [ 9 ] = "BEACON"
-PCAP.radiotap_mgmt_frametype [ 10 ] = nil
-PCAP.radiotap_mgmt_frametype [ 11 ] = nil
-PCAP.radiotap_mgmt_frametype [ 12 ] = nil
-PCAP.radiotap_mgmt_frametype [ 13 ] = nil
-PCAP.radiotap_mgmt_frametype [ 14 ] = "ACTION"
-PCAP.radiotap_mgmt_frametype [ 15 ] = nil
-PCAP.radiotap_mgmt_frametype [ 16 ] = nil
+PCAP.radiotap_mgmt_frametype [ "PROBE_REQUEST" ] = 5
+PCAP.radiotap_mgmt_frametype [ "PROBE_RESPONSE" ] = 6
+PCAP.radiotap_mgmt_frametype [ "BEACON" ] = 9
+PCAP.radiotap_mgmt_frametype [ "ACTION" ] = 14
 
 -- type 1: control frame
 PCAP.radiotap_ctrl_frametype = {}
-PCAP.radiotap_ctrl_frametype [ 10 ] = "80211_BLOCK_ACK"
-PCAP.radiotap_ctrl_frametype [ 14 ] = "ACKNOWLEDGEMENT"
+PCAP.radiotap_ctrl_frametype [ "80211_BLOCK_ACK" ] = 10
+PCAP.radiotap_ctrl_frametype [ "ACKNOWLEDGEMENT" ] = 14
 
 -- type 2: data frame
 PCAP.radiotap_data_frametype = {}
-PCAP.radiotap_data_frametype [ 1 ] = "DATA"
-PCAP.radiotap_data_frametype [ 5 ] = "NULL_FUNCTION"
-PCAP.radiotap_data_frametype [ 9 ] = "QOS_DATA"
+PCAP.radiotap_data_frametype [ "DATA" ] = 1
+PCAP.radiotap_data_frametype [ "NULL_FUNCTION"] = 5
+PCAP.radiotap_data_frametype [ "QOS_DATA" ] = 9
 
 -- converts a number 'mask' with size 'len'
 -- into a string in binary representation

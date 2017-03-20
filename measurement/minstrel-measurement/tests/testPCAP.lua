@@ -11,7 +11,7 @@ print (pcap._LIB_VERSION)
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
 --local fname = "tests/test.pcap"
-local fname = "/home/denis/data-tcp-17.03.2017-4/lede-sta/lede-sta-0-13-1.pcap"
+local fname = "/home/denis/data-udp-19.03.2017-2/lede-sta/lede-sta-0-12-10-10M-1.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
 	--cap:set_filter ("type mgt subtype beacon", nooptimize)
@@ -31,7 +31,8 @@ if (cap ~= nil) then
 		--print ( ssid == "LEDE" )
         local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
         local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
-        if ( true ) then
+        --if ( true ) then
+        if ( frame_type == 2 and frame_subtype == 0 ) then
 --	    if ( ssid == "LEDE" ) then
 --	    if ( ssid == "LEDE"
 --             and ( da == "f4:f2:6d:22:7c:f0" or sa == "f4:f2:6d:22:7c:f0"
