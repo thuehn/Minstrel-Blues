@@ -49,6 +49,7 @@ function parse_dhcp_lease ( ifconfig )
     addr, rest = parse_ipv4 ( rest )
     rest = skip_layout( rest )
     -- allowed chars: a-z, A-Z, 0-9, '-', '.'
+    -- '*' extra
     local add_chars = {}
     add_chars[1] = '*'
     add_chars[2] = '-'

@@ -158,6 +158,7 @@ function Node:add_monitor ( phy )
     local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
     if ( exit_code ~= 0 ) then
         self:send_info ( "Adding monitor " .. mon .. " to " .. phy)
+        self_send_debug ("iw phy " .. phy .. "interface add " .. mon .. " type monitor" )
         local _, exit_code = misc.execute ( "iw", "phy", phy, "interface", "add", mon, "type", "monitor" )
         if ( exit_code ~= 0 ) then
             self:send_error ( "Add monitor failed with exit code: " .. exit_code )
@@ -167,6 +168,7 @@ function Node:add_monitor ( phy )
         self:send_info ( "Monitor " .. mon .. " not added to " .. phy )
     end
     self:send_info ( "enable monitor " .. mon )
+    self:send_debug ( "ifconfig " .. mon .. " up" )
     local _, exit_code = misc.execute ("ifconfig", mon, "up")
     if ( exit_code ~= 0 ) then
         self:send_error ( "add monitor for device " .. phy .. "failed with exit code: " .. exit_code )
@@ -181,6 +183,7 @@ function Node:remove_monitor ( phy )
     local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
     if ( exit_code == 0 ) then
         self:send_info ( "Removing monitor " .. mon .. " from " .. phy )
+        self:send_debug ( "iw dev " .. mon .. " del" )
         local _, exit_code = misc.execute ( "iw", "dev", mon, "del" )
         if (exit_code ~= 0) then
             self:send_error ( "Remove monitor failed with exit code. " .. exit_code )
