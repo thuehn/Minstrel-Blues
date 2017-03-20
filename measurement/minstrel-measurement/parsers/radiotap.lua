@@ -301,6 +301,7 @@ PCAP.parse_radiotap_header = function ( capdata )
     local rest = capdata
 
     --print ( PCAP.to_bytes_hex ( rest ) )
+    --print ()
 
     ret ['it_ver'], rest = PCAP.read_int8 ( rest )
     _, rest = PCAP.read_int8 ( rest ) -- 1 byte padding
@@ -322,18 +323,21 @@ PCAP.parse_radiotap_header = function ( capdata )
         until ( cont == false )
     end
 
-    -- print ( PCAP.to_bytes_hex ( rest ) )
+    --print ( PCAP.to_bytes_hex ( rest ) )
     --print ( )
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_TSFT' ] )  ) ) then
         --align 8
         ret['tsft'], rest = PCAP.read_int64 ( rest )
         -- print ( ret['tsft'] )
     end
-    --print ( PCAP.to_bytes ( rest ) )
+    --tests/test.pcap
+    _, rest = PCAP.read_int32 ( rest )
+    --print ( PCAP.to_bytes_hex ( rest ) )
     --print ( )
-    --tests/test.pcap: _, rest = PCAP.read_int32 ( rest )
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_FLAGS' ] )  ) ) then
         ret['flags'], rest = PCAP.read_int8 ( rest )
+        -- fixme: one byte extra ( maybe padding )
+        --_, rest = PCAP.read_int8 ( rest )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_RATE' ] )  ) ) then
         ret['rate'], rest = PCAP.read_int8 ( rest )
@@ -348,6 +352,8 @@ PCAP.parse_radiotap_header = function ( capdata )
         ret['fhss_hop_pattern'], rest = PCAP.read_int8 ( rest )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_DBM_ANTSIGNAL' ] )  ) ) then
+        --print ( PCAP.to_bytes_hex ( rest ) )
+        --print ()
         ret['antenna_signal'], rest = PCAP.read_int8_signed ( rest )
     end
     if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_DBM_ANTNOISE' ] )  ) ) then

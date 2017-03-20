@@ -138,12 +138,16 @@ function FXsnrAnalyser:snrs ()
                             or ( da == "ff:ff:ff:ff:ff:ff" and misc.index_of ( sa, measurement.opposite_macs ) ~= nil )
                             or ( da == measurement.node_mac and misc.index_of ( sa, measurement.opposite_macs ) ~= nil )
                             or ( misc.index_of ( da, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) )
-                        and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ] ) then
+                        and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ]
+                        and ( frame_subtype + 1 == PCAP.radiotap_data_frametype [ "DATA" ]
+                             or  frame_subtype + 1 == PCAP.radiotap_data_frametype [ "QOS_DATA" ] ) ) then
                 	    --print ( "tsft: " .. ( radiotap_header ['tsft'] or "not present" ) )
                         --print ( ssid )
                         --print ( "subtype:" .. frame_subtype )
                         --print ( "type:" .. frame_type )
-                        print ( "antenna_signal: " .. ( radiotap_header ['antenna_signal'] or "not present" ), frame_type, frame_subtype )
+                        if ( radiotap_header ['antenna_signal'] ~= nil ) then
+                            print ( "antenna_signal: " .. radiotap_header ['antenna_signal'], frame_type, frame_subtype )
+                        end
                         --print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
                         if ( radiotap_header ['antenna_signal'] ~= nil ) then
                             snrs [ #snrs + 1 ] = radiotap_header ['antenna_signal']
