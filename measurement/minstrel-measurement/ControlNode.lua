@@ -13,8 +13,6 @@ require ('NetIF')
 require ('misc')
 require ('Uci')
 
-require ('parsers/ex_process')
-
 require ('AccessPointRef')
 require ('StationRef')
 
