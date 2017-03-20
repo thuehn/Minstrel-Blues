@@ -18,10 +18,11 @@ if (cap ~= nil) then
         -- print ( timestamp, wirelen, #capdata )
         -- pprint ( capdata )
         local rest = capdata
+        local pos = 0
         local radiotap_header
         local radiotap_data
-        radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
-        radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
+        radiotap_header, rest, pos = PCAP.parse_radiotap_header ( rest )
+        radiotap_data, rest, pos = PCAP.parse_radiotap_data ( rest, pos )
 		local ssid = radiotap_data [ 'ssid' ]
 		local frame_type = radiotap_data [ 'type' ]
 		local frame_subtype = radiotap_data [ 'subtype' ]
