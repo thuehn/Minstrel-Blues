@@ -9,7 +9,7 @@ require ('parsers/radiotap')
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
 local fname = "tests/test.pcap"
---local fname = "/home/denis/data-udp-20.03.2017-2/lede-sta/lede-sta-0-9-10-10M-1.pcap"
+local fname = "/home/denis/data-udp-20.03.2017-2/lede-sta/lede-sta-0-9-10-10M-1.pcap"
 local cap = pcap.open_offline( fname )
 if (cap ~= nil) then
 	--cap:set_filter ("type mgt subtype beacon", nooptimize)
