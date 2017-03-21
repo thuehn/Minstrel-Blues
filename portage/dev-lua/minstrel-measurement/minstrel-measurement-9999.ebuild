@@ -23,7 +23,14 @@ DEPEND=">=dev-lang/lua-5.1
 		dev-lua/luarpc
 		dev-lua/luasystem
 		dev-lua/lua-cjson
-		net-dns/bind-tools"
+		sys-process/procps
+		sys-apps/coreutils
+		sys-apps/net-tools
+		net-dns/bind-tools
+		net-wireless/iw
+		net-analyzer/tcpdump
+		<net-misc/iperf-3.0
+		virtual/ssh"
 RDEPEND="${DEPEND}"
 
 src_compile() {

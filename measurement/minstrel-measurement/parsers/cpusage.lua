@@ -1,5 +1,8 @@
 require ('parsers/parsers')
 
+-- TODO: check -o option for csv output
+-- TODO: ebuild: permission denied for tarball 0.41 and before
+
 Cpusage = { timestamp = nil, user = nil, nice = nil 
           , system = nil, idle = nil, iowait = nil
           , irq = nil, softirq = nil
