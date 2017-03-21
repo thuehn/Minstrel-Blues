@@ -158,7 +158,7 @@ function Node:add_monitor ( phy )
     local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
     if ( exit_code ~= 0 ) then
         self:send_info ( "Adding monitor " .. mon .. " to " .. phy)
-        self_send_debug ("iw phy " .. phy .. "interface add " .. mon .. " type monitor" )
+        self:send_debug ("iw phy " .. phy .. "interface add " .. mon .. " type monitor" )
         local _, exit_code = misc.execute ( "iw", "phy", phy, "interface", "add", mon, "type", "monitor" )
         if ( exit_code ~= 0 ) then
             self:send_error ( "Add monitor failed with exit code: " .. exit_code )
