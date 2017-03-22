@@ -24,12 +24,12 @@
  		i = 0;
  	} else {
  		bf->rates[0] = info->control.rates[0];
-+		bf->txpower[0] = info->control.txpower;
++		bf->txpower[0] = info->control.txpower * 2;
  		i = 1;
  	}
  
  	for ( ; i < IEEE80211_TX_MAX_RATES; i++) {
-+		bf->txpower[i] = ratetbl->rate[i].txpower;
++		bf->txpower[i] = ratetbl->rate[i].txpower * 2;
  		bf->rates[i].idx = ratetbl->rate[i].idx;
  		bf->rates[i].flags = ratetbl->rate[i].flags;
  		if (info->control.use_rts)
