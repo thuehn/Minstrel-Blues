@@ -273,7 +273,16 @@ ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
                                  , args.output
                                  )
 
--- TODO: stop when nameserver is not reachable / working
+-- stop when nameserver is not reachable / not working
+if ( nameserver ~= nil or args.nameserver ~= nil ) then
+    local ping_ns, exit_code = misc.execute ( "ping", "-c1", nameserver)
+    if ( exit_code == 0 ) then
+        print ( "Cannot reach nameserver" )
+        os.exit (1)
+    end
+end
+
+
 -- TODO: check known_hosts at control
 
 if ( net.addr == nil ) then
