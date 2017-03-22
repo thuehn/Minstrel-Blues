@@ -275,7 +275,8 @@ ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
 
 -- stop when nameserver is not reachable / not working
 if ( nameserver ~= nil or args.nameserver ~= nil ) then
-    local ping_ns, exit_code = misc.execute ( "ping", "-c1", nameserver)
+    local addr, _ = parse_ipv4 ( nameserver or args.nameserver )
+    local ping_ns, exit_code = misc.execute ( "ping", "-c1", nameserver or args.nameserver )
     if ( exit_code == 0 ) then
         print ( "Cannot reach nameserver" )
         os.exit (1)
