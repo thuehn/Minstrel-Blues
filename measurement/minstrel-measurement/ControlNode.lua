@@ -230,12 +230,16 @@ function ControlNode:reachable ()
 
     local reached = {}
     for _, node in ipairs ( self.node_refs ) do
-        local addr = net.lookup ( node.name )
+        local addr, rest = parse_ipv4 ( node.name )
+        if ( addr == nil ) then
+            -- name is a hostname and no ip addr
+            addr = net.lookup ( node.name )
+        end
         if ( addr == nil ) then
             break
         end
         node.ctrl.addr = addr
-        if node_reachable ( addr ) then
+        if ( node_reachable ( addr ) ) then
             reached [ node.name ] = true
         else
             reached [ node.name ] = false

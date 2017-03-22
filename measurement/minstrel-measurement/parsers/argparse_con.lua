@@ -3,6 +3,7 @@ require ('parsers/parsers')
 -- parse command line option 'con' value
 -- --con hostname=hostname
 -- --con hostname=hostname,hostname
+-- ip adresses are allowed instread of hostnames
 
 function parse_argparse_con ( str )
     local rest = str

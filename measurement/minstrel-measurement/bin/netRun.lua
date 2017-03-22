@@ -43,8 +43,8 @@ parser:argument("command", "tcp, udp, mcast, noop")
 
 parser:option ("-c --config", "config file name", nil)
 
-parser:option("--sta", "Station host name"):count("*")
-parser:option("--ap", "Access Point host name"):count("*")
+parser:option("--sta", "Station host name or ip address"):count("*")
+parser:option("--ap", "Access Point host name or ip address"):count("*")
 parser:option("--con", "Connection between APs and STAs, format: ap_name=sta_name1,sta_name2"):count("*")
 
 parser:option ("--sta_radio", "STA Wifi Interface name")
@@ -53,15 +53,13 @@ parser:option ("--sta_ctrl_if", "STA Control Interface")
 parser:option ("--ap_radio", "AP Wifi Interface name")
 parser:option ("--ap_ctrl_if", "AP Control Monitor Interface")
 
-parser:option ("--ctrl", "Control node host name" )
-parser:option ("--ctrl_ip", "IP of Control node" )
+parser:option ("--ctrl", "Control node host name or ip address" )
 parser:option ("--ctrl_if", "RPC Interface of Control node" )
 parser:option ("-C --ctrl_port", "Port for control RPC", "12346" )
 parser:flag ("--ctrl_only", "Just connect with control node", false )
 
-parser:option ("--log", "Logger host name")
-parser:option ("--log_ip", "IP of Logging node" )
-parser:option ("--log_if", "RPC Interface of Logging node" )
+--parser:option ("--log", "Logger host name or ip address")
+--parser:option ("--log_if", "RPC Interface of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "measurement.log" )
 
@@ -140,7 +138,7 @@ if ( has_config ) then
     Config.read_connections ( args.con )
 
     Config.set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
-    Config.set_config_from_arg ( log, 'ctrl_if', args.log_if )
+--    Config.set_config_from_arg ( log, 'ctrl_if', args.log_if )
     
     ap_setups = Config.accesspoints ( nodes, connections )
     Config.set_configs_from_arg ( ap_setups, 'radio', args.ap_radio )
@@ -267,12 +265,14 @@ end
 -- local ctrl iface
 net = NetIF:create ( "eth0" )
 net:get_addr()
+
+-- remote control node interface
 ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
-                                 , ctrl_config['ctrl_if'], args.ctrl_ip
+                                 , ctrl_config['ctrl_if']
+                                 , ctrl_ip
                                  , args.output
                                  )
 
--- TODO: allow IP and Hostname config
 -- TODO: stop when nameserver is not reachable / working
 -- TODO: check known_hosts at control
 

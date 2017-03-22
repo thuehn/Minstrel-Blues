@@ -2,6 +2,8 @@
 -- without error handling to read command line outputs
 -- and without tokenizer (scanner)
 
+local pprint = require ('pprint')
+
 -- returns first char of a string
 -- pre: string.len ( str ) > 0
 function shead ( str )
@@ -48,6 +50,9 @@ function parse_num ( str )
         if ( is_num ( ft ) or ( string.len ( num ) == 0 and ft == '-' ) ) then
             return parse ( stail ( parsed ), num .. ft )
         else
+            if ( num == "" ) then
+                return nil, str
+            end
             return num, parsed
         end
      end
@@ -247,6 +252,9 @@ function parse_ipv4 ( str )
     num3, rest = parse_num( rest )
     state, rest = parse_str( rest, "." )
     num4, rest = parse_num( rest )
+    if ( num1 == nil or num2 == nil or num3 == nil or num4 == nil ) then
+        return nil, str
+    end
     return num1 .. "." .. num2 .. "." .. num3 .. "." .. num4, rest
 end
 
