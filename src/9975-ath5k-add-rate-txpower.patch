@@ -33,10 +33,10 @@
  	hw_rate = ath5k_get_rate_hw_value(ah->hw, info, bf, 0);
  
 +	if (info->control.rates[0].idx >= 0) {
-+		bf->txpower = info->control.txpower;
++		bf->txpower = info->control.txpower * 2;
 +	} else {
 +		ratetbl = rcu_dereference(control->sta->rates);
-+		bf->txpower = ratetbl->rate[0].txpower;
++		bf->txpower = ratetbl->rate[0].txpower * 2;
 +	}
 +
  	pktlen = skb->len;
