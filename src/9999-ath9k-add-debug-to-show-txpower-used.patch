@@ -4,7 +4,7 @@
  		return;
  	}
  
-+printk(KERN_ERR "txpower[0]= %i  txpower[1]= %i  txpower[2]= %i  txpower[3]= %i \n", i->txpower[0], i->txpower[1], i->txpower[2], i->txpower[3]);
++printk(KERN_DEBUG "txpower[0]= %i  txpower[1]= %i  txpower[2]= %i  txpower[3]= %i \n", i->txpower[0], i->txpower[1], i->txpower[2], i->txpower[3]);
 +
  	WRITE_ONCE(ads->ctl11, (i->pkt_len & AR_FrameLen)
  		| (i->flags & ATH9K_TXDESC_VMF ? AR_VirtMoreFrag : 0)
