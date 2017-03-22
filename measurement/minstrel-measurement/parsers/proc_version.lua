@@ -65,7 +65,9 @@ function parse_proc_version ( str )
     c = shead ( rest )
     if ( c == '-' ) then
         rest = stail ( rest )
-        ide, rest = parse_ide ( rest )
+		local add_chars = {}
+		add_chars[1] = '-'
+        ide, rest = parse_ide ( rest, add_chars )
         lx_version = lx_version .. "-" .. ide
     end 
 

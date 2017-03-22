@@ -143,10 +143,29 @@ function Node:get_ssid ( phy )
     return nil, nil
 end
 
-function Node:restart_wifi()
-    local wifi, err = misc.execute ( "/sbin/wifi" )
-    self:send_info( "restart wifi: " .. wifi )
-    return true
+function Node:restart_wifi( phy )
+    print ( self.proc_version.system )
+    if ( self.proc_version.system == "LEDE" ) then
+        local wifi, err = misc.execute ( "/sbin/wifi" )
+        self:send_info( "restart wifi: " .. wifi )
+        return true
+    elseif ( self.proc_version.system == "Gentoo" ) then
+        if ( phy == nil ) then
+            self:send_error ( "phy argument is not set" )
+            return false
+        end
+        local dev = self:find_wifi_device ( phy )
+        local iface = dev.iface
+        local init_script = "/etc/init.d/net." .. iface
+        if ( isFile ( init_script ) ) then
+            local wifi, err = misc.execute ( init_script, "restart")
+            self:send_info( "restart wifi (" .. iface .. "): " .. ( wifi or "none" ) )
+            return ( err == 0 )
+        end
+        self:send_debug ( "Cannot restart wifi. No init script found for phy " .. phy )
+        return false
+    end
+    return false
 end
 
 -- iw dev mon0 info
@@ -456,7 +475,7 @@ function Node:get_tx_power ( phy, station )
 end
 
 -- /etc/config/wireless: add  option txpower '20' to config wifi-device 'radio{0,1}' section
--- needs "/sbin/wifi;" call after
+-- needs restart_wifi ("/sbin/wifi;") call after
 function Node:set_global_tx_power ( phy, tx_power )
     local var = "wireless.radio"
     var = var .. string.sub ( phy, 4, string.len ( phy ) )

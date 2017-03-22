@@ -21,3 +21,15 @@ assert ( lede_sys.system == "LEDE" )
 assert ( lede_sys.num_cpu == 0 ) --?
 assert ( lede_sys.smp_enabled == false )
 assert ( lede_sys.date == "Fri Feb 17 09:30:48 2017" )
+
+local gentoo_sys2 = parse_proc_version ("Linux version 4.9.6-gentoo-r1 (root@sinope) (gcc version 4.9.4 (Gentoo 4.9.4 p1.0, pie-0.6.4) ) #1 SMP Fri Mar 10 06:05:17 CET 2017")
+
+print ( gentoo_sys2 )
+
+assert ( gentoo_sys2.lx_version == "4.9.6-gentoo-r1" )
+assert ( gentoo_sys2.lx_build_user == "root@sinope" )
+assert ( gentoo_sys2.gcc_version == "4.9.4" )
+assert ( gentoo_sys2.system == "Gentoo" )
+assert ( gentoo_sys2.num_cpu == 1 )
+assert ( gentoo_sys2.smp_enabled == true )
+assert ( gentoo_sys2.date == "Fri Mar 10 06:05:17 CET 2017" )

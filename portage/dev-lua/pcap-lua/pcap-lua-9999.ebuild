@@ -1,3 +1,8 @@
+# TODO
+#Package lua5.1 was not found in the pkg-config search path.
+#Perhaps you should add the directory containing `lua5.1.pc'
+#to the PKG_CONFIG_PATH environment variable
+#No package 'lua5.1' found
 
 EAPI=5
 inherit multilib toolchain-funcs git-2

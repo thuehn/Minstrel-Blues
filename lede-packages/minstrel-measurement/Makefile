@@ -23,6 +23,13 @@ PKG_SOURCE_VERSION:=master
 
 include $(INCLUDE_DIR)/package.mk
 
+# CONFIG_PACKAGE_kmod_cfg80211
+# CONFIG_PACKAGE_kmod_mac80211
+# CONFIG_PACKAGE_kmod_cfg80211_DEBUGFS
+# CONFIG_PACKAGE_kmod_ath
+# CONFIG_PACKAGE_kmod_ath5k
+# CONFIG_PACKAGE_kmod_ath9k
+# CONFIG_PACKAGE_ATH_DEBUG
 define Package/minstrel-measurement
 	SUBMENU:=Lua
 	SECTION:=lang

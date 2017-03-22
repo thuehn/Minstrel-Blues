@@ -1,6 +1,6 @@
 
 EAPI=5
-inherit multilib toolchain-funcs git-2
+inherit multilib toolchain-funcs git-2 linux-info
 
 DESCRIPTION="Minstrel measurement for Lua 5.1"
 HOMEPAGE="https://github.com/thuehn/Minstrel-Blues"
@@ -32,6 +32,14 @@ DEPEND=">=dev-lang/lua-5.1
 		<net-misc/iperf-3.0
 		virtual/ssh"
 RDEPEND="${DEPEND}"
+
+# https://devmanual.gentoo.org/eclass-reference/linux-info.eclass/
+# CFG80211
+# RT2800USB
+# RT2X00_LIB_DEBUGFS
+CONFIG_CHECK="
+	~ATH9K_DEBUGFS
+	CFG80211_DEBUGFS"
 
 src_compile() {
 	cd ${S}/measurement/minstrel-measurement
