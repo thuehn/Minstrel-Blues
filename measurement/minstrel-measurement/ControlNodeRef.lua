@@ -193,7 +193,7 @@ function ControlNodeRef:start ( ctrl_port, log_file, log_port )
     local cmd = {}
     cmd [1] = "lua"
     cmd [2] = "/usr/bin/runControl"
-    cmd [3] = "--port "
+    cmd [3] = "--port"
     cmd [4] = ctrl_port 
     cmd [5] = "--ctrl_if"
     cmd [6] = self.ctrl.iface

@@ -272,6 +272,19 @@ ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
                                  , args.output
                                  )
 
+-- TODO: allow IP and Hostname config
+-- TODO: stop when nameserver is not reachable / working
+-- TODO: check known_hosts at control
+
+if ( net.addr == nil ) then
+    print ( "Cannot get IP address of local interface" )
+    os.exit (1)
+end
+if ( ctrl_ref.ctrl.addr == nil ) then
+    print ( "Cannot get IP address of control node" )
+    os.exit (1)
+end
+
 if ( args.disable_autostart == false ) then
     if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
         ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port, args.log_file, args.log_port )
