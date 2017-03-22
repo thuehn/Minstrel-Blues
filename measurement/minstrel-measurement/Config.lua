@@ -1,4 +1,6 @@
 
+local net = require ('Net')
+require ('parsers/parsers')
 require ('parsers/argparse_con')
 
 -- globals
@@ -10,7 +12,15 @@ Config = {}
 
 Config.find_node = function ( name, nodes ) 
     for _, node in ipairs ( nodes ) do 
-        if ( node.name == name ) then return node end 
+        if ( node.name == name ) then 
+            return node 
+        else
+            local addr, rest = parse_ipv4 ( name )
+            local addr2 = net.lookup ( node.name )
+            if ( addr == addr2 ) then
+                return node
+            end
+        end 
     end
     return nil
 end
