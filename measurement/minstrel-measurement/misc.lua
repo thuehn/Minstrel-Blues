@@ -65,6 +65,24 @@ Misc.key_of = function ( value, table )
     return nil
 end
 
+Misc.Set = function ( list )
+      local set = {}
+      for _, l in ipairs ( list ) do set [ l ] = true end
+      return set
+end
+
+Misc.Set_count = function ( list )
+      local set = {}
+      for _, l in ipairs ( list ) do
+        local count = 1
+        if ( set [ l ] ~= nil ) then
+            count = set [ l ] + 1
+        end
+        set [ l ] = count
+      end
+      return set
+end
+
 function copy_map ( from )
     to = {}
     if ( from ~= nil ) then

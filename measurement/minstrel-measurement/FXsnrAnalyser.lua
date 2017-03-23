@@ -129,7 +129,7 @@ function FXsnrAnalyser:snrs ()
             if ( cap ~= nil ) then
 	            --cap:set_filter ("type data subtype data", nooptimize)
 	            --cap:set_filter ("type mgt subtype beacon", nooptimize)
-            
+
                 local no = 1
                 for capdata, timestamp, wirelen in cap.next, cap do
 
@@ -164,9 +164,9 @@ function FXsnrAnalyser:snrs ()
                         --print ( "subtype:" .. frame_subtype )
                         --print ( "type:" .. frame_type )
                         --print ( sa, da )
-                        if ( radiotap_header ['antenna_signal'] ~= nil ) then
-                            print ( "antenna_signal: " .. radiotap_header ['antenna_signal'] )
-                        end
+                        --if ( radiotap_header ['antenna_signal'] ~= nil ) then
+                        --    print ( "antenna_signal: " .. radiotap_header ['antenna_signal'] )
+                        --end
                         --print ( "rate: " .. ( radiotap_header ['rate'] or "not present" ) )
                         if ( radiotap_header ['antenna_signal'] ~= nil ) then
                             snrs [ #snrs + 1 ] = radiotap_header ['antenna_signal']
@@ -180,6 +180,11 @@ function FXsnrAnalyser:snrs ()
             end
 
             if ( table_size ( snrs ) > 0 ) then
+                local unique_snrs = misc.Set_count ( snrs )
+                for snr, count in pairs ( unique_snrs ) do
+                    print ( "antenna signal: " .. snr, count )
+                end
+
                 ret [ power .. "-" .. rate .. "-MIN" ] = self:min ( snrs )
                 ret [ power .. "-" .. rate .. "-MAX" ] = self:max ( snrs )
                 ret [ power .. "-" .. rate .. "-AVG" ] = self:avg ( snrs )

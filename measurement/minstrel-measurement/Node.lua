@@ -718,7 +718,6 @@ function Node:start_tcpdump ( phy, fname )
     --local snaplen = 0 -- 262144
     --local snaplen = 150
     local snaplen = 256
-    local snaplen = 512
     self:send_info ( "start tcpdump for " .. mon .. " writing to " .. fname )
     self:send_debug ( tcpdump_bin .. " -i " .. mon .. " -s " .. snaplen .. " -U -w " .. fname )
     local pid, stdin, stdout = misc.spawn ( tcpdump_bin, "-i", mon, "-s", snaplen, "-U", "-w", fname )
