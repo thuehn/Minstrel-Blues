@@ -129,7 +129,9 @@ function NodeBase:kill ( pid, signal )
     if ( self.parent_pid ( pid ) == lua_pid ) then
         if ( signal ~= nil ) then
             ps.kill ( pid, signal )
+            ps.kill ( pid, signal )
         else
+            ps.kill ( pid )
             ps.kill ( pid )
         end
         return true

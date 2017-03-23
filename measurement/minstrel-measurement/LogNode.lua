@@ -67,10 +67,26 @@ end
 -- param from: name of the sender
 -- param msg: the message string to pass to logger
 function LogNode:send ( msgtype, from, msg )
+    local prefix = os.time () .. " " .. msgtype .. " : " .. from .. " : "
+    local lines = ""
     if ( string.len ( msg ) > 80 ) then
-       msg = (msg):gsub(("."):rep(80),"%1\n"):sub(1,-2) 
+        local msg_noindent
+        if ( string.find ( msg, "\n" ) == nil ) then
+            msg_noindent = ( msg ):gsub ( ("."):rep ( 80 ),"%1\n" ):sub ( 1, -2 )
+        else
+            msg_noindent = msg
+        end
+        local tab = string.rep (" ", string.len ( prefix ) )
+        for i, part in ipairs ( split ( msg_noindent, "\n" ) ) do
+            if ( i > 1 ) then
+                lines = lines .. tab
+            end
+            lines = lines .. part .. "\n"
+        end
+    else
+        lines = msg
     end
-    local ret = os.time() .. " " .. msgtype .. " : " .. from .. " : " .. ( msg or "" )
+    local ret = prefix .. ( lines or "" )
     if ( self.use_stdout == true ) then
         print ( ret )
     end
