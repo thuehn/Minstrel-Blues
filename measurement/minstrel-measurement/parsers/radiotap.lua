@@ -43,10 +43,10 @@ PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_PASSIVE" ] = 10
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_DYN" ] = 11
 PCAP.radiotap_chan_flags [ "IEEE80211_CHAN_GFSK" ] = 12
 
-PCAP.radiotab_frametype = {}
-PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_MGMT" ] = 1
-PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_CTRL" ] = 2
-PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ] = 3
+PCAP.radiotap_frametype = {}
+PCAP.radiotap_frametype [ "IEEE80211_FRAMETYPE_MGMT" ] = 1
+PCAP.radiotap_frametype [ "IEEE80211_FRAMETYPE_CTRL" ] = 2
+PCAP.radiotap_frametype [ "IEEE80211_FRAMETYPE_DATA" ] = 3
 
 -- type 0: - management frame
 PCAP.radiotap_mgmt_frametype = {}

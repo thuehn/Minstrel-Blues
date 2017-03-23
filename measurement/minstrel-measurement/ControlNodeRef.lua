@@ -21,10 +21,10 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create( name, ctrl_if, output_dir )
+function ControlNodeRef:create ( name, ctrl_if, output_dir )
     -- ctrl node iface, ctrl node (name) lookup
     local ctrl_net = NetIF:create ( ctrl_if )
-    local ctrl_ip, rest = parse_ipv4 ( ctrl_config['name'] )
+    local ctrl_ip, rest = parse_ipv4 ( name )
     ctrl_net.addr = ctrl_ip
     if ( ctrl_net.addr == nil ) then
         -- name is a host name (and bo ip address)

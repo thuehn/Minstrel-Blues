@@ -34,7 +34,7 @@ if (cap ~= nil) then
 --                or ( da == "ff:ff:ff:ff:ff:ff" and sa == "a0:f3:c1:64:81:7b" )
 --                or ( da == "f4:f2:6d:22:7c:f0" and sa == "a0:f3:c1:64:81:7b" )
 --                or ( da == "a0:f3:c1:64:81:7b" and sa == "f4:f2:6d:22:7c:f0" ) )
---            and frame_type + 1 == PCAP.radiotab_frametype [ "IEEE80211_FRAMETYPE_DATA" ]
+--            and frame_type + 1 == PCAP.radiotap_frametype [ "IEEE80211_FRAMETYPE_DATA" ]
 --            and ( frame_subtype + 1 == PCAP.radiotap_data_frametype [ "DATA" ]
 --                 or  frame_subtype + 1 == PCAP.radiotap_data_frametype [ "QOS_DATA" ] ) ) then
         if ( true ) then

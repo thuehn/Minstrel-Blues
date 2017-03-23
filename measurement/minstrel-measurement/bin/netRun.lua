@@ -269,15 +269,14 @@ net:get_addr()
 -- remote control node interface
 ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
                                  , ctrl_config['ctrl_if']
-                                 , ctrl_ip
                                  , args.output
                                  )
 
 -- stop when nameserver is not reachable / not working
 if ( nameserver ~= nil or args.nameserver ~= nil ) then
     local addr, _ = parse_ipv4 ( nameserver or args.nameserver )
-    local ping_ns, exit_code = misc.execute ( "ping", "-c1", nameserver or args.nameserver )
-    if ( exit_code == 0 ) then
+    local ping_ns, exit_code = Misc.execute ( "ping", "-c1", nameserver or args.nameserver )
+    if ( exit_code ~= 0 ) then
         print ( "Cannot reach nameserver" )
         os.exit (1)
     end
@@ -415,6 +414,7 @@ if ( all_linked == false ) then
     os.exit (1)
 end
 
+--[[
 -- check bridges
 local all_bridgeless = ctrl_ref:check_bridges()
 if ( not all_bridgeless ) then
@@ -422,6 +422,7 @@ if ( not all_bridgeless ) then
     cleanup ()
     os.exit (1)
 end
+--]]
 
 print()
 
