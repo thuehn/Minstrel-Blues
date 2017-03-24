@@ -25,7 +25,7 @@
  		return;
  #endif
  
-@@ -450,6 +459,11 @@ minstrel_get_rate(void *priv, struct iee
+@@ -445,6 +454,11 @@ minstrel_get_rate(void *priv, struct iee
  	sampling_setup->idx = mi->r[sampling_ndx].rix;
  	sampling_setup->count = minstrel_get_retry_count(&mi->r[sampling_ndx],
  	                                                 info);

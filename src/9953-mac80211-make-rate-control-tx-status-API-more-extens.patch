@@ -140,7 +140,7 @@
  	struct minstrel_priv *mp = priv;
  	struct minstrel_sta_info *mi = priv_sta;
  	struct ieee80211_tx_rate *ar = info->status.rates;
-@@ -746,7 +746,7 @@ static u32 minstrel_get_expected_through
+@@ -741,7 +741,7 @@ static u32 minstrel_get_expected_through
  
  const struct rate_control_ops mac80211_minstrel = {
  	.name = "minstrel",

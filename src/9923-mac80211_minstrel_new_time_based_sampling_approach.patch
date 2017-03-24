@@ -111,7 +111,7 @@
  static int
  minstrel_get_next_sample(struct minstrel_sta_info *mi)
  {
-@@ -343,30 +365,25 @@ minstrel_get_rate(void *priv, struct iee
+@@ -343,27 +365,16 @@ minstrel_get_rate(void *priv, struct iee
  	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
  	struct minstrel_sta_info *mi = priv_sta;
  	struct minstrel_priv *mp = priv;
@@ -143,16 +143,7 @@
  	/* increase sum packet counter */
  	mi->total_packets++;
  
-+	/* avoid overflowing packet counters */
-+	if (mi->total_packets == ~0) {
-+		mi->sample_packets = 0;
-+		mi->total_packets = 0;
-+	}
-+
- #ifdef CPTCFG_MAC80211_DEBUGFS
- 	if (mp->fixed_rate_idx != -1)
- 		return;
-@@ -381,77 +398,50 @@ minstrel_get_rate(void *priv, struct iee
+@@ -382,77 +393,50 @@ minstrel_get_rate(void *priv, struct iee
  	if (mp->hw->max_rates == 1 &&
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
  		return;
@@ -267,7 +258,7 @@
  static void
  calc_rate_durations(enum nl80211_band band,
  		    struct minstrel_rate *d,
-@@ -577,6 +567,7 @@ minstrel_rate_init(void *priv, struct ie
+@@ -578,6 +562,7 @@ minstrel_rate_init(void *priv, struct ie
  
  	mi->n_rates = n;
  	mi->last_stats_update = jiffies;
@@ -275,7 +266,7 @@
  
  	init_sample_table(mi);
  	minstrel_update_rates(mp, mi);
-@@ -611,6 +602,8 @@ minstrel_alloc_sta(void *priv, struct ie
+@@ -612,6 +597,8 @@ minstrel_alloc_sta(void *priv, struct ie
  		goto error1;
  
  	mi->last_stats_update = jiffies;
@@ -284,7 +275,7 @@
  	return mi;
  
  error1:
-@@ -676,12 +669,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
+@@ -677,12 +664,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
  	mp->cw_min = 15;
  	mp->cw_max = 1023;
  
@@ -297,7 +288,7 @@
  	/* maximum time that the hw is allowed to stay in one MRR segment */
  	mp->segment_size = 6000;
  
-@@ -695,7 +682,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
+@@ -696,7 +677,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
  		mp->has_mrr = true;
  
  	mp->hw = hw;
