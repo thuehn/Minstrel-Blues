@@ -146,10 +146,31 @@
  	/* try to sample all available rates during each interval */
  	mi->sample_count *= 8;
  
-@@ -629,27 +571,101 @@ minstrel_set_next_sample_idx(struct mins
+@@ -629,27 +571,112 @@ minstrel_set_next_sample_idx(struct mins
  	}
  }
  
++static inline bool
++minstrel_LGI_is_in_use(int cur_flags, int tmp_flags, int cur_streams,
++		       int tmp_streams)
++{
++
++	if ((cur_flags & IEEE80211_TX_RC_SHORT_GI) &&
++	     !(tmp_flags & IEEE80211_TX_RC_SHORT_GI) &&
++	    (((cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) ==
++	      (tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH)) ||
++	     ((cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) ==
++	      (tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)) ||
++	     ((!(cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) ==
++	      !(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH)) &&
++	      (!(cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) ==
++	      !(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)))) &&
++	    (cur_streams == tmp_streams))
++		return true;
++	else
++		return false;
++}
++
 +/*
 + * Downgrading a rate is done based on the mrr capabilities. If possible we
 + * first switche from SGI to LGI, second lower HT40 to HT20 and last reduce
@@ -185,14 +206,14 @@
 +
 +	cur_flags = minstrel_mcs_groups[cur_group].flags;
 +	cur_streams = minstrel_mcs_groups[cur_group].streams;
- 
--		if (minstrel_mcs_groups[group].streams >
--		    minstrel_mcs_groups[orig_group].streams)
++
 +	/* Ignore CCK group and lowest single stream rate */
 +	if ((cur_group == MINSTREL_CCK_GROUP) ||
 +	    (cur_idx == 0 && cur_streams == 1))
 +		return;
-+
+ 
+-		if (minstrel_mcs_groups[group].streams >
+-		    minstrel_mcs_groups[orig_group].streams)
 +	while (tmp_group > 0) {
 +		tmp_group--;
 +		tmp_flags = minstrel_mcs_groups[tmp_group].flags;
@@ -207,17 +228,8 @@
 -			*idx = mi->groups[group].max_group_tp_rate[1];
 -		break;
 +		/* first try to switch from SGI to LGI */
-+		if ((cur_flags & IEEE80211_TX_RC_SHORT_GI) &&
-+			!(tmp_flags & IEEE80211_TX_RC_SHORT_GI) &&
-+			(((cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) ==
-+			(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH)) ||
-+			((cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) ==
-+			(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)) ||
-+			((!(cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) ==
-+			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH)) &&
-+			(!(cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) ==
-+			!(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH)))) &&
-+			(cur_streams == tmp_streams)) {
++		if (minstrel_LGI_is_in_use(cur_flags, tmp_flags, cur_streams,
++		    tmp_streams)) {
 +			if (mp->has_mrr) {
 +				mi->max_prob_rate = tmp_group *
 +					MCS_GROUP_RATES + cur_idx;
@@ -228,7 +240,21 @@
 +			break;
 +		}
 +
-+		/* second try to switch from HT80 to HT40 to HT20 */
++		/* second try to decrease number of spacial streams used */
++		if ((cur_streams > 1) &&
++		    !(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) &&
++		    !(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
++		    !(tmp_flags & IEEE80211_TX_RC_SHORT_GI)) {
++			if (mp->has_mrr) {
++				mi->max_prob_rate = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++			} else {
++				mi->max_tp_rate[0] = tmp_group *
++					MCS_GROUP_RATES + cur_idx;
++			}
++			break;
++		}
++		/* third try to reduce channel bw from HT80 to HT40 to HT20 */
 +		if ((((cur_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) && (tmp_flags &
 +			IEEE80211_TX_RC_40_MHZ_WIDTH)) ||
 +			((cur_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
@@ -244,25 +270,10 @@
 +			}
 +			break;
 +		}
-+
-+		/* third try to reduce number of used streams by 1 */
-+		if ((cur_streams > 1) &&
-+			!(tmp_flags & IEEE80211_TX_RC_80_MHZ_WIDTH) &&
-+			!(tmp_flags & IEEE80211_TX_RC_40_MHZ_WIDTH) &&
-+			!(tmp_flags & IEEE80211_TX_RC_SHORT_GI)) {
-+			if (mp->has_mrr) {
-+				mi->max_prob_rate = tmp_group *
-+					MCS_GROUP_RATES + cur_idx;
-+			} else {
-+				mi->max_tp_rate[0] = tmp_group *
-+					MCS_GROUP_RATES + cur_idx;
-+			}
-+			break;
-+		}
  	}
  }
  
-@@ -684,7 +700,7 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -684,7 +711,7 @@ minstrel_ht_tx_status(void *priv, struct
  	struct minstrel_ht_sta_priv *msp = priv_sta;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct ieee80211_tx_rate *ar = info->status.rates;
@@ -271,7 +282,7 @@
  	struct minstrel_priv *mp = priv;
  	bool last, update = false;
  	int i;
-@@ -730,23 +746,23 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -730,23 +757,23 @@ minstrel_ht_tx_status(void *priv, struct
  	}
  
  	/*

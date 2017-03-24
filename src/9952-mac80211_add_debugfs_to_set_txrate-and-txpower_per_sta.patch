@@ -25,7 +25,7 @@
  		return;
  #endif
  
-@@ -445,6 +454,11 @@ minstrel_get_rate(void *priv, struct iee
+@@ -446,6 +455,11 @@ minstrel_get_rate(void *priv, struct iee
  	sampling_setup->idx = mi->r[sampling_ndx].rix;
  	sampling_setup->count = minstrel_get_retry_count(&mi->r[sampling_ndx],
  	                                                 info);
@@ -76,7 +76,7 @@
  }
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -829,6 +829,9 @@ minstrel_ht_set_rate(struct minstrel_pri
+@@ -840,6 +840,9 @@ minstrel_ht_set_rate(struct minstrel_pri
  	u8 idx;
  	u16 flags = group->flags;
  
@@ -86,7 +86,7 @@
  	mrs = minstrel_get_ratestats(mi, index);
  	if (!mrs->retry_updated)
  		minstrel_calc_retransmit(mp, mi, index);
-@@ -862,6 +865,15 @@ minstrel_ht_set_rate(struct minstrel_pri
+@@ -873,6 +876,15 @@ minstrel_ht_set_rate(struct minstrel_pri
  
  	ratetbl->rate[offset].idx = idx;
  	ratetbl->rate[offset].flags = flags;
@@ -102,7 +102,7 @@
  }
  
  static inline int
-@@ -1043,7 +1055,7 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1054,7 +1066,7 @@ minstrel_ht_get_rate(void *priv, struct
  	info->flags |= mi->tx_flags;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -111,7 +111,7 @@
  		return;
  #endif
  
-@@ -1145,6 +1157,12 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1156,6 +1168,12 @@ minstrel_ht_get_rate(void *priv, struct
  		mi->sample_packets++;
  		info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
  
