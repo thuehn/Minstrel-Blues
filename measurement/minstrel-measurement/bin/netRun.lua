@@ -58,6 +58,8 @@ parser:option ("--ctrl_if", "RPC Interface of Control node" )
 parser:option ("-C --ctrl_port", "Port for control RPC", "12346" )
 parser:flag ("--ctrl_only", "Just connect with control node", false )
 
+parser:option ("--net_if", "Used network interface", "eth0" )
+
 --parser:option ("--log", "Logger host name or ip address")
 --parser:option ("--log_if", "RPC Interface of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
@@ -263,7 +265,7 @@ function cleanup ()
 end
 
 -- local ctrl iface
-net = NetIF:create ( "eth0" )
+net = NetIF:create ( args.net_if )
 net:get_addr()
 
 -- remote control node interface
