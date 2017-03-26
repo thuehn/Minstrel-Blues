@@ -6,7 +6,7 @@
  	ratetbl->rate[offset].count_rts = r->stats.retry_count_rtscts;
 +#ifdef CPTCFG_MAC80211_DEBUGFS
 +	/* use fixed txpower if set */
-+	if (mi->fixed_txpower < 0xff)
++	if (mi->fixed_txpower < SHRT_MAX)
 +		ratetbl->rate[offset].txpower = mi->fixed_txpower;
 +
 +	/* use fixed txrate per sta if set */
@@ -31,7 +31,7 @@
  	                                                 info);
 +#ifdef CPTCFG_MAC80211_DEBUGFS
 +	/* use fixed txpower for rate sampling packets if set */
-+	if (mi->fixed_txpower < 0xff)
++	if (mi->fixed_txpower < SHRT_MAX)
 +		info->control.txpower = mi->fixed_txpower;
 +#endif
  }
