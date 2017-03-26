@@ -56,10 +56,10 @@
  
  	mi->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO, dir,
  			mi, &minstrel_stat_csv_fops);
-+	mi->fixed_txpower = 0xff;
++	mi->fixed_txpower = SHRT_MAX;
 +	mi->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
 +			S_IRUGO | S_IWUGO, dir, &mi->fixed_txpower);
-+	mi->fixed_txrate = -1;
++	mi->fixed_txrate = (u32) -1;
 +	mi->dbg_fixed_txrate = debugfs_create_u32("fixed_txrate",
 +			S_IRUGO | S_IWUGO, dir, &mi->fixed_txrate);
  }
@@ -93,7 +93,7 @@
 +#ifdef CPTCFG_MAC80211_DEBUGFS
 +        /* use fixed txpower if set */
 +	msp = container_of(mi,struct minstrel_ht_sta_priv, ht);
-+        if (msp->fixed_txpower < 0xff)
++        if (msp->fixed_txpower < SHRT_MAX)
 +                ratetbl->rate[offset].txpower = msp->fixed_txpower;
 +	/* use fixed txrate per sta if set */
 +	if (msp->fixed_txrate != -1)
@@ -117,7 +117,7 @@
  
 +#ifdef CPTCFG_MAC80211_DEBUGFS
 +		/* use fixed txpower for rate sampling packets if set */
-+		if (msp->fixed_txpower < 0xff)
++		if (msp->fixed_txpower < SHRT_MAX)
 +			info->control.txpower = msp->fixed_txpower;
 +#endif
 +
@@ -143,10 +143,10 @@
  			&minstrel_ht_stat_fops);
  	msp->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO,
  			     dir, msp, &minstrel_ht_stat_csv_fops);
-+	msp->fixed_txpower = 0xff;
++	msp->fixed_txpower = SHRT_MAX;
 +	msp->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
 +			S_IRUGO | S_IWUGO, dir, &msp->fixed_txpower);
-+	msp->fixed_txrate = -1;
++	msp->fixed_txrate = (u32) -1;
 +	msp->dbg_fixed_txrate = debugfs_create_u32("fixed_txrate",
 +			S_IRUGO | S_IWUGO, dir, &msp->fixed_txrate);
  }
