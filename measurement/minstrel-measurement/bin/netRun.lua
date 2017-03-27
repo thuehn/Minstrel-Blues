@@ -7,9 +7,8 @@
 -- sample rate rc_stats, regmon-stats, cpusage (how many updates / second) from luci regmon
 -- init scripts for nodes
 -- io.tmpfile () for writing pcaps?
--- filter pcap by AP and STA mac (bssid)
 -- convert signal / rssi : http://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
---  rssi is an estimate value and is detemined periodically (temperature changes ambient/background nois in the chip)
+--  rssi is an estimated value and is detemined periodically (temperature changes ambient/background noise in the chip)
 -- Rserve / lua Rclient
 -- plot (line) signal by powers with fixed rate in one diagram
 --  - rate, adjusted txpower, signal
@@ -39,7 +38,7 @@ local parser = argparse( "netRun", "Run minstrel blues multi AP / multi STA mesu
 
 parser:argument("command", "tcp, udp, mcast, noop")
 
--- TODO: use networks instead of hosts, each ap
+-- TODO: allow networks instead of hosts, each ap
 
 parser:option ("-c --config", "config file name", nil)
 
@@ -284,9 +283,6 @@ if ( nameserver ~= nil or args.nameserver ~= nil ) then
     end
 end
 
-
--- TODO: check known_hosts at control
-
 if ( net.addr == nil ) then
     print ( "Cannot get IP address of local interface" )
     os.exit (1)
@@ -363,6 +359,12 @@ print ()
 
 -- and auto start nodes
 if ( args.disable_autostart == false ) then
+    -- check known_hosts at control
+    if ( ctrl_ref:hosts_known () == false ) then
+        print ( "Not all hosts are known on control node. Check know_hosts file." )
+        os.exit (1)
+    end
+
     if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
         cleanup ()
         print ( "Error: Not all nodes started")

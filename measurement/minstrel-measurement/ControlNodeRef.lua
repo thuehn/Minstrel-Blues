@@ -28,7 +28,7 @@ function ControlNodeRef:create ( name, ctrl_if, output_dir )
     ctrl_net.addr = ctrl_ip
     if ( ctrl_net.addr == nil ) then
         -- name is a host name (and bo ip address)
-        local ip_addr = net.lookup ( name )
+        local ip_addr, _ = net.lookup ( name )
         if ( ip_addr ~= nil ) then
             ctrl_net.addr = ip_addr
         end 
@@ -297,6 +297,10 @@ function ControlNodeRef:reachable ()
         end
     end
     return true
+end
+
+function ControlNodeRef:hosts_known ()
+    return self.rpc.hosts_known ()
 end
 
 function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )

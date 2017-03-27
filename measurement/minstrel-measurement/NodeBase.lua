@@ -46,6 +46,28 @@ function NodeBase:set_nameserver (  nameserver )
 end
 
 -- -------------------------
+-- known_host file
+-- -------------------------
+
+function NodeBase:host_known ( host )
+    local ip_addr, _ = net.lookup ( host )
+    local fname = os.getenv ( "HOME" ) .. "/.ssh/known_hosts"
+    if ( isFile ( fname ) == true ) then
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            local content = file:read ( "*a" )
+            for _, line in ipairs ( split ( content, "\n" ) ) do
+                if ( string.sub ( line, 1, string.len ( host ) ) == host
+                    or ( ip_addr ~= nil and string.sub ( line, 1, string.len ( ip_addr ) ) == ip_addr ) ) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- -------------------------
 -- hardware
 -- -------------------------
 

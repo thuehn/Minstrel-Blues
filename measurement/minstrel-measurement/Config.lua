@@ -16,7 +16,7 @@ Config.find_node = function ( name, nodes )
             return node 
         else
             local addr, rest = parse_ipv4 ( name )
-            local addr2 = net.lookup ( node.name )
+            local addr2, _ = net.lookup ( node.name )
             if ( addr == addr2 ) then
                 return node
             end

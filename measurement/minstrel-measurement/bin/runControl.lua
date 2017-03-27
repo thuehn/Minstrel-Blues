@@ -26,6 +26,8 @@ function __tostring ( ... ) return node:__tostring ( ... ) end
 
 function restart_wifi_debug ( ... ) return node:restart_wifi_debug() end
 
+function hosts_known ( ... ) return node:hosts_known ( ... ) end
+
 function get_board ( ... ) return node:get_board ( ... ) end
 function get_boards ( ... ) return node:get_boards ( ... ) end
 

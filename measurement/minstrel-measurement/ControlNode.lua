@@ -233,7 +233,7 @@ function ControlNode:reachable ()
         local addr, rest = parse_ipv4 ( node.name )
         if ( addr == nil ) then
             -- name is a hostname and no ip addr
-            addr = net.lookup ( node.name )
+            addr, _ = net.lookup ( node.name )
         end
         if ( addr == nil ) then
             break
@@ -246,6 +246,13 @@ function ControlNode:reachable ()
         end
     end
     return reached
+end
+
+function ControlNode:hosts_known ()
+    for _, node in ipairs ( self.node_refs ) do
+        if ( self:host_known ( node.name ) == false ) then return false end
+    end
+    return true
 end
 
 function ControlNode:start_nodes ( log_addr, log_port )
