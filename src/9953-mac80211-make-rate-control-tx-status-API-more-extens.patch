@@ -140,7 +140,7 @@
  	struct minstrel_priv *mp = priv;
  	struct minstrel_sta_info *mi = priv_sta;
  	struct ieee80211_tx_rate *ar = info->status.rates;
-@@ -746,7 +746,7 @@ static u32 minstrel_get_expected_through
+@@ -742,7 +742,7 @@ static u32 minstrel_get_expected_through
  
  const struct rate_control_ops mac80211_minstrel = {
  	.name = "minstrel",
@@ -151,7 +151,7 @@
  	.alloc = minstrel_alloc,
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -686,9 +686,9 @@ minstrel_aggr_check(struct ieee80211_sta
+@@ -697,9 +697,9 @@ minstrel_aggr_check(struct ieee80211_sta
  
  static void
  minstrel_ht_tx_status(void *priv, struct ieee80211_supported_band *sband,
@@ -163,7 +163,7 @@
  	struct minstrel_ht_sta_priv *msp = priv_sta;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct ieee80211_tx_rate *ar = info->status.rates;
-@@ -698,8 +698,8 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -709,8 +709,8 @@ minstrel_ht_tx_status(void *priv, struct
  	int i;
  
  	if (!msp->is_ht)
@@ -174,7 +174,7 @@
  
  	/* This packet was aggregated but doesn't carry status info */
  	if ((info->flags & IEEE80211_TX_CTL_AMPDU) &&
-@@ -1473,7 +1473,7 @@ static u32 minstrel_ht_get_expected_thro
+@@ -1484,7 +1484,7 @@ static u32 minstrel_ht_get_expected_thro
  
  static const struct rate_control_ops mac80211_minstrel_ht = {
  	.name = "minstrel_ht",
