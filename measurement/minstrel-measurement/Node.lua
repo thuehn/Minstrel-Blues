@@ -43,7 +43,7 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
                          , regmon_proc = nil
                          , rc_stats_procs = {}
                          , iperf_client_procs = {}
-                         , iperf_server_procs = {}
+                         , iperf_server_proc = nil
                          } )
 
     if ( name == nil) then
@@ -736,6 +736,8 @@ function Node:get_tcpdump_offline ( fname )
     file:close()
     self:send_info ( "remove tcpump pcap file " .. fname )
     os.remove ( fname )
+    self.tcpdump_proc.stdin:close ()
+    self.tcpdump_proc.stdout:close ()
     self.tcpdump_proc = nil
     return content
 end
@@ -767,11 +769,9 @@ function Node:start_tcp_iperf_s ()
     self:send_debug ( iperf_bin .. " -s -p " .. ( self.iperf_port or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-p", self.iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
-    for i=1,4 do
-        local msg = stdout:read("*l")
-        if ( msg ~= nil ) then
-            self:send_info(msg)
-        end
+    local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
+    if ( out ~= nil ) then
+        self:send_info ( out )
     end
     return pid
 end
@@ -787,9 +787,9 @@ function Node:start_udp_iperf_s ()
     self:send_debug ( iperf_bin .. " -s -u -p " .. ( self.iperf_port or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-u", "-p", self.iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
-    for i=1,5 do
-        local msg = stdout:read("*l")
-        self:send_info(msg)
+    local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
+    if ( out ~= nil ) then
+        self:send_info ( out )
     end
     return pid
 end
@@ -809,6 +809,10 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
     local exit_code
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )
+        local out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+        if ( out ~= nil ) then
+            self:send_info ( out )
+        end
         self.iperf_client_procs [ addr ].stdin:close ()
         self.iperf_client_procs [ addr ].stdout:close ()
         self.iperf_client_procs [ addr ] = nil
@@ -840,6 +844,10 @@ function Node:run_udp_iperf ( addr, rate, duration, wait )
     local exit_code
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )
+        local out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+        if ( out ~= nil ) then
+            self:send_info ( out )
+        end
         self.iperf_client_procs [ addr ].stdin:close ()
         self.iperf_client_procs [ addr ].stdout:close ()
         self.iperf_client_procs [ addr ] = nil
@@ -866,6 +874,10 @@ function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait
     local exit_code
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )
+        local out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+        if ( out ~= nil ) then
+            self:send_info ( out )
+        end
         self.iperf_client_procs [ addr ].stdin:close ()
         self.iperf_client_procs [ addr ].stdout:close ()
         self.iperf_client_procs [ addr ] = nil
@@ -884,10 +896,10 @@ function Node:wait_iperf_c ( addr )
     end
     self:send_info ( "wait for TCP/UDP client iperf for address " .. addr ) 
     local exit_code = lpc.wait ( self.iperf_client_procs [ addr ].pid )
---    repeat
---        local line = self.iperf_client_procs [ addr ].stdout:read ("*l")
---        if line ~= nil then self:send_info ( line ) end
---    until line == nil
+    local out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+    if ( out ~= nil ) then
+        self:send_info ( out )
+    end
     self.iperf_client_procs [ addr ].stdin:close ()
     self.iperf_client_procs [ addr ].stdout:close ()
     self.iperf_client_procs [ addr ] = nil
@@ -904,10 +916,10 @@ function Node:stop_iperf_server ()
     if ( self:kill ( self.iperf_server_proc.pid ) ) then
         exit_code = lpc.wait ( self.iperf_server_proc.pid )
     end
---    repeat
---        local line = self.iperf_server_proc.stdout:read ("*l")
---        if line ~= nil then self:send_info ( line ) end
---    until line == nil
+    local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
+    if ( out ~= nil ) then
+        self:send_info ( out )
+    end
     self.iperf_server_proc.stdin:close ()
     self.iperf_server_proc.stdout:close ()
     self.iperf_server_proc = nil

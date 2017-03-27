@@ -1,4 +1,8 @@
 
+local poll = require 'posix.poll'
+local stdio = require 'posix.stdio'
+local unistd = require 'posix.unistd'
+
 require ('lfs')
 require ('lpc')
 
@@ -242,6 +246,28 @@ end
 
 function Misc.spawn ( ... )
     return lpc.run ( ... )
+end
+
+function Misc.read_nonblock ( fh, ms, sz )
+    if ( fh == nil ) then return nil end
+    local lines = ""
+    local fd = stdio.fileno ( fh )
+    repeat
+        local r = poll.rpoll ( fd, ms )
+        if ( r == 1 ) then
+            local res = unistd.read ( fd, sz )
+            if ( res ~= nil and res ~= "" ) then
+                lines = lines .. res
+            else
+                break
+            end
+        end
+    until ( r == 0 )
+    if ( lines ~= "" ) then
+        return lines
+    else
+        return nil
+    end
 end
 
 return Misc
