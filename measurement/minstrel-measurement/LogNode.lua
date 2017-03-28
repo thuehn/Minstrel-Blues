@@ -69,10 +69,10 @@ end
 function LogNode:send ( msgtype, from, msg )
     local prefix = os.time () .. " " .. msgtype .. " : " .. from .. " : "
     local lines = ""
-    if ( string.len ( msg ) > 80 ) then
+    if ( string.len ( msg ) >= 80 ) then
         local msg_noindent
         if ( string.find ( msg, "\n" ) == nil ) then
-            msg_noindent = ( msg ):gsub ( ("."):rep ( 80 ),"%1\n" ):sub ( 1, -2 )
+            msg_noindent = ( msg ):gsub ( ("."):rep ( 80 ),"%1\n" ):sub ( 1, -1 )
         else
             msg_noindent = msg
         end

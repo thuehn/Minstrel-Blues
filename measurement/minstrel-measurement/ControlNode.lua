@@ -91,7 +91,7 @@ end
 function ControlNode:add_ap ( name, ctrl_if, rsa_key )
     self:send_info ( " add access point " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = AccessPointRef:create ( name, ctrl, rsa_key, self.output_dir )
+    local ref = AccessPointRef:create ( name, ctrl, rsa_key, self.output_dir, self )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -99,7 +99,7 @@ end
 function ControlNode:add_sta ( name, ctrl_if, rsa_key, mac )
     self:send_info ( " add station " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = StationRef:create ( name, ctrl, rsa_key, self.output_dir, mac )
+    local ref = StationRef:create ( name, ctrl, rsa_key, self.output_dir, mac, self )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -269,7 +269,7 @@ function ControlNode:check_bridges ()
         end
     end
     if ( no_bridges == false ) then
-        self:send_error ( "One or more nodes have a bridged setup" )
+        self:send_warning ( "One or more nodes have a bridged setup" )
     end
     return no_bridges
 end

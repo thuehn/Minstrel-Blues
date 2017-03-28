@@ -2,13 +2,14 @@ require ('NodeRef')
 
 StationRef = NodeRef:new()
 
-function StationRef:create ( name, ctrl, rsa_key, output_dir, mac )
+function StationRef:create ( name, ctrl, rsa_key, output_dir, mac, control_node )
     local o = StationRef:new { name = name
                              , ctrl = ctrl
                              , rsa_key = rsa_key
                              , output_dir = output_dir
                              , ap_ref = nil
                              , is_passive = mac ~= nil
+                             , control_node = control_node
                              }
     -- stations with configured mac doesn't run lua measurment node
     -- is_passive for later diffrentiation

@@ -420,7 +420,7 @@ function Node:tx_power_indices ( phy, station )
 end
 
 function Node:write_value_to_sta_debugfs ( fname, value )
-    if ( not isFile ( fname ) ) then
+    if ( isFile ( fname ) == false ) then
         self:send_error ( "file doesn't exists: " .. fname )
     end
     local file = nil
@@ -437,7 +437,7 @@ function Node:write_value_to_sta_debugfs ( fname, value )
 end
 
 function Node:read_value_from_sta_debugfs ( fname )
-    if ( not isFile ( fname ) ) then
+    if ( isFile ( fname ) == false ) then
         self:send_error ( "file doesn't exists: " .. fname )
     end
     local file = nil
@@ -565,13 +565,14 @@ function Node:start_rc_stats ( phy, station )
     self:send_info ( "start collecting rc_stats station " .. station .. " on " .. iface .. " (" .. phy .. ")" )
     local file = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
                         .. station .. "/rc_stats_csv"
-    if ( isFile ( file ) ) then
+    if ( isFile ( file ) == true ) then
         local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-i", 500000000, file )
         self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
         self:send_info ( "rc stats for station " .. station .. " started with pid: " .. pid )
         return pid
     else
         self:send_error ( "rc stats for station " .. station .. " not started. file is missing" )
+        self:send_debug ( file )
         return nil
     end
 end

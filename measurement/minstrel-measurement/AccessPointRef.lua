@@ -5,8 +5,15 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, ctrl, rsa_key, output_dir )
-    local o = AccessPointRef:new { name = name, ctrl = ctrl, rsa_key = rsa_key, output_dir = output_dir, refs = {}, stations = {} }
+function AccessPointRef:create ( name, ctrl, rsa_key, output_dir, control_node )
+    local o = AccessPointRef:new { name = name
+                                 , ctrl = ctrl
+                                 , rsa_key = rsa_key
+                                 , output_dir = output_dir
+                                 , refs = {}
+                                 , stations = {}
+                                 , control_node = control_node
+                                 }
     o.ctrl:get_addr()
     return o
 end
@@ -58,9 +65,12 @@ end
 function AccessPointRef:wait_station ( runs )
     local retrys = runs
     repeat
+        self.control_node:send_info ( "wait for stations becomes visible" )
         local wifi_stations_cur = self.rpc.visible_stations ( self.wifi_cur )
+        self.control_node:send_debug ( "stations visible: " .. table_tostring ( wifi_stations_cur ) )
         local miss = false
         for _, str in ipairs ( self.stations ) do
+            self.control_node:send_debug ( " check visibility of " .. str )
             if ( table.contains ( wifi_stations_cur, str ) == false ) then
                 miss = true
                 break
@@ -68,7 +78,7 @@ function AccessPointRef:wait_station ( runs )
         end
         retrys = retrys - 1
         posix.sleep (1)
-    until not miss or retrys == 0
+    until ( miss == false or retrys == 0 )
     return retrys ~= 0
 end
 

@@ -15,6 +15,7 @@ NodeRef = { name = nil
           , stats = nil
           , output_dir = nil
           , is_passive = nil
+          , control_node = nil
           }
 
 function NodeRef:new (o)
@@ -87,7 +88,7 @@ end
 function NodeRef:wait_linked ( runs )
     local connected = false
 
-    if ( self.is_passive == nil or self.is_passive == false ) then
+    if ( self.is_passive ~= nil and self.is_passive == true ) then
         return true
     end
 
