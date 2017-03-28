@@ -18,8 +18,8 @@
 -- plugin support with loadfile
 -- collectd iw info (STA, AP) and iw link (STA) trace
 -- derive MeshRef from AcceesspointRef
+-- support stations without running lua measurement node
 
-require ('functional')
 pprint = require ('pprint')
 
 local argparse = require "argparse"
@@ -106,9 +106,19 @@ local has_config = Config.load_config ( args.config )
 local ap_setups
 local sta_setups
 
-if ( isDir ( args.output ) == false ) then
-    print ("--output " .. args.output .. " doesn't exists or is not a directory")
-    os.exit (1)
+local output_dir = args.output
+if ( isDir ( output_dir ) == false ) then
+    local status, err = lfs.mkdir ( output_dir )
+else
+    for _, fname in ipairs ( ( scandir ( output_dir ) ) ) do
+        if ( fname ~= ".." and fname ~= "." ) then
+            local time = os.time()
+            print ("--output " .. output_dir .. " already exists and is not empty. Measurement saved into subdirectory " .. time)
+            output_dir = output_dir .. "/" .. time
+            local status, err = lfs.mkdir ( output_dir )
+            break
+        end
+    end
 end
 
 -- load config from a file
@@ -228,7 +238,7 @@ for _, sta_config in ipairs ( stas_config ) do
 end
 print ( )
 
-Config.save ( args.output, ctrl_config, aps_config, stas_config )
+Config.save ( output_dir, ctrl_config, aps_config, stas_config )
 
 local measurements = {}
 
@@ -247,7 +257,7 @@ function cleanup ()
         print ( "stop control" )
         local log = ctrl_ref:stop_control ()
         if ( log ~= nil ) then
-            local fname = args.output .. "/" .. args.log_file
+            local fname = output_dir .. "/" .. args.log_file
             local file = io.open ( fname, "w" )
             if ( file ~= nil ) then
                file:write ( log ) 
@@ -270,7 +280,7 @@ net:get_addr()
 -- remote control node interface
 ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
                                  , ctrl_config['ctrl_if']
-                                 , args.output
+                                 , output_dir
                                  )
 
 -- stop when nameserver is not reachable / not working
@@ -494,7 +504,7 @@ if (status == true) then
         local mac = ctrl_ref:get_mac( name )
         local opposite_macs = ctrl_ref:get_opposite_macs ( name )
         print ( name, ap_mac )
-        local measurement = Measurement:create ( name, mac, opposite_macs, nil, args.output )
+        local measurement = Measurement:create ( name, mac, opposite_macs, nil, output_dir )
         measurements [ #measurements + 1 ] = measurement
         measurement.regmon_stats = copy_map ( stats.regmon_stats )
         measurement.tcpdump_pcaps = copy_map ( stats.tcpdump_pcaps )
@@ -506,11 +516,11 @@ if (status == true) then
         end
         measurement:enable_rc_stats ( stations ) -- resets rc_stats
         measurement.rc_stats = copy_map ( stats.rc_stats )
-        measurement.output_dir = args.output
+        measurement.output_dir = output_dir
 
         local status, err = measurement:write ()
         if ( status == false ) then
-            print ( "err: can't access directory '" ..  ( args.output or "unset" )
+            print ( "err: can't access directory '" ..  ( output_dir or "unset" )
                             .. "': " .. ( err or "unknown error" ) )
         end
 

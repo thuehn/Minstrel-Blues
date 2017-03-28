@@ -1,5 +1,4 @@
 
-require ('functional')
 require ('Node')
 require ('NetIF')
 

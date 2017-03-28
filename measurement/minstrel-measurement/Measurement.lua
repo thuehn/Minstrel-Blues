@@ -5,8 +5,6 @@ require ('misc')
 --  AP: regmon, tcpdump, cpusage, rc_stats per station
 --]]
 
--- TODO: don't overwrite old measuremnt data
-
 pprint = require('pprint')
 
 Measurement = { rpc_node = nil

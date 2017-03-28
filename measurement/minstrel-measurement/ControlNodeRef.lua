@@ -358,7 +358,6 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
 
     -- randomize keys
     -- TODO: randomize ap and station order
-    -- TODO: save ordering
     local keys_random = {}
     math.randomseed ( os.time() )
     local set = {}
@@ -370,6 +369,16 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
             keys_random [ #keys_random + 1 ] = keys [ key_index ] [ nxt ]
         end
 
+    end
+
+    -- save experiment order
+    local fname = self.output_dir .. "/experiment_order.txt"
+    local file = io.open ( fname, "w" )
+    if ( file ~= nil ) then
+        for _, key in ipairs ( keys_random ) do
+            file:write ( key .. '\n' )
+        end
+        file:close()
     end
 
     local ret = true

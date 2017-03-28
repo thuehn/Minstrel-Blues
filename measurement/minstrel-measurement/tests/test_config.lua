@@ -1,6 +1,5 @@
 config = require ('Config')
 require ('misc')
-require ('functional')
 
 pprint = require ('pprint')
 
