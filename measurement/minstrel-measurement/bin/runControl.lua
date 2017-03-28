@@ -50,6 +50,7 @@ function kill ( ... ) return node:kill ( ... ) end
 function get_txpowers ( ... ) return node:get_txpowers ( ... ) end
 function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
+function randomize_node_order ( ... ) return node:randomize_node_order ( ... ) end
 function list_nodes ( ... ) return node:list_nodes ( ... ) end
 function get_mac ( ... ) return node:get_mac ( ... ) end
 function get_opposite_macs ( ... ) return node:get_opposite_macs ( ... ) end

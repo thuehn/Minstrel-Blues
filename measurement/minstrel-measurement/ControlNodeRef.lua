@@ -321,6 +321,8 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
 
     print ()
 
+    self.rpc.randomize_node_order ()
+
     self.stats = {}
 
     for _, ap_ref in ipairs ( self.ap_refs ) do
@@ -351,19 +353,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
     local counter = 1
 
     -- randomize keys
-    -- TODO: randomize ap and station order
-    local keys_random = {}
-    math.randomseed ( os.time() )
-    local set = {}
-    while table_size ( keys_random ) < table_size ( keys [ key_index ] ) do
-
-        local nxt = math.random (1, table_size ( keys [ key_index ] ) )
-        if ( set [ nxt ] ~= true ) then
-            set [ nxt ] = true
-            keys_random [ #keys_random + 1 ] = keys [ key_index ] [ nxt ]
-        end
-
-    end
+    local keys_random = misc.randomize_list ( keys [ key_index ] )
 
     -- save experiment order
     local fname = self.output_dir .. "/experiment_order.txt"

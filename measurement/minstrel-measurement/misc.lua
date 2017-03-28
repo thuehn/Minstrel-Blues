@@ -270,4 +270,18 @@ function Misc.read_nonblock ( fh, ms, sz )
     end
 end
 
+function Misc.randomize_list ( list )
+    math.randomseed ( os.time() )
+    local set = {}
+    local randomized = {}
+    while table_size ( randomized ) < table_size ( list ) do
+        local nxt = math.random (1, table_size ( list ) )
+        if ( set [ nxt ] ~= true ) then
+            set [ nxt ] = true
+            randomized [ #randomized + 1 ] = list [ nxt ]
+        end
+    end
+    return randomized
+end
+
 return Misc
