@@ -2,15 +2,15 @@
 require ('rpc')
 local ps = require ('posix.signal') --kill
 local unistd = require ('posix.unistd') -- getpid
-local misc = require 'misc'
-local net = require 'Net'
+local misc = require ('misc')
+local net = require ('Net')
 local uci = require ('Uci')
 
 local pprint = require ('pprint')
 
 require ('parsers/proc_version')
 require ('parsers/free')
-local json = require('cjson')
+local json = require ('cjson')
 
 NodeBase = { name = nil
            , ctrl = nil

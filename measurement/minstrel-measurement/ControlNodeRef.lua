@@ -323,20 +323,14 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
 
     self.stats = {}
 
-        --[[
-        for _, ap_ref in ipairs ( self.ap_refs ) do
-            local free_m = ap_ref:get_free_mem ()
-            if ( check_mem ( free_m, ap_ref.name ) == false ) then
-                return false
-            end
-            for _, sta_ref in ipairs ( ap_ref.refs ) do
-                local free_m = sta_ref:get_free_mem ()
-                if ( check_mem ( free_m, sta_ref.name ) == false ) then
-                    return false
-                end
-            end
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        local free_m = ap_ref:get_free_mem ()
+        check_mem ( free_m, ap_ref.name )
+        for _, sta_ref in ipairs ( ap_ref.refs ) do
+            local free_m = sta_ref:get_free_mem ()
+            check_mem ( free_m, sta_ref.name )
         end
-        --]]
+    end
 
     -- choose smallest set of keys
     -- fixme: still differs over all APs maybe
