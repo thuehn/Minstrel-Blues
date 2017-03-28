@@ -92,7 +92,8 @@ end
 
 function ControlNodeRef:add_stas ( sta_configs )
     for _, sta_config in ipairs ( sta_configs ) do
-        self.rpc.add_sta ( sta_config.name,  sta_config.ctrl_if, sta_config.rsa_key )
+        self.rpc.add_sta ( sta_config.name,  sta_config.ctrl_if,
+                           sta_config.rsa_key, sta_config.mac )
     end
 end
 

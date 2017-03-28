@@ -27,7 +27,10 @@ end
 
 Config.cnode_to_string = function ( config )
     if ( config == nil ) then return "none" end
-    return ( config.name or "none") .. "\t" .. ( config.radio or "none" ) .. "\t" .. ( config.ctrl_if or "none" )
+    return ( config.name or "none")
+        .. "\t" .. ( config.radio or "none" )
+        .. "\t" .. ( config.ctrl_if or "none" )
+        .. "\t" .. ( config.mac or "none" )
 end
 
 Config.connections_tostring = function ( connections )

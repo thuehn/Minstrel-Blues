@@ -74,24 +74,28 @@ end
 function TcpExperiment:start_experiment ( ap_ref, key )
     -- start iperf clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do
-        local addr = sta_ref:get_addr ()
-        if ( addr == nil ) then
-            error ( "start_experiment: address is unset" )
-            return
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            local addr = sta_ref:get_addr ()
+            if ( addr == nil ) then
+                error ( "start_experiment: address is unset" )
+                return
+            end
+            local wait = false
+            local pid, exit_code = ap_ref.rpc.run_tcp_iperf ( addr, self.tcpdata, wait )
         end
-        local wait = false
-        local pid, exit_code = ap_ref.rpc.run_tcp_iperf ( addr, self.tcpdata, wait )
     end
 end
 
 function TcpExperiment:wait_experiment ( ap_ref )
     -- wait for clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do
-        local addr = sta_ref:get_addr ()
-        if ( addr == nil ) then
-            error ( "wait_experiment: address is unset" )
-            return
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            local addr = sta_ref:get_addr ()
+            if ( addr == nil ) then
+                error ( "wait_experiment: address is unset" )
+                return
+            end
+            local exit_code = ap_ref.rpc.wait_iperf_c( addr )
         end
-        local exit_code = ap_ref.rpc.wait_iperf_c( addr )
     end
 end

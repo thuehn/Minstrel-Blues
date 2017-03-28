@@ -2,14 +2,21 @@ require ('NodeRef')
 
 StationRef = NodeRef:new()
 
-function StationRef:create ( name, ctrl, rsa_key, output_dir )
+function StationRef:create ( name, ctrl, rsa_key, output_dir, mac )
     local o = StationRef:new { name = name
                              , ctrl = ctrl
                              , rsa_key = rsa_key
                              , output_dir = output_dir
                              , ap_ref = nil
+                             , is_passive = mac ~= nil
                              }
-    o.ctrl:get_addr()
+    -- stations with configured mac doesn't run lua measurment node
+    -- is_passive for later diffrentiation
+    if ( mac ~= nil ) then
+        o.macs [ "phy0" ] = mac
+    else
+        o.ctrl:get_addr()
+    end
     return o
 end
 

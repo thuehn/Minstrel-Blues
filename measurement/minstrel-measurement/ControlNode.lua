@@ -96,10 +96,10 @@ function ControlNode:add_ap ( name, ctrl_if, rsa_key )
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
-function ControlNode:add_sta ( name, ctrl_if, rsa_key )
+function ControlNode:add_sta ( name, ctrl_if, rsa_key, mac )
     self:send_info ( " add station " .. name )
     local ctrl = NetIF:create ( ctrl_if )
-    local ref = StationRef:create ( name, ctrl, rsa_key, self.output_dir )
+    local ref = StationRef:create ( name, ctrl, rsa_key, self.output_dir, mac )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -172,8 +172,12 @@ end
 
 function ControlNode:list_phys ( name )
     local node_ref = self:find_node_ref ( name )
-    if ( node_ref == nil ) then return {} end
-    return node_ref.rpc.phy_devices ()
+    if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+        if ( node_ref == nil ) then return {} end
+        return node_ref.rpc.phy_devices ()
+    else
+        return { "phy0" }
+    end
 end
 
 function ControlNode:set_phy ( name, wifi )
@@ -203,11 +207,13 @@ end
 function ControlNode:get_ssid ( name )
     self:send_info ( "get ssid " .. (name or "none" ) )
     local node_ref = self:find_node_ref ( name )
-    if ( node_ref ~= nil ) then
-        self:send_info ( "get ssid from node_ref " .. ( node_ref.name or "none" ) )
-        return node_ref.rpc.get_ssid ( node_ref.wifi_cur )
-    else
-        self:send_error ( "get ssid from node_ref " .. ( node_ref.name or "none" ) .. "failed. Not found" )
+    if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+        if ( node_ref ~= nil ) then
+            self:send_info ( "get ssid from node_ref " .. ( node_ref.name or "none" ) )
+            return node_ref.rpc.get_ssid ( node_ref.wifi_cur )
+        else
+            self:send_error ( "get ssid from node_ref " .. ( node_ref.name or "none" ) .. "failed. Not found" )
+        end
     end
     return nil
 end
@@ -216,9 +222,14 @@ function ControlNode:add_station ( ap, sta )
     local ap_ref = self:find_node_ref ( ap )
     local sta_ref = self:find_node_ref ( sta )
     if ( ap_ref == nil or sta_ref == nil ) then return nil end
-    local mac = sta_ref.rpc.get_mac ( sta_ref.wifi_cur )
-    ap_ref:add_station ( mac, sta_ref )
-    sta_ref:set_ap_ref ( ap_ref )
+    if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+        local mac = sta_ref.rpc.get_mac ( sta_ref.wifi_cur )
+        ap_ref:add_station ( mac, sta_ref )
+        sta_ref:set_ap_ref ( ap_ref )
+    else
+        ap_ref:add_station ( sta_ref.macs [ "phy0" ], sta_ref )
+        sta_ref:set_ap_ref ( ap_ref )
+    end
 end
 
 function ControlNode:list_stations ( ap )
@@ -228,7 +239,9 @@ end
 
 function ControlNode:set_ani ( name, ani )
     local node_ref = self:find_node_ref ( name )
-    node_ref.rpc.set_ani ( node_ref.wifi_cur, ani )
+    if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+        node_ref.rpc.set_ani ( node_ref.wifi_cur, ani )
+    end
 end
 
 function ControlNode:find_node_ref( name ) 
@@ -240,16 +253,20 @@ end
 
 function ControlNode:set_nameservers ( nameserver )
     for _, node_ref in ipairs ( self.node_refs ) do
-        node_ref:set_nameserver ( nameserver )
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            node_ref:set_nameserver ( nameserver )
+        end
     end
 end
 
 function ControlNode:check_bridges ()
     local no_bridges = true
     for _, node_ref in ipairs ( self.node_refs ) do
-        local has_bridge = node_ref:check_bridge ()
-        self:send_info ( node_ref.name .. " has no bridged setup" )
-        no_bridges = no_bridges and not has_bridge
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            local has_bridge = node_ref:check_bridge ()
+            self:send_info ( node_ref.name .. " has no bridged setup" )
+            no_bridges = no_bridges and not has_bridge
+        end
     end
     if ( no_bridges == false ) then
         self:send_error ( "One or more nodes have a bridged setup" )
@@ -264,28 +281,34 @@ function ControlNode:reachable ()
     end
 
     local reached = {}
-    for _, node in ipairs ( self.node_refs ) do
-        local addr, rest = parse_ipv4 ( node.name )
-        if ( addr == nil ) then
-            -- name is a hostname and no ip addr
-            addr, _ = net.lookup ( node.name )
-        end
-        if ( addr == nil ) then
-            break
-        end
-        node.ctrl.addr = addr
-        if ( node_reachable ( addr ) ) then
-            reached [ node.name ] = true
-        else
-            reached [ node.name ] = false
+    for _, node_ref in ipairs ( self.node_refs ) do
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            local addr, rest = parse_ipv4 ( node_ref.name )
+            if ( addr == nil ) then
+                -- name is a hostname and no ip addr
+                addr, _ = net.lookup ( node_ref.name )
+            end
+            if ( addr == nil ) then
+                break
+            end
+            node_ref.ctrl.addr = addr
+            if ( node_reachable ( addr ) ) then
+                reached [ node_ref.name ] = true
+            else
+                reached [ node_ref.name ] = false
+            end
         end
     end
     return reached
 end
 
 function ControlNode:hosts_known ()
-    for _, node in ipairs ( self.node_refs ) do
-        if ( self:host_known ( node.name ) == false ) then return false end
+    for _, node_ref in ipairs ( self.node_refs ) do
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            if ( self:host_known ( node_ref.name ) == false ) then
+                return false
+            end
+        end
     end
     return true
 end
@@ -309,7 +332,9 @@ function ControlNode:start_nodes ( log_addr, log_port )
     end
 
     for _, node_ref in ipairs ( self.node_refs ) do
-        self.pids [ node_ref.name ] = start_node ( node_ref, log_addr )
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            self.pids [ node_ref.name ] = start_node ( node_ref, log_addr )
+        end
     end
     return true
 end
@@ -317,20 +342,24 @@ end
 function ControlNode:connect_nodes ( ctrl_port )
     
     for _, node_ref in ipairs ( self.node_refs ) do
-        local slave = net.connect ( node_ref.ctrl.addr, ctrl_port, 10, node_ref.name, 
-                                    function ( msg ) self:send_error ( msg ) end )
-        if ( slave == nil ) then 
-            return false
-        else
-            self:send_info ( "Connected to " .. node_ref.name)
-            node_ref:init ( slave )
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            local slave = net.connect ( node_ref.ctrl.addr, ctrl_port, 10, node_ref.name,
+                                        function ( msg ) self:send_error ( msg ) end )
+            if ( slave == nil ) then
+                return false
+            else
+                self:send_info ( "Connected to " .. node_ref.name)
+                node_ref:init ( slave )
+            end
         end
     end
 
     -- query lua pid before closing rpc connection
     -- maybe to kill nodes later
     for _, node_ref in ipairs ( self.node_refs ) do 
-        self.pids [ node_ref.name ] = node_ref.rpc.get_pid ()
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            self.pids [ node_ref.name ] = node_ref.rpc.get_pid ()
+        end
     end
 
     return true
@@ -338,7 +367,9 @@ end
 
 function ControlNode:disconnect_nodes()
     for _, node_ref in ipairs ( self.node_refs ) do 
-        net.disconnect ( node_ref.rpc )
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            net.disconnect ( node_ref.rpc )
+        end
     end
 end
 
@@ -360,16 +391,17 @@ function ControlNode:stop()
     -- fixme: nodes should implement a stop function and kill itself with getpid
     -- and wait
     for i, node_ref in ipairs ( self.node_refs ) do
-        if ( node_ref.rpc == nil ) then break end
-        self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
-        local ssh
-        local exit_code
-        local remote = "root@" .. node_ref.ctrl.addr
-        local remote_cmd = "lua /usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
-        self:send_debug ( remote_cmd )
-        ssh, exit_code = misc.execute ( "ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
-        if ( exit_code ~= 0 ) then
-            self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed" )
+        if ( node_ref.rpc ~= nil and ( node_ref.is_passive == nil or node_ref.is_passive == false ) ) then
+            self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
+            local ssh
+            local exit_code
+            local remote = "root@" .. node_ref.ctrl.addr
+            local remote_cmd = "lua /usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
+            self:send_debug ( remote_cmd )
+            ssh, exit_code = misc.execute ( "ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
+            if ( exit_code ~= 0 ) then
+                self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed" )
+            end
         end
     end
 
@@ -448,11 +480,13 @@ function ControlNode:copy_stats ( ap_ref )
     self.stats [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
 
     for _, sta_ref in ipairs ( ap_ref.refs ) do
-        self.stats [ sta_ref.name ] = {} 
-        self.stats [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
-        self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
-        self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
-        self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            self.stats [ sta_ref.name ] = {}
+            self.stats [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
+            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
+            self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
+            self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
+        end
     end
 
 end
@@ -516,13 +550,15 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
 
         for i, sta_ref in ipairs ( ap_ref.refs ) do
 
-            local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
-            if ( rate_name ~= nil ) then
-                local rate_idx = find_rate ( rate_name, rate_names, rates )
-                self:send_debug ( " rate_idx: " .. ( rate_idx or "unset" ) )
-            end
+            if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+                local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
+                if ( rate_name ~= nil ) then
+                    local rate_idx = find_rate ( rate_name, rate_names, rates )
+                    self:send_debug ( " rate_idx: " .. ( rate_idx or "unset" ) )
+                end
 
-            local signal = sta_ref.rpc.get_linked_signal ( sta_ref.wifi_cur )
+                local signal = sta_ref.rpc.get_linked_signal ( sta_ref.wifi_cur )
+            end
         end
 
     end
@@ -583,8 +619,10 @@ end
 function ControlNode:get_boards ()
     local map = {}
     for _, node_ref in ipairs ( self.node_refs ) do
-       local board = node_ref:get_board () 
-       map [ node_ref.name ] = board
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            local board = node_ref:get_board ()
+            map [ node_ref.name ] = board
+        end
     end
     return map
 end
@@ -596,14 +634,16 @@ end
 function ControlNode:set_dates ()
     local time = os.date( "*t", os.time() )
     for _, node_ref in ipairs ( self.node_refs ) do
-        local cur_time
-        local err
-        cur_time, err = node_ref:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
-        if ( err == nil ) then
-            self:send_info ( "Set date/time to " .. cur_time )
-        else
-            self:send_error ( "Set date/time failed: " .. err )
-            self:send_error ( "Time is: " .. cur_time )
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            local cur_time
+            local err
+            cur_time, err = node_ref:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+            if ( err == nil ) then
+                self:send_info ( "Set date/time to " .. cur_time )
+            else
+                self:send_error ( "Set date/time failed: " .. err )
+                self:send_error ( "Time is: " .. cur_time )
+            end
         end
     end
 end

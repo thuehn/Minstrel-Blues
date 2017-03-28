@@ -87,7 +87,9 @@ end
 function AccessPointRef:create_measurement()
     NodeRef.create_measurement( self )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:create_measurement()
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:create_measurement()
+        end
     end
 end
 
@@ -96,29 +98,37 @@ function AccessPointRef:restart_wifi ()
     --NodeRef.restart_wifi ( self )
     --posix.sleep ( 20 )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:restart_wifi ()
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:restart_wifi ()
+        end
     end
 end
 
 function AccessPointRef:add_monitor ()
     NodeRef.add_monitor( self, self.wifi_cur )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:add_monitor()
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:add_monitor()
+        end
     end
 end
 
 function AccessPointRef:remove_monitor( )
     NodeRef.remove_monitor( self, self.wifi_cur )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:remove_monitor()
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:remove_monitor()
+        end
     end
 end
 
 function AccessPointRef:wait_linked( retrys )
     for i, sta_ref in ipairs ( self.refs ) do
-        local res = sta_ref:wait_linked ( retrys )
-        if ( res == false ) then
-            break
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            local res = sta_ref:wait_linked ( retrys )
+            if ( res == false ) then
+                break
+            end
         end
     end
 end
@@ -126,36 +136,46 @@ end
 function AccessPointRef:start_measurement( key )
     NodeRef.start_measurement( self, key )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:start_measurement ( key )
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:start_measurement ( key )
+        end
     end
 end
 
 function AccessPointRef:stop_measurement( key )
     NodeRef.stop_measurement( self, key )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:stop_measurement ( key )
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:stop_measurement ( key )
+        end
     end
 end
 
 function AccessPointRef:fetch_measurement( key )
     NodeRef.fetch_measurement( self, key )
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:fetch_measurement ( key )
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:fetch_measurement ( key )
+        end
     end
 end
 
 function AccessPointRef:start_iperf_servers ( tcp )
     for i, sta_ref in ipairs ( self.refs ) do
-        if ( tcp == true ) then
-            sta_ref:start_tcp_iperf_s ()
-        else
-            sta_ref:start_udp_iperf_s ()
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            if ( tcp == true ) then
+                sta_ref:start_tcp_iperf_s ()
+            else
+                sta_ref:start_udp_iperf_s ()
+            end
         end
     end
 end
 
 function AccessPointRef:stop_iperf_servers()
     for i, sta_ref in ipairs ( self.refs ) do
-        sta_ref:stop_iperf_server ()
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:stop_iperf_server ()
+        end
     end
 end

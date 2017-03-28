@@ -184,7 +184,6 @@ else
     Config.copy_config_nodes ( sta_setups, nodes )
 
     Config.read_connections ( args.con )
-
 end
 
 if ( table_size ( connections ) == 0 ) then
