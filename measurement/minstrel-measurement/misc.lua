@@ -190,10 +190,6 @@ function print_globals()
     end
 end
 
-function string.concat ( a, b )
-    return a .. b
-end
-
 -- syncronize time (date MMDDhhmm[[CC]YY][.ss])
 function set_date_core ( year, month, day, hour, min, second )
     local date = string.format ( "%02d", month )

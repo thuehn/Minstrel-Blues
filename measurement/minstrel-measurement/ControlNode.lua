@@ -105,7 +105,7 @@ function ControlNode:add_sta ( name, ctrl_if, rsa_key )
 end
 
 -- randomize ap and station order
-function ControlNode:randomize_node_order ()
+function ControlNode:randomize_nodes ()
     --randomize aps
     local aps = self:list_aps ()
     local aps_random = misc.randomize_list ( aps )
@@ -117,13 +117,13 @@ function ControlNode:randomize_node_order ()
     self.ap_refs = ap_refs
     --randomize stas
     local stas = self:list_stas ()
-    local stas_random = misc.raandomize_list ( stas )
+    local stas_random = misc.randomize_list ( stas )
     local sta_refs = {}
     for _, sta_name in ipairs ( stas_random ) do
         local sta_ref = self:find_node_ref ( sta_name )
         sta_refs [ #sta_refs + 1 ] = sta_ref
     end
-    self.sta_refs = sta_ref
+    self.sta_refs = sta_refs
     -- copy to node_refs
     local node_refs = {}
     for _, ref in ipairs ( self.ap_refs ) do

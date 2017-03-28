@@ -99,7 +99,12 @@ function Node:phy_devices ()
     for _, wifi in ipairs ( self.wifis ) do
         phys [ #phys + 1 ] = wifi.phy
     end
-    self:send_info(" phys: " .. foldr ( string.concat, "" , phys ) )
+    local phys_str = ""
+    for i, phy in ipairs ( phys ) do
+        if ( i ~= 1 ) then phys_str = phys_str .. ", " end
+        phys_str = phys_str .. phy
+    end
+    self:send_info(" phys: " .. phys_str )
     return phys
 end
 

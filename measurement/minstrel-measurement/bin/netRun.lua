@@ -198,11 +198,11 @@ if ( args.verbose == true) then
     print ( )
     print ( )
     print ( "Access Points:" )
-    map ( print, args.ap )
+    for _, ap in ipairs ( args.ap ) do print ( ap ) end
     print ( )
     print ( "Stations:" )
     print ( )
-    map ( print , args.sta )
+    for _, sta in ipairs ( args.sta ) do print ( sta ) end
     print ( )
 end
 
@@ -428,15 +428,11 @@ if ( all_linked == false ) then
     os.exit (1)
 end
 
---[[
 -- check bridges
 local all_bridgeless = ctrl_ref:check_bridges()
 if ( not all_bridgeless ) then
-    print ( "Some nodes have a bridged setup, stop here. See log for details." )
-    cleanup ()
-    os.exit (1)
+    print ( "Some nodes have a bridged setup. See log for details." )
 end
---]]
 
 print()
 
@@ -444,7 +440,7 @@ for _, ap_name in ipairs ( ctrl_ref:list_aps() ) do
     print ( "STATIONS on " .. ap_name )
     print ( "==================")
     local wifi_stations = ctrl_ref:list_stations ( ap_name )
-    map ( print, wifi_stations )
+    for _, wifi_station in ipairs ( wifi_stations ) do print ( wifi_station ) end
     print ()
 end
 

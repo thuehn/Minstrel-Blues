@@ -321,10 +321,11 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
 
     print ()
 
-    self.rpc.randomize_node_order ()
+    self.rpc.randomize_nodes ()
 
     self.stats = {}
 
+    --[[
     for _, ap_ref in ipairs ( self.ap_refs ) do
         local free_m = ap_ref:get_free_mem ()
         check_mem ( free_m, ap_ref.name )
@@ -333,6 +334,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
             check_mem ( free_m, sta_ref.name )
         end
     end
+    --]]
 
     -- choose smallest set of keys
     -- fixme: still differs over all APs maybe
