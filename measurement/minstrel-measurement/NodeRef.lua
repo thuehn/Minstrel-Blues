@@ -12,7 +12,6 @@ NodeRef = { name = nil
           , wifi_cur = nil
           , addrs = nil
           , macs = nil
---          , refs = nil
           , stats = nil
           , output_dir = nil
           }

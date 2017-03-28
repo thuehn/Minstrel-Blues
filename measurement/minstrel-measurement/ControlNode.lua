@@ -133,6 +133,10 @@ function ControlNode:randomize_node_order ()
         node_refs [ #node_refs + 1 ] = ref
     end
     self.node_refs = node_refs
+    -- randomized associated stations
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        ap_ref:randomize_stations ()
+    end
 end
 
 function ControlNode:list_aps ()

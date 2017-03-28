@@ -41,6 +41,11 @@ function AccessPointRef:add_station ( mac, ref )
     self.refs [ #self.refs + 1 ] = ref
 end
 
+function AccessPointRef:randomize_stations ()
+    self.stations = misc.randomize_list ( self.stations )
+    self.refs = misc.randomize_list ( self.refs )
+end
+
 -- all macs of linked stations are returned
 function AccessPointRef:get_opposite_macs ()
     return self.stations
