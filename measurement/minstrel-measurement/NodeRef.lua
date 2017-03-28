@@ -37,7 +37,9 @@ function NodeRef:init ( rpc )
         self.phys = self.rpc.phy_devices()
         for _, phy in ipairs ( self.phys ) do
             self.addrs [ phy ] = self.rpc.get_addr ( phy )
-            self.macs [ phy ] = self.rpc.get_mac ( phy )
+            if ( self.macs [ phy ] == nil ) then
+                self.macs [ phy ] = self.rpc.get_mac ( phy )
+            end
         end
     end
 end
@@ -68,11 +70,14 @@ function NodeRef:__tostring ()
     if ( self.phys == {} ) then
         out = out .. " none"
     else
-        for i, wifi in ipairs ( self.phys ) do
-            if ( i ~= 1 ) then out = out .. ", " end
-            local addr = self.addrs [ wifi ]
+        for i, phy in ipairs ( self.phys ) do
+            if ( i ~= 1 ) then out = out .. "\n\t" end
+            local addr = self.addrs [ phy ]
             if ( addr == nil ) then addr = "none" end
-            out = out .. wifi .. ", addr " .. addr
+            out = out .. phy .. ", addr " .. addr
+            local mac = self.macs [ phy ]
+            if ( mac == nil ) then mac = "none" end
+            out = out .. ", mac " .. mac
         end
     end
     return out
