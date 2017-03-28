@@ -71,15 +71,25 @@ end
 -- hardware
 -- -------------------------
 
--- TODO: distinguish between LEDE and GNU
 function NodeBase:get_board ()
-    local fname = "/etc/board.json"
-    local file = io.open ( fname,"r" )
-    if ( isFile ( fname ) ) then
-        local content = file:read ("*a")
-        local tab = json.decode( content )
-        return tab [ 'model' ] [ 'id' ] 
-            .. " " .. tab [ 'model' ] [ 'name' ]
+    if ( self.proc_version.system == "LEDE" ) then
+        local fname = "/etc/board.json"
+        if ( isFile ( fname ) ) then
+            local file = io.open ( fname, "r" )
+            local content = file:read ( "*a" )
+            local tab = json.decode( content )
+            file:close ()
+            return tab [ 'model' ] [ 'id' ]
+                .. " " .. tab [ 'model' ] [ 'name' ]
+        end
+    else
+        local fname = "/sys/devices/virtual/dmi/id/product_version"
+        if ( isFile ( fname ) ) then
+            local file = io.open ( fname, "r" )
+            local content = file:read ( "*a" )
+            file:close ()
+            return content
+        end
     end
     return nil
 end
