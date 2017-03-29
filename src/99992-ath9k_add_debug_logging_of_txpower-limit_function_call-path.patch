@@ -1,0 +1,262 @@
+--- a/net/mac80211/rc80211_minstrel_ht.c
++++ b/net/mac80211/rc80211_minstrel_ht.c
+@@ -523,6 +523,7 @@ minstrel_ht_update_stats(struct minstrel
+ 		for (i = 0; i < 4; i++)
+ 			mi->max_tp_rate[i] = msp->fixed_txrate;
+ 		mi->max_prob_rate = msp->fixed_txrate;
++		printk(KERN_DEBUG "fixed rate set for data ratetbl, use msp->fixed_txrate= %i\n", msp->fixed_txrate);
+ 	}
+ #endif
+ 
+@@ -883,6 +884,8 @@ minstrel_ht_set_rate(struct minstrel_pri
+ 
+ 	ratetbl->rate[offset].idx = idx;
+ 	ratetbl->rate[offset].flags = flags;
++
++	printk(KERN_DEBUG "minstrel_ht_set_rate() @offset= %i with rate= %i and power= %i\n", offset, ratetbl->rate[offset].idx, ratetbl->rate[offset].txpower);
+ }
+ 
+ static inline int
+@@ -951,13 +954,16 @@ minstrel_ht_update_rates(struct minstrel
+ 
+ 	sta = container_of(mi->sta, struct sta_info, sta);
+ 	txpower = sta->sdata->vif.bss_conf.txpower;
++	printk(KERN_DEBUG "sta->sdata->vif.bss_conf.txpower= %i\n", txpower);
+ 
+ 	rates = kzalloc(sizeof(*rates), GFP_ATOMIC);
+ 	if (!rates)
+ 		return;
+ 
+-	for (i = 0; i < ARRAY_SIZE(rates->rate); i++)
++	for (i = 0; i < ARRAY_SIZE(rates->rate); i++) {
+ 		rates->rate[i].txpower = txpower;
++		printk(KERN_DEBUG "minstrel_ht_update_rates() set rates->rate[%i].idx= %i .txpower = %i\n", i, rates->rate[i].idx, rates->rate[i].txpower);
++	}
+ 	i = 0;
+ 
+ 	/* Start with max_tp_rate[0] */
+@@ -983,6 +989,9 @@ minstrel_ht_update_rates(struct minstrel
+         if (msp->fixed_txpower != 255) {
+ 		for (i = 0; i < ARRAY_SIZE(rates->rate); i++)
+ 			rates->rate[i].txpower = msp->fixed_txpower;
++			printk(KERN_DEBUG "minstrel_ht: _update_rates() use "
++				"fixed_txpower > rate[%i].idx=%i .txpower=%i\n",
++				i, rates->rate[i].idx, rates->rate[i].txpower);
+ 	}
+ #endif
+ 
+@@ -1079,8 +1088,13 @@ minstrel_ht_get_rate(void *priv, struct
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	if ((mp->fixed_rate_idx != -1) || (msp->fixed_txrate != -1)) {
+ 		/* use fixed txpower for rate sampling packets if set */
+-		if (msp->fixed_txpower != 255)
++		if (msp->fixed_txpower != 255) {
+ 			info->control.txpower = msp->fixed_txpower;
++			printk(KERN_DEBUG "minstrel_ht: _get_rate() > "
++				"fixed_txrate & fixed_txpower set > skip "
++				"sampling, use info->control.txpower= %i\n",
++				info->control.txpower);
++		}
+ 		return;
+ 	}
+ #endif
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -197,8 +197,11 @@ static bool ath_merge_ratetbl(struct iee
+ 	for (i = 0; i < ARRAY_SIZE(bf->txpower); i++)
+ 		bf->txpower[i] = MAX_RATE_POWER;
+ 
+-	if (!sta)
++	if (!sta) {
++		printk(KERN_DEBUG " ath9k: ath_merge_ratetbl()... if (!sta) = "
++			"false -> no power changes\n");
+ 		return false;
++	}
+ 
+ 	ratetbl = rcu_dereference(sta->rates);
+ 	if (!ratetbl)
+@@ -207,10 +210,15 @@ static bool ath_merge_ratetbl(struct iee
+ 	if (likely(info->control.rates[0].idx < 0 ||
+ 		   !info->control.rates[0].count)) {
+ 		i = 0;
++		printk(KERN_DEBUG " ath9k: ath_merge_ratetbl(), "
++			"info->control.rates[0].idx < 0 = true, NO RATE SAMPLING\n");
+ 	} else {
+ 		bf->rates[0] = info->control.rates[0];
+ 		bf->txpower[0] = info->control.txpower * 2;
+ 		i = 1;
++		printk(KERN_DEBUG " ath9k: ath_merge_ratetbl(), RATE SAMPLING "
++			"with bf->rates[0]=%i bf->txpower[0]=%i\n",
++			bf->rates[0].idx, bf->txpower[0]);
+ 	}
+ 
+ 	for ( ; i < IEEE80211_TX_MAX_RATES; i++) {
+@@ -223,6 +231,9 @@ static bool ath_merge_ratetbl(struct iee
+ 			bf->rates[i].count = ratetbl->rate[i].count_cts;
+ 		else
+ 			bf->rates[i].count = ratetbl->rate[i].count;
++		printk(KERN_DEBUG " ath9k: ath_merge_ratetbl(), remaining MRR "
++			"setup:  bf->rates[%i]= %i  bf->txpower[%i]= %i\n",
++			i, bf->rates[i].idx, i, bf->txpower[i]);
+ 	}
+ 
+ 	return true;
+@@ -237,19 +248,28 @@ static void ath_set_rates(struct ieee802
+ 		/* Clear the first rate to avoid using a sample rate for PS frames */
+ 		info->control.rates[0].idx = -1;
+ 		info->control.rates[0].count = 0;
++		printk(KERN_DEBUG " ath9k: ath_set_rates() ps = true -> "
++			"skip rate sampling\n");
+ 	}
+ 
+-	if (!ath_merge_ratetbl(sta, bf, info))
++	if (!ath_merge_ratetbl(sta, bf, info)) {
+ 		ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
+ 				       ARRAY_SIZE(bf->rates));
++		printk(KERN_DEBUG " ath9k: ath_set_rates() > ath_merge_ratetbl()"
++			"=false, so instead ieee80211_get_tx_rates() is used\n");
++	}
+ 
+-	if (!ps)
++	if (!ps) {
++		printk(KERN_DEBUG " ath9k: ath_set_rates() if (!ps) = false > RETURN\n");
+ 		return;
++	}
+ 
+ 	if (bf->rates[0].count > 2)
+ 		bf->rates[0].count = 2;
+ 
+ 	bf->rates[1].idx = -1;
++	printk(KERN_DEBUG " ath9k: ath_set_rates() if (!ps) = true, we com from "
++		"powersave > set bf->rates[1].idx = -1\n");
+ }
+ 
+ static void ath_txq_skb_done(struct ath_softc *sc, struct ath_txq *txq,
+@@ -1254,6 +1274,9 @@ static u8 ath_get_rate_txpower(struct at
+ 
+ 	if (!AR_SREV_9300_20_OR_LATER(ah)) {
+ 		int txpower = fi->tx_power;
++		printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() & "
++			"!AR_SREV_9300_20_OR_LATER() > first txpower = "
++			"fi->tx_power = %i\n", txpower);
+ 
+ 		if (is_40) {
+ 			u8 power_ht40delta;
+@@ -1271,42 +1294,81 @@ static u8 ath_get_rate_txpower(struct at
+ 				power_ht40delta = 2;
+ 			}
+ 			txpower += power_ht40delta;
++			printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() & "
++				"is_40=true > CHANGED txpower "
++				"+ power_ht40delta=  %i\n", txpower);
+ 		}
+ 
+ 		if (AR_SREV_9287(ah) || AR_SREV_9285(ah) ||
+ 		    AR_SREV_9271(ah)) {
+ 			txpower -= 2 * AR9287_PWR_TABLE_OFFSET_DB;
++			printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() & "
++				"(AR_SREV_9287(ah) || AR_SREV_9285(ah) || "
++				"AR_SREV_9271(ah)) > CHANGED txpower "
++				"- 2 * AR9287_PWR_TABLE_OFFSET_DB=  %i\n", txpower);
+ 		} else if (AR_SREV_9280_20_OR_LATER(ah)) {
+ 			s8 power_offset;
+ 
+ 			power_offset = ah->eep_ops->get_eeprom(ah,
+ 							EEP_PWR_TABLE_OFFSET);
+ 			txpower -= 2 * power_offset;
++			printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() & "
++				"(AR_SREV_9280_20_OR_LATER(ah) > CHANGED txpower "
++				"- 2 * power_offset=  %i\n", txpower);
+ 		}
+ 
+-		if (OLC_FOR_AR9280_20_LATER && is_cck)
++		if (OLC_FOR_AR9280_20_LATER && is_cck) {
+ 			txpower -= 2;
++			printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() & "
++				"(OLC_FOR_AR9280_20_LATER && is_cck) > CHANGED "
++				"txpower= %i\n", txpower);
++		}
+ 
+ 		txpower = max(txpower, 0);
++		printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() > "
++			"max(txpower, 0)=%i\n", txpower);
+ 		max_power = min_t(u8, ah->tx_power[rateidx], txpower);
++		printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() > "
++			"min(ah->tx_power[rateidx],txpower)=%i\n", max_power);
+ 
+ 		/* XXX: clamp minimum TX power at 1 for AR9160 since if
+ 		 * max_power is set to 0, frames are transmitted at max
+ 		 * TX power
+ 		 */
+-		if (!max_power && !AR_SREV_9280_20_OR_LATER(ah))
++		if (!max_power && !AR_SREV_9280_20_OR_LATER(ah)) {
+ 			max_power = 1;
++			printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() > "
++			"clamp minimum TX power at 1, max_power = 1;\n");
++		}
++
+ 	} else if (!bf->bf_state.bfs_paprd) {
+-		if (rateidx > 8 && (info->flags & IEEE80211_TX_CTL_STBC))
++		if (rateidx > 8 && (info->flags & IEEE80211_TX_CTL_STBC)) {
+ 			max_power = min_t(u8, ah->tx_power_stbc[rateidx],
+ 					  fi->tx_power);
+-		else
++			printk(KERN_DEBUG " ath9k:  ath_get_rate_txpower() > "
++				"(!bf->bf_state.bfs_paprd)=true > max_power= "
++				"min(ah->tx_power_stbc[%i]=%i, fi->tx_power=%i)"
++				"=%i \n", rateidx, ah->tx_power_stbc[rateidx],
++				fi->tx_power, max_power);
++		} else {
+ 			max_power = min_t(u8, ah->tx_power[rateidx],
+ 					  fi->tx_power);
++			printk(KERN_DEBUG " ath9k:  ath_get_rate_txpower() > "
++				"(!bf->bf_state.bfs_paprd)=true > max_power= "
++				"min(ah->tx_power[%i]=%i, fi->tx_power=%i)="
++				"%i \n", rateidx, ah->tx_power[rateidx],
++				fi->tx_power, max_power);
++		}
+ 	} else {
+ 		max_power = ah->paprd_training_power;
++		printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() > PAPRD on,"
++			" set max_power = ah->paprd_training_power = %i\n",
++			max_power);
+ 	}
+ 
++	printk(KERN_DEBUG " ath9k: ath_get_rate_txpower() > FINAL MAX_POWER "
++		"LIMIT: @idx[%i]= %i\n", rateidx, max_power);
++
+ 	return max_power;
+ }
+ 
+@@ -1416,8 +1478,15 @@ static void ath_buf_set_rate(struct ath_
+ 							is_cck);
+ 	}
+ 
+-	for (i = 0; i < ARRAY_SIZE(bf->rates); i++)
++	for (i = 0; i < ARRAY_SIZE(bf->rates); i++) {
++		printk(KERN_DEBUG " ath9k: ath_buf_set_rate() SET TX-POWER LIMIT"
++			" to min(info->txpower[%i]=%i, bf->txpower[%i]=%i)\n",
++			i, info->txpower[i], i, bf->txpower[i]);
+ 		info->txpower[i] = min_t(u8, info->txpower[i], bf->txpower[i]);
++		printk(KERN_DEBUG " ath9k: ath_buf_set_rate() FINAL MRR SETUP: "
++			"mrr[%i].idx= %i & .power= %i\n", i, bf->rates[i].idx,
++			info->txpower[i]);
++	}
+ 
+ 	/* For AR5416 - RTS cannot be followed by a frame larger than 8K */
+ 	if (bf_isaggr(bf) && (len > sc->sc_ah->caps.rts_aggr_limit))
+--- a/drivers/net/wireless/ath/ath9k/ar9003_eeprom.c
++++ b/drivers/net/wireless/ath/ath9k/ar9003_eeprom.c
+@@ -5435,6 +5435,12 @@ static void ath9k_hw_ar9300_set_txpower(
+ 
+ 		ar9003_hw_init_rate_txpower(ah, targetPowerValT2_tpc, chan);
+ 
++		printk(KERN_DEBUG "--- Eeprom TPC POWER TABLE LIMITS ---\n");
++		for(i = 0; i < Ar5416RateSize; i++) {
++			printk(KERN_DEBUG " ath9k: in ath9k_hw_ar9300_set_txpower()  ah->tx_power[%i]= %i   ah->tx_power_stbc[%i]= %i\n",
++				i, ah->tx_power[i], i, ah->tx_power_stbc[i]);
++		}
++
+ 		/* Enable TPC */
+ 		REG_WRITE(ah, AR_PHY_PWRTX_MAX,
+ 			  AR_PHY_POWER_TX_RATE_MAX_TPC_ENABLE);
