@@ -38,19 +38,11 @@ local parser = argparse( "netRun", "Run minstrel blues multi AP / multi STA mesu
 
 parser:argument("command", "tcp, udp, mcast, noop")
 
--- TODO: allow networks instead of hosts, each ap
-
 parser:option ("-c --config", "config file name", nil)
 
-parser:option("--sta", "Station host name or ip address"):count("*")
-parser:option("--ap", "Access Point host name or ip address"):count("*")
+parser:option("--sta", "Station host name or ip address and optional radio, ctrl_if, rsa_key and mac separated by comma"):count("*")
+parser:option("--ap", "Access Point host name or ip address and optional radio, ctrl_if, rsa_key and mac separated by comma"):count("*")
 parser:option("--con", "Connection between APs and STAs, format: ap_name=sta_name1,sta_name2"):count("*")
-
-parser:option ("--sta_radio", "STA Wifi Interface name")
-parser:option ("--sta_ctrl_if", "STA Control Interface")
-
-parser:option ("--ap_radio", "AP Wifi Interface name")
-parser:option ("--ap_ctrl_if", "AP Control Monitor Interface")
 
 parser:option ("--ctrl", "Control node host name or ip address" )
 parser:option ("--ctrl_if", "RPC Interface of Control node" )
@@ -59,8 +51,6 @@ parser:flag ("--ctrl_only", "Just connect with control node", false )
 
 parser:option ("--net_if", "Used network interface", "eth0" )
 
---parser:option ("--log", "Logger host name or ip address")
---parser:option ("--log_if", "RPC Interface of Logging node" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "measurement.log" )
 
@@ -149,15 +139,12 @@ if ( has_config ) then
     Config.read_connections ( args.con )
 
     Config.set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
---    Config.set_config_from_arg ( log, 'ctrl_if', args.log_if )
     
     ap_setups = Config.accesspoints ( nodes, connections )
-    Config.set_configs_from_arg ( ap_setups, 'radio', args.ap_radio )
-    Config.set_configs_from_arg ( ap_setups, 'ctrl_if', args.ap_ctrl_if )
+    Config.set_configs_from_args ( ap_setups, args.ap )
 
     sta_setups = Config.stations ( nodes, connections )
-    Config.set_configs_from_arg ( sta_setups, 'radio', args.sta_radio )
-    Config.set_configs_from_arg ( sta_setups, 'ctrl_if', args.sta_ctrl_if )
+    Config.set_configs_from_args ( sta_setups, args.sta )
 
 else
 
@@ -178,8 +165,8 @@ else
     end
     nodes [1] = ctrl
 
-    ap_setups = Config.create_configs ( args.ap, args.ap_radio, args.ap_ctrl_if )
-    sta_setups = Config.create_configs ( args.sta, args.sta_radio, args.sta_ctrl_if )
+    ap_setups = Config.create_configs ( args.ap )
+    sta_setups = Config.create_configs ( args.sta )
     Config.copy_config_nodes ( ap_setups, nodes )
     Config.copy_config_nodes ( sta_setups, nodes )
 
@@ -205,10 +192,24 @@ if ( args.verbose == true) then
     print ( )
 end
 
-local aps_config = Config.select_configs ( ap_setups, args.ap ) 
-if ( aps_config == {} ) then os.exit (1) end
+local ap_names = {}
+for _, ap in ipairs ( args.ap ) do
+    local parts = split ( ap, "," )
+    ap_names [ #ap_names + 1 ] = parts [ 1 ]
+end
 
-local stas_config = Config.select_configs ( sta_setups, args.sta )
+local aps_config = Config.select_configs ( ap_setups, ap_names )
+if ( aps_config == {} ) then os.exit (1) end
+pprint ( ap_names )
+
+local sta_names = {}
+for _, sta in ipairs ( args.sta ) do
+    local parts = split ( sta, "," )
+    sta_names [ #sta_names + 1 ] = parts [ 1 ]
+end
+
+pprint ( sta_names )
+local stas_config = Config.select_configs ( sta_setups, sta_names )
 if ( stas_config == {} ) then os.exit (1) end
 
 local ctrl_config = Config.select_config ( nodes, args.ctrl )

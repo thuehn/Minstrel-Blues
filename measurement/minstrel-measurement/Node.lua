@@ -309,7 +309,7 @@ function Node:get_iw_link ( phy )
     local iface = dev.iface
     self:send_debug ("iw dev " .. iface .. " link")
     local content, exit_code = misc.execute ( "iw", "dev", iface, "link" )
-    self:send_debug (" " .. ( content or "none" ) )
+    --self:send_debug (" " .. ( content or "none" ) )
     --self:send_debug ( "iw link exit code : " .. tostring (exit_code) )
     if ( exit_code > 0 or content == nil) then return nil end
     local iwlink = parse_iwlink ( content )
@@ -816,6 +816,10 @@ end
 
 -- iperf -c 192.168.1.240 -p 12000 -n 500MB
 function Node:run_tcp_iperf ( addr, tcpdata, wait )
+    if ( addr == nil ) then
+        self:send_error (" Iperf client (tcp) not started. Address is unset" )
+        return nil
+    end
     if ( self.iperf_client_procs [ addr ] ~= nil ) then
         self:send_error (" Iperf client (tcp) not started for address " .. addr .. ". Already running.")
         return nil
@@ -843,8 +847,12 @@ end
 -- iperf -u -c 192.168.1.240 -p 12000 -l 1500B -b 600000 -t 240
 --function Node:run_udp_iperf ( addr, size, rate, interval, wait )
 function Node:run_udp_iperf ( addr, rate, duration, wait )
+    if ( addr == nil ) then
+        self:send_error (" Iperf client (udp) not started. Address is unset" )
+        return nil
+    end
     if ( self.iperf_client_procs [ addr ] ~= nil ) then
-        self:send_error (" Iperf client (udp) not started for address " .. addr .. ". Already running.")
+        self:send_error (" Iperf client (udp) not started for address " .. addr .. ". Already running." )
         return nil
     end
     self:send_info ( "run UDP iperf at port " .. ( self.iperf_port or "none" )
@@ -879,6 +887,10 @@ end
 -- iperf -c 224.0.67.0 -u --ttl 1 -t 120 -b 100M -l 1500 -B 10.10.250.2
 -- iperf -u -c 224.0.67.0 -p 12000 -T 32 -t 10 -b 1MB -B 192.168.1.1
 function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait )
+    if ( addr == nil ) then
+        self:send_error (" Iperf client (multicast) not started. Address is unset" )
+        return nil
+    end
     if ( self.iperf_client_procs [ addr ] ~= nil ) then
         self:send_error (" Iperf client (mcast) not started for address " .. addr .. ". Already running.")
         return nil

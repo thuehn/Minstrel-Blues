@@ -66,10 +66,11 @@ Config.create_config = function ( name, ctrl_if, radio )
            }
 end
 
-Config.create_configs = function ( names, ctrl, radio )
+Config.create_configs = function ( cmd_lines )
     local configs = {}
-    for i, name in ipairs ( names ) do
-        configs [i] = Config.create_config ( name, ctrl, radio )
+    for i, cmd_line in ipairs ( cmd_lines ) do
+        local parts = split ( cmd_line, "," )
+        configs [i] = Config.create_config ( parts [ 1 ], parts [ 3 ], parts [ 2 ] )
     end
     return configs
 end
@@ -123,6 +124,28 @@ end
 Config.set_configs_from_arg = function ( configs, key, arg )
     for _, config in ipairs ( configs ) do
         Config.set_config_from_arg ( config, key, arg )
+    end
+end
+
+Config.set_configs_from_args = function ( configs, args )
+    for _, config in ipairs ( configs ) do
+        for _, arg in ipairs ( args ) do
+            local parts = split ( arg, "," )
+            if ( config.name == parts [ 1 ] ) then
+                if ( parts [ 2 ] ~= nil and parts [ 2 ] ~= "" ) then
+                    Config.set_config_from_arg ( config, "radio", parts [ 2 ] )
+                end
+                if ( parts [ 3 ] ~= nil and parts [ 3 ] ~= "" ) then
+                    Config.set_config_from_arg ( config, "ctrl_if", parts [ 3 ] )
+                end
+                if ( parts [ 4 ] ~= nil and parts [ 4 ] ~= "" ) then
+                    Config.set_config_from_arg ( config, "rsa_key", parts [ 4 ] )
+                end
+                if ( parts [ 5 ] ~= nil and parts [ 5 ] ~= "" ) then
+                    Config.set_config_from_arg ( config, "mac", parts [ 5 ] )
+                end
+            end
+        end
     end
 end
 

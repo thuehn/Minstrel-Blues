@@ -141,8 +141,6 @@ function ControlNodeRef:prepare_aps ( ap_configs )
         local phys = self.rpc.list_phys ( ap_name )
         local found = false
         for _, phy in ipairs ( phys ) do
-            print ( phy )
-            print ( config.radio )
             if ( string.sub ( config.radio, 6, 6 ) == string.sub ( phy, 4, 4 ) ) then
                 self.rpc.set_phy ( ap_name, phy )
                 if ( self.rpc.enable_wifi ( ap_name, true ) == true ) then
