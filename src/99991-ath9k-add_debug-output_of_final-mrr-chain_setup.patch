@@ -1,0 +1,20 @@
+--- a/drivers/net/wireless/ath/ath9k/ar9003_mac.c
++++ b/drivers/net/wireless/ath/ath9k/ar9003_mac.c
+@@ -99,6 +99,17 @@ ar9003_set_txdesc(struct ath_hw *ah, voi
+ 		return;
+ 	}
+ 
++	/* debug validation output of final mrr chain setup */
++	printk(KERN_DEBUG "TX_DESCRIPTOR SETUP:\n"
++		"  mrr[0]: rate=%i,power=%i,tries=%i\n"
++		"  mrr[1]: rate=%i,power=%i,tries=%i\n"
++		"  mrr[2]: rate=%i,power=%i,tries=%i\n"
++		"  mrr[3]: rate=%i,power=%i,tries=%i\n",
++		i->rates[0].Rate, i->txpower[0], i->rates[0].Tries,
++		i->rates[1].Rate, i->txpower[1], i->rates[1].Tries,
++		i->rates[2].Rate, i->txpower[2], i->rates[2].Tries,
++		i->rates[3].Rate, i->txpower[3], i->rates[3].Tries);
++
+ 	WRITE_ONCE(ads->ctl11, (i->pkt_len & AR_FrameLen)
+ 		| (i->flags & ATH9K_TXDESC_VMF ? AR_VirtMoreFrag : 0)
+ 		| SM(i->txpower[0], AR_XmitPower0)
