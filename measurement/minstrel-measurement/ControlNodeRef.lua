@@ -6,6 +6,7 @@ local misc = require 'misc'
 local net = require ('Net')
 require ('NetIF')
 local pprint = require ('pprint')
+local config = require ('Config') -- find_node
 
 ControlNodeRef = { name = nil
                  , ctrl = nil
@@ -129,24 +130,36 @@ function ControlNodeRef:disconnect_nodes ()
     return self.rpc.disconnect_nodes ()
 end
 
-function ControlNodeRef:prepare_aps ()
+function ControlNodeRef:prepare_aps ( ap_configs )
     local ap_names = self.rpc.list_aps()
     for _, ap_name in ipairs ( ap_names ) do
-        local wifis = self.rpc.list_phys ( ap_name )
-        self.rpc.set_phy ( ap_name, wifis [ 2 ] )
-        if ( self.rpc.enable_wifi ( ap_name, true ) == true ) then
-            local ssid = self.rpc.get_ssid ( ap_name )
-            print ( "SSID: " .. ssid )
+        local config = config.find_node ( ap_name, ap_configs )
+        local phys = self.rpc.list_phys ( ap_name )
+        for _, phy in ipairs ( phys ) do
+            if ( string.sub ( config.radio, 6, 6 ) == string.sub ( phy, 4, 4 ) ) then
+                self.rpc.set_phy ( ap_name, phy )
+                if ( self.rpc.enable_wifi ( ap_name, true ) == true ) then
+                    local ssid = self.rpc.get_ssid ( ap_name )
+                    print ( "SSID: " .. ssid )
+                end
+            end
         end
     end
+    return true
 end
 
-function ControlNodeRef:prepare_stas ()
+function ControlNodeRef:prepare_stas ( sta_configs )
     for _, sta_name in ipairs ( self.rpc.list_stas() ) do
-        local wifis = self.rpc.list_phys ( sta_name )
-        self.rpc.set_phy ( sta_name, wifis [ 2 ] )
-        self.rpc.enable_wifi ( sta_name, true )
+        local config = config.find_node ( sta_name, sta_configs )
+        local phys = self.rpc.list_phys ( sta_name )
+        for _, phy in ipairs ( phys ) do
+            if ( string.sub ( config.radio, 6, 6 ) == string.sub ( phy, 4, 4 ) ) then
+                self.rpc.set_phy ( sta_name, phy )
+                self.rpc.enable_wifi ( sta_name, true )
+            end
+        end
     end
+    return true
 end
 
 -- set mode of AP to 'ap'

@@ -118,6 +118,10 @@ function Node:find_wifi_device ( phy )
 end
 
 function Node:enable_wifi ( enabled, phy )
+    if ( phy == nil ) then
+        self:send_error ( "Cannot enable/disable wifi, phy is unset" )
+        return false
+    end
     local var = "wireless.radio"
     var = var .. string.sub ( phy, 4, string.len ( phy ) )
     var = var .. ".disabled"

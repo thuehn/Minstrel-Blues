@@ -410,11 +410,11 @@ end
 ctrl_ref:set_nameservers ( args.nameserver or nameserver )
 
 print ( "Prepare APs" )
-ctrl_ref:prepare_aps ()
+ctrl_ref:prepare_aps ( aps_config )
 print ()
 
 print ( "Prepare STAs" )
-ctrl_ref:prepare_stas ()
+ctrl_ref:prepare_stas ( stas_config )
 
 print ( "Associate AP with STAs" )
 ctrl_ref:associate_stas ( connections )
