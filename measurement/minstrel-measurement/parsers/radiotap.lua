@@ -171,7 +171,7 @@ PCAP.mac_tostring = function ( mac )
     local ret = ""
     for i = 1, 6 do
         if ( i ~= 1 ) then ret = ret .. ":" end
-        ret = ret .. string.format("%x", mac [i])
+        ret = ret .. string.format("%02x", mac [i])
     end
     return ret
 end
