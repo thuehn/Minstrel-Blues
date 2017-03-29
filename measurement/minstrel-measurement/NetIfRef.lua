@@ -32,13 +32,17 @@ function NetIfRef:__tostring()
 end
 
 function NetIfRef:set_addr ( addr_or_name )
-    local ctrl_ip, rest = parse_ipv4 ( name )
-    ctrl_net.addr = ctrl_ip
-    if ( ctrl_net.addr == nil ) then
+    local ctrl_ip, rest = parse_ipv4 ( addr_or_name )
+    self.addr = ctrl_ip
+    if ( self.addr == nil ) then
         -- name is a host name (and bo ip address)
-        local ip_addr, _ = net.lookup ( name )
-        if ( ip_addr ~= nil ) then
-            ctrl_net.addr = ip_addr
+        local dig, _ = net.lookup ( addr_or_name )
+        if ( dig = nil and dig.ip_addr ~= nil ) then
+            self.addr = ip_addr
+            self.name = addr_or_name
+        else
+            self.addr = nil
+            self.name = addr_or_name
         end 
     end
 end

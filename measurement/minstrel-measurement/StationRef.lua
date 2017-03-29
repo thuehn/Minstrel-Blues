@@ -11,6 +11,7 @@ function StationRef:create ( name, ctrl, rsa_key, output_dir, mac, control_node 
                              , output_dir = output_dir
                              , ap_ref = nil
                              , is_passive = mac ~= nil
+                             , passive_mac = mac
                              , control_node = control_node
                              }
     ctrl_net_ref:set_addr ( name )
@@ -18,7 +19,7 @@ function StationRef:create ( name, ctrl, rsa_key, output_dir, mac, control_node 
     -- stations with configured mac doesn't run lua measurment node
     -- is_passive for later diffrentiation
     if ( mac ~= nil ) then
-        o.macs [ "phy0" ] = mac
+        o.radios [ "phy0" ] = NetIfRef:create ( nil, nil, nil, "phy0" )
         o.phys = { "phy0" }
     end
     return o

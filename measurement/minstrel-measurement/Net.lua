@@ -27,7 +27,7 @@ Net.lookup = function ( name )
     if ( content ~= nil ) then
         local answer = parse_dig ( content )
         if ( answer ~= nil ) then
-            return answer.addr, nil
+            return answer, nil
         end
     else
         return nil, nil

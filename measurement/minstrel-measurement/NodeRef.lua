@@ -8,21 +8,19 @@ NodeRef = { name = nil
           , ctrl_net_ref = nil
           , rsa_key = nil
           , rpc = nil
-          , phys = nil
+          , radios = nil
           , wifi_cur = nil
-          , addrs = nil
-          , macs = nil
           , stats = nil
           , output_dir = nil
           , is_passive = nil
+          , passive_mac = nil
           , control_node = nil
           }
 
 function NodeRef:new (o)
     local o = o or {}
-    o.phys = {}
-    o.addrs = {}
-    o.macs = {}
+    o.radios = {}
+    r.macs = {}
     o.stats = {}
     o.refs = {}
     setmetatable (o, self)
@@ -35,12 +33,12 @@ end
 function NodeRef:init ( rpc )
     self.rpc = rpc
     if ( self.rpc ~= nil) then
-        self.phys = self.rpc.phy_devices()
-        for _, phy in ipairs ( self.phys ) do
-            self.addrs [ phy ] = self.rpc.get_addr ( phy )
-            if ( self.macs [ phy ] == nil ) then
-                self.macs [ phy ] = self.rpc.get_mac ( phy )
-            end
+        local phys = self.rpc.phy_devices()
+        for _, phy in ipairs ( phys ) do
+            local radio = NetIfRef:create ( nil, nil, nil, phy )
+            self.radios [ phy ] = radio
+            radio.addr = self.rpc.get_addr ( phy )
+            radio.mac = self.rpc.get_mac ( phy )
         end
     end
 end
@@ -50,12 +48,11 @@ function NodeRef:set_phy ( phy )
 end
 
 function NodeRef:get_addr ()
---    return self.rpc.get_addr ( self.wifi_cur )
-    return self.addrs [ self.wifi_cur ]
+    return self.radios [ self.wifi_cur ].addr
 end
 
 function NodeRef:get_mac ()
-    return self.macs [ self.wifi_cur ]
+    return self.radios [ self.wifi_cur ].mac
 end
 
 function NodeRef:__tostring ()
@@ -67,19 +64,10 @@ function NodeRef:__tostring ()
     else
         out = out .. "rpc not connected\n\t"
     end
-    out = out .. "phys: "
-    if ( self.phys == {} ) then
-        out = out .. " none"
-    else
-        for i, phy in ipairs ( self.phys ) do
-            if ( i ~= 1 ) then out = out .. "\n\t" end
-            local addr = self.addrs [ phy ]
-            if ( addr == nil ) then addr = "none" end
-            out = out .. phy .. ", addr " .. addr
-            local mac = self.macs [ phy ]
-            if ( mac == nil ) then mac = "none" end
-            out = out .. ", mac " .. mac
-        end
+    out = out .. "radios: "
+    for i, radio in ipairs ( self.radios ) do
+        if ( i ~= 1 ) then out = out .. "\n\t" end
+        out = out .. tostring ( radio ) .. "\n\t"
     end
     return out
 end

@@ -26,7 +26,6 @@ function ControlNodeRef:new (o)
 end
 
 function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname )
-    -- ctrl node iface, ctrl node (name) lookup
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 

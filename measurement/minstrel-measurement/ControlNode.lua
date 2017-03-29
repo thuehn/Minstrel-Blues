@@ -295,9 +295,9 @@ function ControlNode:reachable ()
             local addr, rest = parse_ipv4 ( node_ref.name )
             if ( addr == nil ) then
                 -- name is a hostname and no ip addr
-                addr, _ = net.lookup ( node_ref.name )
+                dig, _ = net.lookup ( node_ref.name )
             end
-            if ( addr == nil ) then
+            if ( dig ~= nil and addr == nil ) then
                 break
             end
             node_ref.ctrl.addr = addr
