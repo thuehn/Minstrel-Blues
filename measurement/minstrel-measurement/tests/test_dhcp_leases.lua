@@ -6,6 +6,12 @@ local line3 = "1486177259 02:cf:03:82:be:37 192.168.2.11 birne 01:02:cf:03:82:be
 
 local lease
 
+lease = parse_dhcp_lease ( nil )
+print ( assert ( lease ~= nil ) )
+
+lease = parse_dhcp_lease ( "" )
+print ( assert ( lease ~= nil ) )
+
 lease = parse_dhcp_lease ( line1 )
 -- print ( lease )
 print ( assert ( lease.timestamp == 1486165501 ) )
@@ -26,3 +32,4 @@ print ( assert ( lease.timestamp == 1486177259 ) )
 print ( assert ( lease.mac == "02:cf:03:82:be:37" ) )
 print ( assert ( lease.addr == "192.168.2.11" ) )
 print ( assert ( lease.hostname == "birne" ) )
+

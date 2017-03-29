@@ -227,8 +227,15 @@ function ControlNode:add_station ( ap, sta )
         ap_ref:add_station ( mac, sta_ref )
         sta_ref:set_ap_ref ( ap_ref )
     else
-        ap_ref:add_station ( sta_ref.macs [ "phy0" ], sta_ref )
-        sta_ref:set_ap_ref ( ap_ref )
+        self:send_debug ( sta_ref.macs [ "phy0" ] )
+        if ( sta_ref.macs [ "phy0" ] ~= nil ) then
+            ap_ref:add_station ( sta_ref.macs [ "phy0" ], sta_ref )
+            sta_ref:set_ap_ref ( ap_ref )
+            local addr = ap_ref.rpc.has_lease ( sta_ref.macs [ "phy0" ] )
+            if ( addr ~= nil ) then
+                sta_ref.addrs [ "phy0" ] = addr
+            end
+        end
     end
 end
 

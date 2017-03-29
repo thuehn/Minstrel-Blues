@@ -32,9 +32,12 @@ function DhcpLease:__tostring()
             .. " addr6: " .. addr6
 end
 
-function parse_dhcp_lease ( ifconfig )
+function parse_dhcp_lease ( lease )
 
-    local rest = ifconfig
+    local out = DhcpLease:create()
+    if ( lease == nil or lease == "" ) then return out end
+
+    local rest = lease
     local state = true
     local timestamp = nil
     local mac = nil
@@ -58,7 +61,6 @@ function parse_dhcp_lease ( ifconfig )
     rest = skip_layout( rest )
     -- ... addr6 | '*'
     
-    local out = DhcpLease:create()
     out.timestamp = tonumber ( timestamp )
     out.mac = string.lower ( mac )
     out.hostname = hostname
