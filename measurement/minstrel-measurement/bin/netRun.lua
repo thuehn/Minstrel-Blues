@@ -22,7 +22,7 @@
 
 pprint = require ('pprint')
 
-local argparse = require "argparse"
+local argparse = require ('argparse')
 
 local posix = require ('posix') -- sleep
 
@@ -32,7 +32,6 @@ require ('misc')
 require ('Config')
 require ('NetIF')
 require ('ControlNodeRef')
-require ('Measurement')
 
 local parser = argparse( "netRun", "Run minstrel blues multi AP / multi STA mesurement" )
 

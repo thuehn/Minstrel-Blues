@@ -5,9 +5,12 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, ctrl, rsa_key, output_dir, control_node )
+function AccessPointRef:create ( name, ctrl_if, rsa_key, output_dir, control_node )
+    local ctrl_net_ref = NetIfRef:create ( ctrl_if )
+    ctrl_net_ref:set_addr ( name )
+
     local o = AccessPointRef:new { name = name
-                                 , ctrl = ctrl
+                                 , ctrl_net_ref = ctrl_net_ref
                                  , rsa_key = rsa_key
                                  , output_dir = output_dir
                                  , refs = {}

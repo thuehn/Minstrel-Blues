@@ -5,6 +5,7 @@ require ('Net')
 -- table with keys
 
 NetIF = { iface = nil, addr = nil, mon = nil, phy = nil, is_remote = nil }
+
 function NetIF:new (o)
     local o = o or {}
     setmetatable(o, self)
@@ -30,3 +31,4 @@ function NetIF:get_addr ()
     end
     return self.addr
 end
+

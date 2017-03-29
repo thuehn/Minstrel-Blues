@@ -3,14 +3,18 @@ require ('NodeRef')
 StationRef = NodeRef:new()
 
 function StationRef:create ( name, ctrl, rsa_key, output_dir, mac, control_node )
+    local ctrl_net_ref = NetIfRef:create ( ctrl_if )
+
     local o = StationRef:new { name = name
-                             , ctrl = ctrl
+                             , ctrl_net_ref = ctrl_net_ref
                              , rsa_key = rsa_key
                              , output_dir = output_dir
                              , ap_ref = nil
                              , is_passive = mac ~= nil
                              , control_node = control_node
                              }
+    ctrl_net_ref:set_addr ( name )
+
     -- stations with configured mac doesn't run lua measurment node
     -- is_passive for later diffrentiation
     if ( mac ~= nil ) then

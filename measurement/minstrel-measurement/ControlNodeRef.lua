@@ -3,10 +3,11 @@ local posix = require ('posix') -- sleep
 require ("rpc")
 require ("lpc")
 local misc = require 'misc'
-local net = require ('Net')
-require ('NetIF')
 local pprint = require ('pprint')
 local config = require ('Config') -- find_node
+
+require ('NetIfRef')
+require ('Measurement')
 
 ControlNodeRef = { name = nil
                  , ctrl = nil
@@ -14,33 +15,28 @@ ControlNodeRef = { name = nil
                  , output_dir = nil
                  , log_file = nil
                  , log_fname = nil
-                 , stats = nil   -- maps node name to statistics
+                 , stats = nil   -- maps node name to statistics ( measurement )
                  }
 
 function ControlNodeRef:new (o)
     local o = o or {}
-    setmetatable(o, self)
+    setmetatable (o, self)
     self.__index = self
     return o
 end
 
 function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname )
     -- ctrl node iface, ctrl node (name) lookup
-    local ctrl_net = NetIF:create ( ctrl_if )
-    local ctrl_ip, rest = parse_ipv4 ( name )
-    ctrl_net.addr = ctrl_ip
-    if ( ctrl_net.addr == nil ) then
-        -- name is a host name (and bo ip address)
-        local ip_addr, _ = net.lookup ( name )
-        if ( ip_addr ~= nil ) then
-            ctrl_net.addr = ip_addr
-        end 
-    end
+    local ctrl_net_ref = NetIfRef:create ( ctrl_if )
+    ctrl_net_ref:set_addr ( name )
 
-    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir
+    local o = ControlNodeRef:new { name = name
+                                 , ctrl_net_ref = ctrl_net_ref
+                                 , output_dir = output_dir
                                  , log_fname = log_fname
                                  , log_file = io.open ( log_fname, "wa" )
-                                 , stats = {}  }
+                                 , stats = {}
+                                 }
     return o
 end
 
@@ -237,7 +233,7 @@ function ControlNodeRef:start ( ctrl_port, log_file, log_port )
     cmd [3] = "--port"
     cmd [4] = ctrl_port 
     cmd [5] = "--ctrl_if"
-    cmd [6] = self.ctrl.iface
+    cmd [6] = self.ctrl_net_ref.iface
     cmd [7] = "--output"
     cmd [8] = self.output_dir
     if ( log_file ~= nil and log_port ~= nil ) then
@@ -256,7 +252,7 @@ end
 function ControlNodeRef:start_remote ( ctrl_port, log_file, log_port )
     local remote_cmd = "lua /usr/bin/runControl"
                  .. " --port " .. ctrl_port 
-                 .. " --ctrl_if " .. self.ctrl.iface
+                 .. " --ctrl_if " .. self.ctrl_net_ref.iface
                  .. " --output " .. self.output_dir
 
     if ( log_file ~= nil and log_port ~= nil ) then
@@ -265,13 +261,13 @@ function ControlNodeRef:start_remote ( ctrl_port, log_file, log_port )
     end
     print ( remote_cmd )
     -- fixme:  "-i", node_ref.rsa_key, 
-    local pid, _, _ = misc.spawn ( "ssh", "root@" .. self.ctrl.addr, remote_cmd )
+    local pid, _, _ = misc.spawn ( "ssh", "root@" .. self.ctrl_net_ref.addr, remote_cmd )
     print ( "Control: " .. pid )
     return pid
 end
 
 function ControlNodeRef:connect ( ctrl_port )
-    self.rpc = net.connect ( self.ctrl.addr, ctrl_port, 10, self.name, 
+    self.rpc = net.connect ( self.ctrl_net_ref.addr, ctrl_port, 10, self.name,
                                function ( msg ) print ( msg ) end )
     return self.rpc
 end

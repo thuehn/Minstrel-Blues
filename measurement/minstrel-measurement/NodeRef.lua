@@ -1,11 +1,11 @@
 
 local posix = require ('posix') -- sleep
 
+require ('NetIfRef')
 require ('Measurement')
-require ('NetIF')
 
 NodeRef = { name = nil
-          , ctrl = nil
+          , ctrl_net_ref = nil
           , rsa_key = nil
           , rpc = nil
           , phys = nil
@@ -25,7 +25,7 @@ function NodeRef:new (o)
     o.macs = {}
     o.stats = {}
     o.refs = {}
-    setmetatable(o, self)
+    setmetatable (o, self)
     self.__index = self
     return o
 end
@@ -35,7 +35,6 @@ end
 function NodeRef:init ( rpc )
     self.rpc = rpc
     if ( self.rpc ~= nil) then
-        self.ctrl.addr = self.rpc.get_ctrl_addr ()
         self.phys = self.rpc.phy_devices()
         for _, phy in ipairs ( self.phys ) do
             self.addrs [ phy ] = self.rpc.get_addr ( phy )
@@ -62,7 +61,7 @@ end
 function NodeRef:__tostring ()
     local out = ""
     out = out .. self.name .. " :: " 
-          .. "ctrl: " .. tostring ( self.ctrl ) .. "\n\t"
+          .. "ctrl: " .. tostring ( self.ctrl_net_ref ) .. "\n\t"
     if ( self.rpc ~= nil ) then
         out = out .. "rpc connected\n\t"
     else
