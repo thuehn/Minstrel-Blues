@@ -16,8 +16,6 @@ function StationRef:create ( name, ctrl, rsa_key, output_dir, mac, control_node 
     if ( mac ~= nil ) then
         o.macs [ "phy0" ] = mac
         o.phys = { "phy0" }
-    else
-        o.ctrl:get_addr()
     end
     return o
 end

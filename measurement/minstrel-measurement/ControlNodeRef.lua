@@ -133,7 +133,7 @@ function ControlNodeRef:prepare_aps ()
     local ap_names = self.rpc.list_aps()
     for _, ap_name in ipairs ( ap_names ) do
         local wifis = self.rpc.list_phys ( ap_name )
-        self.rpc.set_phy ( ap_name, wifis[1] )
+        self.rpc.set_phy ( ap_name, wifis [ 2 ] )
         if ( self.rpc.enable_wifi ( ap_name, true ) == true ) then
             local ssid = self.rpc.get_ssid ( ap_name )
             print ( "SSID: " .. ssid )
@@ -144,7 +144,7 @@ end
 function ControlNodeRef:prepare_stas ()
     for _, sta_name in ipairs ( self.rpc.list_stas() ) do
         local wifis = self.rpc.list_phys ( sta_name )
-        self.rpc.set_phy ( sta_name, wifis[1] )
+        self.rpc.set_phy ( sta_name, wifis [ 2 ] )
         self.rpc.enable_wifi ( sta_name, true )
     end
 end

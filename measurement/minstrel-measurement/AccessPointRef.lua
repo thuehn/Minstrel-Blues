@@ -14,7 +14,6 @@ function AccessPointRef:create ( name, ctrl, rsa_key, output_dir, control_node )
                                  , stations = {}
                                  , control_node = control_node
                                  }
-    o.ctrl:get_addr()
     return o
 end
 

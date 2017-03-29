@@ -261,6 +261,11 @@ function Node:get_mac ( phy )
     return ifconfig.mac
 end
 
+function Node:get_ctrl_addr ()
+    self:send_info ( "send ipv4 addr of control interface " .. self.ctrl.iface )
+    return self.ctrl.addr 
+end
+
 function Node:get_addr ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface

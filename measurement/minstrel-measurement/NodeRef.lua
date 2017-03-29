@@ -35,6 +35,7 @@ end
 function NodeRef:init ( rpc )
     self.rpc = rpc
     if ( self.rpc ~= nil) then
+        self.ctrl.addr = self.rpc.get_ctrl_addr ()
         self.phys = self.rpc.phy_devices()
         for _, phy in ipairs ( self.phys ) do
             self.addrs [ phy ] = self.rpc.get_addr ( phy )

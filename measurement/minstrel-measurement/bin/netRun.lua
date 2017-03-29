@@ -277,8 +277,8 @@ net = NetIF:create ( args.net_if )
 net:get_addr()
 
 -- remote control node interface
-ctrl_ref = ControlNodeRef:create ( ctrl_config['name']
-                                 , ctrl_config['ctrl_if']
+ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
+                                 , ctrl_config ['ctrl_if']
                                  , output_dir
                                  )
 

@@ -20,6 +20,8 @@ local args = parser:parse ()
 local ctrl = NetIF:create ( args.ctrl_if )
 local node = Node:create ( args.name, ctrl, args.port, args.log_port, args.log_ip, args.iperf_port )
 
+function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
+
 function get_board ( ... ) return node:get_board ( ... ) end
 
 function phy_devices ( ... ) return node:phy_devices ( ... ) end
