@@ -33,22 +33,28 @@ function get_boards ( ... ) return node:get_boards ( ... ) end
 
 function add_ap ( ... ) return node:add_ap ( ... ) end
 function add_sta ( ... ) return node:add_sta ( ... ) end
+
 function reachable ( ... ) return node:reachable ( ... ) end
+
 function start_nodes ( ... ) return node:start_nodes ( ... ) end
+function stop ( ... ) return node:stop ( ... ) end
+
 function connect_nodes ( ... ) return node:connect_nodes ( ... ) end
 function disconnect_nodes ( ... ) return node:disconnect_nodes ( ... ) end
+
 function init_experiment ( ... ) return node:init_experiment ( ... ) end
 function get_keys ( ... ) return node:get_keys ( ... ) end
-function get_stats ( ... ) return node:get_stats ( ... ) end
+function get_txpowers ( ... ) return node:get_txpowers ( ... ) end
+function get_txrates ( ... ) return node:get_txrates ( ... ) end
+
 function run_experiment ( ... ) return node:run_experiment ( ... ) end
-function stop ( ... ) return node:stop ( ... ) end
+function get_stats ( ... ) return node:get_stats ( ... ) end
+function get_log ( ... ) return node:get_log ( ... ) end
+
 function set_date ( ... ) return node:set_date ( ... ) end
 function set_dates ( ... ) return node:set_dates ( ... ) end
 function get_pid ( ... ) return node:get_pid ( ... ) end
 function kill ( ... ) return node:kill ( ... ) end
-
-function get_txpowers ( ... ) return node:get_txpowers ( ... ) end
-function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
 function randomize_nodes ( ... ) return node:randomize_nodes ( ... ) end
 function list_nodes ( ... ) return node:list_nodes ( ... ) end
@@ -64,6 +70,7 @@ function link_to_ssid ( ... ) return node:link_to_ssid ( ... ) end
 function get_ssid ( ... ) return node:get_ssid ( ... ) end
 function add_station ( ... ) return node:add_station ( ... ) end
 function list_stations ( ... ) return node:list_stations ( ... ) end
+
 function set_ani ( ... ) return node:set_ani ( ... ) end
 function set_nameserver (...) return node:set_nameserver (...) end
 function set_nameservers (...) return node:set_nameservers (...) end

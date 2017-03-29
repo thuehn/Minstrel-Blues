@@ -28,7 +28,8 @@ function ControlNode:create ( name, ctrl, port, log_port, log_file, output_dir )
                                 , ctrl = ctrl
                                 , port = port
                                 , log_port = log_port
-                                , log_file = log_file
+                                , log_fname = log_file
+                                , log_file = nil
                                 , output_dir = output_dir
                                 , log_addr = ctrl.addr
                                 , ap_refs = {}     -- list of access point nodes
@@ -45,11 +46,13 @@ function ControlNode:create ( name, ctrl, port, log_port, log_file, output_dir )
         o.log_addr = o.ctrl.addr
     end
 
-    if ( log_port ~= nil and log_file ~= nil ) then
-        local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", "/tmp/" .. log_file 
+    if ( log_port ~= nil and log_fname ~= nil ) then
+        local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", "/tmp/" .. log_fname
                                     , "--port", log_port )
         o.pids = {}
         o.pids ['logger'] = pid
+        local fname = "/tmp/" .. self.log_fname
+        o.log_file = io.open ( fname, "r" )
     end
 
     return o
@@ -64,7 +67,7 @@ function ControlNode:__tostring()
     local out = "control if: " .. net .. "\n"
     out = out .. "control port: " .. ( self.port or "none" ) .. "\n"
     out = out .. "output: " .. ( self.output_dir or "none" ) .. "\n"
-    out = out .. "log file: " .. ( self.log_file or "none" ) .."\n"
+    out = out .. "log file: " .. ( self.log_fname or "none" ) .."\n"
     out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
         out = out .. '\n'
@@ -392,6 +395,7 @@ function ControlNode:stop()
             self:send_info ( "stop logger with pid " .. pid )
             ps.kill ( pid )
             lpc.wait ( pid )
+            self.log_file:close()
         end
     end
 
@@ -413,13 +417,11 @@ function ControlNode:stop()
     end
 
     stop_logger ( self.pids ['logger'] )
+end
 
-    -- transfer log
-    local fname = "/tmp/" .. self.log_file
-    local file = io.open ( fname )
+function ControlNode:get_log ()
     if ( file ~= nil ) then
         local log = file:read ("*a")
-        file:close()
         return log
     else
         return nil

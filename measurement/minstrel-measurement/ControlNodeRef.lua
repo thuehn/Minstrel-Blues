@@ -12,6 +12,8 @@ ControlNodeRef = { name = nil
                  , ctrl = nil
                  , rpc = nil
                  , output_dir = nil
+                 , log_file = nil
+                 , log_fname = nil
                  , stats = nil   -- maps node name to statistics
                  }
 
@@ -22,7 +24,7 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create ( name, ctrl_if, output_dir )
+function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname )
     -- ctrl node iface, ctrl node (name) lookup
     local ctrl_net = NetIF:create ( ctrl_if )
     local ctrl_ip, rest = parse_ipv4 ( name )
@@ -35,7 +37,10 @@ function ControlNodeRef:create ( name, ctrl_if, output_dir )
         end 
     end
 
-    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir, stats = {}  }
+    local o = ControlNodeRef:new { name = name, ctrl = ctrl_net, output_dir = output_dir
+                                 , log_fname = log_fname
+                                 , log_file = io.open ( log_fname, "wa" )
+                                 , stats = {}  }
     return o
 end
 
@@ -277,8 +282,10 @@ end
 
 
 function ControlNodeRef:stop_control ()
-    local log = self.rpc.stop()
-    return log
+    self.rpc.stop()
+    if ( self.log_file ~= nil ) then
+        self.log_file:close()
+    end
 end
 
 function ControlNodeRef:stop ( pid )
@@ -391,7 +398,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
     -- randomize keys
     local keys_random = misc.randomize_list ( keys [ key_index ] )
 
-    -- save experiment order
+        ^-- save experiment order
     local fname = self.output_dir .. "/experiment_order.txt"
     local file = io.open ( fname, "w" )
     if ( file ~= nil ) then
@@ -412,22 +419,46 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
 
         ret = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len )
 
-        print ("* Transfer Measurement Result *")
-        local stats = self.rpc.get_stats ()
-        for ref_name, stats in pairs ( stats ) do
-            if ( self.stats [ ref_name ] == nil ) then
-                self.stats [ ref_name ] = {}
-                self.stats [ ref_name ] [ 'cpusage_stats' ] = {}
-                self.stats [ ref_name ] [ 'rc_stats' ] = {}
-                self.stats [ ref_name ] [ 'regmon_stats' ] = {}
-                self.stats [ ref_name ] [ 'tcpdump_pcaps' ] = {}
+        print ("* Transfer Logfile *")
+
+        local log = self.rpc.get_log ()
+        if ( log ~= nil ) then
+            local fname = output_dir .. "/" .. self.log_fname
+            if ( file ~= nil ) then
+               file:write ( log )
             end
-            merge_map ( stats [ 'cpusage_stats' ] , self.stats [ ref_name ] [ 'cpusage_stats' ] )
-            merge_map ( stats [ 'rc_stats' ] , self.stats [ ref_name ] [ 'rc_stats' ] )
-            merge_map ( stats [ 'regmon_stats' ] , self.stats [ ref_name ] [ 'regmon_stats' ] )
-            merge_map ( stats [ 'tcpdump_pcaps' ] , self.stats [ ref_name ] [ 'tcpdump_pcaps' ] )
         end
 
+        print ("* Transfer Measurement Result *")
+
+        local stats = self.rpc.get_stats ()
+
+        for ref_name, stats in pairs ( stats ) do
+            if ( self.stats [ ref_name ] == nil ) then
+                local mac = self:get_mac ( name )
+                local opposite_macs = self:get_opposite_macs ( name )
+
+                local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir )
+                self.stats [ ref_name ] = measurement
+
+                local stations = {}
+                for station, _ in pairs ( stats.rc_stats ) do
+                    stations [ #stations + 1 ] = station
+                end
+                measurement:enable_rc_stats ( stations ) -- resets rc_stats
+            end
+
+            merge_map ( stats [ 'cpusage_stats' ] , self.stats [ ref_name ].cpusage_stats )
+            merge_map ( stats [ 'rc_stats' ] , self.stats [ ref_name ].rc_stats )
+            merge_map ( stats [ 'regmon_stats' ] , self.stats [ ref_name ].regmon_stats )
+            merge_map ( stats [ 'tcpdump_pcaps' ] , self.stats [ ref_name ].tcpdump_pcaps )
+
+            local status, err = self.stats [ ref_name ]:write ()
+            if ( status == false ) then
+                print ( "err: can't access directory '" ..  ( output_dir or "unset" )
+                                .. "': " .. ( err or "unknown error" ) )
+            end
+        end
         counter = counter + 1
     end
 

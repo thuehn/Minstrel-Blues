@@ -240,8 +240,6 @@ print ( )
 
 Config.save ( output_dir, ctrl_config, aps_config, stas_config )
 
-local measurements = {}
-
 local ctrl_pid
 local ctrl_ref
 local net
@@ -255,15 +253,7 @@ function cleanup ()
     -- kill nodes if desired by the user
     if ( args.disable_autostart == false ) then
         print ( "stop control" )
-        local log = ctrl_ref:stop_control ()
-        if ( log ~= nil ) then
-            local fname = output_dir .. "/" .. args.log_file
-            local file = io.open ( fname, "w" )
-            if ( file ~= nil ) then
-               file:write ( log ) 
-            end
-            file:close()
-        end
+        ctrl_ref:stop_control ()
         if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
             ctrl_ref:stop_remote ( ctrl_ref.ctrl.addr, ctrl_pid )
         else
@@ -494,40 +484,12 @@ ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable
 --posix.sleep (20)
 
 local status, err = ctrl_ref:run_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
+
 if ( status == false ) then
     print ( "err: experiments failed: " .. ( err or "unknown error" ) )
-end
-
-if (status == true) then
-
+else
     print ()
-    local all_stats = ctrl_ref.stats
-    for name, stats in pairs ( all_stats ) do
-
-        -- fixme: move to ControlNodeRef
-        local mac = ctrl_ref:get_mac( name )
-        local opposite_macs = ctrl_ref:get_opposite_macs ( name )
-        print ( name, ap_mac )
-        local measurement = Measurement:create ( name, mac, opposite_macs, nil, output_dir )
-        measurements [ #measurements + 1 ] = measurement
-        measurement.regmon_stats = copy_map ( stats.regmon_stats )
-        measurement.tcpdump_pcaps = copy_map ( stats.tcpdump_pcaps )
-        measurement.cpusage_stats = copy_map ( stats.cpusage_stats )
-
-        local stations = {}
-        for station, _ in pairs ( stats.rc_stats ) do
-            stations [ #stations + 1 ] = station
-        end
-        measurement:enable_rc_stats ( stations ) -- resets rc_stats
-        measurement.rc_stats = copy_map ( stats.rc_stats )
-        measurement.output_dir = output_dir
-
-        local status, err = measurement:write ()
-        if ( status == false ) then
-            print ( "err: can't access directory '" ..  ( output_dir or "unset" )
-                            .. "': " .. ( err or "unknown error" ) )
-        end
-
+    for name, stats in pairs ( ctrl_ref.stats ) do
         print ( measurement:__tostring() )
         print ( )
     end
