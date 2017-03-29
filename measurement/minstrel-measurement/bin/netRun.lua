@@ -410,11 +410,19 @@ end
 ctrl_ref:set_nameservers ( args.nameserver or nameserver )
 
 print ( "Prepare APs" )
-ctrl_ref:prepare_aps ( aps_config )
+if ( ctrl_ref:prepare_aps ( aps_config ) == false ) then
+    print ( "preparation of access points failed!" )
+    cleanup ()
+    os.exit (1)
+end
 print ()
 
 print ( "Prepare STAs" )
-ctrl_ref:prepare_stas ( stas_config )
+if ( ctrl_ref:prepare_stas ( stas_config ) == false ) then
+    print ( "preparation of stations failed!" )
+    cleanup ()
+    os.exit (1)
+end
 
 print ( "Associate AP with STAs" )
 ctrl_ref:associate_stas ( connections )

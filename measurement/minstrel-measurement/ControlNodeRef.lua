@@ -134,6 +134,10 @@ function ControlNodeRef:prepare_aps ( ap_configs )
     local ap_names = self.rpc.list_aps()
     for _, ap_name in ipairs ( ap_names ) do
         local config = config.find_node ( ap_name, ap_configs )
+        if ( config == nil ) then
+            print ( "config for node " .. ap_name .. " not found" )
+            return false
+        end
         local phys = self.rpc.list_phys ( ap_name )
         for _, phy in ipairs ( phys ) do
             if ( string.sub ( config.radio, 6, 6 ) == string.sub ( phy, 4, 4 ) ) then
@@ -142,6 +146,9 @@ function ControlNodeRef:prepare_aps ( ap_configs )
                     local ssid = self.rpc.get_ssid ( ap_name )
                     print ( "SSID: " .. ssid )
                 end
+            else
+                print ( "configured radio " .. config.radio .. " not found" )
+                return false
             end
         end
     end
@@ -151,11 +158,18 @@ end
 function ControlNodeRef:prepare_stas ( sta_configs )
     for _, sta_name in ipairs ( self.rpc.list_stas() ) do
         local config = config.find_node ( sta_name, sta_configs )
+        if ( config == nil ) then
+            print ( "config for node " .. ap_name .. " not found" )
+            return false
+        end
         local phys = self.rpc.list_phys ( sta_name )
         for _, phy in ipairs ( phys ) do
             if ( string.sub ( config.radio, 6, 6 ) == string.sub ( phy, 4, 4 ) ) then
                 self.rpc.set_phy ( sta_name, phy )
                 self.rpc.enable_wifi ( sta_name, true )
+            else
+                print ( "configured radio " .. config.radio .. " not found" )
+                return false
             end
         end
     end
