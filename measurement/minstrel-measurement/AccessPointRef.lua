@@ -137,10 +137,11 @@ function AccessPointRef:wait_linked( retrys )
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             local res = sta_ref:wait_linked ( retrys )
             if ( res == false ) then
-                break
+                return false
             end
         end
     end
+    return true
 end
 
 function AccessPointRef:start_measurement( key )

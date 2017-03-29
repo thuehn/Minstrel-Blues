@@ -101,8 +101,8 @@ function NodeRef:wait_linked ( runs )
             connected = true
         end
         retrys = retrys - 1
-    until connected or retrys == 0
-    return retrys ~= 0
+    until ( connected or retrys == 0 )
+    return ( retrys ~= 0 )
 end
 
 function NodeRef:create_measurement()

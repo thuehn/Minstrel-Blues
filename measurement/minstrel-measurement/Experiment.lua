@@ -57,7 +57,9 @@ end
 function Experiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:restart_wifi ()
     local visible = ap_ref:wait_station ( retrys )
+    self.control:send_debug ( "visible: " .. tostring ( visible ) )
     local linked = ap_ref:wait_linked ( retrys )
+    self.control:send_debug ( "linked: " .. tostring ( linked ) )
     ap_ref:add_monitor ()
     if ( self.is_fixed == true ) then
         for _, station in ipairs ( ap_ref.stations ) do

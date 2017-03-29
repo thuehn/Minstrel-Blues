@@ -182,7 +182,7 @@ function Node:add_monitor ( phy )
     local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
     if ( exit_code ~= 0 ) then
         self:send_info ( "Adding monitor " .. mon .. " to " .. phy)
-        self:send_debug ("iw phy " .. phy .. "interface add " .. mon .. " type monitor" )
+        self:send_debug ("iw phy " .. phy .. " interface add " .. mon .. " type monitor" )
         local _, exit_code = misc.execute ( "iw", "phy", phy, "interface", "add", mon, "type", "monitor" )
         if ( exit_code ~= 0 ) then
             self:send_error ( "Add monitor failed with exit code: " .. exit_code )
@@ -298,7 +298,9 @@ end
 function Node:get_iw_link ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
+    self:send_debug ("iw dev " .. iface .. " link")
     local content, exit_code = misc.execute ( "iw", "dev", iface, "link" )
+    self:send_debug (" " .. ( content or "none" ) )
     --self:send_debug ( "iw link exit code : " .. tostring (exit_code) )
     if ( exit_code > 0 or content == nil) then return nil end
     local iwlink = parse_iwlink ( content )
@@ -310,7 +312,10 @@ end
 function Node:get_linked_ssid ( phy )
     self:send_info ( "Get linked ssid for device " .. phy )
     local iwlink = self:get_iw_link ( phy )
-    if ( iwlink == nil or iwlink.ssid == nil ) then return nil end
+    if ( iwlink == nil or iwlink.ssid == nil ) then
+        self:send_debug ("iw link has no result")
+        return nil
+    end
     self:send_info ( " linked ssid: " .. iwlink.ssid )
     return iwlink.ssid
 end
