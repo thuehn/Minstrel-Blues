@@ -79,13 +79,16 @@ function FXsnrAnalyser:read_ssid ( dir, name )
     return ssid
 end
 
-function FXsnrAnalyser:parse_radiotap ( capdata )
-    local rest = capdata
-    local pos = 0
+function FXsnrAnalyser:parse_radiotap ( capdata, pos )
+    -- fixme: returned pos doesn't match position of returned rest
     local radiotap_header
     local radiotap_data
-    radiotap_header, rest, pos = PCAP.parse_radiotap_header ( rest )
-    radiotap_data, rest, pos = PCAP.parse_radiotap_data ( rest, pos )
+    local pos2 = 0
+    local rest2 = capdata
+
+    radiotap_header, rest2, pos2 = PCAP.parse_radiotap_header ( rest2, pos2 )
+    radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, pos2 )
+
     return radiotap_header, radiotap_data
 end
 
@@ -161,14 +164,21 @@ function FXsnrAnalyser:snrs ( measurement )
             local fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
             print ( fname )
             --local ssid_m = self:read_ssid ( measurement.output_dir, measurement.node_name )
-            local cap = pcap.open_offline ( fname )
-            if ( cap ~= nil ) then
-                --cap:set_filter ("type data subtype data", nooptimize)
-                --cap:set_filter ("type mgt subtype beacon", nooptimize)
-                for capdata, timestamp, wirelen in cap.next, cap do
-                    local radiotap_header
-                    local radiotap_data
-                    radiotap_header, radiotap_data = self:parse_radiotap ( capdata )
+
+            local rest
+            local pos
+            local file
+
+            file, rest, pos = PCAP.open ( fname )
+
+            if ( file ~= nil ) then
+
+                while ( string.len ( rest ) > 0 ) do
+
+                    local capdata
+                    capdata, rest, pos = PCAP.get_packet ( rest, pos )
+
+                    radiotap_header, radiotap_data = self:parse_radiotap ( capdata, pos )
 
                     --local ssid = radiotap_data [ 'ssid' ]
                     local frame_type = radiotap_data [ 'type' ]
@@ -189,7 +199,7 @@ function FXsnrAnalyser:snrs ( measurement )
                     end
                 end
                 print ( #snrs .. " read" )
-                cap:close()
+                file:close()
             else
                 print ("FXsnrAnalyser: pcap open failed: " .. fname)
             end

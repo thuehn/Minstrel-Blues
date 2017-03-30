@@ -108,7 +108,7 @@ PCAP.to_bytes_hex = function ( str )
     local bytes = ""
     for i = 1, #str do
         if ( i ~= 1 ) then bytes = bytes .. " " end
-        bytes = bytes .. string.format("%x", string.byte ( str, i ) )
+        bytes = bytes .. string.format("%02x", string.byte ( str, i ) )
     end
     return bytes
 end
@@ -142,6 +142,14 @@ PCAP.read_int32 = function ( bytes, pos )
         + bit.lshift ( string.byte ( bytes, 3 ), 16)
         + bit.lshift ( string.byte ( bytes, 2 ), 8)
         + string.byte ( bytes, 1 )
+    return num, string.sub ( bytes, 5 ), pos + 4
+end
+
+PCAP.read_int32_big = function ( bytes, pos )
+    local num = bit.lshift ( string.byte ( bytes, 1 ), 24)
+        + bit.lshift ( string.byte ( bytes, 2 ), 16)
+        + bit.lshift ( string.byte ( bytes, 3 ), 8)
+        + string.byte ( bytes, 4 )
     return num, string.sub ( bytes, 5 ), pos + 4
 end
 
@@ -197,6 +205,68 @@ PCAP.align = function ( bytes, align, pos )
         _, rest, pos = PCAP.read_int8 ( rest, pos )
     end
     return rest, pos
+end
+
+function PCAP.open ( fname )
+    local file = io.open ( fname, "rb" )
+    local rest = file:read ( "*a" )
+    if ( file ~= nil ) then
+        local pos
+        rest, pos = PCAP.parse_pcap_header ( rest )
+        return file, rest, pos
+    end
+    return nil, nil, nil
+end
+
+function PCAP.parse_pcap_header ( rest )
+    local pos = 0
+
+    -- PCAP header
+    _, rest, pos = PCAP.read_int32 ( rest, pos ) -- byte order, magic number
+    _, rest, pos = PCAP.read_int16 ( rest, pos ) -- major version number
+    _, rest, pos = PCAP.read_int16 ( rest, pos ) -- minor version number
+    _, rest, pos = PCAP.read_int32 ( rest, pos ) -- signed GMT to local correction
+    _, rest, pos = PCAP.read_int32 ( rest, pos ) -- accuracy of timestamps
+    _, rest, pos = PCAP.read_int32_big ( rest, pos ) -- snaplen
+    _, rest, pos = PCAP.read_int32 ( rest, pos ) -- network, data link type
+
+    return rest, pos
+end
+
+function PCAP.parse_packet_header ( rest, pos )
+    -- packet header
+    _, rest, pos = PCAP.read_int32 ( rest, pos ) -- timestamp seconds
+    _, rest, pos = PCAP.read_int32 ( rest, pos ) -- timestamp microseconds
+
+    local incl_len
+    incl_len, rest, pos = PCAP.read_int32_big ( rest, pos ) -- number of octets of packet saved in file
+    --print ( "incl_len: " .. incl_len )
+
+    local orig_len
+    orig_len, rest, pos = PCAP.read_int32_big ( rest, pos ) -- actual length of packet
+    --print ( "orig_len: " .. orig_len )
+
+    return incl_len, rest, pos
+end
+
+function PCAP.get_packet ( rest, pos )
+    local old_pos = pos
+
+    local incl_len
+    incl_len, rest, pos = PCAP.parse_packet_header ( rest, pos )
+
+    local packet = string.sub ( rest, 0, incl_len + 16 )
+
+    ----for i = 1, incl_len  do
+    ----    byte, rest, pos = PCAP.read_int8 ( rest, pos )
+    ----end
+
+    local next_pos = old_pos + incl_len + 16
+    rest = string.sub ( rest, ( next_pos - pos ) + 1 )
+    --print ( PCAP.to_bytes_hex ( rest ) )
+
+    pos = next_pos
+    return packet, rest, pos
 end
 
 -- parse the radiotap data block
@@ -300,15 +370,15 @@ end
 -- header block from 'capdata'
 -- (currently the first 16 sub blocks are parsed only)
 -- alignment in sub blocks doesn't matter because of the absence of memory mapping
-PCAP.parse_radiotap_header = function ( capdata )
+PCAP.parse_radiotap_header = function ( capdata, pos )
 
+    local start_pos = pos
     -- https://www.kernel.org/doc/Documentation/networking/radiotap-headers.txt
     -- 1 byte it_version header version (always 0)
     -- 1 byte .          padding ( to fit alignment )
     -- 2 bytes it_len    total header and sub block length
     -- 4 byte it_present bitmask ( bit 31 is set when theres a 64bit bitmask instead of a 32bit bitmask
 
-    local pos = 0
     local ret = {}
     local rest = capdata
 
@@ -390,5 +460,5 @@ PCAP.parse_radiotap_header = function ( capdata )
     -- ...
     -- antenna 0, data antenna 0, antenna 1, data antenna 1
 
-    return ret, string.sub ( capdata, ret['it_len'] + 1 ), pos
+    return ret, string.sub ( capdata, start_pos + ret['it_len'] + 1 ), pos
 end

@@ -9,21 +9,30 @@ require ('parsers/radiotap')
 --pcap.DLT = { 'DLT_IEEE802_11_RADIO' }
 
 local fname = "tests/test.pcap"
-local fname = "/home/denis/data-30.03.2017-5G-all/tp4300/tp4300-11-9-10-10M-1.pcap"
-local fname = "/home/denis/data-30.03.2017-5G-all/tp4300/tp4300-15-2-10-10M-1.pcap"
-local cap = pcap.open_offline( fname )
-if (cap ~= nil) then
-	--cap:set_filter ("type mgt subtype beacon", nooptimize)
-	--cap:set_filter ("type data subtype data", nooptimize)
-    for capdata, timestamp, wirelen in cap.next, cap do
-        -- print ( timestamp, wirelen, #capdata )
-        -- pprint ( capdata )
-        local rest = capdata
-        local pos = 0
+--local fname = "/home/denis/data-30.03.2017-5G-all/tp4300/tp4300-11-9-10-10M-1.pcap"
+--local fname = "/home/denis/data-30.03.2017-5G-all/tp4300/tp4300-15-2-10-10M-1.pcap"
+
+local rest
+local pos
+local file
+
+file, rest, pos = PCAP.open ( fname )
+
+if ( file ~= nil ) then
+
+    while ( string.len ( rest ) > 0 ) do
+
+        local radiotab
+        radiotap, rest, pos = PCAP.get_packet ( rest, pos )
+
+        -- fixme: returned pos doesn't match position of returned rest
         local radiotap_header
         local radiotap_data
-        radiotap_header, rest, pos = PCAP.parse_radiotap_header ( rest )
-        radiotap_data, rest, pos = PCAP.parse_radiotap_data ( rest, pos )
+        local pos2 = 0
+        local rest2 = radiotap
+        radiotap_header, rest2, pos2 = PCAP.parse_radiotap_header ( rest2, pos2 )
+        radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, pos2 )
+
 		local ssid = radiotap_data [ 'ssid' ]
 		local frame_type = radiotap_data [ 'type' ]
 		local frame_subtype = radiotap_data [ 'subtype' ]
@@ -67,7 +76,7 @@ if (cap ~= nil) then
 		end
     end
 
-    cap:close()
+    file:close ()
 else
     print ("pcap open failed: " .. fname)
 end
