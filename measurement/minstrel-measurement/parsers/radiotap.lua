@@ -182,6 +182,7 @@ PCAP.read_str = function ( bytes, len, pos )
     local str = ""
     local rest = bytes
     for i = 1, len do
+        local c
         c, rest, pos = PCAP.read_int8 ( rest, pos )
         str = str .. string.char ( c )
     end

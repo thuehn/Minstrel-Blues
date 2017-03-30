@@ -88,7 +88,7 @@ Misc.Set_count = function ( list )
 end
 
 function copy_map ( from )
-    to = {}
+    local to = {}
     if ( from ~= nil ) then
         for key, data in pairs ( from ) do
             to [ key ] = data
@@ -278,6 +278,11 @@ function Misc.randomize_list ( list )
         end
     end
     return randomized
+end
+
+function Misc.round ( num, numDecimalPlaces )
+    local mult = 10 ^ ( numDecimalPlaces or 0 )
+    return math.floor ( num * mult + 0.5 ) / mult
 end
 
 return Misc
