@@ -1,4 +1,6 @@
 
+local net = require ('Net')
+
 NetIfRef = { iface = nil
            , addr = nil
            , mon = nil
@@ -37,8 +39,8 @@ function NetIfRef:set_addr ( addr_or_name )
     if ( self.addr == nil ) then
         -- name is a host name (and bo ip address)
         local dig, _ = net.lookup ( addr_or_name )
-        if ( dig = nil and dig.ip_addr ~= nil ) then
-            self.addr = ip_addr
+        if ( dig ~= nil and dig.addr ~= nil ) then
+            self.addr = dig.addr
             self.name = addr_or_name
         else
             self.addr = nil

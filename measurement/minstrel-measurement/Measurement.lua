@@ -267,7 +267,7 @@ end
 function Measurement:__tostring () 
     local out = "Measurement\n==========\n"
     out = out .. self.node_name .. "\n"
-    out = out .. self.node_mac .. "\n"
+    out = out .. ( self.node_mac or "no mac set" ) .. "\n"
     -- regmon stats
     out = out .. "regmon: " .. table_size ( self.regmon_stats ) .. " stats\n"
     local key

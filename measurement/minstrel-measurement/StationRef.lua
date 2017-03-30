@@ -2,7 +2,7 @@ require ('NodeRef')
 
 StationRef = NodeRef:new()
 
-function StationRef:create ( name, ctrl, rsa_key, output_dir, mac, control_node )
+function StationRef:create ( name, ctrl_if, rsa_key, output_dir, mac, control_node )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
 
     local o = StationRef:new { name = name

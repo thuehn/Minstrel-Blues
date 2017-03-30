@@ -253,8 +253,8 @@ function cleanup ()
     if ( args.disable_autostart == false ) then
         print ( "stop control" )
         ctrl_ref:stop_control ()
-        if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
-            ctrl_ref:stop_remote ( ctrl_ref.ctrl.addr, ctrl_pid )
+        if ( ctrl_ref.ctrl_net_ref.addr ~= nil and ctrl_ref.ctrl_net_ref.addr ~= net.addr ) then
+            ctrl_ref:stop_remote ( ctrl_ref.ctrl_net_ref.addr, ctrl_pid )
         else
             ctrl_ref:stop ( ctrl_pid )
         end
@@ -270,6 +270,7 @@ net:get_addr()
 ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
                                  , ctrl_config ['ctrl_if']
                                  , output_dir
+                                 , args.log_file
                                  )
 
 -- stop when nameserver is not reachable / not working
@@ -286,13 +287,13 @@ if ( net.addr == nil ) then
     print ( "Cannot get IP address of local interface" )
     os.exit (1)
 end
-if ( ctrl_ref.ctrl.addr == nil ) then
-    print ( "Cannot get IP address of control node" )
+if ( ctrl_ref.ctrl_net_ref.addr == nil ) then
+    print ( "Cannot get IP address of control node reference" )
     os.exit (1)
 end
 
 if ( args.disable_autostart == false ) then
-    if ( ctrl_ref.ctrl.addr ~= nil and ctrl_ref.ctrl.addr ~= net.addr ) then
+    if ( ctrl_ref.ctrl_net_ref.addr ~= nil and ctrl_ref.ctrl_net_ref.addr ~= net.addr ) then
         ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port, args.log_file, args.log_port )
     else
         ctrl_pid = ctrl_ref:start ( args.ctrl_port, args.log_file, args.log_port )
@@ -364,7 +365,8 @@ if ( args.disable_autostart == false ) then
         os.exit (1)
     end
 
-    if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl.addr, args.log_port ) == false ) then
+    print ("start nodes")
+    if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl_net_ref.addr, args.log_port ) == false ) then
         cleanup ()
         print ( "Error: Not all nodes started")
         os.exit (1)
@@ -489,9 +491,10 @@ if ( status == false ) then
 else
     print ()
     for name, stats in pairs ( ctrl_ref.stats ) do
-        print ( measurement:__tostring() )
+        print ( stats:__tostring() )
         print ( )
     end
 end
 
 cleanup ()
+os.exit ( 0 )

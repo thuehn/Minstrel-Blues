@@ -105,7 +105,7 @@ function UdpExperiment:start_experiment ( ap_ref, key )
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             local addr = sta_ref:get_addr ()
-            ap_ref.rpc.run_udp_iperf( addr, rate, duration, wait )
+            ap_ref.rpc.run_udp_iperf ( addr, rate, duration, wait )
         end
     end
     return true
@@ -116,7 +116,7 @@ function UdpExperiment:wait_experiment ( ap_ref )
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             local addr = sta_ref:get_addr ()
-            ap_ref.rpc.wait_iperf_c( addr )
+            ap_ref.rpc.wait_iperf_c ( addr )
         end
     end
 end

@@ -141,11 +141,12 @@ end
 function Node:get_ssid ( phy )
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
-    self:send_info ( "send ssid for " .. iface )
+    self:send_info ( "send ssid for " .. ( iface or "none" ) )
     local str, exit_code = misc.execute ( "iw", iface, "info" )
     if ( str ~= nil and exit_code == 0) then
         local iwinfo = parse_iwinfo ( str )
         if ( iwinfo ~= nil ) then
+            self:send_info ( " ssid " .. ( iwinfo.ssid or "none" ) )
             return iwinfo.ssid, nil
         end
     end
@@ -378,6 +379,14 @@ end
 -- --------------------------
 
 function Node:get_rc_stats_lines ( phy, station )
+    if ( phy == nil ) then
+        self:send_error ( "cannot get rc_stats. phy is unset" )
+        return {}
+    end
+    if ( station == nil ) then
+        self:send_error ( "cannot get rc_stats. station is unset" )
+        return {}
+    end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" .. station .. "/rc_stats_csv"
@@ -404,7 +413,7 @@ end
 
 -- read rc_stats and collects rate names
 function Node:tx_rate_names( phy, station )
-    self:send_info ( "List tx rate names for station " .. station .. " at device " .. phy)
+    self:send_info ( "List tx rate names for station " .. ( station or "none" ) .. " at device " .. ( phy or "none" ) )
     local lines = self:get_rc_stats_lines ( phy, station )
     local names = {}
     for _, rc_line in ipairs ( lines ) do
@@ -415,7 +424,7 @@ end
 
 -- reads rc_stats and collects rate indices
 function Node:tx_rate_indices( phy, station )
-    self:send_info ( "List tx rate indices for station " .. station .. " at device " .. phy )
+    self:send_info ( "List tx rate indices for station " .. ( station or "none" ) .. " at device " .. ( phy or "none" ) )
     local lines = self:get_rc_stats_lines ( phy, station )
     local rates = {}
     for _, rc_line in ipairs ( lines ) do

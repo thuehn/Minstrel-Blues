@@ -20,7 +20,7 @@ NodeRef = { name = nil
 function NodeRef:new (o)
     local o = o or {}
     o.radios = {}
-    r.macs = {}
+    o.macs = {}
     o.stats = {}
     o.refs = {}
     setmetatable (o, self)
@@ -64,10 +64,12 @@ function NodeRef:__tostring ()
     else
         out = out .. "rpc not connected\n\t"
     end
-    out = out .. "radios: "
-    for i, radio in ipairs ( self.radios ) do
-        if ( i ~= 1 ) then out = out .. "\n\t" end
-        out = out .. tostring ( radio ) .. "\n\t"
+    out = out .. "radios:"
+    for phy, radio in pairs ( self.radios ) do
+        out = out .. "\n\t\t" .. tostring ( radio )
+    end
+    if ( self.is_passive == true ) then
+        out = out .. "passive"
     end
     return out
 end

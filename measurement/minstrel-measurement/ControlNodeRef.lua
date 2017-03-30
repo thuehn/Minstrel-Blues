@@ -5,6 +5,7 @@ require ("lpc")
 local misc = require 'misc'
 local pprint = require ('pprint')
 local config = require ('Config') -- find_node
+local net = require ('Net')
 
 require ('NetIfRef')
 require ('Measurement')
@@ -266,6 +267,7 @@ function ControlNodeRef:start_remote ( ctrl_port, log_file, log_port )
 end
 
 function ControlNodeRef:connect ( ctrl_port )
+    print ( "connect " .. self.ctrl_net_ref:__tostring() )
     self.rpc = net.connect ( self.ctrl_net_ref.addr, ctrl_port, 10, self.name,
                                function ( msg ) print ( msg ) end )
     return self.rpc
@@ -393,7 +395,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
     -- randomize keys
     local keys_random = misc.randomize_list ( keys [ key_index ] )
 
-        ^-- save experiment order
+    -- save experiment order
     local fname = self.output_dir .. "/experiment_order.txt"
     local file = io.open ( fname, "w" )
     if ( file ~= nil ) then

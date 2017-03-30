@@ -23,12 +23,12 @@ require ('EmptyExperiment')
 
 ControlNode = NodeBase:new()
 
-function ControlNode:create ( name, ctrl, port, log_port, log_file, output_dir )
+function ControlNode:create ( name, ctrl, port, log_port, log_fname, output_dir )
     local o = ControlNode:new ( { name = name
                                 , ctrl = ctrl
                                 , port = port
                                 , log_port = log_port
-                                , log_fname = log_file
+                                , log_fname = log_fname
                                 , log_file = nil
                                 , output_dir = output_dir
                                 , log_addr = ctrl.addr
@@ -43,15 +43,15 @@ function ControlNode:create ( name, ctrl, port, log_port, log_file, output_dir )
 
     if ( o.ctrl.addr == nil ) then
         o.ctrl:get_addr ()
-        o.log_addr = o.ctrl.addr
     end
+    o.log_addr = o.ctrl.addr
 
     if ( log_port ~= nil and log_fname ~= nil ) then
         local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", "/tmp/" .. log_fname
-                                    , "--port", log_port )
+                                     , "--port", log_port )
         o.pids = {}
         o.pids ['logger'] = pid
-        local fname = "/tmp/" .. self.log_fname
+        local fname = "/tmp/" .. log_fname
         o.log_file = io.open ( fname, "r" )
     end
 
@@ -100,7 +100,6 @@ end
 
 function ControlNode:add_sta ( name, ctrl_if, rsa_key, mac )
     self:send_info ( " add station " .. name )
-    local ctrl = NetIF:create ( ctrl_if )
     local ref = StationRef:create ( name, ctrl_if, rsa_key, self.output_dir, mac, self )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
@@ -198,12 +197,12 @@ function ControlNode:enable_wifi ( name, enabled )
 end
 
 function ControlNode:link_to_ssid ( name, ssid )
-    self:send_info ( "link to ssid " .. (name or "none" ) )
+    self:send_info ( "link " .. (name or "none" ) .. " to ssid " .. ( ssid or "none" ) )
     local node_ref = self:find_node_ref ( name )
     if ( node_ref ~= nil ) then
-        self:send_info ( "link to ssid " .. (node_ref.name or "none" ) )
+        self:send_info ( "link node " .. (node_ref.name or "none" )  .. " to ssid " .. ( ssid or "none" ) )
+        node_ref:link_to_ssid ( ssid, node_ref.wifi_cur )
     end
-    node_ref:link_to_ssid ( ssid, node_ref.wifi_cur )
 end
 
 function ControlNode:get_ssid ( name )
@@ -255,7 +254,7 @@ end
 
 function ControlNode:find_node_ref( name ) 
     for _, node in ipairs ( self.node_refs ) do 
-        if node.name == name then return node end 
+        if ( node.name == name ) then return node end
     end
     return nil
 end
@@ -290,17 +289,22 @@ function ControlNode:reachable ()
     end
 
     local reached = {}
+    self:send_debug ( "reachable " .. #self.node_refs .. " nodes" )
     for _, node_ref in ipairs ( self.node_refs ) do
+        self:send_debug ( node_ref:__tostring() )
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
             local addr, rest = parse_ipv4 ( node_ref.name )
             if ( addr == nil ) then
                 -- name is a hostname and no ip addr
                 dig, _ = net.lookup ( node_ref.name )
+                if ( dig ~= nil and dig.addr ~= nil ) then
+                    addr = dig.addr
+                end
             end
-            if ( dig ~= nil and addr == nil ) then
+            if ( addr == nil ) then
                 break
             end
-            node_ref.ctrl.addr = addr
+            node_ref.ctrl_net_ref.addr = addr
             if ( node_reachable ( addr ) ) then
                 reached [ node_ref.name ] = true
             else
@@ -328,19 +332,21 @@ function ControlNode:start_nodes ( log_addr, log_port )
 
         local remote_cmd = "lua /usr/bin/runNode"
                     .. " --name " .. node_ref.name 
-                    .. " --ctrl_if " .. node_ref.ctrl.iface
+                    .. " --ctrl_if " .. node_ref.ctrl_net_ref.iface
 
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
         end
         self:send_info ( "ssh " .. "-i " .. ( node_ref.rsa_key or "none" )
-                        .. " root@" .. ( node_ref.ctrl.addr or "none" ) .. " " .. remote_cmd )
+                        .. " root@" .. ( node_ref.ctrl_net_ref.addr or "none" ) .. " " .. remote_cmd )
         local pid, _, _ = misc.spawn ( "ssh", "-i", node_ref.rsa_key, 
-                                      "root@" .. ( node_ref.ctrl.addr or "none" ), remote_cmd )
+                                      "root@" .. ( node_ref.ctrl_net_ref.addr or "none" ), remote_cmd )
         return pid
     end
 
+    self:send_debug ( "start " .. #self.node_refs .. " nodes" )
     for _, node_ref in ipairs ( self.node_refs ) do
+        self:send_debug ( node_ref:__tostring() )
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
             self.pids [ node_ref.name ] = start_node ( node_ref, log_addr )
         end
@@ -352,7 +358,7 @@ function ControlNode:connect_nodes ( ctrl_port )
     
     for _, node_ref in ipairs ( self.node_refs ) do
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
-            local slave = net.connect ( node_ref.ctrl.addr, ctrl_port, 10, node_ref.name,
+            local slave = net.connect ( node_ref.ctrl_net_ref.addr, ctrl_port, 10, node_ref.name,
                                         function ( msg ) self:send_error ( msg ) end )
             if ( slave == nil ) then
                 return false
@@ -394,7 +400,9 @@ function ControlNode:stop()
             self:send_info ( "stop logger with pid " .. pid )
             ps.kill ( pid )
             lpc.wait ( pid )
-            self.log_file:close()
+            if ( self.log_file ~= nil ) then
+                self.log_file:close()
+            end
         end
     end
 
@@ -402,10 +410,10 @@ function ControlNode:stop()
     -- and wait
     for i, node_ref in ipairs ( self.node_refs ) do
         if ( node_ref.rpc ~= nil and ( node_ref.is_passive == nil or node_ref.is_passive == false ) ) then
-            self:send_info ( "stop node at " .. node_ref.ctrl.addr .. " with pid " .. self.pids [ node_ref.name ] )
+            self:send_info ( "stop node at " .. node_ref.ctrl_net_ref.addr .. " with pid " .. self.pids [ node_ref.name ] )
             local ssh
             local exit_code
-            local remote = "root@" .. node_ref.ctrl.addr
+            local remote = "root@" .. node_ref.ctrl_net_ref.addr
             local remote_cmd = "lua /usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
             self:send_debug ( remote_cmd )
             ssh, exit_code = misc.execute ( "ssh", "-i", node_ref.rsa_key, remote, remote_cmd )

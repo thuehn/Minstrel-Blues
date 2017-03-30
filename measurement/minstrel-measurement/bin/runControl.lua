@@ -18,7 +18,6 @@ parser:option ("-O --output", "measurement / analyse data directory","/tmp")
 local args = parser:parse ()
 
 local net = NetIF:create ( args.ctrl_if )
-print ( net:__tostring () )
 local node = ControlNode:create ( "Control", net, args.port, args.log_port, args.log_file
                                 , args.output, args.enable_fixed )
 
