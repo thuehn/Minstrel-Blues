@@ -1,4 +1,3 @@
-require ('pcap')
 local pprint = require ('pprint')
 require ('parsers/parsers')
 require ('bit') -- lua5.3 supports operator &,|,<<,>> natively

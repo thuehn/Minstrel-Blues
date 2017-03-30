@@ -1,5 +1,4 @@
 require ('misc')
-require ('pcap')
 require ('parsers/radiotap')
 
 local misc = require ('misc')

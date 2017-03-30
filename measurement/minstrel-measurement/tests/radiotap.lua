@@ -1,4 +1,3 @@
-require ('pcap')
 require ('parsers/radiotap')
 local pprint = require ('pprint')
 
@@ -13,19 +12,27 @@ snrs[7] = -87
 
 
 local fname = "tests/test.pcap"
-local cap = pcap.open_offline( fname )
-if (cap ~= nil) then
-    cap:set_filter ("type mgt subtype beacon", nooptimize)
+local rest
+local pos
+local file
+
+file, rest, pos = PCAP.open ( fname )
+
+if ( file ~= nil ) then
+
     local i = 1
-    for capdata, timestamp, wirelen in cap.next, cap do
+    while ( string.len ( rest ) > 0 ) do
 
-        --print ( PCAP.to_bytes_hex ( capdata ) )
+        local radiotab
+        radiotap, rest, pos = PCAP.get_packet ( rest, pos )
 
-        local rest = capdata
+        -- fixme: returned pos doesn't match position of returned rest
         local radiotap_header
         local radiotap_data
-        radiotap_header, rest = PCAP.parse_radiotap_header ( rest )
-        radiotap_data, rest = PCAP.parse_radiotap_data ( rest )
+        local pos2 = 0
+        local rest2 = radiotap
+        radiotap_header, rest2, pos2 = PCAP.parse_radiotap_header ( rest2, pos2 )
+        radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, pos2 )
 
         if ( i == 1 ) then
             -- check present flags
@@ -86,7 +93,7 @@ if (cap ~= nil) then
             i = i + 1
         end
     end
-    cap:close()
+    file:close()
 else
     print ("pcap open failed: " .. fname)
 end
