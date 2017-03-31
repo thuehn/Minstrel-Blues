@@ -210,7 +210,7 @@ end
 function PCAP.open ( fname )
     local file = io.open ( fname, "rb" )
     local rest = file:read ( "*a" )
-    if ( file ~= nil ) then
+    if ( file ~= nil and rest ~= nil and rest ~= "" ) then
         local pos
         rest, pos = PCAP.parse_pcap_header ( rest )
         return file, rest, pos

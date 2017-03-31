@@ -39,6 +39,7 @@ function get_linked_mac(...) return node:get_linked_mac(...) end
 function get_linked_signal(...) return node:get_linked_signal(...) end
 function get_linked_rate_idx(...) return node:get_linked_rate_idx(...) end
 
+function get_iface(...) return node:get_iface(...) end
 function get_mac(...) return node:get_mac(...) end
 function get_addr(...) return node:get_addr(...) end
 function has_lease(...) return node:has_lease(...) end

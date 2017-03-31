@@ -2,6 +2,7 @@
 local posix = require ('posix') -- sleep
 require ('parsers/ifconfig')
 require ('parsers/dig')
+require ('parsers/brctl')
 require ('lfs')
 local misc = require ('misc')
 
@@ -12,6 +13,17 @@ Net.debugfs = "/sys/kernel/debug/ieee80211"
 Net.get_addr = function ( iface )
     if ( iface == nil ) then
         return nil, "iface is unset"
+    end
+    local content = misc.execute ( "brctl", "show" )
+
+    if ( content ~= nil ) then
+        local brctl = parse_brctl ( content )
+        for _, interface in ipairs ( brctl.interfaces ) do
+            if ( iface == interface ) then
+                iface = brctl.name
+                break
+            end
+        end
     end
     local content = misc.execute ( "ifconfig", iface )
     if ( content ~= nil ) then
@@ -66,7 +78,7 @@ Net.get_interface_name = function ( phy )
         return nil, "Permission denied to access debugfs"
     end
     for file in lfs.dir( dname ) do
-        if ( string.sub( file, 1, 7 ) == "netdev:" and string.sub ( file, 8, 10 ) ~= "mon" ) then
+        if ( string.sub ( file, 1, 7 ) == "netdev:" and string.sub ( file, 8, 10 ) ~= "mon" ) then
             return string.sub( file, 8 )
         end
     end

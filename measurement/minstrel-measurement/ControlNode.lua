@@ -271,9 +271,11 @@ function ControlNode:check_bridges ()
     local no_bridges = true
     for _, node_ref in ipairs ( self.node_refs ) do
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
-            local has_bridge = node_ref:check_bridge ()
-            self:send_info ( node_ref.name .. " has no bridged setup" )
-            no_bridges = no_bridges and not has_bridge
+            local bridge_name = node_ref:check_bridge ( node_ref.ctrl_net_ref.iface )
+            if ( bridge_name == nil ) then
+                self:send_info ( node_ref.name .. " has no bridged setup" )
+            end
+            no_bridges = no_bridges and bridge_name == nil
         end
     end
     if ( no_bridges == false ) then

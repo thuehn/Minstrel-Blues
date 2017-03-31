@@ -87,7 +87,7 @@ function parse_iwlink ( iwlink )
 
     --stderr
     state, rest = parse_str ( rest, "Not connected." )
-    if (state == true) then return nil end
+    if (state == true) then return out end
 
     --stdout
     state, rest = parse_str ( rest, "Connected to " )

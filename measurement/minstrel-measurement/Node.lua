@@ -109,6 +109,7 @@ function Node:phy_devices ()
 end
 
 function Node:find_wifi_device ( phy )
+    if ( phy == nil ) then return nil end
     for _, dev in ipairs ( self.wifis ) do
         if ( dev.phy == phy) then
             return dev
@@ -139,6 +140,7 @@ end
 -- AP only
 -- wireless.default_radio0.ssid='LEDE'
 function Node:get_ssid ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_info ( "send ssid for " .. ( iface or "none" ) )
@@ -154,6 +156,7 @@ function Node:get_ssid ( phy )
 end
 
 function Node:restart_wifi( phy )
+    if ( phy == nil ) then return nil end
     print ( self.proc_version.system )
     if ( self.proc_version.system == "LEDE" ) then
         local wifi, err = misc.execute ( "/sbin/wifi" )
@@ -182,6 +185,7 @@ end
 -- iw phy phy0 interface add mon0 type monitor
 -- ifconfig mon0 up
 function Node:add_monitor ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
     local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
@@ -207,6 +211,7 @@ end
 -- iw dev mon0 info
 -- iw dev mon0 del
 function Node:remove_monitor ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local mon = dev.mon
     local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
@@ -221,6 +226,7 @@ function Node:remove_monitor ( phy )
 end
 
 function Node:list_stations ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local stations = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
@@ -236,6 +242,7 @@ function Node:list_stations ( phy )
 end
 
 function Node:visible_stations ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local list = self:list_stations ( phy )
@@ -256,6 +263,7 @@ function Node:set_ani ( phy, enabled )
 end
 
 function Node:get_mac ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_info ( "send mac for " .. iface )
@@ -271,7 +279,14 @@ function Node:get_ctrl_addr ()
     return self.ctrl.addr 
 end
 
+function Node:get_iface ( phy )
+    if ( phy == nil ) then return nil end
+    local dev = self:find_wifi_device ( phy )
+    return dev.iface
+end
+
 function Node:get_addr ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_info ( "send ipv4 addr for " .. iface )
@@ -306,6 +321,7 @@ function Node:link_to_ssid ( ssid, phy )
 end
 
 function Node:get_iw_link ( phy )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_debug ("iw dev " .. iface .. " link")
@@ -320,6 +336,7 @@ end
 -- returns the ssid when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_ssid ( phy )
+    if ( phy == nil ) then return nil end
     self:send_info ( "Get linked ssid for device " .. phy )
     local iwlink = self:get_iw_link ( phy )
     if ( iwlink == nil or iwlink.ssid == nil ) then
@@ -333,6 +350,7 @@ end
 -- returns the remote iface when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_iface ( phy )
+    if ( phy == nil ) then return nil end
     self:send_info ( "Get linked interface for device " .. phy )
     local iwlink = self:get_iw_link ( phy )
     if ( iwlink == nil or iwlink.iface == nil ) then return nil end
@@ -343,6 +361,7 @@ end
 -- returns the remote mac when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_mac ( phy )
+    if ( phy == nil ) then return nil end
     self:send_info ( "Get linked mac for device " .. phy )
     local iwlink = self:get_iw_link ( phy )
     if ( iwlink == nil or iwlink.mac == nil) then return nil end
@@ -353,6 +372,7 @@ end
 -- returns the signal when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_signal ( phy )
+    if ( phy == nil ) then return nil end
     self:send_info ( "Get linked signal for device " .. phy )
     local iwlink = self:get_iw_link ( phy )
     if ( iwlink == nil or iwlink.signal == nil ) then return nil end
@@ -363,6 +383,7 @@ end
 -- returns the rate index when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_rate_idx ( phy )
+    if ( phy == nil ) then return nil end
     self:send_info ( "Get linked rate index for device " .. phy )
     local iwlink = self:get_iw_link ( phy )
     if ( iwlink == nil or ( iwlink.rate_idx == nil and iwlink.rate == nil ) ) then return nil end
@@ -370,8 +391,19 @@ function Node:get_linked_rate_idx ( phy )
     return ( iwlink.rate_idx or iwlink.rate )
 end
 
-function Node:check_bridge ( phy )
-    return uci_check_bridge ( phy )
+function Node:check_bridge ( iface )
+    if ( iface == nil ) then return nil end
+    self:send_info ( "Check for bridge on " .. iface )
+    local content = misc.execute ( "brctl", "show" )
+    if ( content ~= nil ) then
+        local brctl = parse_brctl ( content )
+        for _, interface in ipairs ( brctl.interfaces ) do
+            if ( iface == interface ) then
+                return brctl.name
+            end
+        end
+    end
+    return nil
 end
 
 -- --------------------------
@@ -413,6 +445,7 @@ end
 
 -- read rc_stats and collects rate names
 function Node:tx_rate_names( phy, station )
+    if ( phy == nil ) then return nil end
     self:send_info ( "List tx rate names for station " .. ( station or "none" ) .. " at device " .. ( phy or "none" ) )
     local lines = self:get_rc_stats_lines ( phy, station )
     local names = {}
@@ -424,6 +457,7 @@ end
 
 -- reads rc_stats and collects rate indices
 function Node:tx_rate_indices( phy, station )
+    if ( phy == nil ) then return nil end
     self:send_info ( "List tx rate indices for station " .. ( station or "none" ) .. " at device " .. ( phy or "none" ) )
     local lines = self:get_rc_stats_lines ( phy, station )
     local rates = {}
@@ -435,6 +469,7 @@ end
 
 -- fixme: tx_power_levels ( per rate )
 function Node:tx_power_indices ( phy, station )
+    if ( phy == nil ) then return nil end
     tx_powers = {}
     for i = 1, 25 do
         tx_powers[i] = i
@@ -479,6 +514,7 @@ end
 -- set the power level by index (i.e. 25 is the index of the highest power level, sometimes 50)
 -- usally two different power levels differs by a multiple of 1mW (25 levels) or 0.5mW (50 power levels)
 function Node:set_tx_power ( phy, station, tx_power )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
@@ -489,6 +525,7 @@ function Node:set_tx_power ( phy, station, tx_power )
 end
 
 function Node:get_tx_power ( phy, station )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txpower"
@@ -505,6 +542,7 @@ end
 -- /etc/config/wireless: add  option txpower '20' to config wifi-device 'radio{0,1}' section
 -- needs restart_wifi ("/sbin/wifi;") call after
 function Node:set_global_tx_power ( phy, tx_power )
+    if ( phy == nil ) then return nil end
     local var = "wireless.radio"
     var = var .. string.sub ( phy, 4, string.len ( phy ) )
     var = var .. ".txpower"
@@ -513,6 +551,7 @@ end
 
 -- /etc/config/wireless: add  option txpower '20' to config wifi-device 'radio{0,1}' section
 function Node:get_global_tx_power ( phy )
+    if ( phy == nil ) then return nil end
     local var = "wireless.radio"
     var = var .. string.sub ( phy, 4, string.len ( phy ) )
     var = var .. ".txpower"
@@ -527,6 +566,7 @@ function Node:get_global_tx_power ( phy )
 end
 
 function Node:set_tx_rate ( phy, station, tx_rate_idx )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txrate"
@@ -539,6 +579,7 @@ function Node:set_tx_rate ( phy, station, tx_rate_idx )
 end
 
 function Node:get_tx_rate ( phy, station )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     local fname = debugfs .. "/" .. phy .."/netdev:" .. iface .. "/stations/" .. station .. "/fixed_txrate"
@@ -554,6 +595,7 @@ end
 
 -- /sys/kernel/debug/ieee80211/phy0/rc/fixed_rate_idx
 function Node:set_global_tx_rate ( phy, tx_rate_idx )
+    if ( phy == nil ) then return nil end
     local fname = debugfs .. "/" .. phy .."/rc/fixed_rate_idx"
     self:send_info ( "Set global tx rate index at device " .. ( phy or "none" )
                                                       .. " to " .. ( tx_rate_idx or "none" ) )
@@ -564,6 +606,7 @@ end
 
 -- /sys/kernel/debug/ieee80211/phy0/rc/fixed_rate_idx
 function Node:get_global_tx_rate ( phy )
+    if ( phy == nil ) then return nil end
     local fname = debugfs .. "/" .. phy .."/rc/fixed_rate_idx"
     self:send_info ( "Get global tx rate index from device " .. phy )
     local rate = self:read_value_from_sta_debugfs ( fname )
@@ -579,6 +622,7 @@ end
 -- --------------------------
 
 function Node:start_rc_stats ( phy, station )
+    if ( phy == nil ) then return nil end
     if ( self.rc_stats_procs [ station ] ~= nil ) then
         self:send_error ( "rc stats for station " .. station .. " already running" )
         return nil
@@ -601,6 +645,7 @@ function Node:start_rc_stats ( phy, station )
 end
 
 function Node:get_rc_stats ( phy, station )
+    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     if ( station == nil ) then
@@ -640,6 +685,7 @@ end
 -- --------------------------
 
 function Node:start_regmon_stats ( phy )
+    if ( phy == nil ) then return nil end
     if ( self.regmon_proc ~= nil ) then
         self:send_error ("Not collecting regmon stats for " 
             .. iface .. ", " .. phy .. ". Alraedy running" )
@@ -738,6 +784,7 @@ end
 --  -B capture buffer size
 --  -s snapshot length ( default 262144)
 function Node:start_tcpdump ( phy, fname )
+    if ( phy == nil ) then return nil end
     if ( self.tcpdump_proc ~= nil ) then
         self:send_error (" Tcpdump not started. Already running.")
         return nil

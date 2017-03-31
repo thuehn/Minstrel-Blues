@@ -33,10 +33,11 @@ end
 function NodeRef:init ( rpc )
     self.rpc = rpc
     if ( self.rpc ~= nil) then
-        local phys = self.rpc.phy_devices()
+        local phys = self.rpc.phy_devices ()
         for _, phy in ipairs ( phys ) do
             local radio = NetIfRef:create ( nil, nil, nil, phy )
             self.radios [ phy ] = radio
+            radio.iface = self.rpc.get_iface ( phy )
             radio.addr = self.rpc.get_addr ( phy )
             radio.mac = self.rpc.get_mac ( phy )
         end
@@ -190,9 +191,9 @@ function NodeRef:set_date ( year, month, day, hour, minute, second )
     end
 end
 
-function NodeRef:check_bridge ()
+function NodeRef:check_bridge ( iface )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        return self.rpc.check_bridge ( self.wifi_cur )
+        return self.rpc.check_bridge ( iface )
     end
 end
 
