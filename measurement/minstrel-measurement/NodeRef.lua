@@ -37,9 +37,11 @@ function NodeRef:init ( rpc )
         for _, phy in ipairs ( phys ) do
             local radio = NetIfRef:create ( nil, nil, nil, phy )
             self.radios [ phy ] = radio
+            radio.phy = phy
             radio.iface = self.rpc.get_iface ( phy )
             radio.addr = self.rpc.get_addr ( phy )
             radio.mac = self.rpc.get_mac ( phy )
+            radio.mon = self.rpc.get_mon ( phy )
         end
     end
 end
@@ -157,10 +159,6 @@ function NodeRef:stop_iperf_server()
     end
 end
 
--- TODO: eliminate the next funs with direct calls
--- these are not measurement related ( STAs on APs)
--- but the controller can handle this for the whole
--- Network
 function NodeRef:get_board ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         return self.rpc.get_board ()

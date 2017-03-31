@@ -42,6 +42,7 @@ function get_linked_rate_idx(...) return node:get_linked_rate_idx(...) end
 function get_iface(...) return node:get_iface(...) end
 function get_mac(...) return node:get_mac(...) end
 function get_addr(...) return node:get_addr(...) end
+function get_mon(...) return node:get_mon(...) end
 function has_lease(...) return node:has_lease(...) end
 
 function tx_rate_indices(...) return node:tx_rate_indices(...) end

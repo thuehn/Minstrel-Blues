@@ -285,6 +285,12 @@ function Node:get_iface ( phy )
     return dev.iface
 end
 
+function Node:get_mon ( phy )
+    if ( phy == nil ) then return nil end
+    local dev = self:find_wifi_device ( phy )
+    return dev.mon
+end
+
 function Node:get_addr ( phy )
     if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
