@@ -51,6 +51,7 @@ function ControlNode:create ( name, ctrl, port, log_port, log_fname, output_dir 
                                      , "--port", log_port )
         o.pids = {}
         o.pids ['logger'] = pid
+        o:send_info ( "wait until logger is running" )
         local fname = "/tmp/" .. log_fname
         o.log_file = io.open ( fname, "r" )
     end
@@ -429,8 +430,8 @@ function ControlNode:stop()
 end
 
 function ControlNode:get_log ()
-    if ( file ~= nil ) then
-        local log = file:read ("*a")
+    if ( self.log_file ~= nil ) then
+        local log = self.log_file:read ("*a")
         return log
     else
         return nil
@@ -486,7 +487,9 @@ function ControlNode:get_keys ()
 end
 
 function ControlNode:get_stats ()
-    return self.stats
+    local out = self.stats
+    self.stats = {}
+    return out
 end
 
 function ControlNode:copy_stats ( ap_ref )

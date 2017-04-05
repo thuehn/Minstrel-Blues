@@ -98,6 +98,7 @@ end
 
 function AccessPointRef:create_measurement()
     NodeRef.create_measurement( self )
+    self.stats.enable_rc_stats ( self.stations )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             sta_ref:create_measurement()

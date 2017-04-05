@@ -51,9 +51,6 @@ function UdpExperiment:keys ( ap_ref )
     -- fixme: attenuate
     -- https://github.com/thuehn/Labbrick_Digital_Attenuator
 
-    pprint ( self.durations )
-    pprint ( self.packet_rates )
-
     for run = 1, self.runs do
         local run_key = tostring ( run )
         if ( self.is_fixed == true and ( self.tx_rates ~= nil and self.tx_powers ~= nil ) ) then

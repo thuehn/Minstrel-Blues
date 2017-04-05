@@ -34,7 +34,7 @@ function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname )
                                  , ctrl_net_ref = ctrl_net_ref
                                  , output_dir = output_dir
                                  , log_fname = log_fname
-                                 , log_file = io.open ( log_fname, "wa" )
+                                 , log_file = io.open ( output_dir .. "/" ..log_fname, "wa" )
                                  , stats = {}
                                  }
     return o
@@ -420,9 +420,8 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
 
         local log = self.rpc.get_log ()
         if ( log ~= nil ) then
-            local fname = output_dir .. "/" .. self.log_fname
-            if ( file ~= nil ) then
-               file:write ( log )
+            if ( self.log_file ~= nil ) then
+               self.log_file:write ( log )
             end
         end
 
@@ -432,8 +431,8 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
 
         for ref_name, stats in pairs ( stats ) do
             if ( self.stats [ ref_name ] == nil ) then
-                local mac = self:get_mac ( name )
-                local opposite_macs = self:get_opposite_macs ( name )
+                local mac = self:get_mac ( ref_name )
+                local opposite_macs = self:get_opposite_macs ( ref_name )
 
                 local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir )
                 self.stats [ ref_name ] = measurement
@@ -454,6 +453,8 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
             if ( status == false ) then
                 print ( "err: can't access directory '" ..  ( output_dir or "unset" )
                                 .. "': " .. ( err or "unknown error" ) )
+            else
+                self.stats [ ref_name ] = nil
             end
         end
         counter = counter + 1
