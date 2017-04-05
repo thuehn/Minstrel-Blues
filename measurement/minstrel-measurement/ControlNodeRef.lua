@@ -341,7 +341,7 @@ function ControlNodeRef:hosts_known ()
     return self.rpc.hosts_known ()
 end
 
-function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
+function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, keys )
 
     function check_mem ( mem, name )
         -- local warn_threshold = 40960
@@ -378,8 +378,10 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed )
     -- fixme: still differs over all APs maybe
     -- better each ap should run its own set of keys
 
-    local keys = self.rpc.get_keys ()
-    pprint ( self.rpc.get_keys () )
+    if (  keys == nil ) then
+        keys = self.rpc.get_keys ()
+    end
+    pprint ( keys )
     local min_len = # ( keys [ 1 ] )
     local key_index = 1
     for i, key_list in ipairs ( keys ) do

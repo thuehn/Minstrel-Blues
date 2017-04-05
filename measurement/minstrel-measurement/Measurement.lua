@@ -61,59 +61,38 @@ function read_keys ( input_dir )
     return nil
 end
 
-function Measurement.parse ( name, input_dir, key )
-
-    -- TODO: read mac and opposite_macs for stations
-    function find_stations ( name, input_dir, key )
-        local stations = {}
-        for _, fname in ipairs ( ( scandir ( input_dir .. "/" .. name ) ) ) do
-
-            if ( fname ~= "." and fname ~= ".."
-                and not isDir ( input_dir .. "/" .. name .. "/" .. fname )
-                and isFile ( input_dir .. "/" .. name .. "/" .. fname ) ) then
-
-                --local key = string.sub ( fname, #name + 2, #fname - 31 )
-                local station = string.sub ( fname, #name + #key + 12, #fname - 4 )
-                local exists = false
-                for _, s in ipairs ( stations ) do
-                    if ( s == station ) then
-                        exists = true
-                        break
-                    end
+function read_stations ( input_dir )
+    local fname = input_dir .. "/stations.txt"
+    if ( isFile ( fname ) ) then
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            local content  = file:read ( "*a" )
+            if ( content ~= nil ) then
+                local stations = split ( content, "\n" )
+                if ( stations [ #stations ] == "" ) then
+                    stations [ #stations ] = nil
                 end
-                if ( exists == false ) then
-                    stations [ #stations + 1 ] = station
-                end
+                return stations
             end
         end
-        return stations
     end
+    return nil
+end
+
+function Measurement.parse ( name, input_dir, key )
 
     function parse_measurement ( measurement, name, input_dir, key )
         -- load single measurement
         if ( key ~= nil ) then
-            local pcap_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. ".pcap"
-            if ( isFile  ( pcap_fname ) ) then
-                measurement.tcpdump_pcaps [ key ] = ""
-            end
-            local regmon_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. "-regmon_stats.txt"
-            if ( isFile  ( regmon_fname ) ) then
-                measurement.regmon_stats [ key ] = ""
-            end
-            local cpusage_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. "-cpusage_stats.txt"
-            if ( isFile  ( cpusage_fname ) ) then
-                measurement.cpusage_stats [ key ] = ""
-            end
-            -- TODO: read mac and opposite_macs for stations
-            local stations = find_stations ( name, input_dir, key )
+            measurement.tcpdump_pcaps [ key ] = ""
+            measurement.regmon_stats [ key ] = ""
+            measurement.cpusage_stats [ key ] = ""
+            local stations = read_stations ( input_dir )
             for _, station in ipairs ( stations ) do
-                local rc_stats_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. "-rc_stats-" .. station .. ".txt"
-                if ( isFile  ( rc_stats_fname ) ) then
-                    if ( measurement.rc_stats [ station ] == nil ) then
-                        measurement.rc_stats [ station ] = {}
-                    end
-                    measurement.rc_stats [ station ] [ key ] = ""
+                if ( measurement.rc_stats [ station ] == nil ) then
+                    measurement.rc_stats [ station ] = {}
                 end
+                measurement.rc_stats [ station ] [ key ] = ""
             end
         end
     end
@@ -196,6 +175,8 @@ function Measurement:read ()
             stats = file:read ("*a")
             self.tcpdump_pcaps [ key ] = stats
             file:close()
+        else
+            self.tcpdump_pcaps [ key ] = ""
         end
     end
 
@@ -322,7 +303,7 @@ function Measurement:__tostring ()
     -- -- pcap.DLT = { EN10MB=DLT_EN10MB, [DLT_EN10MB] = "EN10MB", ... }
     out = out .. "pcaps: " .. table_size ( self.tcpdump_pcaps ) .. " stats\n"
     for key, stats in pairs ( self.tcpdump_pcaps ) do
-        out = out .. "tcpdump_pcap-" .. key .. ":\n"
+        out = out .. "tcpdump_pcap-" .. key .. ": " .. string.len ( stats ) .. " bytes\n"
     end
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then

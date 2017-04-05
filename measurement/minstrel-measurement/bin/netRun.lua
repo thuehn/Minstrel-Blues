@@ -95,17 +95,35 @@ local has_config = Config.load_config ( args.config )
 local ap_setups
 local sta_setups
 
+local keys = nil
 local output_dir = args.output
 if ( isDir ( output_dir ) == false ) then
     local status, err = lfs.mkdir ( output_dir )
 else
-    for _, fname in ipairs ( ( scandir ( output_dir ) ) ) do
-        if ( fname ~= ".." and fname ~= "." ) then
-            local time = os.time()
-            print ("--output " .. output_dir .. " already exists and is not empty. Measurement saved into subdirectory " .. time)
-            output_dir = output_dir .. "/" .. time
-            local status, err = lfs.mkdir ( output_dir )
-            break
+    for _, name in ipairs ( ( scandir ( output_dir ) ) ) do
+        if ( name ~= "." and name ~= ".."  and isDir ( args.output .. "/" .. name ) ) then
+            local measurement = Measurement.parse ( name, args.output )
+            print ( measurement:__tostring () )
+            for key, pcap in pairs ( measurement.tcpdump_pcaps ) do
+                if ( pcap == nil or pcap == "" ) then
+                    if ( keys == nil ) then keys = {} end
+                    print ( "resume key: " .. key )
+                    keys [ #keys + 1 ] = key
+                end
+            end
+        end
+    end
+
+    if ( keys == nil ) then
+        for _, fname in ipairs ( ( scandir ( output_dir ) ) ) do
+            if ( fname ~= "." and fname ~= ".." ) then
+                local time = os.time ()
+                print ("--output " .. output_dir
+                        .. " already exists and is not empty. Measurement saved into subdirectory " .. time)
+                output_dir = output_dir .. "/" .. time
+                local status, err = lfs.mkdir ( output_dir )
+                break
+            end
         end
     end
 end
@@ -482,7 +500,12 @@ ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable
 --ctrl_ref:restart_wifi_debug ()
 --posix.sleep (20)
 
-local status, err = ctrl_ref:run_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
+local status, err = ctrl_ref:run_experiments ( args.command
+                                             , data
+                                             , ctrl_ref:list_aps()
+                                             , args.enable_fixed
+                                             , keys
+                                             )
 
 if ( status == false ) then
     print ( "err: experiments failed: " .. ( err or "unknown error" ) )
