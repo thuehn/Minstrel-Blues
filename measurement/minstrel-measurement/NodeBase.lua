@@ -36,6 +36,10 @@ function NodeBase:run ()
     file:close()
     self:send_info ( self.proc_version:__tostring() )
     self:set_cut ()
+    local os_release = self.get_os_release ()
+    if ( os_release ~= nil ) then
+        self:send_info ( os_release )
+    end
     net.run ( self.port, self.name,
               function ( msg ) self:send_info ( msg ) end
             )
@@ -90,6 +94,21 @@ function NodeBase:get_board ()
             file:close ()
             return content
         end
+    end
+    return nil
+end
+
+-- -------------------------
+-- software
+-- -------------------------
+
+function NodeBase:get_os_release()
+    local fname = "/etc/os-release"
+    if ( isFile ( fname ) ) then
+        local file = io.open ( fname, "r" )
+        local content = file:read ( "*a" )
+        file:close ()
+        return content
     end
     return nil
 end

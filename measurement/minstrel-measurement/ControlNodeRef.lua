@@ -72,6 +72,14 @@ function ControlNodeRef:get_boards ()
     return self.rpc.get_boards ()
 end
 
+function ControlNodeRef:get_os_release ()
+    return self.rpc.get_os_release ()
+end
+
+function ControlNodeRef:get_os_releases ()
+    return self.rpc.get_os_releases ()
+end
+
 function ControlNodeRef:set_date ( ... )
     return self.rpc.set_date ( ... )
 end

@@ -648,6 +648,17 @@ function ControlNode:get_boards ()
     return map
 end
 
+function ControlNode:get_os_releases ()
+    local map = {}
+    for _, node_ref in ipairs ( self.node_refs ) do
+        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            local os_release = node_ref:get_os_release ()
+            map [ node_ref.name ] = os_release
+        end
+    end
+    return map
+end
+
 -- -------------------------
 -- date
 -- -------------------------

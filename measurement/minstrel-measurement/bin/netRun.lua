@@ -73,7 +73,7 @@ parser:flag ("--dry_run", "Don't measure anything", false )
 
 parser:option ("--nameserver", "local nameserver" )
 
-parser:option ("-O --output", "measurement / analyse data directory","/tmp")
+parser:option ("-O --output", "measurement / analyse data directory", "/tmp")
 
 parser:flag ("-v --verbose", "", false )
 
@@ -329,6 +329,7 @@ print ()
 ctrl_pid = ctrl_ref:get_pid ()
 
 print ( "Control board: " .. ( ctrl_ref:get_board () or "unknown" ) )
+print ( "Control os-release: " .. ( ctrl_ref:get_os_release () or "unknown" ) )
 print ()
 
 --synchronize time
@@ -407,6 +408,10 @@ print ()
 
 for node_name, board in pairs ( ctrl_ref:get_boards () ) do
     print ( node_name .. " board: " .. board )
+end
+
+for node_name, os_release in pairs ( ctrl_ref:get_os_releases () ) do
+    print ( node_name .. " os_release: " .. os_release )
 end
 
 -- synchonize time

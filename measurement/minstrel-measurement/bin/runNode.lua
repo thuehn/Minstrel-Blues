@@ -23,6 +23,7 @@ local node = Node:create ( args.name, ctrl, args.port, args.log_port, args.log_i
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 
 function get_board ( ... ) return node:get_board ( ... ) end
+function get_os_release ( ... ) return node:get_os_release ( ... ) end
 
 function phy_devices ( ... ) return node:phy_devices ( ... ) end
 function enable_wifi ( ... ) return node:enable_wifi ( ... ) end

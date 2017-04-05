@@ -30,6 +30,9 @@ function hosts_known ( ... ) return node:hosts_known ( ... ) end
 function get_board ( ... ) return node:get_board ( ... ) end
 function get_boards ( ... ) return node:get_boards ( ... ) end
 
+function get_os_release ( ... ) return node:get_os_release ( ... ) end
+function get_os_releases ( ... ) return node:get_os_releases ( ... ) end
+
 function add_ap ( ... ) return node:add_ap ( ... ) end
 function add_sta ( ... ) return node:add_sta ( ... ) end
 

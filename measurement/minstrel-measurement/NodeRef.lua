@@ -165,6 +165,12 @@ function NodeRef:get_board ()
     end
 end
 
+function NodeRef:get_os_release ()
+    if ( self.is_passive == nil or self.is_passive == false ) then
+        return self.rpc.get_os_release ()
+    end
+end
+
 function NodeRef:enable_wifi ( enabled )
     if ( self.is_passive == nil or self.is_passive == false ) then
         return self.rpc.enable_wifi ( enabled, self.wifi_cur )
