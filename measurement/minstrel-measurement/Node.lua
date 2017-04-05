@@ -137,6 +137,30 @@ function Node:enable_wifi ( enabled, phy )
     return exit_code == 0
 end
 
+function Node:get_iw_info ( phy )
+    if ( phy == nil ) then return nil end
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    self:send_info ( "send iw info for " .. ( iface or "none" ) )
+    local str, exit_code = misc.execute ( "iw", iface, "info" )
+    if ( str ~= nil and exit_code == 0) then
+        return str
+    end
+    return nil
+end
+
+function Node:get_iw_link ( phy )
+    if ( phy == nil ) then return nil end
+    local dev = self:find_wifi_device ( phy )
+    local iface = dev.iface
+    self:send_info ( "send iw link for " .. ( iface or "none" ) )
+    local str, exit_code = misc.execute ( "iw", iface, "link" )
+    if ( str ~= nil and exit_code == 0) then
+        return str
+    end
+    return nil
+end
+
 -- AP only
 -- wireless.default_radio0.ssid='LEDE'
 function Node:get_ssid ( phy )

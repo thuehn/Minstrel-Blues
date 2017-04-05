@@ -27,7 +27,10 @@ function get_os_release ( ... ) return node:get_os_release ( ... ) end
 
 function phy_devices ( ... ) return node:phy_devices ( ... ) end
 function enable_wifi ( ... ) return node:enable_wifi ( ... ) end
-function restart_wifi(...) return node:restart_wifi(...) end
+function restart_wifi( ... ) return node:restart_wifi( ... ) end
+
+function get_iw_info ( ... ) return node:get_iw_info ( ... ) end
+function get_iw_link ( ... ) return node:get_iw_link ( ... ) end
 function get_ssid (...) return node:get_ssid(...) end
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
 function visible_stations(...) return node:visible_stations(...) end

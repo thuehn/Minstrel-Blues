@@ -559,19 +559,28 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
 
         local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations[1] )
         local msg = "rate names: "
-        self:send_debug( msg .. table_tostring ( rate_names, 80 - string.len ( msg ) ) )
+        self:send_debug ( msg .. table_tostring ( rate_names, 80 - string.len ( msg ) ) )
 
         local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
         local msg = "rate indices: "
-        self:send_debug( msg .. table_tostring ( rates, 80  - string.len ( msg ) ) )
+        self:send_debug ( msg .. table_tostring ( rates, 80  - string.len ( msg ) ) )
 
         local powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
         local msg = "power indices: "
-        self:send_debug( msg .. table_tostring ( powers, 80  - string.len ( msg ) ) )
+        self:send_debug ( msg .. table_tostring ( powers, 80  - string.len ( msg ) ) )
+
+        local iw_info = ap_ref.rpc.get_iw_info ( ap_ref.wifi_cur )
+        local msg = "iw info: "
+        self:send_info ( msg .. iw_info, 80  - string.len ( msg ) )
 
         for i, sta_ref in ipairs ( ap_ref.refs ) do
 
             if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+
+                local iw_link = sta_ref.rpc.get_iw_link ( sta_ref.wifi_cur )
+                local msg = "iw link: "
+                self:send_info ( msg .. iw_link, 80  - string.len ( msg ) )
+                
                 local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
                 if ( rate_name ~= nil ) then
                     local rate_idx = find_rate ( rate_name, rate_names, rates )
