@@ -175,6 +175,7 @@ end
 -- convert 6 bytes array 'mac' into mac address string
 -- fixme: duplicate
 PCAP.mac_tostring = function ( mac )
+    if ( mac == nil ) then return nil end
     if ( #mac ~= 6 ) then return "not a mac addr" end
     local ret = ""
     for i = 1, 6 do
@@ -320,6 +321,7 @@ PCAP.parse_radiotap_data = function ( capdata, pos )
 
     -- 8 bit flags
     local flags, rest, pos = PCAP.read_int8 ( rest, pos )
+    --print ( PCAP.bitmask_tostring ( flags, 8 ) )
 
     local duration, rest, pos = PCAP.read_int16 ( rest, pos )
 

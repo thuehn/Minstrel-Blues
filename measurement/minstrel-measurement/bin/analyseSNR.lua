@@ -22,14 +22,17 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
 
         print ( "read measurement: " .. name )
         --if ( Config.find_node ( name, nodes ) ~= nil ) then
-        local measurement = Measurement.parse ( name, args.input )
-        print ( measurement:__tostring () )
+        local keys = read_keys ( args.input )
+        for _, key in ipairs ( keys ) do
+            local measurement = Measurement.parse ( name, args.input, key )
+            print ( measurement:__tostring () )
         --end
 
-        print ( "Analyse SNR" )
-        local analyser = FXsnrAnalyser:create ( aps, stas )
-        local snrs = analyser:snrs ( measurement )
-        pprint ( snrs )
+            print ( "Analyse SNR" )
+            local analyser = FXsnrAnalyser:create ( aps, stas )
+            local snrs = analyser:snrs ( measurement )
+            pprint ( snrs )
+        end
         --print ( )
 
         --print ( "Plot SNR" )

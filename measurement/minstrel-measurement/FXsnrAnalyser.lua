@@ -185,8 +185,10 @@ function FXsnrAnalyser:snrs ( measurement )
                     local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
                     local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
 
-                    if ( ( ( da == measurement.node_mac and misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or
-                            ( misc.index_of ( da, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) )
+                    if ( ( ( da == measurement.node_mac 
+                                and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or ( sa == nil )
+                            ) or ( misc.index_of ( da, measurement.opposite_macs ) ~= nil
+                                    and ( sa == measurement.node_mac or sa == nil ) ) )
                         and ( ( frame_type == frame_type_data
                              and ( frame_subtype == frame_subtype_data or frame_subtype == frame_subtype_qos ) )
                           or ( frame_type == frame_type_ctrl and ( frame_subtype == frame_subtype_blockack ) ) ) ) then

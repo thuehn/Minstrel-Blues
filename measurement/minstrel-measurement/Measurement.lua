@@ -43,26 +43,25 @@ function Measurement:create ( name, mac, opposite_macs, rpc, output_dir )
     return o
 end
 
-function Measurement.parse ( name, input_dir, key )
-
-    function read_keys ( name, input_dir )
-        local fname = input_dir .. "/experiment_order.txt"
-        print ( fname )
-        if ( isFile ( fname ) ) then
-            local file = io.open ( fname, "r" )
-            if ( file ~= nil ) then
-                local content = file:read ("*a")
-                if ( content ~= nil ) then
-                    local keys = split ( content, "\n" )
-                    if ( keys [ #keys ] == "" ) then
-                        keys [ #keys ] = nil
-                    end
-                    return keys
+function read_keys ( input_dir )
+    local fname = input_dir .. "/experiment_order.txt"
+    if ( isFile ( fname ) ) then
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            local content = file:read ("*a")
+            if ( content ~= nil ) then
+                local keys = split ( content, "\n" )
+                if ( keys [ #keys ] == "" ) then
+                    keys [ #keys ] = nil
                 end
+                return keys
             end
         end
-        return nil
     end
+    return nil
+end
+
+function Measurement.parse ( name, input_dir, key )
 
     -- TODO: read mac and opposite_macs for stations
     function find_stations ( name, input_dir, key )
@@ -125,7 +124,7 @@ function Measurement.parse ( name, input_dir, key )
         parse_measurement ( measurement, name, input_dir, key )
         measurement:read ()
     else
-        local keys = read_keys ( name, input_dir )
+        local keys = read_keys ( input_dir )
         if ( keys ~= nil ) then
         for _, key in ipairs ( keys ) do
                 parse_measurement ( measurement, name, input_dir, key )
