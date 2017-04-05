@@ -35,7 +35,8 @@ Net.get_addr = function ( iface )
 end
 
 Net.lookup = function ( name ) 
-    local content = misc.execute ( "dig", name, "+search" ) -- '+search' for local hostnames ( without domain )
+    --local content = misc.execute ( "dig", name, "+search" ) -- '+search' for local hostnames ( without domain )
+    local content = misc.execute ( "dig", name )
     if ( content ~= nil ) then
         local answer = parse_dig ( content )
         if ( answer ~= nil ) then

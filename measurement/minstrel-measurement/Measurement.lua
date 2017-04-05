@@ -1,4 +1,5 @@
 require ('misc')
+local pprint = require ('pprint')
 
 --[[
 --  STA: regmon, tcpdump, cpusage
@@ -42,63 +43,96 @@ function Measurement:create ( name, mac, opposite_macs, rpc, output_dir )
     return o
 end
 
-function Measurement.parse ( name, input_dir )
+function Measurement.parse ( name, input_dir, key )
 
-    local measurement = Measurement:create ( name, nil, nil, nil, input_dir )
-    measurement.tcpdump_pcaps = {}
+    function read_keys ( name, input_dir )
+        local fname = input_dir .. "/experiment_order.txt"
+        print ( fname )
+        if ( isFile ( fname ) ) then
+            local file = io.open ( fname, "r" )
+            if ( file ~= nil ) then
+                local content = file:read ("*a")
+                if ( content ~= nil ) then
+                    local keys = split ( content, "\n" )
+                    if ( keys [ #keys ] == "" ) then
+                        keys [ #keys ] = nil
+                    end
+                    return keys
+                end
+            end
+        end
+        return nil
+    end
 
-    for _, fname in ipairs ( ( scandir ( input_dir .. "/" .. name ) ) ) do
+    -- TODO: read mac and opposite_macs for stations
+    function find_stations ( name, input_dir, key )
+        local stations = {}
+        for _, fname in ipairs ( ( scandir ( input_dir .. "/" .. name ) ) ) do
 
-        if ( fname ~= "." and fname ~= ".."
-            and not isDir ( input_dir .. "/" .. name .. "/" .. fname )
-            and isFile ( input_dir .. "/" .. name .. "/" .. fname ) ) then
+            if ( fname ~= "." and fname ~= ".."
+                and not isDir ( input_dir .. "/" .. name .. "/" .. fname )
+                and isFile ( input_dir .. "/" .. name .. "/" .. fname ) ) then
 
-            if ( string.sub ( fname, #fname - 4, #fname ) == ".pcap" ) then
+                --local key = string.sub ( fname, #name + 2, #fname - 31 )
+                local station = string.sub ( fname, #name + #key + 12, #fname - 4 )
+                local exists = false
+                for _, s in ipairs ( stations ) do
+                    if ( s == station ) then
+                        exists = true
+                        break
+                    end
+                end
+                if ( exists == false ) then
+                    stations [ #stations + 1 ] = station
+                end
+            end
+        end
+        return stations
+    end
 
-                -- lede-ap-1.pcap
-                local key = string.sub ( fname, #name + 2, #fname - 5 )
+    function parse_measurement ( measurement, name, input_dir, key )
+        -- load single measurement
+        if ( key ~= nil ) then
+            local pcap_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. ".pcap"
+            if ( isFile  ( pcap_fname ) ) then
                 measurement.tcpdump_pcaps [ key ] = ""
-
-            elseif ( string.sub ( fname, #fname - 3, #fname ) == ".txt" ) then
-
-                -- lede-ap-1-regmon_stats.txt
-                if ( string.sub ( fname, #fname - 15, #fname - 4 ) == "regmon_stats" ) then
-                    local key = string.sub ( fname, #name + 2, #fname - 17 )
-                    measurement.regmon_stats [ key ] = ""
-                -- lede-ap-1-cpusage_stats.txt
-                elseif ( string.sub ( fname, #fname - 16, #fname - 4 ) == "cpusage_stats" ) then
-                    local key = string.sub ( fname, #name + 2, #fname - 18 )
-                    measurement.cpusage_stats [ key ] = ""
-                -- lede-ap-1-rc_stats-a0:f3:c1:64:81:7b.txt
-                elseif ( string.sub ( fname, #fname - 29, #fname - 22 ) == "rc_stats" ) then
-                    local key = string.sub ( fname, #name + 2, #fname - 31 )
-                    local station = string.sub ( fname, #name + #key + 12, #fname - 4 )
-                    if (measurement.stations == nil ) then
-                        measurement.stations = {}
-                    end
-                    local exists = false
-                    for _, s in ipairs ( measurement.stations ) do
-                        if ( s == station ) then
-                            exists = true
-                            break
-                        end
-                    end
-                    measurement.rc_stats_enabled = true
-                    if ( exists == false ) then
-                        measurement.stations [ #measurement.stations + 1 ] = station
-                    end
+            end
+            local regmon_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. "-regmon_stats.txt"
+            if ( isFile  ( regmon_fname ) ) then
+                measurement.regmon_stats [ key ] = ""
+            end
+            local cpusage_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. "-cpusage_stats.txt"
+            if ( isFile  ( cpusage_fname ) ) then
+                measurement.cpusage_stats [ key ] = ""
+            end
+            -- TODO: read mac and opposite_macs for stations
+            local stations = find_stations ( name, input_dir, key )
+            for _, station in ipairs ( stations ) do
+                local rc_stats_fname = input_dir .. "/" .. name .. "/" .. name .. "-" .. key .. "-rc_stats-" .. station .. ".txt"
+                if ( isFile  ( rc_stats_fname ) ) then
                     if ( measurement.rc_stats [ station ] == nil ) then
                         measurement.rc_stats [ station ] = {}
                     end
                     measurement.rc_stats [ station ] [ key ] = ""
                 end
-
             end
-                        
         end
     end
 
-    measurement:read ()
+    local measurement = Measurement:create ( name, nil, nil, nil, input_dir )
+    measurement.tcpdump_pcaps = {}
+    if ( key ~= nil ) then
+        parse_measurement ( measurement, name, input_dir, key )
+        measurement:read ()
+    else
+        local keys = read_keys ( name, input_dir )
+        if ( keys ~= nil ) then
+        for _, key in ipairs ( keys ) do
+                parse_measurement ( measurement, name, input_dir, key )
+            end
+        end
+        measurement:read ()
+    end
     return measurement
 end
 

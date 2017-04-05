@@ -20,7 +20,7 @@
 -- derive MeshRef from AcceesspointRef
 -- support stations without running lua measurement node
 
-pprint = require ('pprint')
+--local pprint = require ('pprint')
 
 local argparse = require ('argparse')
 
@@ -199,7 +199,6 @@ end
 
 local aps_config = Config.select_configs ( ap_setups, ap_names )
 if ( aps_config == {} ) then os.exit (1) end
-pprint ( ap_names )
 
 local sta_names = {}
 for _, sta in ipairs ( args.sta ) do
@@ -207,7 +206,6 @@ for _, sta in ipairs ( args.sta ) do
     sta_names [ #sta_names + 1 ] = parts [ 1 ]
 end
 
-pprint ( sta_names )
 local stas_config = Config.select_configs ( sta_setups, sta_names )
 if ( stas_config == {} ) then os.exit (1) end
 

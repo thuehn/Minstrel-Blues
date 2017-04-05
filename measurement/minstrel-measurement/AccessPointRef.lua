@@ -20,8 +20,8 @@ function AccessPointRef:create ( name, ctrl_if, rsa_key, output_dir, control_nod
     return o
 end
 
-function AccessPointRef:__tostring() 
-    local out = NodeRef.__tostring( self )
+function AccessPointRef:__tostring ()
+    local out = NodeRef.__tostring ( self )
 
     out = out .. "\n\t"
           .. "stations: "
@@ -31,7 +31,7 @@ function AccessPointRef:__tostring()
         local i = 1
         for _, mac in pairs ( self.stations ) do
             if ( i ~= 1 ) then out = out .. ", " end
-            out = out .. mac
+            out = out .. ( mac or "none" )
             i = i + 1
         end
     end
