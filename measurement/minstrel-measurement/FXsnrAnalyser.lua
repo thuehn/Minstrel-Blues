@@ -78,7 +78,7 @@ function FXsnrAnalyser:read_ssid ( dir, name )
     return ssid
 end
 
-function FXsnrAnalyser:parse_radiotap ( capdata, pos )
+function FXsnrAnalyser:parse_radiotap ( capdata, length, pos )
     -- fixme: returned pos doesn't match position of returned rest
     local radiotap_header
     local radiotap_data
@@ -86,7 +86,7 @@ function FXsnrAnalyser:parse_radiotap ( capdata, pos )
     local rest2 = capdata
 
     radiotap_header, rest2, pos2 = PCAP.parse_radiotap_header ( rest2, pos2 )
-    radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, pos2 )
+    radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, length, pos2 )
 
     return radiotap_header, radiotap_data
 end
@@ -175,9 +175,10 @@ function FXsnrAnalyser:snrs ( measurement )
                 while ( string.len ( rest ) > 0 ) do
 
                     local capdata
-                    capdata, rest, pos = PCAP.get_packet ( rest, pos )
+                    local length
+                    capdata, length, rest, pos = PCAP.get_packet ( rest, pos )
 
-                    radiotap_header, radiotap_data = self:parse_radiotap ( capdata, pos )
+                    radiotap_header, radiotap_data = self:parse_radiotap ( capdata, length, pos )
 
                     --local ssid = radiotap_data [ 'ssid' ]
                     local frame_type = radiotap_data [ 'type' ]

@@ -18,7 +18,8 @@ PKG_LICENSE_FILES:=LICENSE
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-git.tar.gz
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_URL:=https://github.com/thuehn/Minstrel-Blues.git
+#PKG_SOURCE_URL:=https://github.com/thuehn/Minstrel-Blues.git
+PKG_SOURCE_URL:=file:///home/denis/Minstrel-Blues
 PKG_SOURCE_VERSION:=master
 
 include $(INCLUDE_DIR)/package.mk

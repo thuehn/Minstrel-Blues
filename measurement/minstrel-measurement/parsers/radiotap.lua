@@ -268,13 +268,16 @@ function PCAP.get_packet ( rest, pos )
     --print ( PCAP.to_bytes_hex ( rest ) )
 
     pos = next_pos
-    return packet, rest, pos
+    return packet, incl_len, rest, pos
 end
 
 -- parse the radiotap data block
 -- (bssid, ssid only)
 -- block may be truncated by tcpdump
-PCAP.parse_radiotap_data = function ( capdata, pos )
+PCAP.parse_radiotap_data = function ( capdata, length, pos )
+
+    print ( "length: " .. length )
+    local start_pos = pos
 
     local ret = {}
     local rest = capdata
@@ -302,6 +305,7 @@ PCAP.parse_radiotap_data = function ( capdata, pos )
         frame_type = frame_type + 2
     end
     ret ['type'] = frame_type
+    --print ( frame_type )
 
     --   0001
     -- subtype (8)
@@ -319,12 +323,15 @@ PCAP.parse_radiotap_data = function ( capdata, pos )
         frame_subtype = frame_subtype + 8
     end
     ret ['subtype'] = frame_subtype
+    --print ( frame_subtype )
 
     -- 8 bit flags
-    local flags, rest, pos = PCAP.read_int8 ( rest, pos )
+    local flags
+    flags, rest, pos = PCAP.read_int8 ( rest, pos )
     --print ( PCAP.bitmask_tostring ( flags, 8 ) )
 
-    local duration, rest, pos = PCAP.read_int16 ( rest, pos )
+    local duration
+    duration, rest, pos = PCAP.read_int16 ( rest, pos )
 
     -- skip first 10 bytes
     --for i = 1, 6 do
@@ -332,40 +339,65 @@ PCAP.parse_radiotap_data = function ( capdata, pos )
     --end
 
     -- receiver / destination address
-    local da, rest, pos = PCAP.read_mac ( rest, pos )
+    local da
+    da, rest, pos = PCAP.read_mac ( rest, pos )
     --print ( PCAP.mac_tostring ( da ) )
     ret [ 'da' ] = da
 
     -- transmitter / source address
-    local sa, rest, pos = PCAP.read_mac ( rest, pos )
+    local sa
+    sa, rest, pos = PCAP.read_mac ( rest, pos )
     --print ( PCAP.mac_tostring ( sa ) )
     ret [ 'sa' ] = sa
 
-    local bssid, rest, pos = PCAP.read_mac ( rest, pos )
+    local bssid
+    bssid, rest, pos = PCAP.read_mac ( rest, pos )
     --print ( PCAP.mac_tostring ( bssid ) )
     ret [ 'bssid' ] = bssid
 
-    --print ( PCAP.to_bytes_hex ( rest ) )
+    -- 2 bytes bitmask ( fragment number 0 .. 3, seq num 4 .. 15
+    _, rest, pos = PCAP.read_int16 ( rest, pos )
 
     if ( frame_type == 0 and frame_subtype == 8 ) then
 
-        -- skip next 15 bytes
-        for i = 1, 15 do
+        -- 12 bytes fixed parameters
+        -- - 8 bytes timestamp
+        -- - 2 bytes beacon interval in seconds
+        -- - 2 bytes capability bitmask
+        for i = 1, 12 do
             _, rest, pos = PCAP.read_int8 ( rest, pos )
         end
 
-        -- ssid (not \0 terminated )
-        local ssid_len
-        ssid_len, rest, pos = PCAP.read_int8 ( rest, pos )
-        ssid_len = tonumber ( ssid_len )
+        -- tagged parameter
+        ret [ 'ssid' ] = ""
+        while ( pos < length ) do
+            print ( "pos_tag: " .. pos )
+            local tag_number
+            local tag_length
 
-        local ssid
-        ssid, rest, pos = PCAP.read_str ( rest, ssid_len, pos )
-        ret [ 'ssid' ] = ssid
+            tag_number, rest, pos = PCAP.read_int8 ( rest, pos )
+            tag_length, rest, pos = PCAP.read_int8 ( rest, pos )
+            for i=1, tag_length do
+                local tag
+                tag, rest, pos = PCAP.read_int8 ( rest, pos )
+                -- 0: ssid
+                if ( tag_number == 0 ) then
+                    ret ['ssid'] = ret ['ssid' ] .. string.char ( tag )
+                end
+                -- 1: supported rates
+                -- 3: current cannel
+                -- 5: traffic indication map
+                -- 7: country code
+                -- 42: ERP information
+                -- 50: extended supported rates
+                -- 48: RSN information
+                -- 45: HT capabilities
+            end
+            print ( "pos_tag: " .. pos )
+        end
+
     end
-    -- ...
 
-    -- FCS
     return ret, rest, pos
 end
 
