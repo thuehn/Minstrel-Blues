@@ -68,6 +68,12 @@ if ( file ~= nil ) then
             if ( radiotap_header ['antenna_signal'] ~= nil ) then
 			    print ( "antenna_signal: " .. radiotap_header ['antenna_signal'] )
             end
+            for i=0,3 do
+            if ( radiotap_header ['antenna_signal' .. tostring (i) ] ~= nil ) then
+			    print ( "antenna_signal" ..tostring (i) .. ": " .. radiotap_header ['antenna_signal' .. tostring (i) ] )
+            end
+
+            end
 			--print ( "antenna_noise: " .. ( radiotap_header ['antenna_noise'] or "not present" ) )
 			--print ( "tx_power: " .. ( radiotap_header ['tx_power'] or "not present" ) )
 			--print ( "db_antenna_signal: " .. ( radiotap_header ['db_antenna_signal'] or "not present" ) )

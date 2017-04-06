@@ -25,7 +25,7 @@ function table_tostring ( tbl, max_line_size )
             count = count + 1
             lines [ count ] = ""
         end
-        lines [ count ] = lines [ count ] .. elem
+        lines [ count ] = lines [ count ] .. elem_str
     end
     if ( count > 1 ) then
         local all = ""
