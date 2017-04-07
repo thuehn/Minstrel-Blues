@@ -1,6 +1,7 @@
 require ('misc')
 require ('parsers/radiotap')
 
+local pprint = require ('pprint')
 local misc = require ('misc')
 
 FXsnrAnalyser = { aps = nil
@@ -76,19 +77,6 @@ function FXsnrAnalyser:read_ssid ( dir, name )
         file:close()
     end
     return ssid
-end
-
-function FXsnrAnalyser:parse_radiotap ( capdata, length, pos )
-    -- fixme: returned pos doesn't match position of returned rest
-    local radiotap_header
-    local radiotap_data
-    local pos2 = 0
-    local rest2 = capdata
-
-    radiotap_header, rest2, pos2 = PCAP.parse_radiotap_header ( rest2, pos2 )
-    radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, length, pos2 )
-
-    return radiotap_header, radiotap_data
 end
 
 function FXsnrAnalyser:write_snrs ( fname, snrs )
@@ -171,14 +159,16 @@ function FXsnrAnalyser:snrs ( measurement )
             file, rest, pos = PCAP.open ( fname )
 
             if ( file ~= nil ) then
-
+                print ( os.time() )
                 while ( string.len ( rest ) > 0 ) do
+                
+                    local packet_length
+                    local radiotap_header
+                    local radiotap_data
 
-                    local capdata
-                    local length
-                    capdata, length, rest, pos = PCAP.get_packet ( rest, pos )
-
-                    radiotap_header, radiotap_data = self:parse_radiotap ( capdata, length, radiotap_header [ 'it_len' ], pos )
+                    packet_length, rest, pos = PCAP.parse_packet_header ( rest, pos )
+                    radiotap_header, rest, pos = PCAP.parse_radiotap_header ( rest, pos )
+                    radiotap_data, rest, pos = PCAP.parse_radiotap_data ( rest, pos, packet_length, radiotap_header [ 'it_len' ] )
 
                     --local ssid = radiotap_data [ 'ssid' ]
                     local frame_type = radiotap_data [ 'type' ]
@@ -187,19 +177,21 @@ function FXsnrAnalyser:snrs ( measurement )
                     local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
 
                     if ( ( ( da == measurement.node_mac 
-                                and ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or ( sa == nil )
+                                and ( ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or ( sa == nil ) )
                             ) or ( misc.index_of ( da, measurement.opposite_macs ) ~= nil
                                     and ( sa == measurement.node_mac or sa == nil ) ) )
                         and ( ( frame_type == frame_type_data
                              and ( frame_subtype == frame_subtype_data or frame_subtype == frame_subtype_qos ) )
                           or ( frame_type == frame_type_ctrl and ( frame_subtype == frame_subtype_blockack ) ) ) ) then
 
+                        print ( "match" )
                         local antenna_signal = radiotap_header ['antenna_signal']
                         if ( antenna_signal ~= nil ) then
                             snrs [ #snrs + 1 ] = antenna_signal
                         end
                     end
                 end
+                print ( os.time() )
                 print ( #snrs .. " read" )
                 file:close()
             else

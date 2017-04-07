@@ -207,7 +207,6 @@ PCAP.align = function ( bytes, align, pos, start_pos )
     if ( start_pos == nil ) then start_pos = 0 end
     local rest = bytes
     local skip = ( pos - start_pos ) % align
-    print ( "skip: "..skip )
     if ( skip == 0 ) then return bytes, pos end
     for i = 1, ( pos - start_pos ) % align do
         _, rest, pos = PCAP.read_int8 ( rest, pos )
@@ -259,28 +258,23 @@ end
 
 function PCAP.get_packet ( rest, pos )
     local old_pos = pos
-
     local incl_len
+
     incl_len, rest, pos = PCAP.parse_packet_header ( rest, pos )
-
+    
     local packet = string.sub ( rest, 0, incl_len + 16 )
-
-    ----for i = 1, incl_len  do
-    ----    byte, rest, pos = PCAP.read_int8 ( rest, pos )
-    ----end
-
+    
     local next_pos = old_pos + incl_len + 16
     rest = string.sub ( rest, ( next_pos - pos ) + 1 )
-    --print ( PCAP.to_bytes_hex ( rest ) )
-
     pos = next_pos
+    
     return packet, incl_len, rest, pos
 end
 
 -- parse the radiotap data block
 -- (bssid, ssid only)
 -- block may be truncated by tcpdump
-PCAP.parse_radiotap_data = function ( capdata, length, header_length, pos )
+PCAP.parse_radiotap_data = function ( capdata, pos, length, header_length, parse_tags )
 
     local start_pos = pos
 
@@ -358,7 +352,7 @@ PCAP.parse_radiotap_data = function ( capdata, length, header_length, pos )
     -- 2 bytes bitmask ( fragment number 0 .. 3, seq num 4 .. 15
     _, rest, pos = PCAP.read_int16 ( rest, pos )
 
-    --if ( frame_type == 0 and frame_subtype == 8 ) then
+    if ( parse_tags ~= nil and parse_tags == true ) then
 
         -- 12 bytes fixed parameters
         -- - 8 bytes timestamp
@@ -407,9 +401,12 @@ PCAP.parse_radiotap_data = function ( capdata, length, header_length, pos )
             end
         end
 
-    --end
+        return ret, rest, pos
+    else
+        local next_pos = ( ( length + start_pos ) - header_length ) + 12
+        return ret, string.sub ( rest, next_pos ), next_pos 
+    end
     
-    return ret, rest, pos
 end
 
 -- parse radiotap header from head of 'capdata' and truncate the whole

@@ -23,17 +23,12 @@ if ( file ~= nil ) then
     local i = 1
     while ( string.len ( rest ) > 0 ) do
 
-        local radiotab
-        local length
-        radiotap, length, rest, pos = PCAP.get_packet ( rest, pos )
-
-        -- fixme: returned pos doesn't match position of returned rest
+        local packet_length
+        packet_length, rest, pos = PCAP.parse_packet_header ( rest, pos )
         local radiotap_header
         local radiotap_data
-        local pos2 = 0
-        local rest2 = radiotap
-        radiotap_header, rest2, pos2 = PCAP.parse_radiotap_header ( rest2, pos2 )
-        radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, length, radiotap_header [ 'it_len' ], pos2 )
+        radiotap_header, rest, pos = PCAP.parse_radiotap_header ( rest, pos )
+        radiotap_data, rest, pos = PCAP.parse_radiotap_data ( rest, pos, packet_length, radiotap_header [ 'it_len' ] )
 
         if ( i == 1 ) then
             -- check present flags
