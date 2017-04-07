@@ -22,8 +22,8 @@ if ( file ~= nil ) then
     local count = 1
     pos = 0
     while ( string.len ( rest ) > 0 ) do
-        print ( "PACKET: " .. count )
-        print ("_----------------------_")
+        --print ( "PACKET: " .. count )
+        --print ("_----------------------_")
         count = count + 1
         --[[
         local radiotab
@@ -39,12 +39,12 @@ if ( file ~= nil ) then
         radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, length, radiotap_header [ 'it_len' ], pos2 )
         --]]
 
-        print ( PCAP.to_bytes_hex ( rest, 16 ) )
+        --print ( PCAP.to_bytes_hex ( rest, 16 ) )
         local packet_length
         packet_length, rest, pos = PCAP.parse_packet_header ( rest, pos )
         
-        print ( "packet_length: " .. packet_length )
-        print ( PCAP.to_bytes_hex ( rest, packet_length ) )
+        --print ( "packet_length: " .. packet_length )
+        --print ( PCAP.to_bytes_hex ( rest, packet_length ) )
 
         radiotap_header, rest, pos = PCAP.parse_radiotap_header ( rest, pos )
         radiotap_data, rest, pos = PCAP.parse_radiotap_data ( rest, packet_length, radiotap_header [ 'it_len' ], pos )
