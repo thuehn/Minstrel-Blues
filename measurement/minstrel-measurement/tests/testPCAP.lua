@@ -31,7 +31,7 @@ if ( file ~= nil ) then
         local pos2 = 0
         local rest2 = radiotap
         radiotap_header, rest2, pos2 = PCAP.parse_radiotap_header ( rest2, pos2 )
-        radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, length, pos2 )
+        radiotap_data, _, _ = PCAP.parse_radiotap_data ( rest2, length, radiotap_header [ 'it_len' ], pos2 )
 
 		local ssid = radiotap_data [ 'ssid' ]
 		local frame_type = radiotap_data [ 'type' ]

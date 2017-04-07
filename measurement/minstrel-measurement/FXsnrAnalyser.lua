@@ -178,7 +178,7 @@ function FXsnrAnalyser:snrs ( measurement )
                     local length
                     capdata, length, rest, pos = PCAP.get_packet ( rest, pos )
 
-                    radiotap_header, radiotap_data = self:parse_radiotap ( capdata, length, pos )
+                    radiotap_header, radiotap_data = self:parse_radiotap ( capdata, length, radiotap_header [ 'it_len' ], pos )
 
                     --local ssid = radiotap_data [ 'ssid' ]
                     local frame_type = radiotap_data [ 'type' ]

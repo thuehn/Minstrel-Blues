@@ -105,9 +105,13 @@ PCAP.to_bytes = function ( str )
 end
 
 -- converts a string 'str' into hexadecimal representation (ascii) 
-PCAP.to_bytes_hex = function ( str )
+PCAP.to_bytes_hex = function ( str, len )
     local bytes = ""
-    for i = 1, #str do
+    local count = #str
+    if ( len ~= nil ) then
+        count = len
+    end
+    for i = 1, count do
         if ( i ~= 1 ) then bytes = bytes .. " " end
         bytes = bytes .. string.format("%02x", string.byte ( str, i ) )
     end
@@ -274,9 +278,13 @@ end
 -- parse the radiotap data block
 -- (bssid, ssid only)
 -- block may be truncated by tcpdump
-PCAP.parse_radiotap_data = function ( capdata, length, pos )
+PCAP.parse_radiotap_data = function ( capdata, length, header_length, pos )
 
-    print ( "length: " .. length )
+    if ( header_length ~= pos ) then
+        print ( "header length: " .. header_length )
+        print ( "startpos: " .. pos )
+        print ( "length: " .. length )
+    end
     local start_pos = pos
 
     local ret = {}
@@ -371,7 +379,6 @@ PCAP.parse_radiotap_data = function ( capdata, length, pos )
         -- tagged parameter
         ret [ 'ssid' ] = ""
         while ( pos < length ) do
-            print ( "pos_tag: " .. pos )
             local tag_number
             local tag_length
 
@@ -393,7 +400,6 @@ PCAP.parse_radiotap_data = function ( capdata, length, pos )
                 -- 48: RSN information
                 -- 45: HT capabilities
             end
-            print ( "pos_tag: " .. pos )
         end
 
     end
@@ -425,6 +431,8 @@ PCAP.parse_radiotap_header = function ( capdata, pos )
     ret ['it_len'], rest, pos = PCAP.read_int16 ( rest, pos )
     ret ['it_present'], rest, pos = PCAP.read_int32 ( rest, pos )
     
+    --print ( PCAP.to_bytes_hex ( rest, tonumber ( ret ['it_len'] ) ) )
+
     local antennas = {}
     antennas [ 1 ] = true
     local has_ext = PCAP.hasbit( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ "IEEE80211_RADIOTAP_EXT" ] ) )
@@ -495,12 +503,20 @@ PCAP.parse_radiotap_header = function ( capdata, pos )
         rest, pos = PCAP.align ( rest, 2, pos )
         ret ['rx_flags'], rest, pos = PCAP.read_int16 ( rest, pos )
     end
-    for _, _ in ipairs ( antennas ) do
-        antenna_signal, rest, pos = PCAP.read_int8_signed ( rest, pos )
-        antenna_index, rest, pos = PCAP.read_int8 ( rest, pos )
-        ret ['antenna_signal' .. tostring ( antenna_index ) ] = antenna_signal
+
+    if ( PCAP.hasbit ( ret['it_present'], PCAP.bit ( PCAP.radiotap_type [ 'IEEE80211_RADIOTAP_DBM_ANTSIGNAL' ] )  ) ) then
+        for _, _ in ipairs ( antennas ) do
+            antenna_signal, rest, pos = PCAP.read_int8_signed ( rest, pos )
+            antenna_index, rest, pos = PCAP.read_int8 ( rest, pos )
+            ret ['antenna_signal' .. tostring ( antenna_index ) ] = antenna_signal
+        end
     end
 
+    if ( ret ['it_len'] > pos ) then
+        for i=pos, ret ['it_len'] - 1 do
+            _, rest,pos = PCAP.read_int8 (rest, pos)
+        end
+    end
     --return ret, string.sub ( capdata, start_pos + ret['it_len'] + 1 ), pos
     return ret, rest, pos
 end
