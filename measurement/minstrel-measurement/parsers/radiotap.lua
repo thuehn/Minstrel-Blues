@@ -352,7 +352,7 @@ PCAP.parse_radiotap_data = function ( capdata, pos, length, header_length, parse
     -- 2 bytes bitmask ( fragment number 0 .. 3, seq num 4 .. 15
     _, rest, pos = PCAP.read_int16 ( rest, pos )
 
-    if ( parse_tags ~= nil and parse_tags == true ) then
+    --if ( false ) then -- parse_tags ~= nil and parse_tags == true ) then
 
         -- 12 bytes fixed parameters
         -- - 8 bytes timestamp
@@ -401,11 +401,13 @@ PCAP.parse_radiotap_data = function ( capdata, pos, length, header_length, parse
             end
         end
 
+        --print ( pos ) -- 190
         return ret, rest, pos
-    else
-        local next_pos = ( ( length + start_pos ) - header_length ) + 12
-        return ret, string.sub ( rest, next_pos ), next_pos 
-    end
+    --else
+    --    local next_pos = ( ( length + start_pos ) - header_length )
+    --    print ( next_pos )
+    --    return ret, string.sub ( rest, next_pos ), start_pos + length
+    --end
     
 end
 

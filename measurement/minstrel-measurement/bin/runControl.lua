@@ -61,7 +61,9 @@ function kill ( ... ) return node:kill ( ... ) end
 function randomize_nodes ( ... ) return node:randomize_nodes ( ... ) end
 function list_nodes ( ... ) return node:list_nodes ( ... ) end
 function get_mac ( ... ) return node:get_mac ( ... ) end
+function get_mac_br ( ... ) return node:get_mac_br ( ... ) end
 function get_opposite_macs ( ... ) return node:get_opposite_macs ( ... ) end
+function get_opposite_macs_br ( ... ) return node:get_opposite_macs_br ( ... ) end
 function list_aps ( ... ) return node:list_aps ( ... ) end
 function list_stas ( ... ) return node:list_stas ( ... ) end
 function list_phys ( ... ) return node:list_phys ( ... ) end

@@ -119,8 +119,16 @@ function ControlNodeRef:get_mac ( node_name )
     return self.rpc.get_mac ( node_name )
 end
 
+function ControlNodeRef:get_mac_br ( node_name )
+    return self.rpc.get_mac_br ( node_name )
+end
+
 function ControlNodeRef:get_opposite_macs ( node_name )
     return self.rpc.get_opposite_macs ( node_name )
+end
+
+function ControlNodeRef:get_opposite_macs_br ( node_name )
+    return self.rpc.get_opposite_macs_br ( node_name )
 end
 
 function ControlNodeRef:list_stations ( ap_name )
@@ -445,6 +453,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
                 local opposite_macs = self:get_opposite_macs ( ref_name )
 
                 local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir )
+                measurement.node_mac_br = self:get_mac_br ()
                 self.stats [ ref_name ] = measurement
 
                 local stations = {}

@@ -58,6 +58,10 @@ function NodeRef:get_mac ()
     return self.radios [ self.wifi_cur ].mac
 end
 
+function NodeRef:get_mac_br ()
+    return self.rpc.get_mac ( self.wifi_cur, true )
+end
+
 function NodeRef:__tostring ()
     local out = ""
     out = out .. self.name .. " :: " 
@@ -101,6 +105,8 @@ end
 function NodeRef:create_measurement()
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.stats = Measurement:create ( self.name, self:get_mac (), self:get_opposite_macs (), self.rpc, self.output_dir )
+        self.stats.node_mac_br = self:get_mac_br ()
+        self.stats.opposite_macs_br = self:get_opposite_macs_br ()
     end
 end
 

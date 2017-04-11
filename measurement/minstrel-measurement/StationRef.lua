@@ -34,7 +34,15 @@ end
 function StationRef:get_opposite_macs ()
     local macs = {}
     if ( self.ap_ref ~= nil ) then
-        macs [ 1 ] = self.ap_ref:get_mac()
+        macs [ 1 ] = self.ap_ref:get_mac ()
+    end
+    return macs
+end
+
+function StationRef:get_opposite_macs_br ()
+    local macs = {}
+    if ( self.ap_ref ~= nil ) then
+        macs [ 1 ] = self.ap_ref:get_mac_br ()
     end
     return macs
 end

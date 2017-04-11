@@ -11,7 +11,9 @@ pprint = require('pprint')
 Measurement = { rpc_node = nil
               , node_name = nil
               , node_mac = nil
+              , node_mac_br = nil
               , opposite_macs = nil
+              , opposite_macs_br = nil
               , regmon_stats = nil
               , tcpdump_pcaps = nil
               , cpusage_stats = nil
@@ -32,7 +34,9 @@ function Measurement:create ( name, mac, opposite_macs, rpc, output_dir )
     local o = Measurement:new( { rpc_node = rpc
                                , node_name = name
                                , node_mac = mac
+                               , node_mac_br = nil
                                , opposite_macs = opposite_macs
+                               , opposite_macs_br = nil
                                , regmon_stats = {}
                                , tcpdump_pcaps = {}
                                , cpusage_stats = {}
@@ -131,6 +135,18 @@ function Measurement:read ()
         end
         file:close()
     end
+    -- mac for bridged setups ( tshark filters by bridge mac )
+    local fname = base_dir .. "/mac_br.txt"
+    if ( isFile ( fname ) ) then
+        local file = io.open ( fname )
+        if ( file ~= nil ) then
+            self.node_mac_br = file:read ( "*a" )
+            if ( self.node_mac_br ~= nil ) then
+                self.node_mac_br = string.sub ( self.node_mac_br, 1, string.len ( self.node_mac_br) - 1 )
+            end
+            file:close()
+        end
+    end
 
     -- opposite macs
     local fname = base_dir .. "/opposite_macs.txt"
@@ -142,6 +158,19 @@ function Measurement:read ()
             table.remove ( self.opposite_macs, #self.opposite_macs )
         end
         file:close()
+    end
+    -- opposite macs for bridged setups ( tshark filters by bridge mac )
+    local fname = base_dir .. "/opposite_macs_br.txt"
+    if ( isFile ( fname ) == true ) then
+        local file = io.open ( fname )
+        if ( file ~= nil ) then
+            local content = file:read ( "*a" )
+            if ( content ~= nil ) then
+                self.opposite_macs_br = split ( content, "\n" )
+                table.remove ( self.opposite_macs_br, #self.opposite_macs )
+            end
+            file:close()
+        end
     end
 
     -- regmon stats
@@ -222,6 +251,14 @@ function Measurement:write ()
             file:close()
         end
     end
+    if ( self.node_mac_br ~= nil ) then
+        local fname = base_dir .. "/mac_br.txt"
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            file:write ( self.node_mac_br .. '\n' )
+            file:close()
+        end
+    end
 
     -- opposite macs
     if ( self.opposite_macs ~= nil ) then
@@ -229,6 +266,16 @@ function Measurement:write ()
         local file = io.open ( fname, "w" )
         if ( file ~= nil ) then
             for _, mac in ipairs ( self.opposite_macs ) do
+                file:write ( mac .. '\n' )
+            end
+            file:close()
+        end
+    end
+    if ( self.opposite_macs_br ~= nil ) then
+        local fname = base_dir .. "/opposite_macs_br.txt"
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            for _, mac in ipairs ( self.opposite_macs_br ) do
                 file:write ( mac .. '\n' )
             end
             file:close()
@@ -282,6 +329,7 @@ function Measurement:__tostring ()
     local out = "Measurement\n==========\n"
     out = out .. self.node_name .. "\n"
     out = out .. ( self.node_mac or "no mac set" ) .. "\n"
+    out = out .. ( self.node_mac_br or "no mac (bridged) set" ) .. "\n"
     -- regmon stats
     out = out .. "regmon: " .. table_size ( self.regmon_stats ) .. " stats\n"
     local key

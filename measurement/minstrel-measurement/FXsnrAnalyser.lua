@@ -126,6 +126,77 @@ end
 -- TODO: filter port, i.e udp 12000
 -- radiotap.dbm_antsignal
 
+function FXsnrAnalyser:snrs_tshark ( measurement )
+    local ret = {}
+
+    local base_dir = measurement.output_dir .. "/" .. measurement.node_name
+    local tshark_bin = "/usr/bin/tshark"
+
+    for key, stats in pairs ( measurement.tcpdump_pcaps ) do
+        local snrs_fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-snrs.txt"
+        local snrs = {}
+        if ( isFile ( snrs_fname ) == false ) then
+            if ( table_size ( split ( key, "-" ) ) < 3 ) then
+                print ( "ERROR: unsupported key encoding" )
+                break
+            end
+            local fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
+            print ( fname )
+            -- run tshark
+            -- measurement.node_mac
+            -- measurement.opposite_macs
+            -- note: for tshark the mac of the bridge is used for wlan.sa and wlan.da and not the
+            --       mac address of the interface
+            --       use wlan.ta and wlan.ra instead or use bridge mac
+            local filter = "\""
+            filter = filter .. "wlan.fc.type==2 and ( ( "
+            if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
+                filter = filter .. " ( "
+            end
+            for i, mac in ipairs ( measurement.opposite_macs ) do
+                if ( i ~= 1 ) then filter = filter .. " or " end
+                filter = filter .. "wlan.ra==" .. mac
+            end
+            if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
+                filter = filter .. " ) "
+            end
+            filter = filter .. "and wlan.ta==" .. measurement.node_mac
+            filter = filter .. " ) or ( "
+            filter = filter .. "wlan.ra==" .. measurement.node_mac
+            if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
+                filter = filter .. " and ( "
+            end
+            for i, mac in ipairs ( measurement.opposite_macs ) do
+                if ( i ~= 1 ) then filter = filter .. " or " end
+                filter = filter .. "wlan.ta==" .. mac
+            end
+            if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
+                filter = filter .. " ) ) )"
+            end
+            --filter = filter .. "and radiotap.length==62"
+            filter = filter .. "\""
+            local content, exit_code = Misc.execute ( tshark_bin, "-r", fname, "-Y", filter, "-T",  "fields"
+                                                    , "-e", "radiotap.dbm_antsignal" )
+            print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields" .. " -e " .. "radiotap.dbm_antsignal" )
+            if ( exit_code ~= 0 ) then
+                print ("tshark error: " .. exit_code )
+            else
+                print ("tshark:" .. content )
+            end
+        else
+            print ( snrs_fname )
+            snrs = self:read_snrs ( snrs_fname )
+        end
+
+        local rate = self:get_rate ( key )
+        local power = self:get_power ( key )
+        local snrs_stats = self:calc_snrs_stats ( snrs, power, rate )
+        merge_map ( snrs_stats, ret )
+    end
+
+    return ret
+end
+
 -- returns list of SNRs stats (MIN/MAX/AVG) for each measurement
 -- stored in map indexed by a string concatenated by power and rate 
 -- and MIN/MAX/AVG seperated by "-"
@@ -176,15 +247,12 @@ function FXsnrAnalyser:snrs ( measurement )
                     local sa = PCAP.mac_tostring ( radiotap_data [ 'sa' ] )
                     local da = PCAP.mac_tostring ( radiotap_data [ 'da' ] )
 
-                    if ( ( ( da == measurement.node_mac 
-                                and ( ( misc.index_of ( sa, measurement.opposite_macs ) ~= nil ) or ( sa == nil ) )
-                            ) or ( misc.index_of ( da, measurement.opposite_macs ) ~= nil
-                                    and ( sa == measurement.node_mac or sa == nil ) ) )
+                    if ( ( ( da == measurement.node_mac and misc.index_of ( sa, measurement.opposite_macs ) ~= nil )
+                            or ( misc.index_of ( da, measurement.opposite_macs ) ~= nil and sa == measurement.node_mac ) )
                         and ( ( frame_type == frame_type_data
                              and ( frame_subtype == frame_subtype_data or frame_subtype == frame_subtype_qos ) )
                           or ( frame_type == frame_type_ctrl and ( frame_subtype == frame_subtype_blockack ) ) ) ) then
 
-                        print ( "match" )
                         local antenna_signal = radiotap_header ['antenna_signal']
                         if ( antenna_signal ~= nil ) then
                             snrs [ #snrs + 1 ] = antenna_signal

@@ -166,10 +166,22 @@ function ControlNode:get_mac ( node_name )
     return node_ref:get_mac ()
 end
 
+function ControlNode:get_mac_br ( node_name )
+    local node_ref = self:find_node_ref ( node_name )
+    if ( node_ref == nil ) then return nil end
+    return node_ref:get_mac_br ()
+end
+
 function ControlNode:get_opposite_macs ( node_name )
     local node_ref = self:find_node_ref ( node_name )
     if ( node_ref == nil ) then return nil end
     return node_ref:get_opposite_macs ()
+end
+
+function ControlNode:get_opposite_macs_br ( node_name )
+    local node_ref = self:find_node_ref ( node_name )
+    if ( node_ref == nil ) then return nil end
+    return node_ref:get_opposite_macs_br ()
 end
 
 function ControlNode:list_phys ( name )

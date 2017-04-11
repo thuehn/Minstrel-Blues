@@ -61,6 +61,15 @@ function AccessPointRef:get_opposite_macs ()
     return self.stations
 end
 
+-- all macs of linked stations are returned
+function AccessPointRef:get_opposite_macs_br ()
+    local macs = {}
+    for _, node_ref in ipairs ( self.refs ) do
+        macs [ #macs + 1 ] = node_ref:get_mac_br ()
+    end
+    return macs
+end
+
 -- waits until all stations appears on ap
 -- not precise, sta maybe not really connected afterwards
 -- waits until station is reachable (not mandatory  connected)

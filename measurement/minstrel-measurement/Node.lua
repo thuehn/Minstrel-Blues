@@ -286,10 +286,16 @@ function Node:set_ani ( phy, enabled )
     file:close()
 end
 
-function Node:get_mac ( phy )
+function Node:get_mac ( phy, bridged )
     if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
+    if ( bridged ~= nil and bridged == true ) then
+        local bridge = self:check_bridge ( iface )
+        if ( bridge ~= nil ) then
+            iface = bridge
+        end
+    end
     self:send_info ( "send mac for " .. iface )
     local content = misc.execute ( "ifconfig", iface )
     local ifconfig = parse_ifconfig ( content )

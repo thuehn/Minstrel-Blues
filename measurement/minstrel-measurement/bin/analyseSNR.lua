@@ -11,6 +11,7 @@ require ('SNRRenderer')
 local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
 
 parser:argument("input", "measurement / analyse data directory","/tmp")
+parser:flag ("-t --tshark", "use tshark as pcap analyser", false )
 
 local args = parser:parse()
 
@@ -30,7 +31,12 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
 
             print ( "Analyse SNR" )
             local analyser = FXsnrAnalyser:create ( aps, stas )
-            local snrs = analyser:snrs ( measurement )
+            local snrs
+            if ( args.tshark == true ) then
+                snrs = analyser:snrs_tshark ( measurement )
+            else
+                snrs = analyser:snrs ( measurement )
+            end
             pprint ( snrs )
         end
         --print ( )
