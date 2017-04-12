@@ -149,9 +149,12 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             --       mac address of the interface
             --       use wlan.ta and wlan.ra instead or use bridge mac
             local filter = ""
-            filter = filter .. "wlan.fc.type==2 and ( ( "
+            filter = filter .. "( ( wlan.fc.type==2 and wlan.fc.type_subtype==40 )"
+            --filter = filter .. " or ( wlan.fc.type==0 and wlan.fc.type_subtype==8 ) )"
+            filter = filter .. " or ( wlan.fc.type==1 and wlan.fc.type_subtype==25 )"
+            filter = filter .. " or ( wlan.fc.type==1 and wlan.fc.type_subtype==29 ) )"
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
-                filter = filter .. " ( "
+                filter = filter .. " and ( ( ( "
             end
             for i, mac in ipairs ( measurement.opposite_macs ) do
                 if ( i ~= 1 ) then filter = filter .. " or " end
@@ -160,11 +163,13 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
                 filter = filter .. " ) "
             end
-            filter = filter .. "and wlan.ta==" .. measurement.node_mac
+            filter = filter .. "or wlan.ta==" .. measurement.node_mac
+            --filter = filter .. "and wlan.ta==" .. measurement.node_mac
             filter = filter .. " ) or ( "
             filter = filter .. "wlan.ra==" .. measurement.node_mac
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
-                filter = filter .. " and ( "
+                filter = filter .. " or ( "
+                --filter = filter .. " and ( "
             end
             for i, mac in ipairs ( measurement.opposite_macs ) do
                 if ( i ~= 1 ) then filter = filter .. " or " end
