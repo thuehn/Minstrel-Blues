@@ -148,7 +148,7 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             -- note: for tshark the mac of the bridge is used for wlan.sa and wlan.da and not the
             --       mac address of the interface
             --       use wlan.ta and wlan.ra instead or use bridge mac
-            local filter = "\""
+            local filter = ""
             filter = filter .. "wlan.fc.type==2 and ( ( "
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
                 filter = filter .. " ( "
@@ -174,15 +174,25 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
                 filter = filter .. " ) ) )"
             end
             --filter = filter .. "and radiotap.length==62"
-            filter = filter .. "\""
-            local content, exit_code = Misc.execute ( tshark_bin, "-r", fname, "-Y", filter, "-T",  "fields"
-                                                    , "-e", "radiotap.dbm_antsignal" )
-            print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields" .. " -e " .. "radiotap.dbm_antsignal" )
+            local content, exit_code = Misc.execute_nonblock ( nil, nil
+                                                            , tshark_bin, "-r", fname, "-Y", filter
+                                                            , "-T", "fields"
+                                                            , "-e", "radiotap.dbm_antsignal" )
+            print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields"
+                    .. " -e " .. "radiotap.dbm_antsignal" )
             if ( exit_code ~= 0 ) then
                 print ("tshark error: " .. exit_code )
             else
-                print ("tshark:" .. content )
+                --print ("tshark:" .. content )
+                for _, line in ipairs ( split ( content, "\n" ) ) do
+                    local antsignals = split ( line, "," )
+                    if ( antsignals ~= nil and #antsignals > 0
+                         and antsignals [1] ~= nil and antsignals [1] ~= "" ) then
+                        snrs [ #snrs + 1 ] = tonumber ( antsignals [1] )
+                    end
+                end
             end
+            self:write_snrs ( snrs_fname, snrs )
         else
             print ( snrs_fname )
             snrs = self:read_snrs ( snrs_fname )

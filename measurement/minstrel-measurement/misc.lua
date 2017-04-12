@@ -246,6 +246,8 @@ end
 
 function Misc.read_nonblock ( fh, ms, sz )
     if ( fh == nil ) then return nil end
+    if ( ms == nil ) then ms = 500 end
+    if ( sz == nil ) then sz = 1024 end
     local lines = ""
     local fd = stdio.fileno ( fh )
     repeat
@@ -265,6 +267,27 @@ function Misc.read_nonblock ( fh, ms, sz )
         return nil
     end
 end
+
+function Misc.execute_nonblock ( ms, sz, ... )
+    local pid, stdin, stdout = lpc.run ( ... )
+    stdin:close()
+    local content = nil
+    if ( stdout ~= nil ) then
+        content = Misc.read_nonblock ( stdout, ms, sz )
+    end
+    local exit_code = lpc.wait ( pid )
+    if ( stdout ~= nil ) then
+        local tail = Misc.read_nonblock ( stdout, ms, sz )
+        if ( tail ~= nil ) then
+            content = content .. tail
+        end
+    end
+    if ( stdout ~= nil ) then
+        stdout:close()
+    end
+    return content, exit_code
+end
+
 
 function Misc.randomize_list ( list )
     math.randomseed ( os.time() )
