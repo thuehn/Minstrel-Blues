@@ -107,9 +107,9 @@ function FXsnrAnalyser:calc_snrs_stats ( snrs, power, rate )
     local ret = {}
     if ( table_size ( snrs ) > 0 ) then
         local unique_snrs = misc.Set_count ( snrs )
-        for snr, count in pairs ( unique_snrs ) do
-            print ( "antenna signal: " .. snr, count )
-        end
+        --for snr, count in pairs ( unique_snrs ) do
+        --    print ( "antenna signal: " .. snr, count )
+        --end
 
         ret [ power .. "-" .. rate .. "-MIN" ] = self:min ( snrs )
         ret [ power .. "-" .. rate .. "-MAX" ] = self:max ( snrs )
@@ -141,7 +141,7 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
                 break
             end
             local fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
-            print ( fname )
+            --print ( fname )
             -- run tshark
             -- measurement.node_mac
             -- measurement.opposite_macs
@@ -183,8 +183,8 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
                                                             , tshark_bin, "-r", fname, "-Y", filter
                                                             , "-T", "fields"
                                                             , "-e", "radiotap.dbm_antsignal" )
-            print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields"
-                    .. " -e " .. "radiotap.dbm_antsignal" )
+            --print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields"
+            --        .. " -e " .. "radiotap.dbm_antsignal" )
             if ( exit_code ~= 0 ) then
                 print ("tshark error: " .. exit_code )
             else
@@ -199,7 +199,7 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             end
             self:write_snrs ( snrs_fname, snrs )
         else
-            print ( snrs_fname )
+            --print ( snrs_fname )
             snrs = self:read_snrs ( snrs_fname )
         end
 

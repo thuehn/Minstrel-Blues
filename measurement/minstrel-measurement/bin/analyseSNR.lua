@@ -6,9 +6,9 @@ local config = require ('Config')
 require ('Measurement')
 
 require ('FXsnrAnalyser')
-require ('SNRRenderer')
+require ('SNRRendererPerRate')
 
-local parser = argparse("netRun", "Run minstrel blues multi AP / multi STA mesurement")
+local parser = argparse("analyseSNR", "Analyse and render SNR Diagram for a measurement")
 
 parser:argument("input", "measurement / analyse data directory","/tmp")
 parser:flag ("-t --tshark", "use tshark as pcap analyser", false )
@@ -22,14 +22,14 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
     if ( name ~= "." and name ~= ".."  and isDir ( args.input .. "/" .. name ) ) then
 
         print ( "read measurement: " .. name )
-        --if ( Config.find_node ( name, nodes ) ~= nil ) then
         local keys = read_keys ( args.input )
+        local all_snrs = {}
         for _, key in ipairs ( keys ) do
             local measurement = Measurement.parse ( name, args.input, key )
-            print ( measurement:__tostring () )
-        --end
+            --print ( measurement:__tostring () )
 
-            print ( "Analyse SNR" )
+            --print ( "Analyse SNR" )
+            --print ( key )
             local analyser = FXsnrAnalyser:create ( aps, stas )
             local snrs
             if ( args.tshark == true ) then
@@ -37,14 +37,16 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
             else
                 snrs = analyser:snrs ( measurement )
             end
-            pprint ( snrs )
+            merge_map ( snrs, all_snrs )
+            --pprint ( snrs )
         end
-        --print ( )
+        print ( )
+        print ( "#exp: " .. table_size ( all_snrs ) )
 
         --print ( "Plot SNR" )
-        --local renderer = SNRRenderer:create ( snrs, aps, stas )
+        local renderer = SNRRendererPerRate:create ( all_snrs )
 
-        --local dirname = args.input .. "/" .. measurement.node_name
-        --renderer:run ( dirname )
+        local dirname = args.input .. "/" .. name
+        renderer:run ( dirname )
     end
 end

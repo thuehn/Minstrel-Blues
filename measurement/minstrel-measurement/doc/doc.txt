@@ -34,6 +34,9 @@ LuaBitOp [-openwrt]
 pprint.lua: lua pretty printing [+openwrt]
 lua-system: sleep with nanosecond support [-openwrt]
 lpc: run process with pid, stdin, stdout and wait with exit_code support
+#luajit, luasocket, lua-rclient, lua-xsys, Rserve: plot SNR with R
+#    - https://github.com/stepelu/lua-xsys
+#    - https://github.com/stepelu/lua-rclient
 
 not used but helpful
 --------------------
