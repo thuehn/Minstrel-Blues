@@ -9,6 +9,7 @@ local parser = argparse ( "runControl", "Run mintrel measurement control node." 
 parser:option ("--ctrl_if", "Control Interface name", "eth0" )
 parser:option ("-C --port", "RPC port", "12346" )
 
+parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("--log_file", "Logging file name", "minstrelm.log" )
 parser:option ("-L --log_port", "Logging port", "12347" )
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
@@ -18,7 +19,7 @@ parser:option ("-O --output", "measurement / analyse data directory","/tmp")
 local args = parser:parse ()
 
 local net = NetIF:create ( args.ctrl_if )
-local node = ControlNode:create ( "Control", net, args.port, args.log_port, args.log_file
+local node = ControlNode:create ( "Control", net, args.port, args.log_port, args.log_ip
                                 , args.output, args.enable_fixed )
 
 function __tostring ( ... ) return node:__tostring ( ... ) end
@@ -51,7 +52,6 @@ function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
 function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function get_stats ( ... ) return node:get_stats ( ... ) end
-function get_log ( ... ) return node:get_log ( ... ) end
 
 function set_date ( ... ) return node:set_date ( ... ) end
 function set_dates ( ... ) return node:set_dates ( ... ) end

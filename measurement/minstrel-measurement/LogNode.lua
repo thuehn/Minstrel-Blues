@@ -17,7 +17,9 @@
 -- (connection timed out) or does the logging node accept
 -- the connections sequentially (connection refused)
 
-net = require ('Net')
+local net = require ('Net')
+local ps = require ('posix.signal') --kill
+local lpc = require 'lpc'
 
 -- prototype table
 LogNode = { name = nil
@@ -138,4 +140,17 @@ function LogNode:run( port )
     net.run ( port, self.name,
               function ( msg ) self:send_info ( self.name, msg ) end
             )
+end
+
+function LogNode:stop ( pid )
+    if ( pid == nil ) then
+        self:send_error ( "logger not stopped: pid is not set" )
+    else
+        self:send_info ( "stop logger with pid " .. pid )
+        ps.kill ( pid )
+        lpc.wait ( pid )
+        if ( self.logfile ~= nil ) then
+            self.logfile:close()
+        end
+    end
 end

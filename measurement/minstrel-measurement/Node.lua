@@ -1030,7 +1030,8 @@ function Node:stop_iperf_server ()
     end
     self:send_info ( "stop iperf server with pid " .. self.iperf_server_proc.pid )
     local exit_code
-    if ( self:kill ( self.iperf_server_proc.pid ) ) then
+    if ( self:kill ( self.iperf_server_proc.pid )
+        or self:kill ( self.iperf_server_proc.pid ) ) then
         exit_code = lpc.wait ( self.iperf_server_proc.pid )
     end
     local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )

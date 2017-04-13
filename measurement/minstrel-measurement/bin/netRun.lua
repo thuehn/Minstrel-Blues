@@ -29,7 +29,7 @@
 -- experiment direction (AP->STA, STA->AP)
 -- move config part to control node
 -- analyse throughput
--- allow logging for ControlNodeRef
+-- allow logging for ControlNodeRef, NodeRef
 -- start logger as local instance
 -- ControlNodeRef should fetch traces from nodes directly ( copy once )
 
@@ -316,7 +316,9 @@ ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
                                  , ctrl_config ['ctrl_if']
                                  , output_dir
                                  , args.log_file
+                                 , args.log_port
                                  , args.distance
+                                 , net
                                  )
 
 -- stop when nameserver is not reachable / not working
@@ -340,9 +342,9 @@ end
 
 if ( args.disable_autostart == false ) then
     if ( ctrl_ref.ctrl_net_ref.addr ~= nil and ctrl_ref.ctrl_net_ref.addr ~= net.addr ) then
-        ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port, args.log_file, args.log_port )
+        ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port )
     else
-        ctrl_pid = ctrl_ref:start ( args.ctrl_port, args.log_file, args.log_port )
+        ctrl_pid = ctrl_ref:start ( args.ctrl_port )
     end
 end
 

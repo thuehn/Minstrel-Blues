@@ -39,5 +39,7 @@ function send_debug ( from, msg) node:send_debug ( from, msg ) end
 -- shortcut to logger instance to simplify access
 function set_cut () node:set_cut () end
 
+function stop ( ... ) node:stop ( ... ) end
+
 -- make all functions available via RPC
 node:run ( args.port )

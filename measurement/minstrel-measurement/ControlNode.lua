@@ -23,15 +23,13 @@ require ('EmptyExperiment')
 
 ControlNode = NodeBase:new()
 
-function ControlNode:create ( name, ctrl, port, log_port, log_fname, output_dir )
+function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir )
     local o = ControlNode:new ( { name = name
                                 , ctrl = ctrl
                                 , port = port
                                 , log_port = log_port
-                                , log_fname = log_fname
-                                , log_file = nil
+                                , log_addr = log_addr
                                 , output_dir = output_dir
-                                , log_addr = ctrl.addr
                                 , ap_refs = {}     -- list of access point nodes
                                 , sta_refs = {}    -- list of station nodes
                                 , node_refs = {}   -- list of all nodes
@@ -43,17 +41,6 @@ function ControlNode:create ( name, ctrl, port, log_port, log_fname, output_dir 
 
     if ( o.ctrl.addr == nil ) then
         o.ctrl:get_addr ()
-    end
-    o.log_addr = o.ctrl.addr
-
-    if ( log_port ~= nil and log_fname ~= nil ) then
-        local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", "/tmp/" .. log_fname
-                                     , "--port", log_port )
-        o.pids = {}
-        o.pids ['logger'] = pid
-        o:send_info ( "wait until logger is running" )
-        local fname = "/tmp/" .. log_fname
-        o.log_file = io.open ( fname, "r" )
     end
 
     return o
@@ -68,8 +55,6 @@ function ControlNode:__tostring()
     local out = "control if: " .. net .. "\n"
     out = out .. "control port: " .. ( self.port or "none" ) .. "\n"
     out = out .. "output: " .. ( self.output_dir or "none" ) .. "\n"
-    out = out .. "log file: " .. ( self.log_fname or "none" ) .."\n"
-    out = out .. "log port: " .. ( self.log_port or "none" ) .. "\n"
     for i, ap_ref in ipairs ( self.ap_refs ) do
         out = out .. '\n'
         out = out .. ap_ref:__tostring()
@@ -341,9 +326,9 @@ function ControlNode:hosts_known ()
     return true
 end
 
-function ControlNode:start_nodes ( log_addr, log_port, distance )
+function ControlNode:start_nodes ( distance )
 
-    function start_node ( node_ref, log_addr )
+    function start_node ( node_ref, log_addr, log_port )
 
         local remote_cmd = "lua /usr/bin/runNode"
                     .. " --name " .. node_ref.name 
@@ -351,6 +336,9 @@ function ControlNode:start_nodes ( log_addr, log_port, distance )
 
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
+        end
+        if ( log_port ~= nil ) then
+            remote_cmd = remote_cmd .. " --log_port " .. log_port
         end
         self:send_info ( "ssh " .. "-i " .. ( node_ref.rsa_key or "none" )
                         .. " root@" .. ( node_ref.ctrl_net_ref.addr or "none" ) .. " " .. remote_cmd )
@@ -364,7 +352,7 @@ function ControlNode:start_nodes ( log_addr, log_port, distance )
     for _, node_ref in ipairs ( self.node_refs ) do
         self:send_debug ( node_ref:__tostring() )
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
-            self.pids [ node_ref.name ] = start_node ( node_ref, log_addr )
+            self.pids [ node_ref.name ] = start_node ( node_ref, self.log_addr, self.log_port )
         end
     end
     return true
@@ -407,21 +395,6 @@ end
 -- kill all running nodes with two times sigint(2)
 -- (default kill signal is sigterm(15) )
 function ControlNode:stop()
-
-    --fixme: move to log node
-    function stop_logger ( pid )
-        if ( pid == nil ) then
-            self:send_error ( "logger not stopped: pid is not set" )
-        else
-            self:send_info ( "stop logger with pid " .. pid )
-            ps.kill ( pid )
-            lpc.wait ( pid )
-            if ( self.log_file ~= nil ) then
-                self.log_file:close()
-            end
-        end
-    end
-
     -- fixme: nodes should implement a stop function and kill itself with getpid
     -- and wait
     for i, node_ref in ipairs ( self.node_refs ) do
@@ -437,17 +410,6 @@ function ControlNode:stop()
                 self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed" )
             end
         end
-    end
-
-    stop_logger ( self.pids ['logger'] )
-end
-
-function ControlNode:get_log ()
-    if ( self.log_file ~= nil ) then
-        local log = self.log_file:read ("*a")
-        return log
-    else
-        return nil
     end
 end
 
