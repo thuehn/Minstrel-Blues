@@ -341,7 +341,7 @@ function ControlNode:hosts_known ()
     return true
 end
 
-function ControlNode:start_nodes ( log_addr, log_port )
+function ControlNode:start_nodes ( log_addr, log_port, distance )
 
     function start_node ( node_ref, log_addr )
 
@@ -358,6 +358,7 @@ function ControlNode:start_nodes ( log_addr, log_port )
                                       "root@" .. ( node_ref.ctrl_net_ref.addr or "none" ), remote_cmd )
         return pid
     end
+    self:send_debug ( "exeriment approximate distance: " .. ( distance or "not specified" ) )
 
     self:send_debug ( "start " .. #self.node_refs .. " nodes" )
     for _, node_ref in ipairs ( self.node_refs ) do

@@ -155,27 +155,25 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             filter = filter .. " or ( wlan.fc.type==1 and wlan.fc.type_subtype==29 ) )"
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
                 filter = filter .. " and ( ( ( "
-            end
-            for i, mac in ipairs ( measurement.opposite_macs ) do
-                if ( i ~= 1 ) then filter = filter .. " or " end
-                filter = filter .. "wlan.ra==" .. mac
-            end
-            if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
+                for i, mac in ipairs ( measurement.opposite_macs ) do
+                    if ( i ~= 1 ) then filter = filter .. " or " end
+                    filter = filter .. "wlan.ra==" .. mac
+                end
                 filter = filter .. " ) "
             end
-            filter = filter .. "or wlan.ta==" .. measurement.node_mac
-            --filter = filter .. "and wlan.ta==" .. measurement.node_mac
-            filter = filter .. " ) or ( "
-            filter = filter .. "wlan.ra==" .. measurement.node_mac
+            if ( measurement.node_mac ~= nil ) then
+                filter = filter .. "or wlan.ta==" .. measurement.node_mac
+                --filter = filter .. "and wlan.ta==" .. measurement.node_mac
+                filter = filter .. " ) or ( "
+                filter = filter .. "wlan.ra==" .. measurement.node_mac
+            end
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
                 filter = filter .. " or ( "
                 --filter = filter .. " and ( "
-            end
-            for i, mac in ipairs ( measurement.opposite_macs ) do
-                if ( i ~= 1 ) then filter = filter .. " or " end
-                filter = filter .. "wlan.ta==" .. mac
-            end
-            if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
+                for i, mac in ipairs ( measurement.opposite_macs ) do
+                    if ( i ~= 1 ) then filter = filter .. " or " end
+                    filter = filter .. "wlan.ta==" .. mac
+                end
                 filter = filter .. " ) ) )"
             end
             --filter = filter .. "and radiotap.length==62"
@@ -186,11 +184,12 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             --print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields"
             --        .. " -e " .. "radiotap.dbm_antsignal" )
             if ( exit_code ~= 0 ) then
-                print ("tshark error: " .. exit_code )
+                print ( "tshark error: " .. exit_code )
             else
                 --print ("tshark:" .. content )
                 for _, line in ipairs ( split ( content, "\n" ) ) do
                     local antsignals = split ( line, "," )
+                    --pprint ( antsignals )
                     if ( antsignals ~= nil and #antsignals > 0
                          and antsignals [1] ~= nil and antsignals [1] ~= "" ) then
                         snrs [ #snrs + 1 ] = tonumber ( antsignals [1] )

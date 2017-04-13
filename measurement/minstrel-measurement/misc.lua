@@ -229,14 +229,16 @@ end
 
 function Misc.execute ( ... )
     local pid, stdin, stdout = lpc.run ( ... )
-    local exit_code = lpc.wait ( pid )
     stdin:close()
-    if ( exit_code == 0 ) then
-        local content = stdout:read ("*a")
-        stdout:close()
-        return content, exit_code
-    else
-        return nil, exit_code
+    if ( pid ~= nil ) then
+        local exit_code = lpc.wait ( pid )
+        if ( exit_code == 0 ) then
+            local content = stdout:read ("*a")
+            stdout:close()
+            return content, exit_code
+        else
+            return nil, exit_code
+        end
     end
 end
 
@@ -279,7 +281,7 @@ function Misc.execute_nonblock ( ms, sz, ... )
     if ( stdout ~= nil ) then
         local tail = Misc.read_nonblock ( stdout, ms, sz )
         if ( tail ~= nil ) then
-            content = content .. tail
+            content = ( content or "" ) .. tail
         end
     end
     if ( stdout ~= nil ) then

@@ -2,6 +2,7 @@
 local net = require ('Net')
 require ('parsers/parsers')
 require ('parsers/argparse_con')
+local pprint = require ('pprint')
 
 -- globals
 ctrl = nil -- var in config file
@@ -16,9 +17,11 @@ Config.find_node = function ( name, nodes )
             return node 
         else
             local addr, rest = parse_ipv4 ( name )
-            local dig, _ = net.lookup ( node.name )
-            if ( dig ~= nil and dig.addr == addr2 ) then
-                return node
+            if ( addr ~= nil ) then
+                local dig, _ = net.lookup ( node.name )
+                if ( dig ~= nil and dig.addr == addr ) then
+                    return node
+                end
             end
         end 
     end

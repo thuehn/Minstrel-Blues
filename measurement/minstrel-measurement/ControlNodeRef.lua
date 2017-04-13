@@ -17,6 +17,7 @@ ControlNodeRef = { name = nil
                  , log_file = nil
                  , log_fname = nil
                  , stats = nil   -- maps node name to statistics ( measurement )
+                 , distance = nil --approx.distance between node just for the log file
                  }
 
 function ControlNodeRef:new (o)
@@ -26,7 +27,7 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname )
+function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname, distance )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
@@ -36,6 +37,7 @@ function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname )
                                  , log_fname = log_fname
                                  , log_file = io.open ( output_dir .. "/" ..log_fname, "wa" )
                                  , stats = {}
+                                 , distance = distance
                                  }
     return o
 end
@@ -136,7 +138,7 @@ function ControlNodeRef:list_stations ( ap_name )
 end
 
 function ControlNodeRef:start_nodes ( log_addr, log_port )
-    return self.rpc.start_nodes ( log_addr, log_port )
+    return self.rpc.start_nodes ( log_addr, log_port, self.distance )
 end
 
 function ControlNodeRef:connect_nodes ( port )

@@ -20,7 +20,7 @@
 -- derive MeshRef from AcceesspointRef
 -- support stations without running lua measurement node
 
---local pprint = require ('pprint')
+local pprint = require ('pprint')
 
 local argparse = require ('argparse')
 
@@ -52,6 +52,10 @@ parser:option ("--net_if", "Used network interface", "eth0" )
 
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "measurement.log" )
+
+-- Specify the distance between routers and station for the measurement log file. You can use keywords
+-- like near and far or numbers with and without units like 1m or 10m
+parser:option ("-d --distance", "approximate distance between nodes" )
 
 parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
 
@@ -90,6 +94,11 @@ if ( args.enable_fixed == false
     print ("")
 end
 
+if ( args.distance == nil ) then
+    Config.show_config_error ( parser, "distance", true )
+    print ("")
+end
+
 local has_config = Config.load_config ( args.config ) 
 
 local ap_setups
@@ -101,7 +110,8 @@ if ( isDir ( output_dir ) == false ) then
     local status, err = lfs.mkdir ( output_dir )
 else
     for _, name in ipairs ( ( scandir ( output_dir ) ) ) do
-        if ( name ~= "." and name ~= ".."  and isDir ( args.output .. "/" .. name ) ) then
+        if ( name ~= "." and name ~= ".."  and isDir ( args.output .. "/" .. name )
+             and Config.find_node ( name, nodes ) ~= nil ) then
             local measurement = Measurement.parse ( name, args.output )
             print ( measurement:__tostring () )
             for key, pcap in pairs ( measurement.tcpdump_pcaps ) do
@@ -287,6 +297,7 @@ ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
                                  , ctrl_config ['ctrl_if']
                                  , output_dir
                                  , args.log_file
+                                 , args.distance
                                  )
 
 -- stop when nameserver is not reachable / not working

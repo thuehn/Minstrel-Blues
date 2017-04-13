@@ -41,7 +41,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
             --pprint ( snrs )
         end
         print ( )
-        print ( "#exp: " .. table_size ( all_snrs ) )
+        print ( "#values: " .. table_size ( all_snrs ) )
 
         --print ( "Plot SNR" )
         local renderer = SNRRendererPerRate:create ( all_snrs )
