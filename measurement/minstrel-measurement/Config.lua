@@ -73,7 +73,7 @@ Config.create_configs = function ( cmd_lines )
     local configs = {}
     for i, cmd_line in ipairs ( cmd_lines ) do
         local parts = split ( cmd_line, "," )
-        configs [i] = Config.create_config ( parts [ 1 ], parts [ 3 ], parts [ 2 ] )
+        configs [i] = Config.create_config ( parts [ 1 ], parts [ 3 ], ( parts [ 2 ] or "radio0" ) )
     end
     return configs
 end
