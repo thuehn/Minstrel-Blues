@@ -12,6 +12,8 @@ require ('parsers/proc_version')
 require ('parsers/free')
 local json = require ('cjson')
 
+require ('LogNodeRef')
+
 NodeBase = { name = nil
            , ctrl = nil
            , port = nil
@@ -197,50 +199,29 @@ end
 -- -------------------------
 
 function NodeBase:connect_logger ()
-    return net.connect ( self.log_addr, self.log_port, 10, "Logger", 
-                         function ( msg ) print ( msg ) end )
+    return LogNodeRef:create ( self.log_addr, self.log_port ):connect ()
 end
 
 function NodeBase:disconnect_logger ( logger )
-    net.disconnect ( logger )
+    LogNodeRef:create ( self.log_addr, self.log_port ):disconnect ( logger )
 end
 
 function NodeBase:set_cut ()
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.set_cut ()    
-    end
-    self:disconnect_logger ( logger )
+    LogNodeRef:create ( self.log_addr, self.log_port ):set_cut ()
 end
 
-function NodeBase:send_error( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_error( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
+function NodeBase:send_error ( msg )
+    LogNodeRef:create ( self.log_addr, self.log_port ):send_error ( self.name, msg )
 end
 
-function NodeBase:send_info( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_info( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
+function NodeBase:send_info ( msg )
+    LogNodeRef:create ( self.log_addr, self.log_port ):send_info ( self.name, msg )
 end
 
-function NodeBase:send_warning( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_warning( self.name, msg )    
-    end
-    self:disconnect_logger ( logger )
+function NodeBase:send_warning ( msg )
+    LogNodeRef:create ( self.log_addr, self.log_port ):send_warning ( self.name, msg )
 end
 
-function NodeBase:send_debug( msg )
-    local logger = self:connect_logger()
-    if (logger ~= nil) then
-        logger.send_debug( self.name, msg )
-    end
-    self:disconnect_logger ( logger )
+function NodeBase:send_debug ( msg )
+    LogNodeRef:create ( self.log_addr, self.log_port ):send_debug ( self.name, msg )
 end
