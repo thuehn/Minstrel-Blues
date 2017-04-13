@@ -149,18 +149,6 @@ function Node:get_iw_info ( phy )
     return nil
 end
 
-function Node:get_iw_link ( phy )
-    if ( phy == nil ) then return nil end
-    local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    self:send_info ( "send iw link for " .. ( iface or "none" ) )
-    local str, exit_code = misc.execute ( "iw", iface, "link" )
-    if ( str ~= nil and exit_code == 0) then
-        return str
-    end
-    return nil
-end
-
 -- AP only
 -- wireless.default_radio0.ssid='LEDE'
 function Node:get_ssid ( phy )
@@ -356,17 +344,22 @@ function Node:link_to_ssid ( ssid, phy )
     uci_link_to_ssid ( ssid, phy )
 end
 
-function Node:get_iw_link ( phy )
+function Node:get_iw_link ( phy, parse )
     if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
     local iface = dev.iface
     self:send_debug ("iw dev " .. iface .. " link")
+    self:send_info ( "send iw link for " .. ( iface or "none" ) )
     local content, exit_code = misc.execute ( "iw", "dev", iface, "link" )
     --self:send_debug (" " .. ( content or "none" ) )
     --self:send_debug ( "iw link exit code : " .. tostring (exit_code) )
     if ( exit_code > 0 or content == nil) then return nil end
-    local iwlink = parse_iwlink ( content )
-    return iwlink
+    if ( parse ~= nil and parse == true ) then
+        local iwlink = parse_iwlink ( content )
+        return iwlink
+    else
+        return content
+    end
 end
 
 -- returns the ssid when iface is connected
@@ -374,7 +367,7 @@ end
 function Node:get_linked_ssid ( phy )
     if ( phy == nil ) then return nil end
     self:send_info ( "Get linked ssid for device " .. phy )
-    local iwlink = self:get_iw_link ( phy )
+    local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or iwlink.ssid == nil ) then
         self:send_debug ("iw link has no result")
         return nil
@@ -388,7 +381,7 @@ end
 function Node:get_linked_iface ( phy )
     if ( phy == nil ) then return nil end
     self:send_info ( "Get linked interface for device " .. phy )
-    local iwlink = self:get_iw_link ( phy )
+    local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or iwlink.iface == nil ) then return nil end
     self:send_info ( " linked iface: " .. iwlink.iface )
     return iwlink.iface
@@ -399,7 +392,7 @@ end
 function Node:get_linked_mac ( phy )
     if ( phy == nil ) then return nil end
     self:send_info ( "Get linked mac for device " .. phy )
-    local iwlink = self:get_iw_link ( phy )
+    local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or iwlink.mac == nil) then return nil end
     self:send_info ( " linked mac: " .. iwlink.mac )
     return iwlink.mac
@@ -410,7 +403,7 @@ end
 function Node:get_linked_signal ( phy )
     if ( phy == nil ) then return nil end
     self:send_info ( "Get linked signal for device " .. phy )
-    local iwlink = self:get_iw_link ( phy )
+    local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or iwlink.signal == nil ) then return nil end
     self:send_info ( " linked signal: " .. iwlink.signal )
     return iwlink.signal
@@ -421,7 +414,7 @@ end
 function Node:get_linked_rate_idx ( phy )
     if ( phy == nil ) then return nil end
     self:send_info ( "Get linked rate index for device " .. phy )
-    local iwlink = self:get_iw_link ( phy )
+    local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or ( iwlink.rate_idx == nil and iwlink.rate == nil ) ) then return nil end
     self:send_info ( " linked rate index: " .. ( iwlink.rate_idx or iwlink.rate ) )
     return ( iwlink.rate_idx or iwlink.rate )

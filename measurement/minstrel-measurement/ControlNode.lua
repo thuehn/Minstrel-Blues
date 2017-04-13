@@ -593,7 +593,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
                 local iw_link = sta_ref.rpc.get_iw_link ( sta_ref.wifi_cur )
                 local msg = "iw link: "
                 -- fixme: should return string, not table value
-                self:send_info ( msg .. table_tostring ( iw_link ), 80 - string.len ( msg ) )
+                self:send_info ( msg .. ( iw_link or "none" ), 80 - string.len ( msg ) )
                 
                 local rate_name = sta_ref.rpc.get_linked_rate_idx ( sta_ref.wifi_cur )
                 if ( rate_name ~= nil ) then
