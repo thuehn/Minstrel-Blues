@@ -16,8 +16,6 @@ ControlNodeRef = { name = nil
                  , ctrl = nil
                  , rpc = nil
                  , output_dir = nil
-                 , log_pid = nil
-                 , log_port = nil
                  , stats = nil   -- maps node name to statistics ( measurement )
                  , distance = nil --approx.distance between node just for the log file
                  , net = nil
@@ -38,16 +36,14 @@ function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname, log_port,
     local o = ControlNodeRef:new { name = name
                                  , ctrl_net_ref = ctrl_net_ref
                                  , output_dir = output_dir
-                                 , log_port = log_port
                                  , stats = {}
                                  , distance = distance
                                  , net = net
                                  }
+
     if ( log_port ~= nil and log_fname ~= nil ) then
-        local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", output_dir .. "/" .. log_fname
-                                     , "--port", log_port )
-        o.log_pid = pid
         o.log_ref = LogNodeRef:create ( net.addr, log_port )
+        o.log_ref:start ( output_dir .. "/" .. log_fname )
         o:send_info ( "wait until logger is running" )
     end
 
@@ -266,11 +262,11 @@ function ControlNodeRef:start ( ctrl_port )
     cmd [6] = self.ctrl_net_ref.iface
     cmd [7] = "--output"
     cmd [8] = self.output_dir
-    if ( self.log_port ~= nil and self.net.addr ~= nil ) then
+    if ( self.log_ref ~= nil and self.net.addr ~= nil ) then
         cmd [9] = "--log_ip"
         cmd [10] = self.net.addr
         cmd [11] = "--log_port"
-        cmd [12] = self.log_port 
+        cmd [12] = self.log_ref.port 
     end
 
     print ( cmd )
@@ -285,9 +281,9 @@ function ControlNodeRef:start_remote ( ctrl_port )
                  .. " --ctrl_if " .. self.ctrl_net_ref.iface
                  .. " --output " .. self.output_dir
 
-    if ( self.log_port ~= nil and self.net.addr ~= nil ) then
+    if ( self.log_ref ~= nil and self.net.addr ~= nil ) then
         remote_cmd = remote_cmd .. " --log_ip " .. self.net.addr
-                       .. " --log_port " .. self.log_port
+                       .. " --log_port " .. self.log_ref.port
     end
     print ( remote_cmd )
     -- fixme:  "-i", node_ref.rsa_key, 
@@ -310,7 +306,7 @@ end
 function ControlNodeRef:stop_control ()
     self.rpc.stop()
     if ( self.log_ref ~= nil ) then
-        self.log_ref:stop ( self.log_pid )
+        self.log_ref:stop ()
     end
 end
 
@@ -492,21 +488,31 @@ end
 -- -------------------------
 
 function ControlNodeRef:set_cut ()
-    self.log_ref:set_cut ()
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:set_cut ()
+    end
 end
 
 function ControlNodeRef:send_error ( msg )
-    self.log_ref:send_error ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_error ( self.name, msg )
+    end
 end
 
 function ControlNodeRef:send_info ( msg )
-    self.log_ref:send_info ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_info ( self.name, msg )
+    end
 end
 
 function ControlNodeRef:send_warning ( msg )
-    self.log_ref:send_warning ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_warning ( self.name, msg )
+    end
 end
 
 function ControlNodeRef:send_debug ( msg )
-    self.log_ref:send_debug ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_debug ( self.name, msg )
+    end
 end

@@ -197,7 +197,7 @@ end
 -- -------------------------
 -- Logging
 -- -------------------------
-
+--fixme: hold log ref in self
 function NodeBase:set_cut ()
     LogNodeRef:create ( self.log_addr, self.log_port ):set_cut ()
 end
