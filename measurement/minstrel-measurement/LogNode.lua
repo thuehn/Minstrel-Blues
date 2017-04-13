@@ -18,8 +18,6 @@
 -- the connections sequentially (connection refused)
 
 local net = require ('Net')
-local ps = require ('posix.signal') --kill
-local lpc = require 'lpc'
 
 -- prototype table
 LogNode = { name = nil
@@ -69,9 +67,11 @@ end
 -- param from: name of the sender
 -- param msg: the message string to pass to logger
 function LogNode:send ( msgtype, from, msg )
-    local prefix = os.time () .. " " .. msgtype .. " : " .. from .. " : "
+    local prefix = os.time () .. " "
+                    .. ( msgtype or "unset") .. " : "
+                    .. ( from or "unset" ) .. " : "
     local lines = ""
-    if ( string.len ( msg ) >= 80 ) then
+    if ( msg ~= nil and string.len ( msg ) >= 80 ) then
         local msg_noindent
         if ( string.find ( msg, "\n" ) == nil ) then
             msg_noindent = ( msg ):gsub ( ("."):rep ( 80 ),"%1\n" ):sub ( 1, -1 )
@@ -92,15 +92,15 @@ function LogNode:send ( msgtype, from, msg )
     if ( self.use_stdout == true ) then
         print ( ret )
     end
-    if not self.logfile then 
+    if ( self.logfile == nil ) then
         print ("error: logfile closed"); 
         return nil 
     end
     self.logfile:write ( ret .. '\n')
-    self.logfile:flush()
+    self.logfile:flush ()
 end
 
-function LogNode:set_cut()
+function LogNode:set_cut ()
     local cut = ""
     for i=1, 80 do
         cut = cut .. '~'
@@ -113,44 +113,37 @@ function LogNode:set_cut()
         return nil 
     end
     self.logfile:write ( cut .. '\n')
-    self.logfile:flush()
+    self.logfile:flush ()
 end
 
 -- shortcut function for passing an info tagged message
-function LogNode:send_info( from, msg )
+function LogNode:send_info ( from, msg )
     self:send( "INFO", from, msg )
 end
 
 -- sshortcut function for passing a waring tagged message
-function LogNode:send_warning( from, msg )
+function LogNode:send_warning ( from, msg )
     self:send( "WARNING", from, msg )
 end
 
 -- shortcut function for passing an error tagged message
-function LogNode:send_error( from, msg )
+function LogNode:send_error ( from, msg )
     self:send( "ERROR", from, msg )
 end
 
-function LogNode:send_debug( from, msg )
+function LogNode:send_debug ( from, msg )
     self:send( "DEBUG", from, msg )
 end
 
-function LogNode:run( port )
-    self:set_cut()
+function LogNode:run ( port )
+    self:set_cut ()
     net.run ( port, self.name,
               function ( msg ) self:send_info ( self.name, msg ) end
             )
 end
 
-function LogNode:stop ( pid )
-    if ( pid == nil ) then
-        self:send_error ( "logger not stopped: pid is not set" )
-    else
-        self:send_info ( "stop logger with pid " .. pid )
-        ps.kill ( pid )
-        lpc.wait ( pid )
-        if ( self.logfile ~= nil ) then
-            self.logfile:close()
-        end
+function LogNode:stop ()
+    if ( self.logfile ~= nil ) then
+        self.logfile:close()
     end
 end

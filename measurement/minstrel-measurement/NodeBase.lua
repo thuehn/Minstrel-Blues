@@ -198,14 +198,6 @@ end
 -- Logging
 -- -------------------------
 
-function NodeBase:connect_logger ()
-    return LogNodeRef:create ( self.log_addr, self.log_port ):connect ()
-end
-
-function NodeBase:disconnect_logger ( logger )
-    LogNodeRef:create ( self.log_addr, self.log_port ):disconnect ( logger )
-end
-
 function NodeBase:set_cut ()
     LogNodeRef:create ( self.log_addr, self.log_port ):set_cut ()
 end

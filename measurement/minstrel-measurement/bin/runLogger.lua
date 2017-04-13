@@ -20,15 +20,15 @@ parser:flag ("-a --append", "Open log file in append mode", false )
 
 parser:option ("--log_if", "RPC Interface name", "eth0" )
 
-local args = parser:parse()
-local node = LogNode:create("Logger", args.filename, args.use_stdout, args.append )
-node:send_info ( node.name, node:__tostring())
+local args = parser:parse ()
+local node = LogNode:create ( "Logger", args.filename, args.use_stdout, args.append )
+node:send_info ( node.name, node:__tostring() )
 
 -- shortcut to logger instance to simplify access
-function send_info ( from, msg ) node:send_info ( from, msg) end
+function send_info ( from, msg ) node:send_info ( from, msg ) end
 
 -- shortcut to logger instance to simplify access
-function send_warning ( from, msg ) node:send_warning ( from, msg) end
+function send_warning ( from, msg ) node:send_warning ( from, msg ) end
 
 -- shortcut to logger instance to simplify access
 function send_error ( from, msg) node:send_error ( from, msg ) end

@@ -10,6 +10,7 @@ local ps = require ('posix.signal') --kill
 
 require ('NetIfRef')
 require ('Measurement')
+require ('LogNodeRef')
 
 ControlNodeRef = { name = nil
                  , ctrl = nil
@@ -20,6 +21,7 @@ ControlNodeRef = { name = nil
                  , stats = nil   -- maps node name to statistics ( measurement )
                  , distance = nil --approx.distance between node just for the log file
                  , net = nil
+                 , log_ref = nil
                  }
 
 function ControlNodeRef:new (o)
@@ -45,8 +47,8 @@ function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname, log_port,
         local pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", output_dir .. "/" .. log_fname
                                      , "--port", log_port )
         o.log_pid = pid
-        --FIXME: derived from Node ( add to NodeRef, ControlNodeRef )
-        --o:send_info ( "wait until logger is running" )
+        o.log_ref = LogNodeRef:create ( net.addr, log_port )
+        o:send_info ( "wait until logger is running" )
     end
 
     return o
@@ -307,17 +309,8 @@ end
 
 function ControlNodeRef:stop_control ()
     self.rpc.stop()
-
-    -- fixme: use LogNode:stop
-    if ( self.log_pid == nil ) then
-       -- self:send_error ( "logger not stopped: pid is not set" )
-    else
-       -- self:send_info ( "stop logger with pid " .. pid )
-        ps.kill ( self.log_pid )
-        lpc.wait ( self.log_pid )
---        if ( self.log_file ~= nil ) then
---            self.log_file:close()
---        end
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:stop ( self.log_pid )
     end
 end
 
@@ -492,4 +485,28 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
 
     return ret
 
+end
+
+-- -------------------------
+-- Logging
+-- -------------------------
+
+function ControlNodeRef:set_cut ()
+    self.log_ref:set_cut ()
+end
+
+function ControlNodeRef:send_error ( msg )
+    self.log_ref:send_error ( self.name, msg )
+end
+
+function ControlNodeRef:send_info ( msg )
+    self.log_ref:send_info ( self.name, msg )
+end
+
+function ControlNodeRef:send_warning ( msg )
+    self.log_ref:send_warning ( self.name, msg )
+end
+
+function ControlNodeRef:send_debug ( msg )
+    self.log_ref:send_debug ( self.name, msg )
 end
