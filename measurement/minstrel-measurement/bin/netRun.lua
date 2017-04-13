@@ -116,13 +116,19 @@ else
             print ( measurement:__tostring () )
             for key, pcap in pairs ( measurement.tcpdump_pcaps ) do
                 if ( pcap == nil or pcap == "" ) then
-                    if ( keys == nil ) then keys = {} end
+                    if ( keys == nil ) then
+                        keys = {}
+                        keys [1] = {}
+                    end
                     print ( "resume key: " .. key )
-                    keys [ #keys + 1 ] = key
+                    if ( Misc.index_of ( key, keys [1] ) == nil ) then
+                        keys [1] [ #keys [1] + 1 ] = key
+                    end
                 end
             end
         end
     end
+    pprint ( keys )
 
     if ( keys == nil ) then
         for _, fname in ipairs ( ( scandir ( output_dir ) ) ) do
