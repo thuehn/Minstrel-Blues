@@ -29,8 +29,6 @@
 -- experiment direction (AP->STA, STA->AP)
 -- move config part to control node
 -- analyse throughput
--- allow logging for ControlNodeRef, NodeRef
--- start logger as local instance
 -- ControlNodeRef should fetch traces from nodes directly ( copy once )
 
 local pprint = require ('pprint')

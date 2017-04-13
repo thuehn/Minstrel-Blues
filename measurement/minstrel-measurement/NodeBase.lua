@@ -20,12 +20,14 @@ NodeBase = { name = nil
            , log_port = nil
            , log_addr = nil
            , proc_version = nil
+           , log_ref = nil
            }
 
 function NodeBase:new ( o )
     local o = o or {}
-    setmetatable(o, self)
+    setmetatable (o, self)
     self.__index = self
+    o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port )
     return o
 end
 
@@ -197,23 +199,23 @@ end
 -- -------------------------
 -- Logging
 -- -------------------------
---fixme: hold log ref in self
+
 function NodeBase:set_cut ()
-    LogNodeRef:create ( self.log_addr, self.log_port ):set_cut ()
+    self.log_ref:set_cut ()
 end
 
 function NodeBase:send_error ( msg )
-    LogNodeRef:create ( self.log_addr, self.log_port ):send_error ( self.name, msg )
+    self.log_ref:send_error ( self.name, msg )
 end
 
 function NodeBase:send_info ( msg )
-    LogNodeRef:create ( self.log_addr, self.log_port ):send_info ( self.name, msg )
+    self.log_ref:send_info ( self.name, msg )
 end
 
 function NodeBase:send_warning ( msg )
-    LogNodeRef:create ( self.log_addr, self.log_port ):send_warning ( self.name, msg )
+    self.log_ref:send_warning ( self.name, msg )
 end
 
 function NodeBase:send_debug ( msg )
-    LogNodeRef:create ( self.log_addr, self.log_port ):send_debug ( self.name, msg )
+    self.log_ref:send_debug ( self.name, msg )
 end

@@ -5,7 +5,7 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, ctrl_if, rsa_key, output_dir, control_node )
+function AccessPointRef:create ( name, ctrl_if, rsa_key, output_dir, log_addr, log_port )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
@@ -15,7 +15,8 @@ function AccessPointRef:create ( name, ctrl_if, rsa_key, output_dir, control_nod
                                  , output_dir = output_dir
                                  , refs = {}
                                  , stations = {}
-                                 , control_node = control_node
+                                 , log_addr = log_addr
+                                 , log_port = log_port
                                  }
     return o
 end
@@ -76,12 +77,12 @@ end
 function AccessPointRef:wait_station ( runs )
     local retrys = runs
     repeat
-        self.control_node:send_info ( "wait for stations becomes visible" )
+        self.log_ref:send_info ( "wait for stations becomes visible" )
         local wifi_stations_cur = self.rpc.visible_stations ( self.wifi_cur )
-        self.control_node:send_debug ( "stations visible: " .. table_tostring ( wifi_stations_cur ) )
+        self.log_ref:send_debug ( "stations visible: " .. table_tostring ( wifi_stations_cur ) )
         local miss = false
         for _, str in ipairs ( self.stations ) do
-            self.control_node:send_debug ( " check visibility of " .. str )
+            self.log_ref:send_debug ( " check visibility of " .. str )
             if ( table.contains ( wifi_stations_cur, str ) == false ) then
                 miss = true
                 break

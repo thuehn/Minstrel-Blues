@@ -3,6 +3,7 @@ local posix = require ('posix') -- sleep
 
 require ('NetIfRef')
 require ('Measurement')
+require ('LogNodeRef')
 
 NodeRef = { name = nil
           , ctrl_net_ref = nil
@@ -14,7 +15,9 @@ NodeRef = { name = nil
           , output_dir = nil
           , is_passive = nil
           , passive_mac = nil
-          , control_node = nil
+          , log_addr = nil
+          , log_port = nil
+          , log_ref = nil
           }
 
 function NodeRef:new (o)
@@ -25,6 +28,7 @@ function NodeRef:new (o)
     o.refs = {}
     setmetatable (o, self)
     self.__index = self
+    o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port )
     return o
 end
 
@@ -210,5 +214,39 @@ end
 function NodeRef:get_free_mem ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         return self.rpc.get_free_mem()
+    end
+end
+
+-- -------------------------
+-- Logging
+-- -------------------------
+
+function NodeRef:set_cut ()
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:set_cut ()
+    end
+end
+
+function NodeRef:send_error ( msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_error ( self.name, msg )
+    end
+end
+
+function NodeRef:send_info ( msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_info ( self.name, msg )
+    end
+end
+
+function NodeRef:send_warning ( msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_warning ( self.name, msg )
+    end
+end
+
+function NodeRef:send_debug ( msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_debug ( self.name, msg )
     end
 end
