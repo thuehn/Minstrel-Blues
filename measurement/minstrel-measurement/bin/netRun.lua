@@ -9,16 +9,29 @@
 -- io.tmpfile () for writing pcaps?
 -- convert signal / rssi : http://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
 --  rssi is an estimated value and is detemined periodically (temperature changes ambient/background noise in the chip)
--- Rserve / lua Rclient
--- plot (line) signal by powers with fixed rate in one diagram
---  - rate, adjusted txpower, signal
---  -column rate for legend
 -- MCS has is own ordering: modulation & coding x channel Mhz x short/long gard interval (SGI/GI)
--- rc_stats: mode guard # -> idx
 -- plugin support with loadfile
--- collectd iw info (STA, AP) and iw link (STA) trace
 -- derive MeshRef from AcceesspointRef
--- support stations without running lua measurement node
+-- abort experiment when not connected ( and no rates are available )
+-- run multiple experiments simultaniuosly ( by using more nodes with different ports )
+-- check authorized keys
+-- initialize NetIF for disabled phys ( no netdev:wlan0/1 in debugfs )
+-- abort when AP or STA not in config
+-- add UDP iperf for x MB instead of x seconds with y Mbit/s data creation rate
+-- plot ath and non-ath networks
+-- regmon: luci config allows non-existant debugfs entries
+-- reachability of stations for all access points
+--   - allow empty command line arg --sta ( just --ap needed )
+-- cooperative channel selection
+-- deamon working dir should be / and stdout,in,err /dev/null
+-- filter by used UDP port
+-- station wifi addr is not resolvable when not connected (detect and abort)
+-- experiment direction (AP->STA, STA->AP)
+-- move config part to control node
+-- analyse throughput
+-- allow logging for ControlNodeRef
+-- start logger as local instance
+-- ControlNodeRef should fetch traces from nodes directly ( copy once )
 
 local pprint = require ('pprint')
 
