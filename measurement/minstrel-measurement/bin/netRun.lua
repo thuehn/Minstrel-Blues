@@ -30,6 +30,7 @@
 -- move config part to control node
 -- analyse throughput
 -- ControlNodeRef should fetch traces from nodes directly ( copy once )
+-- catch address in use
 
 local pprint = require ('pprint')
 

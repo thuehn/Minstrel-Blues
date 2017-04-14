@@ -147,7 +147,7 @@ end
 -- collect traces
 function NodeRef:fetch_measurement( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        self.stats:fetch ( self.wifi_cur, key )
+      self.stats:fetch ( self.wifi_cur, key )
     end
 end
 

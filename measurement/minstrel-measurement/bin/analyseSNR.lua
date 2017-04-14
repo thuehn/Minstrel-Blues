@@ -8,9 +8,9 @@ require ('Measurement')
 require ('FXsnrAnalyser')
 require ('SNRRendererPerRate')
 
-local parser = argparse("analyseSNR", "Analyse and render SNR Diagram for a measurement")
+local parser = argparse ("analyseSNR", "Analyse and render SNR Diagram for a measurement")
 
-parser:argument("input", "measurement / analyse data directory","/tmp")
+parser:argument ("input", "measurement / analyse data directory", "/tmp")
 parser:flag ("-t --tshark", "use tshark as pcap analyser", false )
 
 local args = parser:parse()
@@ -43,10 +43,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
         print ( )
         print ( "#values: " .. table_size ( all_snrs ) )
 
-        --print ( "Plot SNR" )
         local renderer = SNRRendererPerRate:create ( all_snrs )
-
-        local dirname = args.input .. "/" .. name
-        renderer:run ( dirname )
+        renderer:run ( args.input .. "/" .. name )
     end
 end

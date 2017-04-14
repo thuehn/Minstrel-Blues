@@ -35,7 +35,6 @@ function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir )
                                 , node_refs = {}   -- list of all nodes
                                 , pids = {}    -- maps node name to process id of lua node
                                 , exp = nil
-                                , stats = {}
                                 , keys = {}
                                 } )
 
@@ -462,29 +461,26 @@ function ControlNode:get_keys ()
 end
 
 function ControlNode:get_stats ()
-    local out = self.stats
-    self.stats = {}
-    return out
-end
+    self:send_info ( "*** Copy stats from nodes. ***" )
+    local out = {}
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        out [ ap_ref.name ] = {}
+        out [ ap_ref.name ] [ 'regmon_stats' ] = copy_map ( ap_ref.stats.regmon_stats )
+        out [ ap_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( ap_ref.stats.tcpdump_pcaps )
+        out [ ap_ref.name ] [ 'cpusage_stats' ] = copy_map ( ap_ref.stats.cpusage_stats )
+        out [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
 
-function ControlNode:copy_stats ( ap_ref )
-
-    self.stats [ ap_ref.name ] = {}
-    self.stats [ ap_ref.name ] [ 'regmon_stats' ] = copy_map ( ap_ref.stats.regmon_stats )
-    self.stats [ ap_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( ap_ref.stats.tcpdump_pcaps )
-    self.stats [ ap_ref.name ] [ 'cpusage_stats' ] = copy_map ( ap_ref.stats.cpusage_stats )
-    self.stats [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
-
-    for _, sta_ref in ipairs ( ap_ref.refs ) do
-        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            self.stats [ sta_ref.name ] = {}
-            self.stats [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
-            self.stats [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
-            self.stats [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
-            self.stats [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
+        for _, sta_ref in ipairs ( ap_ref.refs ) do
+            if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+                out [ sta_ref.name ] = {}
+                out [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
+                out [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
+                out [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
+                out [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
+            end
         end
     end
-
+    return out
 end
 
 -- runs experiment 'exp' for all nodes 'ap_refs'
@@ -608,11 +604,6 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ("*** Unsettle measurement ***" )
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:unsettle_measurement ( ap_ref, key )
-    end
-
-    self:send_info ( "*** Copy stats from nodes. ***" )
-    for _, ap_ref in ipairs ( self.ap_refs ) do
-        self:copy_stats ( ap_ref )
     end
 
     return true
