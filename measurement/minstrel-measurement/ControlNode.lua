@@ -460,26 +460,14 @@ function ControlNode:get_keys ()
     return self.keys
 end
 
-function ControlNode:get_stats ()
-    self:send_info ( "*** Copy stats from nodes. ***" )
+function ControlNode:get_stats ( ref_name )
+    self:send_info ( "*** Copy stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local node_ref = self:find_node_ref ( ref_name )
     local out = {}
-    for _, ap_ref in ipairs ( self.ap_refs ) do
-        out [ ap_ref.name ] = {}
-        out [ ap_ref.name ] [ 'regmon_stats' ] = copy_map ( ap_ref.stats.regmon_stats )
-        out [ ap_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( ap_ref.stats.tcpdump_pcaps )
-        out [ ap_ref.name ] [ 'cpusage_stats' ] = copy_map ( ap_ref.stats.cpusage_stats )
-        out [ ap_ref.name ] [ 'rc_stats' ] = copy_map ( ap_ref.stats.rc_stats )
-
-        for _, sta_ref in ipairs ( ap_ref.refs ) do
-            if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-                out [ sta_ref.name ] = {}
-                out [ sta_ref.name ] [ 'regmon_stats' ] = copy_map ( sta_ref.stats.regmon_stats )
-                out [ sta_ref.name ] [ 'tcpdump_pcaps' ] = copy_map ( sta_ref.stats.tcpdump_pcaps )
-                out [ sta_ref.name ] [ 'cpusage_stats' ] = copy_map ( sta_ref.stats.cpusage_stats )
-                out [ sta_ref.name ] [ 'rc_stats' ] = copy_map ( sta_ref.stats.rc_stats )
-            end
-        end
-    end
+    out [ 'regmon_stats' ] = copy_map ( node_ref.stats.regmon_stats )
+    out [ 'tcpdump_pcaps' ] = copy_map ( node_ref.stats.tcpdump_pcaps )
+    out [ 'cpusage_stats' ] = copy_map ( node_ref.stats.cpusage_stats )
+    out [ 'rc_stats' ] = copy_map ( node_ref.stats.rc_stats )
     return out
 end
 

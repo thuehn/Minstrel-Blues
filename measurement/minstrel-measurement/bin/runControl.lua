@@ -14,7 +14,7 @@ parser:option ("--log_file", "Logging file name", "minstrelm.log" )
 parser:option ("-L --log_port", "Logging port", "12347" )
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
 
-parser:option ("-O --output", "measurement / analyse data directory","/tmp")
+parser:option ("-O --output", "measurement / analyse data directory", "/tmp")
 
 local args = parser:parse ()
 

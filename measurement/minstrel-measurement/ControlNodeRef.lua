@@ -445,9 +445,11 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
 
         print ("* Transfer Measurement Result *")
 
-        local stats = self.rpc.get_stats ()
+        local node_names = self:list_nodes ()
+        for _, ref_name in ipairs ( node_names ) do
+            
+            local stats = self.rpc.get_stats ( ref_name )
 
-        for ref_name, stats in pairs ( stats ) do
             if ( self.stats [ ref_name ] == nil ) then
                 local mac = self:get_mac ( ref_name )
                 local opposite_macs = self:get_opposite_macs ( ref_name )
@@ -476,6 +478,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
                 self.stats [ ref_name ] = nil
             end
         end
+
         counter = counter + 1
     end
 
