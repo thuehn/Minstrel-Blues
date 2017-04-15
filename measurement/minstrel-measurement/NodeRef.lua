@@ -1,5 +1,6 @@
 
 local posix = require ('posix') -- sleep
+local net = require ('Net')
 
 require ('NetIfRef')
 require ('Measurement')
@@ -30,6 +31,24 @@ function NodeRef:new (o)
     self.__index = self
     o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port )
     return o
+end
+
+function NodeRef:connect ( ctrl_port, msg_fun )
+    if ( self.is_passive == nil or self.is_passive == false ) then
+        local slave = net.connect ( self.ctrl_net_ref.addr, ctrl_port, 10, self.name, msg_fun )
+        if ( slave == nil ) then
+            return false
+        else
+            msg_fun ( "Connected to " .. self.name )
+            self:init ( slave )
+        end
+    end
+end
+
+function NodeRef:disconnect ()
+    if ( self.is_passive == nil or self.is_passive == false ) then
+        net.disconnect ( self.rpc )
+    end
 end
 
 -- pre: connected to node
@@ -205,9 +224,9 @@ function NodeRef:set_date ( year, month, day, hour, minute, second )
     end
 end
 
-function NodeRef:check_bridge ( iface )
+function NodeRef:check_bridge ( phy )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        return self.rpc.check_bridge ( iface )
+        return self.rpc.check_bridge ( phy )
     end
 end
 

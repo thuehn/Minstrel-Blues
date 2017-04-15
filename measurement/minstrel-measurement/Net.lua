@@ -5,6 +5,7 @@ require ('parsers/dig')
 require ('parsers/brctl')
 require ('lfs')
 local misc = require ('misc')
+require ('rpc')
 
 Net = {}
 
@@ -119,7 +120,9 @@ Net.connect = function ( addr, port, runs, name, log_f )
     repeat
         status, slave, err = pcall ( connect_rpc )
         retrys = retrys - 1
-        if ( status == false ) then posix.sleep (1) end
+        if ( status == false ) then
+            posix.sleep (1)
+        end
     until status == true or retrys == 0
 
     if ( status == false ) then

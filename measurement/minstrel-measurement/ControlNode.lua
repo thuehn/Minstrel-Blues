@@ -268,7 +268,7 @@ function ControlNode:check_bridges ()
     local no_bridges = true
     for _, node_ref in ipairs ( self.node_refs ) do
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
-            local bridge_name = node_ref:check_bridge ( node_ref.ctrl_net_ref.iface )
+            local bridge_name = node_ref:check_bridge ( node_ref.ctrl_net_ref.phy )
             if ( bridge_name == nil ) then
                 self:send_info ( node_ref.name .. " has no bridged setup" )
             end
@@ -360,16 +360,7 @@ end
 function ControlNode:connect_nodes ( ctrl_port )
     
     for _, node_ref in ipairs ( self.node_refs ) do
-        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
-            local slave = net.connect ( node_ref.ctrl_net_ref.addr, ctrl_port, 10, node_ref.name,
-                                        function ( msg ) self:send_error ( msg ) end )
-            if ( slave == nil ) then
-                return false
-            else
-                self:send_info ( "Connected to " .. node_ref.name)
-                node_ref:init ( slave )
-            end
-        end
+        node_ref:connect ( ctrl_port, function ( msg ) self:send_error ( msg ) end )
     end
 
     -- query lua pid before closing rpc connection
@@ -385,9 +376,7 @@ end
 
 function ControlNode:disconnect_nodes()
     for _, node_ref in ipairs ( self.node_refs ) do 
-        if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
-            net.disconnect ( node_ref.rpc )
-        end
+        node_ref:disconnect ()
     end
 end
 

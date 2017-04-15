@@ -32,8 +32,7 @@ function LogNodeRef:start ( log_file )
 end
 
 function LogNodeRef:connect ()
-    return net.connect ( self.addr, self.port, 10, "Logger", 
-                         function ( msg ) print ( msg ) end )
+    return net.connect ( self.addr, self.port, 10, "Logger", print )
 end
 
 function LogNodeRef:disconnect ( logger )

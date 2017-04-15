@@ -6,7 +6,7 @@
 
 require ('NodeBase')
 
-require ('NetIF')
+require ('WifiIF')
 local misc = require ('misc')
 local uci = require ('Uci')
 local net = require ('Net')
@@ -49,7 +49,7 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
     end
-    local phys, err = net.list_phys()
+    local phys, err = net.list_phys ()
     if ( phys == nil ) then
         o:send_error ( err )
         return o
@@ -58,7 +58,8 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
         ctrl:get_addr ( )
     end
     for i, phy in ipairs ( phys ) do
-        local netif = NetIF:create ()
+        local netif = WifiIF:create ()
+        netif.node = o
         netif.phy = phy
         netif.mon = "mon" .. tostring ( i - 1 )
         netif.iface, msg = net.get_interface_name ( phy )
@@ -89,6 +90,11 @@ function Node:__tostring()
     return out
 end
 
+function Node:get_ctrl_addr ()
+    self:send_info ( "send ipv4 addr of control interface " .. self.ctrl.iface )
+    return self.ctrl.addr 
+end
+
 -- --------------------------
 -- wifi
 -- --------------------------
@@ -109,12 +115,16 @@ function Node:phy_devices ()
 end
 
 function Node:find_wifi_device ( phy )
-    if ( phy == nil ) then return nil end
+    if ( phy == nil ) then
+        self:send_error ( "phy argument is not set" )
+        return nil
+    end
     for _, dev in ipairs ( self.wifis ) do
         if ( dev.phy == phy) then
             return dev
         end
     end
+    self:send_error ( "device not found" )
     return nil
 end
 
@@ -134,106 +144,44 @@ function Node:enable_wifi ( enabled, phy )
         value = 1
     end
     local _, exit_code = uci.set_var ( var, value )
-    return exit_code == 0
+    return ( exit_code == 0 )
 end
 
 function Node:get_iw_info ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    self:send_info ( "send iw info for " .. ( iface or "none" ) )
-    local str, exit_code = misc.execute ( "iw", iface, "info" )
-    if ( str ~= nil and exit_code == 0) then
-        return str
+    if ( dev ~= nil ) then
+        return dev:get_iw_info ()
     end
     return nil
 end
 
--- AP only
--- wireless.default_radio0.ssid='LEDE'
 function Node:get_ssid ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    self:send_info ( "send ssid for " .. ( iface or "none" ) )
-    local str, exit_code = misc.execute ( "iw", iface, "info" )
-    if ( str ~= nil and exit_code == 0) then
-        local iwinfo = parse_iwinfo ( str )
-        if ( iwinfo ~= nil ) then
-            self:send_info ( " ssid " .. ( iwinfo.ssid or "none" ) )
-            return iwinfo.ssid, nil
-        end
+    if ( dev ~= nil ) then
+        return dev:get_ssid ()
     end
-    return nil, nil
+    return nil
 end
 
 function Node:restart_wifi( phy )
-    if ( phy == nil ) then return nil end
-    print ( self.proc_version.system )
-    if ( self.proc_version.system == "LEDE" ) then
-        local wifi, err = misc.execute ( "/sbin/wifi" )
-        self:send_info( "restart wifi: " .. wifi )
-        return true
-    elseif ( self.proc_version.system == "Gentoo" ) then
-        if ( phy == nil ) then
-            self:send_error ( "phy argument is not set" )
-            return false
-        end
-        local dev = self:find_wifi_device ( phy )
-        local iface = dev.iface
-        local init_script = "/etc/init.d/net." .. iface
-        if ( isFile ( init_script ) ) then
-            local wifi, err = misc.execute ( init_script, "restart")
-            self:send_info( "restart wifi (" .. iface .. "): " .. ( wifi or "none" ) )
-            return ( err == 0 )
-        end
-        self:send_debug ( "Cannot restart wifi. No init script found for phy " .. phy )
-        return false
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:restart_wifi ()
     end
     return false
 end
 
--- iw dev mon0 info
--- iw phy phy0 interface add mon0 type monitor
--- ifconfig mon0 up
 function Node:add_monitor ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local mon = dev.mon
-    local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
-    if ( exit_code ~= 0 ) then
-        self:send_info ( "Adding monitor " .. mon .. " to " .. phy)
-        self:send_debug ("iw phy " .. phy .. " interface add " .. mon .. " type monitor" )
-        local _, exit_code = misc.execute ( "iw", "phy", phy, "interface", "add", mon, "type", "monitor" )
-        if ( exit_code ~= 0 ) then
-            self:send_error ( "Add monitor failed with exit code: " .. exit_code )
-            return
-        end
-    else
-        self:send_info ( "Monitor " .. mon .. " not added to " .. phy )
-    end
-    self:send_info ( "enable monitor " .. mon )
-    self:send_debug ( "ifconfig " .. mon .. " up" )
-    local _, exit_code = misc.execute ("ifconfig", mon, "up")
-    if ( exit_code ~= 0 ) then
-        self:send_error ( "add monitor for device " .. phy .. "failed with exit code: " .. exit_code )
+    if ( dev ~= nil ) then
+        dev:add_monitor ()
     end
 end
 
--- iw dev mon0 info
--- iw dev mon0 del
 function Node:remove_monitor ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local mon = dev.mon
-    local _, exit_code = misc.execute ( "iw", "dev", mon, "info" )
-    if ( exit_code == 0 ) then
-        self:send_info ( "Removing monitor " .. mon .. " from " .. phy )
-        self:send_debug ( "iw dev " .. mon .. " del" )
-        local _, exit_code = misc.execute ( "iw", "dev", mon, "del" )
-        if (exit_code ~= 0) then
-            self:send_error ( "Remove monitor failed with exit code. " .. exit_code )
-        end
+    if ( dev ~= nil ) then
+        dev:remove_monitor ()
     end
 end
 
@@ -254,47 +202,25 @@ function Node:list_stations ( phy )
 end
 
 function Node:visible_stations ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
     local list = self:list_stations ( phy )
-    self:send_info ( "Send stations for " .. iface .. ": " .. table_tostring ( list ) )
+    self:send_info ( "Send stations for " .. dev.iface .. ": " .. table_tostring ( list ) )
     return list
 end
 
 function Node:set_ani ( phy, enabled )
-    self:send_info ( "set ani for " .. phy .. " to " .. tostring ( enabled ) )
-    local filename = debugfs .. "/" .. phy .. "/" .. "ath9k" .. "/"  .. "ani"
-    local file = io.open ( filename, "w" )
-    if ( enabled ) then
-        file:write(1)
-    else
-        file:write(0)
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        dev:set_ani ( enabled )
     end
-    file:close()
 end
 
 function Node:get_mac ( phy, bridged )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    if ( bridged ~= nil and bridged == true ) then
-        local bridge = self:check_bridge ( iface )
-        if ( bridge ~= nil ) then
-            iface = bridge
-        end
+    if ( dev ~= nil ) then
+        return dev:get_mac ( bridged )
     end
-    self:send_info ( "send mac for " .. iface )
-    local content = misc.execute ( "ifconfig", iface )
-    local ifconfig = parse_ifconfig ( content )
-    if ( ifconfig == nil or ifconfig.mac == nil ) then return nil end
-    self:send_info (" mac for " .. iface .. ": " .. ifconfig.mac )
-    return ifconfig.mac
-end
-
-function Node:get_ctrl_addr ()
-    self:send_info ( "send ipv4 addr of control interface " .. self.ctrl.iface )
-    return self.ctrl.addr 
+    return nil
 end
 
 function Node:get_iface ( phy )
@@ -345,21 +271,11 @@ function Node:link_to_ssid ( ssid, phy )
 end
 
 function Node:get_iw_link ( phy, parse )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    self:send_debug ("iw dev " .. iface .. " link")
-    self:send_info ( "send iw link for " .. ( iface or "none" ) )
-    local content, exit_code = misc.execute ( "iw", "dev", iface, "link" )
-    --self:send_debug (" " .. ( content or "none" ) )
-    --self:send_debug ( "iw link exit code : " .. tostring (exit_code) )
-    if ( exit_code > 0 or content == nil) then return nil end
-    if ( parse ~= nil and parse == true ) then
-        local iwlink = parse_iwlink ( content )
-        return iwlink
-    else
-        return content
+    if ( dev ~= nil ) then
+        return dev:get_iw_link ( parse )
     end
+    return nil
 end
 
 -- returns the ssid when iface is connected
@@ -420,17 +336,10 @@ function Node:get_linked_rate_idx ( phy )
     return ( iwlink.rate_idx or iwlink.rate )
 end
 
-function Node:check_bridge ( iface )
-    if ( iface == nil ) then return nil end
-    self:send_info ( "Check for bridge on " .. iface )
-    local content = misc.execute ( "brctl", "show" )
-    if ( content ~= nil ) then
-        local brctl = parse_brctl ( content )
-        for _, interface in ipairs ( brctl.interfaces ) do
-            if ( iface == interface ) then
-                return brctl.name
-            end
-        end
+function Node:check_bridge ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:check_bridge ()
     end
     return nil
 end

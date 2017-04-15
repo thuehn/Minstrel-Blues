@@ -201,21 +201,31 @@ end
 -- -------------------------
 
 function NodeBase:set_cut ()
-    self.log_ref:set_cut ()
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:set_cut ()
+    end
 end
 
 function NodeBase:send_error ( msg )
-    self.log_ref:send_error ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_error ( self.name, msg )
+    end
 end
 
 function NodeBase:send_info ( msg )
-    self.log_ref:send_info ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_info ( self.name, msg )
+    end
 end
 
 function NodeBase:send_warning ( msg )
-    self.log_ref:send_warning ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_warning ( self.name, msg )
+    end
 end
 
 function NodeBase:send_debug ( msg )
-    self.log_ref:send_debug ( self.name, msg )
+    if ( self.log_ref ~= nil ) then
+        self.log_ref:send_debug ( self.name, msg )
+    end
 end
