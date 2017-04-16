@@ -18,6 +18,7 @@ function WifiIF:create ( iface, addr, mon, phy, node )
                            , phy = phy
                            , node = node
                            , regmon_proc = nil
+                           , cpusage_proc = nil
                            } )
 
     return o
@@ -246,3 +247,48 @@ function WifiIF:stop_regmon_stats ()
     end
     return exit_code
 end
+
+-- --------------------------
+-- cpusage
+-- --------------------------
+
+local cpusage_bin = "/usr/bin/cpusage_single"
+
+function WifiIF:start_cpusage ()
+    if ( self.cpusage_proc ~= nil ) then
+        self.node:send_error (" Cpuage not started. Already running.")
+        return nil
+    end
+    self.node:send_info ( "start cpusage" )
+    local pid, stdin, stdout = misc.spawn ( cpusage_bin )
+    self.cpusage_proc = { pid = pid, stdin = stdin, stdout = stdout }
+    return pid
+end
+
+function WifiIF:get_cpusage ()
+    if ( self.cpusage_proc == nil ) then 
+        self.node:send_error ( "no cpusage process running" )
+        return nil 
+    end
+    self.node:send_info ( "send cpusage" )
+    local content = self.cpusage_proc.stdout:read ( "*a" )
+    self.cpusage_proc.stdin:close ()
+    self.cpusage_proc.stdout:close ()
+    self.node:send_info ( string.len ( content ) .. " bytes from cpusage" )
+    self.cpusage_proc = nil
+    return content
+end
+
+function WifiIF:stop_cpusage ()
+    if ( self.cpusage_proc == nil ) then 
+        self.node:send_error ( "no cpusage process running" )
+        return nil 
+    end
+    self.node:send_info ( "stop cpusage with pid " .. self.cpusage_proc.pid )
+    local exit_code
+    if ( self.node:kill ( self.cpusage_proc.pid ) ) then
+        exit_code = lpc.wait ( self.cpusage_proc.pid )
+    end
+    return exit_code
+end
+

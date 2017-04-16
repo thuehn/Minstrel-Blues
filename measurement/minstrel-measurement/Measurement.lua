@@ -385,7 +385,7 @@ function Measurement:start ( phy, key )
     -- regmon 
     local regmon_pid = self.rpc_node.start_regmon_stats ( phy )
     -- cpusage
-    local cpusage_pid = self.rpc_node.start_cpusage ()
+    local cpusage_pid = self.rpc_node.start_cpusage ( phy )
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
     local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, tcpdump_fname )
@@ -402,7 +402,7 @@ function Measurement:stop ( phy, key )
     -- regmon 
     local exit_code = self.rpc_node.stop_regmon_stats ( phy )
     -- cpusage
-    local exit_code = self.rpc_node.stop_cpusage ()
+    local exit_code = self.rpc_node.stop_cpusage ( phy )
     -- tcpdump
     local exit_code = self.rpc_node.stop_tcpdump ()
     -- rc_stats
@@ -417,7 +417,7 @@ function Measurement:fetch ( phy, key )
     -- regmon
     self.regmon_stats [ key ] = self.rpc_node.get_regmon_stats ( phy )
     -- cpusage
-    self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ()
+    self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy )
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
     self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( tcpdump_fname )

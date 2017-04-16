@@ -21,7 +21,6 @@ require ('parsers/iw_info')
 
 local lua_bin = "/usr/bin/lua"
 local tcpdump_bin = "/usr/sbin/tcpdump"
-local cpusage_bin = "/usr/bin/cpusage_single"
 local fetch_file_bin = "/usr/bin/fetch_file"
 local iperf_bin = "/usr/bin/iperf"
 
@@ -39,7 +38,6 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
                          , wifis = {}
                          , iperf_port = iperf_port
                          , tcpdump_proc = nil
-                         , cpusage_proc = nil
                          , rc_stats_procs = {}
                          , iperf_client_procs = {}
                          , iperf_server_proc = nil
@@ -620,42 +618,26 @@ end
 -- cpusage
 -- --------------------------
 
-function Node:start_cpusage ()
-    if ( self.cpusage_proc ~= nil ) then
-        self:send_error (" Cpuage not started. Already running.")
-        return nil
+function Node:start_cpusage ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:start_cpusage ()
     end
-    self:send_info ( "start cpusage" )
-    local pid, stdin, stdout = misc.spawn ( cpusage_bin )
-    self.cpusage_proc = { pid = pid, stdin = stdin, stdout = stdout }
-    return pid
+    return nil
 end
 
-function Node:get_cpusage()
-    if ( self.cpusage_proc == nil ) then 
-        self:send_error ( "no cpusage process running" )
-        return nil 
+function Node:get_cpusage ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:get_cpusage ()
     end
-    self:send_info ( "send cpusage" )
-    local content = self.cpusage_proc.stdout:read ("*all")
-    self.cpusage_proc.stdin:close ()
-    self.cpusage_proc.stdout:close ()
-    self:send_info ( string.len ( content ) .. " bytes from cpusage" )
-    self.cpusage_proc = nil
-    return content
 end
 
-function Node:stop_cpusage ()
-    if ( self.cpusage_proc == nil ) then 
-        self:send_error ( "no cpusage process running" )
-        return nil 
+function Node:stop_cpusage ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:stop_cpusage ()
     end
-    self:send_info ( "stop cpusage with pid " .. self.cpusage_proc.pid )
-    local exit_code
-    if ( self:kill ( self.cpusage_proc.pid ) ) then
-        exit_code = lpc.wait ( self.cpusage_proc.pid )
-    end
-    return exit_code
 end
 
 -- --------------------------
