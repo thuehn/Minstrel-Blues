@@ -404,7 +404,7 @@ function Measurement:stop ( phy, key )
     -- cpusage
     local exit_code = self.rpc_node.stop_cpusage ( phy )
     -- tcpdump
-    local exit_code = self.rpc_node.stop_tcpdump ()
+    local exit_code = self.rpc_node.stop_tcpdump ( phy )
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
@@ -420,7 +420,7 @@ function Measurement:fetch ( phy, key )
     self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy )
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
-    self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( tcpdump_fname )
+    self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
     
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then

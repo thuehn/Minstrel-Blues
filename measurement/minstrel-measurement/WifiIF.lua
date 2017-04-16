@@ -20,6 +20,7 @@ function WifiIF:create ( iface, addr, mon, phy, node )
                            , regmon_proc = nil
                            , cpusage_proc = nil
                            , rc_stats_procs = {}
+                           , tcpdump_proc = nil
                            } )
 
     return o
@@ -347,6 +348,63 @@ function WifiIF:stop_rc_stats ( station )
     local exit_code
     if ( self.node:kill ( self.rc_stats_procs [ station ].pid ) ) then
         exit_code = lpc.wait ( self.rc_stats_procs [ station ].pid )
+    end
+    return exit_code
+end
+
+-- --------------------------
+-- tcpdump
+-- --------------------------
+
+local tcpdump_bin = "/usr/sbin/tcpdump"
+
+-- -U packet-buffered output instead of line buffered (-l)
+-- tcpdump -l -w - | tee -a file
+-- tcpdump -i mon0 -s 150 -U
+--  -B capture buffer size
+--  -s snapshot length ( default 262144)
+function WifiIF:start_tcpdump ( fname )
+    if ( self.tcpdump_proc ~= nil ) then
+        self.node:send_error (" Tcpdump not started. Already running.")
+        return nil
+    end
+    --local snaplen = 0 -- 262144
+    --local snaplen = 150
+    local snaplen = 256
+    self.node:send_info ( "start tcpdump for " .. ( self.mon or "none" ) .. " writing to " .. ( fname or "none" ) )
+    self.node:send_debug ( tcpdump_bin .. " -i " .. ( self.mon or "none" ) 
+                           .. " -s " .. ( snaplen or "none" ) .. " -U -w " .. ( fname or "none" ) )
+    local pid, stdin, stdout = misc.spawn ( tcpdump_bin, "-i", self.mon, "-s", snaplen, "-U", "-w", fname )
+    self.tcpdump_proc = { pid = pid, stdin = stdin, stdout = stdout }
+    return pid
+end
+
+function WifiIF:get_tcpdump_offline ( fname )
+    self.node:send_info ( "send tcpdump offline for file " .. ( fname or "none" ) )
+    local file = io.open ( fname, "rb" )
+    if ( file == nil ) then 
+        self.node:send_error ( "no tcpdump file found" )
+        return nil 
+    end
+    local content = file:read ( "*a" )
+    file:close()
+    self.node:send_info ( "remove tcpump pcap file " .. ( fname or "none" ) )
+    os.remove ( fname )
+    self.tcpdump_proc.stdin:close ()
+    self.tcpdump_proc.stdout:close ()
+    self.tcpdump_proc = nil
+    return content
+end
+
+function WifiIF:stop_tcpdump ()
+    if ( self.tcpdump_proc == nil ) then
+        self.node:send_error ( "No tcpdump running." )
+        return nil
+    end
+    self.node:send_info ( "stop tcpdump with pid " .. self.tcpdump_proc.pid )
+    local exit_code
+    if ( self.node:kill ( self.tcpdump_proc.pid ) ) then
+        exit_code = lpc.wait ( self.tcpdump_proc.pid )
     end
     return exit_code
 end

@@ -20,7 +20,6 @@ require ('parsers/rc_stats_csv')
 require ('parsers/iw_info')
 
 local lua_bin = "/usr/bin/lua"
-local tcpdump_bin = "/usr/sbin/tcpdump"
 local iperf_bin = "/usr/bin/iperf"
 
 local lease_fname = "/tmp/dhcp.leases"
@@ -36,7 +35,6 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
                          , log_port = log_port 
                          , wifis = {}
                          , iperf_port = iperf_port
-                         , tcpdump_proc = nil
                          , iperf_client_procs = {}
                          , iperf_server_proc = nil
                          } )
@@ -548,6 +546,7 @@ function Node:stop_rc_stats ( phy, station )
     if ( dev ~= nil ) then
         return dev:stop_rc_stats ( station )
     end
+    return nil
 end
 
 -- --------------------------
@@ -575,6 +574,7 @@ function Node:stop_regmon_stats ( phy )
     if ( dev ~= nil ) then
         return dev:stop_regmon_stats ()
     end
+    return nil
 end
 
 -- --------------------------
@@ -594,6 +594,7 @@ function Node:get_cpusage ( phy )
     if ( dev ~= nil ) then
         return dev:get_cpusage ()
     end
+    return nil
 end
 
 function Node:stop_cpusage ( phy )
@@ -601,63 +602,35 @@ function Node:stop_cpusage ( phy )
     if ( dev ~= nil ) then
         return dev:stop_cpusage ()
     end
+    return nil
 end
 
 -- --------------------------
 -- tcpdump
 -- --------------------------
 
--- -U packet-buffered output instead of line buffered (-l)
--- tcpdump -l -w - | tee -a file
--- tcpdump -i mon0 -s 150 -U
---  -B capture buffer size
---  -s snapshot length ( default 262144)
 function Node:start_tcpdump ( phy, fname )
-    if ( phy == nil ) then return nil end
-    if ( self.tcpdump_proc ~= nil ) then
-        self:send_error (" Tcpdump not started. Already running.")
-        return nil
-    end
     local dev = self:find_wifi_device ( phy )
-    local mon = dev.mon
-    --local snaplen = 0 -- 262144
-    --local snaplen = 150
-    local snaplen = 256
-    self:send_info ( "start tcpdump for " .. mon .. " writing to " .. fname )
-    self:send_debug ( tcpdump_bin .. " -i " .. mon .. " -s " .. snaplen .. " -U -w " .. fname )
-    local pid, stdin, stdout = misc.spawn ( tcpdump_bin, "-i", mon, "-s", snaplen, "-U", "-w", fname )
-    self.tcpdump_proc = { pid = pid, stdin = stdin, stdout = stdout }
-    return pid
+    if ( dev ~= nil ) then
+        return dev:start_tcpdump ( fname )
+    end
+    return nil
 end
 
-function Node:get_tcpdump_offline ( fname )
-    self:send_info ( "send tcpdump offline for file " .. fname )
-    local file = io.open ( fname, "rb" )
-    if ( file == nil ) then 
-        self:send_error ( "no tcpdump file found" )
-        return nil 
+function Node:get_tcpdump_offline ( phy, fname )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:get_tcpdump_offline ( fname )
     end
-    local content = file:read ("*a")
-    file:close()
-    self:send_info ( "remove tcpump pcap file " .. fname )
-    os.remove ( fname )
-    self.tcpdump_proc.stdin:close ()
-    self.tcpdump_proc.stdout:close ()
-    self.tcpdump_proc = nil
-    return content
+    return nil
 end
 
-function Node:stop_tcpdump ()
-    if ( self.tcpdump_proc == nil ) then
-        self:send_error ( "No tcpdump running." )
-        return nil
+function Node:stop_tcpdump ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:stop_tcpdump ()
     end
-    self:send_info("stop tcpdump with pid " .. self.tcpdump_proc.pid )
-    local exit_code
-    if ( self:kill ( self.tcpdump_proc.pid ) ) then
-        exit_code = lpc.wait ( self.tcpdump_proc.pid )
-    end
-    return exit_code
+    return nil
 end
 
 -- --------------------------
