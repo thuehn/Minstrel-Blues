@@ -21,7 +21,6 @@ require ('parsers/iw_info')
 
 local lua_bin = "/usr/bin/lua"
 local tcpdump_bin = "/usr/sbin/tcpdump"
-local fetch_file_bin = "/usr/bin/fetch_file"
 local iperf_bin = "/usr/bin/iperf"
 
 local lease_fname = "/tmp/dhcp.leases"
@@ -38,7 +37,6 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
                          , wifis = {}
                          , iperf_port = iperf_port
                          , tcpdump_proc = nil
-                         , rc_stats_procs = {}
                          , iperf_client_procs = {}
                          , iperf_server_proc = nil
                          } )
@@ -524,67 +522,32 @@ function Node:get_global_tx_rate ( phy )
     end
     return rate
 end
+
 -- --------------------------
 -- rc_stats
 -- --------------------------
 
 function Node:start_rc_stats ( phy, station )
-    if ( phy == nil ) then return nil end
-    if ( self.rc_stats_procs [ station ] ~= nil ) then
-        self:send_error ( "rc stats for station " .. station .. " already running" )
-        return nil
-    end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    self:send_info ( "start collecting rc_stats station " .. station .. " on " .. iface .. " (" .. phy .. ")" )
-    local file = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
-                        .. station .. "/rc_stats_csv"
-    if ( isFile ( file ) == true ) then
-        local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-i", 500000000, file )
-        self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
-        self:send_info ( "rc stats for station " .. station .. " started with pid: " .. pid )
-        return pid
-    else
-        self:send_error ( "rc stats for station " .. station .. " not started. file is missing" )
-        self:send_debug ( file )
-        return nil
+    if ( dev ~= nil ) then
+        return dev:start_rc_stats ( station )
     end
+    return nil
 end
 
 function Node:get_rc_stats ( phy, station )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    if ( station == nil ) then
-        self:send_error ( "Cannot send rc_stats because the station argument is nil!" )
-        return nil
+    if ( dev ~= nil ) then
+        return dev:get_rc_stats ( station )
     end
-    self:send_info ( "send rc-stats for " .. iface ..  ", station " .. station )
-    if ( self.rc_stats_procs [ station ] == nil ) then 
-        self:send_warning ( " no rc-stats for " .. station .. " found" )
-        return nil 
-    end
-    self:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ].pid )
-    local content = self.rc_stats_procs [ station ].stdout:read("*a")
-    self.rc_stats_procs [ station ].stdin:close()
-    self.rc_stats_procs [ station ].stdout:close()
-    self:send_info ( string.len ( content ) .. " bytes from rc_stats" )
-    self.rc_stats_procs [ station ] = nil
-    return content 
+    return nil
 end
 
-function Node:stop_rc_stats ( station )
-    if ( self.rc_stats_procs [ station ] == nil 
-        or self.rc_stats_procs [ station ].pid == nil ) then 
-        self:send_error ( " rc_stats for station " .. ( station or "unset" ) .. " is not running!" )
-        return nil
+function Node:stop_rc_stats ( phy, station )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:stop_rc_stats ( station )
     end
-    self:send_info ( "stop collecting rc stats with pid " .. self.rc_stats_procs [ station ].pid )
-    local exit_code
-    if ( self:kill ( self.rc_stats_procs [ station ].pid ) ) then
-        exit_code = lpc.wait ( self.rc_stats_procs [ station ].pid )
-    end
-    return exit_code
 end
 
 -- --------------------------

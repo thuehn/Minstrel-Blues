@@ -19,6 +19,7 @@ function WifiIF:create ( iface, addr, mon, phy, node )
                            , node = node
                            , regmon_proc = nil
                            , cpusage_proc = nil
+                           , rc_stats_procs = {}
                            } )
 
     return o
@@ -292,3 +293,60 @@ function WifiIF:stop_cpusage ()
     return exit_code
 end
 
+-- --------------------------
+-- rc_stats
+-- --------------------------
+
+function WifiIF:start_rc_stats ( station )
+    if ( self.rc_stats_procs [ station ] ~= nil ) then
+        self.node:send_error ( "rc stats for station " .. station .. " already running" )
+        return nil
+    end
+    self.node:send_info ( "start collecting rc_stats station " .. station 
+                          .. " on " .. ( self.iface or "none" ) .. " (" .. ( self.phy or "none" ).. ")" )
+    local file = debugfs .. "/" .. self.phy .. "/netdev:" .. self.iface .. "/stations/"
+                         .. station .. "/rc_stats_csv"
+    if ( isFile ( file ) == true ) then
+        local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-i", 500000000, file )
+        self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
+        self.node:send_info ( "rc stats for station " .. station .. " started with pid: " .. pid )
+        return pid
+    else
+        self.node:send_error ( "rc stats for station " .. station .. " not started. file is missing" )
+        self.node:send_debug ( file )
+        return nil
+    end
+end
+
+function WifiIF:get_rc_stats ( station )
+    if ( station == nil ) then
+        self.node:send_error ( "Cannot send rc_stats because the station argument is nil!" )
+        return nil
+    end
+    self.node:send_info ( "send rc-stats for " .. self.iface ..  ", station " .. station )
+    if ( self.rc_stats_procs [ station ] == nil ) then 
+        self.node:send_warning ( " no rc-stats for " .. station .. " found" )
+        return nil 
+    end
+    self.node:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ].pid )
+    local content = self.rc_stats_procs [ station ].stdout:read ("*a")
+    self.rc_stats_procs [ station ].stdin:close()
+    self.rc_stats_procs [ station ].stdout:close()
+    self.node:send_info ( string.len ( content ) .. " bytes from rc_stats" )
+    self.rc_stats_procs [ station ] = nil
+    return content 
+end
+
+function WifiIF:stop_rc_stats ( station )
+    if ( self.rc_stats_procs [ station ] == nil 
+        or self.rc_stats_procs [ station ].pid == nil ) then 
+        self.node:send_error ( " rc_stats for station " .. ( station or "unset" ) .. " is not running!" )
+        return nil
+    end
+    self.node:send_info ( "stop collecting rc stats with pid " .. self.rc_stats_procs [ station ].pid )
+    local exit_code
+    if ( self.node:kill ( self.rc_stats_procs [ station ].pid ) ) then
+        exit_code = lpc.wait ( self.rc_stats_procs [ station ].pid )
+    end
+    return exit_code
+end

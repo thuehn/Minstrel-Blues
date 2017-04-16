@@ -408,7 +408,7 @@ function Measurement:stop ( phy, key )
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            local exit_code = self.rpc_node.stop_rc_stats ( station )
+            local exit_code = self.rpc_node.stop_rc_stats ( phy, station )
         end
     end
 end
