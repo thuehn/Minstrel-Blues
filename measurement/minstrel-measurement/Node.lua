@@ -19,7 +19,6 @@ require ('parsers/dhcp_lease')
 require ('parsers/rc_stats_csv')
 require ('parsers/iw_info')
 
-local lua_bin = "/usr/bin/lua"
 local iperf_bin = "/usr/bin/iperf"
 
 local lease_fname = "/tmp/dhcp.leases"
@@ -27,14 +26,13 @@ local debugfs = "/sys/kernel/debug/ieee80211"
 
 Node = NodeBase:new()
 
-function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
+function Node:create ( name, ctrl, port, log_port, log_addr )
     local o = Node:new ( { name = name
                          , ctrl = ctrl
                          , port = port
                          , log_addr = log_addr
                          , log_port = log_port 
                          , wifis = {}
-                         , iperf_port = iperf_port
                          , iperf_client_procs = {}
                          , iperf_server_proc = nil
                          } )
@@ -638,14 +636,14 @@ end
 -- --------------------------
 
 -- fixme: rpc function name to long
-function Node:start_tcp_iperf_s ()
+function Node:start_tcp_iperf_s ( phy, iperf_port )
     if ( self.iperf_server_proc ~= nil ) then
         self:send_error (" Iperf Server (tcp) not started. Already running.")
         return nil
     end
-    self:send_info ( "start TCP iperf server at port " .. self.iperf_port )
-    self:send_debug ( iperf_bin .. " -s -p " .. ( self.iperf_port or "none" ) )
-    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-p", self.iperf_port )
+    self:send_info ( "start TCP iperf server at port " .. ( iperf_port or "none" ) )
+    self:send_debug ( iperf_bin .. " -s -p " .. ( iperf_port or "none" ) )
+    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-p", iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
     if ( out ~= nil ) then
@@ -656,14 +654,14 @@ end
 
 -- iperf -s -u -p 12000
 -- fixme: rpc function name to long
-function Node:start_udp_iperf_s ()
+function Node:start_udp_iperf_s ( phy, iperf_port )
     if ( self.iperf_server_proc ~= nil ) then
         self:send_error (" Iperf Server (udp) not started. Already running.")
         return nil
     end
-    self:send_info ( "start UDP iperf server at port " .. self.iperf_port )
-    self:send_debug ( iperf_bin .. " -s -u -p " .. ( self.iperf_port or "none" ) )
-    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-u", "-p", self.iperf_port )
+    self:send_info ( "start UDP iperf server at port " .. ( iperf_port or "none" ) )
+    self:send_debug ( iperf_bin .. " -s -u -p " .. ( iperf_port or "none" ) )
+    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-u", "-p", iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
     local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
     if ( out ~= nil ) then
@@ -673,7 +671,7 @@ function Node:start_udp_iperf_s ()
 end
 
 -- iperf -c 192.168.1.240 -p 12000 -n 500MB
-function Node:run_tcp_iperf ( addr, tcpdata, wait )
+function Node:run_tcp_iperf ( phy, iperf_port, addr, tcpdata, wait )
     if ( addr == nil ) then
         self:send_error (" Iperf client (tcp) not started. Address is unset" )
         return nil
@@ -682,11 +680,11 @@ function Node:run_tcp_iperf ( addr, tcpdata, wait )
         self:send_error (" Iperf client (tcp) not started for address " .. addr .. ". Already running.")
         return nil
     end
-    self:send_info ( "run TCP iperf at port " .. self.iperf_port 
+    self:send_info ( "run TCP iperf at port " .. ( iperf_port or "none" )
                                 .. " to addr " .. addr 
                                 .. " with tcpdata " .. ( tcpdata or "none" ) )
-    self:send_debug ( iperf_bin .. " -c " .. addr .. " -p " .. self.iperf_port .. " -n " .. tcpdata )
-    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-c", addr, "-p", self.iperf_port, "-n", tcpdata )
+    self:send_debug ( iperf_bin .. " -c " .. addr .. " -p " .. ( iperf_port or "none" ) .. " -n " .. tcpdata )
+    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-c", addr, "-p", iperf_port, "-n", tcpdata )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
     if ( wait == true ) then
@@ -704,7 +702,7 @@ end
 
 -- iperf -u -c 192.168.1.240 -p 12000 -l 1500B -b 600000 -t 240
 --function Node:run_udp_iperf ( addr, size, rate, interval, wait )
-function Node:run_udp_iperf ( addr, rate, duration, wait )
+function Node:run_udp_iperf ( phy, iperf_port, addr, rate, duration, wait )
     if ( addr == nil ) then
         self:send_error (" Iperf client (udp) not started. Address is unset" )
         return nil
@@ -713,17 +711,17 @@ function Node:run_udp_iperf ( addr, rate, duration, wait )
         self:send_error (" Iperf client (udp) not started for address " .. addr .. ". Already running." )
         return nil
     end
-    self:send_info ( "run UDP iperf at port " .. ( self.iperf_port or "none" )
+    self:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
                                 .. " to addr " .. ( addr or "none" )
                                 .. " with rate " .. rate .. " and duration " .. duration )
-    --self:send_info ( "run UDP iperf at port " .. ( self.iperf_port or "none" )
+    --self:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
     --                            .. " to addr " .. ( addr or "none" )
     --                            .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval )
     --local bitspersec = size * 8 * rate
-    self:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. self.iperf_port
+    self:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. ( iperf_port or "none" )
                         .. " -b " .. rate .. " -t " .. duration )
 
-    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", self.iperf_port, 
+    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port, 
                                             "-b", rate, "-t", duration )
 
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
@@ -744,7 +742,7 @@ end
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
 -- iperf -c 224.0.67.0 -u --ttl 1 -t 120 -b 100M -l 1500 -B 10.10.250.2
 -- iperf -u -c 224.0.67.0 -p 12000 -T 32 -t 10 -b 1MB -B 192.168.1.1
-function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait )
+function Node:run_multicast ( phy, iperf_port, addr, multicast_addr, ttl, bitrate, duration, wait )
     if ( addr == nil ) then
         self:send_error (" Iperf client (multicast) not started. Address is unset" )
         return nil
@@ -753,12 +751,12 @@ function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait
         self:send_error (" Iperf client (mcast) not started for address " .. addr .. ". Already running.")
         return nil
     end
-    self:send_info ( "run UDP iperf at port " .. self.iperf_port 
+    self:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
                                 .. " to addr " .. addr 
                                 .. " with ttl and duration " .. ttl .. ", " .. duration )
-    self:send_debug ( iperf_bin .. " -u " .. " -c " .. multicast_addr  .. " -p " .. self.iperf_port
+    self:send_debug ( iperf_bin .. " -u " .. " -c " .. multicast_addr  .. " -p " .. ( iperf_port or "none" )
                                 .. " -T " .. ttl .. " -t " .. duration .. " -b " .. bitrate .. " -B " .. addr )
-    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", multicast_addr, "-p", self.iperf_port,
+    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", multicast_addr, "-p", iperf_port,
                                          "-T", ttl, "-t", duration, "-b", bitrate, "-B", addr )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
@@ -775,7 +773,7 @@ function Node:run_multicast ( addr, multicast_addr, ttl, bitrate, duration, wait
     return pid, exit_code
 end
 
-function Node:wait_iperf_c ( addr )
+function Node:wait_iperf_c ( phy, addr )
     if ( addr == nil ) then
         self:send_error ( " wait for iperf client failed, addr is not set." )
         return
@@ -796,7 +794,7 @@ function Node:wait_iperf_c ( addr )
     return exit_code
 end
 
-function Node:stop_iperf_server ()
+function Node:stop_iperf_server ( phy )
     if ( self.iperf_server_proc == nil ) then
         self:send_error ( " iperf server is not running." )
         return

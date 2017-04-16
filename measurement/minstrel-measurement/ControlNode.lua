@@ -374,7 +374,7 @@ function ControlNode:connect_nodes ( ctrl_port )
     return true
 end
 
-function ControlNode:disconnect_nodes()
+function ControlNode:disconnect_nodes ()
     for _, node_ref in ipairs ( self.node_refs ) do 
         node_ref:disconnect ()
     end
@@ -382,7 +382,7 @@ end
 
 -- kill all running nodes with two times sigint(2)
 -- (default kill signal is sigterm(15) )
-function ControlNode:stop()
+function ControlNode:stop ()
     -- fixme: nodes should implement a stop function and kill itself with getpid
     -- and wait
     for i, node_ref in ipairs ( self.node_refs ) do

@@ -13,12 +13,11 @@ parser:option ("--log_ip", "IP of Logging node" )
 
 parser:option ("-P --port", "Control RPC port", "12346" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
-parser:option ("-I --iperf_port", "Port for iperf", "12000" )
 
 local args = parser:parse ()
 
 local ctrl = NetIF:create ( args.ctrl_if )
-local node = Node:create ( args.name, ctrl, args.port, args.log_port, args.log_ip, args.iperf_port )
+local node = Node:create ( args.name, ctrl, args.port, args.log_port, args.log_ip )
 
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 

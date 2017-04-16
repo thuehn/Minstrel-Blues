@@ -115,16 +115,17 @@ function McastExperiment:start_experiment ( ap_ref, key )
     local ttl = 1
     local size = "1M"
     local wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
+    local iperf_port = 12000
 
     self.control:send_debug ( "run multicast udp client with multicast addr " 
                                .. ( addr or "unset" )
                                .. " local addr " .. ( wifi_addr or "unset" ) )
 
-    ap_ref.rpc.run_multicast( wifi_addr, addr, ttl, size, self.udp_interval, wait )
+    ap_ref.rpc.run_multicast ( ap_ref.wifi_cur, iperf_port, wifi_addr, addr, ttl, size, self.udp_interval, wait )
 end
 
 function McastExperiment:wait_experiment ( ap_ref )
     -- wait for client on AP
     local wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
-    ap_ref.rpc.wait_iperf_c ( wifi_addr )
+    ap_ref.rpc.wait_iperf_c ( ap_ref.wifi_cur, wifi_addr )
 end

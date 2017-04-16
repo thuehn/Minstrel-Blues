@@ -356,6 +356,8 @@ end
 -- tcpdump
 -- --------------------------
 
+-- todo: add phy to pcap fname
+
 local tcpdump_bin = "/usr/sbin/tcpdump"
 
 -- -U packet-buffered output instead of line buffered (-l)
@@ -408,3 +410,9 @@ function WifiIF:stop_tcpdump ()
     end
     return exit_code
 end
+
+-- --------------------------
+-- iperf
+-- --------------------------
+
+local iperf_bin = "/usr/bin/iperf"

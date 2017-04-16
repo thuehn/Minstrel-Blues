@@ -81,7 +81,8 @@ function TcpExperiment:start_experiment ( ap_ref, key )
                 return
             end
             local wait = false
-            local pid, exit_code = ap_ref.rpc.run_tcp_iperf ( addr, self.tcpdata, wait )
+            local iperf_port = 12000
+            local pid, exit_code = ap_ref.rpc.run_tcp_iperf ( ap_ref.wifi_cur, iperf_port, addr, self.tcpdata, wait )
         end
     end
 end
@@ -95,7 +96,7 @@ function TcpExperiment:wait_experiment ( ap_ref )
                 error ( "wait_experiment: address is unset" )
                 return
             end
-            local exit_code = ap_ref.rpc.wait_iperf_c( addr )
+            local exit_code = ap_ref.rpc.wait_iperf_c ( ap_ref.wifi_cur, addr )
         end
     end
 end
