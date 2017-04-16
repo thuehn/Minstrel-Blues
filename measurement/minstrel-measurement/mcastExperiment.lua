@@ -115,7 +115,8 @@ function McastExperiment:start_experiment ( ap_ref, key )
     local ttl = 1
     local size = "1M"
     local wifi_addr = ap_ref:get_addr ( ap_ref.wifi_cur )
-    local iperf_port = 12000
+    local phy_num = tonumber ( string.sub ( ap_ref.wifi_cur, 4 ) )
+    local iperf_port = 12000 + phy_num
 
     self.control:send_debug ( "run multicast udp client with multicast addr " 
                                .. ( addr or "unset" )

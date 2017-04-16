@@ -19,8 +19,6 @@ require ('parsers/dhcp_lease')
 require ('parsers/rc_stats_csv')
 require ('parsers/iw_info')
 
-local iperf_bin = "/usr/bin/iperf"
-
 local lease_fname = "/tmp/dhcp.leases"
 local debugfs = "/sys/kernel/debug/ieee80211"
 

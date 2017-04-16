@@ -102,7 +102,8 @@ function UdpExperiment:start_experiment ( ap_ref, key )
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             local addr = sta_ref:get_addr ()
-            local iperf_port = 12000
+            local phy_num = tonumber ( string.sub ( ap_ref.wifi_cur, 4 ) )
+            local iperf_port = 12000 + phy_num
             ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, duration, wait )
         end
     end

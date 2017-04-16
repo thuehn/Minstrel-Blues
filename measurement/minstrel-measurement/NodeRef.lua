@@ -172,15 +172,15 @@ end
 
 function NodeRef:start_tcp_iperf_s ()
     if ( self.is_passive == nil or self.is_passive == false ) then
-        -- fixme: pass iperf port
-        local proc = self.rpc.start_tcp_iperf_s ( self.wifi_cur, 12000 )
+        local phy_num = tonumber ( string.sub ( self.wifi_cur, 4 ) )
+        local proc = self.rpc.start_tcp_iperf_s ( self.wifi_cur, 12000 + phy_num)
     end
 end
 
 function NodeRef:start_udp_iperf_s ()
     if ( self.is_passive == nil or self.is_passive == false ) then
-        -- fixme: pass iperf port
-        local proc = self.rpc.start_udp_iperf_s ( self.wifi_cur, 12000 )
+        local phy_num = tonumber ( string.sub ( self.wifi_cur, 4 ) )
+        local proc = self.rpc.start_udp_iperf_s ( self.wifi_cur, 12000 + phy_num )
     end
 end
 
