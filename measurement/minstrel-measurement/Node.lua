@@ -40,7 +40,6 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
                          , iperf_port = iperf_port
                          , tcpdump_proc = nil
                          , cpusage_proc = nil
-                         , regmon_proc = nil
                          , rc_stats_procs = {}
                          , iperf_client_procs = {}
                          , iperf_server_proc = nil
@@ -330,32 +329,33 @@ function Node:get_rc_stats_lines ( phy, station )
         return {}
     end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    local fname = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/" .. station .. "/rc_stats_csv"
-    local lines = {}
-    local file = nil
-    if ( fname ~= nil ) then
-        file = io.open ( fname )
-    end
-    if ( file ~= nil ) then
-        local content = file:read ("*a")
-        for i, line in ipairs ( split ( content, "\n" ) ) do
-            if ( line ~= ""
-                    and string.sub ( line, 1, 5 ) ~= "Total"
-                    and string.sub ( line, 1, 7 ) ~= "Average"
-                    and string.sub ( line, 1, 18 ) ~= "              best"
-                    and string.sub ( line, 1, 4 ) ~= "mode"
-               ) then
-                lines [ #lines + 1 ] = parse_rc_stats_csv ( line )
+    if ( dev ~= nil ) then
+        local fname = debugfs .. "/" .. dev.phy .. "/netdev:" .. dev.iface .. "/stations/" .. station .. "/rc_stats_csv"
+        local lines = {}
+        local file = nil
+        if ( fname ~= nil ) then
+            file = io.open ( fname )
+        end
+        if ( file ~= nil ) then
+            local content = file:read ("*a")
+            for i, line in ipairs ( split ( content, "\n" ) ) do
+                if ( line ~= ""
+                        and string.sub ( line, 1, 5 ) ~= "Total"
+                        and string.sub ( line, 1, 7 ) ~= "Average"
+                        and string.sub ( line, 1, 18 ) ~= "              best"
+                        and string.sub ( line, 1, 4 ) ~= "mode"
+                   ) then
+                    lines [ #lines + 1 ] = parse_rc_stats_csv ( line )
+                end
             end
         end
+        return lines
     end
-    return lines
+    return {}
 end
 
 -- read rc_stats and collects rate names
-function Node:tx_rate_names( phy, station )
-    if ( phy == nil ) then return nil end
+function Node:tx_rate_names ( phy, station )
     self:send_info ( "List tx rate names for station " .. ( station or "none" ) .. " at device " .. ( phy or "none" ) )
     local lines = self:get_rc_stats_lines ( phy, station )
     local names = {}
@@ -366,8 +366,7 @@ function Node:tx_rate_names( phy, station )
 end
 
 -- reads rc_stats and collects rate indices
-function Node:tx_rate_indices( phy, station )
-    if ( phy == nil ) then return nil end
+function Node:tx_rate_indices ( phy, station )
     self:send_info ( "List tx rate indices for station " .. ( station or "none" ) .. " at device " .. ( phy or "none" ) )
     local lines = self:get_rc_stats_lines ( phy, station )
     local rates = {}
@@ -595,51 +594,26 @@ end
 -- --------------------------
 
 function Node:start_regmon_stats ( phy )
-    if ( phy == nil ) then return nil end
-    if ( self.regmon_proc ~= nil ) then
-        self:send_error ("Not collecting regmon stats for " 
-            .. iface .. ", " .. phy .. ". Alraedy running" )
-        return nil
-    end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    local file = debugfs .. "/" .. phy .. "/regmon/register_log"
-    if ( not isFile ( file ) ) then
-        self:send_warning ( "no regmon-stats for " .. iface .. ", " .. phy )
-        self.regmon_proc = nil
-        return nil
+    if ( dev ~= nil ) then
+        return dev:start_regmon_stats ()
     end
-    self:send_info ("start collecting regmon stats for " .. iface .. ", " .. phy)
-    local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-l", "-i", 500000000, file )
-    self.regmon_proc = { pid = pid, stdin = stdin, stdout = stdout }
-    return pid
+    return nil
 end
 
-function Node:get_regmon_stats ()
-    if (self.regmon_proc == nil) then 
-        self:send_error ( "no regmon process running" )
-        return nil 
+function Node:get_regmon_stats ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:get_regmon_stats ()
     end
-    self:send_info ( "send regmon-stats" )
-    local content = self.regmon_proc.stdout:read("*a")
-    self.regmon_proc.stdin:close ()
-    self.regmon_proc.stdout:close ()
-    self:send_info ( string.len ( content ) .. " bytes from regmon" )
-    self.regmon_proc = nil
-    return content
+    return nil
 end
 
-function Node:stop_regmon_stats ()
-    if (self.regmon_proc == nil) then 
-        self:send_error ( "no regmon process running" )
-        return nil 
+function Node:stop_regmon_stats ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:stop_regmon_stats ()
     end
-    self:send_info ( "stop collecting regmon stats with pid " .. self.regmon_proc.pid )
-    local exit_code
-    if ( self:kill ( self.regmon_proc.pid ) ) then
-        exit_code = lpc.wait ( self.regmon_proc.pid )
-    end
-    return exit_code
 end
 
 -- --------------------------

@@ -6,6 +6,7 @@ local uci = require ('Uci')
 
 local misc = require ('misc')
 local pprint = require ('pprint')
+local lpc = require ('lpc')
 
 WifiIF = NetIF:new()
 local debugfs = "/sys/kernel/debug/ieee80211"
@@ -16,6 +17,7 @@ function WifiIF:create ( iface, addr, mon, phy, node )
                            , mon = mon
                            , phy = phy
                            , node = node
+                           , regmon_proc = nil
                            } )
 
     return o
@@ -192,4 +194,55 @@ function WifiIF:list_stations ()
         end
     end
     return out
+end
+
+-- --------------------------
+-- regmon stats
+-- --------------------------
+
+local fetch_file_bin = "/usr/bin/fetch_file"
+
+function WifiIF:start_regmon_stats ()
+    if ( self.regmon_proc ~= nil ) then
+        self.node:send_error ( "Not collecting regmon stats for " 
+                               .. self.iface .. ", " .. self.phy .. ". Alraedy running" )
+        return nil
+    end
+    local file = debugfs .. "/" .. self.phy .. "/regmon/register_log"
+    if ( not isFile ( file ) ) then
+        self.node:send_warning ( "no regmon-stats for " .. self.iface .. ", " .. self.phy )
+        self.regmon_proc = nil
+        return nil
+    end
+    self.node:send_info ( "start collecting regmon stats for " .. self.iface .. ", " .. self.phy )
+    local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-l", "-i", 500000000, file )
+    self.regmon_proc = { pid = pid, stdin = stdin, stdout = stdout }
+    return pid
+end
+
+function WifiIF:get_regmon_stats ()
+    if ( self.regmon_proc == nil ) then 
+        self.node:send_error ( "no regmon process running" )
+        return nil 
+    end
+    self.node:send_info ( "send regmon-stats" )
+    local content = self.regmon_proc.stdout:read ( "*a" )
+    self.regmon_proc.stdin:close ()
+    self.regmon_proc.stdout:close ()
+    self.node:send_info ( string.len ( content ) .. " bytes from regmon" )
+    self.regmon_proc = nil
+    return content
+end
+
+function WifiIF:stop_regmon_stats ()
+    if ( self.regmon_proc == nil ) then 
+        self.node:send_error ( "no regmon process running" )
+        return nil 
+    end
+    self.node:send_info ( "stop collecting regmon stats with pid " .. self.regmon_proc.pid )
+    local exit_code
+    if ( self.node:kill ( self.regmon_proc.pid ) ) then
+        exit_code = lpc.wait ( self.regmon_proc.pid )
+    end
+    return exit_code
 end

@@ -125,7 +125,7 @@ function NodeRef:wait_linked ( runs )
     return ( retrys ~= 0 )
 end
 
-function NodeRef:create_measurement()
+function NodeRef:create_measurement ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.stats = Measurement:create ( self.name, self:get_mac (), self:get_opposite_macs (), self.rpc, self.output_dir )
         self.stats.node_mac_br = self:get_mac_br ()
@@ -133,58 +133,58 @@ function NodeRef:create_measurement()
     end
 end
 
-function NodeRef:restart_wifi( )
+function NodeRef:restart_wifi ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.rpc.restart_wifi ()
     end
 end
 
-function NodeRef:add_monitor( )
+function NodeRef:add_monitor ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.rpc.add_monitor ( self.wifi_cur )
     end
 end
 
-function NodeRef:remove_monitor( )
+function NodeRef:remove_monitor ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.rpc.remove_monitor ( self.wifi_cur )
     end
 end
 
-function NodeRef:start_measurement( key )
+function NodeRef:start_measurement ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.stats:start ( self.wifi_cur, key )
     end
 end
 
-function NodeRef:stop_measurement( key )
+function NodeRef:stop_measurement ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        self.stats:stop ()
+        self.stats:stop ( self.wifi_cur, key )
     end
 end
 
 -- collect traces
-function NodeRef:fetch_measurement( key )
+function NodeRef:fetch_measurement ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
       self.stats:fetch ( self.wifi_cur, key )
     end
 end
 
-function NodeRef:start_tcp_iperf_s()
+function NodeRef:start_tcp_iperf_s ()
     if ( self.is_passive == nil or self.is_passive == false ) then
-        local proc = self.rpc.start_tcp_iperf_s()
+        local proc = self.rpc.start_tcp_iperf_s ()
     end
 end
 
-function NodeRef:start_udp_iperf_s()
+function NodeRef:start_udp_iperf_s ()
     if ( self.is_passive == nil or self.is_passive == false ) then
-        local proc = self.rpc.start_udp_iperf_s()
+        local proc = self.rpc.start_udp_iperf_s ()
     end
 end
 
-function NodeRef:stop_iperf_server()
+function NodeRef:stop_iperf_server ()
     if ( self.is_passive == nil or self.is_passive == false ) then
-        self.rpc.stop_iperf_server()
+        self.rpc.stop_iperf_server ()
     end
 end
 
