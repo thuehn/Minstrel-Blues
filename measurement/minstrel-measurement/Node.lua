@@ -67,7 +67,7 @@ function Node:create ( name, ctrl, port, log_port, log_addr, iperf_port )
             o:send_error ( "Empty ieee80211 debugfs: please check permissions and kernel config, i.e. ATH9K_DEBUGFS: " .. msg )
         else
             netif.addr, msg = net.get_addr ( netif.iface )
-            o.wifis [ #o.wifis + 1 ] = netif
+            o.wifis [ phy ] = netif
         end
     end
     return o
@@ -81,11 +81,13 @@ function Node:__tostring()
     local out = name .. "\n"
                 .. self.ctrl:__tostring ()
                 .. "\n"
-    for i, wifi in ipairs ( self.wifis ) do
-        if (i ~= 1) then
+    local i = 1
+    for _, wifi in pairs ( self.wifis ) do
+        if ( i ~= 1 ) then
             out = out .. ", "
         end
         out = out .. wifi:__tostring ()
+        i = i + 1
     end
     return out
 end
@@ -102,15 +104,10 @@ end
 function Node:phy_devices ()
     self:send_info( "Send phy devices." )
     local phys = {}
-    for _, wifi in ipairs ( self.wifis ) do
-        phys [ #phys + 1 ] = wifi.phy
+    for phy, _ in pairs ( self.wifis ) do
+        phys [ #phys + 1 ] = phy
     end
-    local phys_str = ""
-    for i, phy in ipairs ( phys ) do
-        if ( i ~= 1 ) then phys_str = phys_str .. ", " end
-        phys_str = phys_str .. phy
-    end
-    self:send_info(" phys: " .. phys_str )
+    self:send_info(" phys: " .. table_tostring ( phys ) )
     return phys
 end
 
@@ -119,32 +116,19 @@ function Node:find_wifi_device ( phy )
         self:send_error ( "phy argument is not set" )
         return nil
     end
-    for _, dev in ipairs ( self.wifis ) do
-        if ( dev.phy == phy) then
-            return dev
-        end
+    local dev = self.wifis [ phy ]
+    if ( dev == nil ) then
+        self:send_error ( "device not found" )
     end
-    self:send_error ( "device not found" )
-    return nil
+    return dev
 end
 
 function Node:enable_wifi ( enabled, phy )
-    if ( phy == nil ) then
-        self:send_error ( "Cannot enable/disable wifi, phy is unset" )
-        return false
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:enable_wifi ( enabled )
     end
-    local var = "wireless.radio"
-    var = var .. string.sub ( phy, 4, string.len ( phy ) )
-    var = var .. ".disabled"
-    self:send_debug ( " enable wifi: " .. var .. " = " .. tostring ( not enabled ) )
-    local value = 1
-    if ( enabled == true ) then 
-        value = 0
-    else
-        value = 1
-    end
-    local _, exit_code = uci.set_var ( var, value )
-    return ( exit_code == 0 )
+    return false
 end
 
 function Node:get_iw_info ( phy )
@@ -186,25 +170,16 @@ function Node:remove_monitor ( phy )
 end
 
 function Node:list_stations ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    local stations = debugfs .. "/" .. phy .. "/netdev:" .. iface .. "/stations/"
-    local out = {}
-    if ( isDir ( stations ) ) then
-        for _, name in ipairs ( scandir ( stations ) ) do
-            if ( name ~= "." and name ~= "..") then
-                out [ #out + 1 ] = name
-            end
-        end
+    if ( dev ~= nil ) then
+        return dev:list_stations ()
     end
-    return out
+    return {}
 end
 
 function Node:visible_stations ( phy )
-    local dev = self:find_wifi_device ( phy )
     local list = self:list_stations ( phy )
-    self:send_info ( "Send stations for " .. dev.iface .. ": " .. table_tostring ( list ) )
+    self:send_info ( "Send stations for " .. ( phy or "none" ) .. ": " .. table_tostring ( list ) )
     return list
 end
 
@@ -224,34 +199,39 @@ function Node:get_mac ( phy, bridged )
 end
 
 function Node:get_iface ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    return dev.iface
+    if ( dev ~= nil ) then
+        return dev.iface
+    end
+    return nil
 end
 
 function Node:get_mon ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    return dev.mon
+    if ( dev ~= nil ) then
+        return dev.mon
+    end
+    return nil
 end
 
 function Node:get_addr ( phy )
-    if ( phy == nil ) then return nil end
     local dev = self:find_wifi_device ( phy )
-    local iface = dev.iface
-    self:send_info ( "send ipv4 addr for " .. iface )
-    if ( dev.addr == nil ) then
-        self:send_error ( " interface " .. iface .. " has no ipv4 addr assigned" )
-        return nil 
-    else
-        self:send_info ( " addr for " .. iface .. ": " .. dev.addr )
-        return dev.addr
+    if ( dev ~= nil ) then
+        self:send_info ( "send ipv4 addr for " .. dev.iface )
+        if ( dev.addr == nil ) then
+            self:send_error ( " interface " .. dev.iface .. " has no ipv4 addr assigned" )
+            return nil 
+        else
+            self:send_info ( " addr for " .. dev.iface .. ": " .. dev.addr )
+            return dev.addr
+        end
     end
+    return nil
 end
 
 -- returns addr when host with mac has a dhcp lease else nil
 function Node:has_lease ( mac )
-    self:send_info("send ipv4 addr for " .. mac .. " from lease" )
+    self:send_info ("send ipv4 addr for " .. ( mac or "none" ) .. " from lease" )
     local file = io.open ( lease_fname )
     if ( not isFile ( lease_fname ) ) then return nil end
     local content = file:read ("*a")
@@ -281,13 +261,9 @@ end
 -- returns the ssid when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_ssid ( phy )
-    if ( phy == nil ) then return nil end
-    self:send_info ( "Get linked ssid for device " .. phy )
+    self:send_info ( "Get linked ssid for device " .. ( phy or "none" ) )
     local iwlink = self:get_iw_link ( phy, true )
-    if ( iwlink == nil or iwlink.ssid == nil ) then
-        self:send_debug ("iw link has no result")
-        return nil
-    end
+    if ( iwlink == nil or iwlink.ssid == nil ) then return nil end
     self:send_info ( " linked ssid: " .. iwlink.ssid )
     return iwlink.ssid
 end
@@ -295,8 +271,7 @@ end
 -- returns the remote iface when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_iface ( phy )
-    if ( phy == nil ) then return nil end
-    self:send_info ( "Get linked interface for device " .. phy )
+    self:send_info ( "Get linked interface for device " .. ( phy or "none" ) )
     local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or iwlink.iface == nil ) then return nil end
     self:send_info ( " linked iface: " .. iwlink.iface )
@@ -306,8 +281,7 @@ end
 -- returns the remote mac when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_mac ( phy )
-    if ( phy == nil ) then return nil end
-    self:send_info ( "Get linked mac for device " .. phy )
+    self:send_info ( "Get linked mac for device " .. ( phy or "none" ) )
     local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or iwlink.mac == nil) then return nil end
     self:send_info ( " linked mac: " .. iwlink.mac )
@@ -317,8 +291,7 @@ end
 -- returns the signal when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_signal ( phy )
-    if ( phy == nil ) then return nil end
-    self:send_info ( "Get linked signal for device " .. phy )
+    self:send_info ( "Get linked signal for device " .. ( phy or "none" ) )
     local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or iwlink.signal == nil ) then return nil end
     self:send_info ( " linked signal: " .. iwlink.signal )
@@ -328,8 +301,7 @@ end
 -- returns the rate index when iface is connected
 -- otherwise nil is returned
 function Node:get_linked_rate_idx ( phy )
-    if ( phy == nil ) then return nil end
-    self:send_info ( "Get linked rate index for device " .. phy )
+    self:send_info ( "Get linked rate index for device " .. ( phy or "none" ) )
     local iwlink = self:get_iw_link ( phy, true )
     if ( iwlink == nil or ( iwlink.rate_idx == nil and iwlink.rate == nil ) ) then return nil end
     self:send_info ( " linked rate index: " .. ( iwlink.rate_idx or iwlink.rate ) )

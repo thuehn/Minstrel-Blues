@@ -2,11 +2,13 @@
 require ('NetIF')
 require ('parsers/iw_info')
 require ('parsers/iw_link')
+local uci = require ('Uci')
 
 local misc = require ('misc')
 local pprint = require ('pprint')
 
 WifiIF = NetIF:new()
+local debugfs = "/sys/kernel/debug/ieee80211"
 
 function WifiIF:create ( iface, addr, mon, phy, node )
     local o = WifiIF:new ( { iface = iface
@@ -17,6 +19,24 @@ function WifiIF:create ( iface, addr, mon, phy, node )
                            } )
 
     return o
+end
+
+function WifiIF:enable_wifi ( enabled )
+    if ( self.node.proc_version.system == "LEDE" ) then
+        local var = "wireless.radio"
+        var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
+        var = var .. ".disabled"
+        self.node:send_debug ( " enable wifi: " .. var .. " = " .. tostring ( not enabled ) )
+        local value = 1
+        if ( enabled == true ) then 
+            value = 0
+        else
+            value = 1
+        end
+        local _, exit_code = uci.set_var ( var, value )
+        return ( exit_code == 0 )
+    end
+    return true
 end
 
 function WifiIF:get_iw_info ()
@@ -149,8 +169,8 @@ end
 
 function WifiIF:set_ani ( enabled )
     self.node:send_info ( "set ani for " .. ( self.phy or "none" ) .. " to " .. tostring ( enabled ) )
-    if ( self.phy ~= nil and self.node.debugfs ~= nil ) then
-        local filename = self.node.debugfs .. "/" .. self.phy .. "/" .. "ath9k" .. "/"  .. "ani"
+    if ( self.phy ~= nil and debugfs ~= nil ) then
+        local filename = debugfs .. "/" .. self.phy .. "/" .. "ath9k" .. "/"  .. "ani"
         local file = io.open ( filename, "w" )
         if ( enabled ) then
             file:write(1)
@@ -159,4 +179,17 @@ function WifiIF:set_ani ( enabled )
         end
         file:close()
     end
+end
+
+function WifiIF:list_stations ()
+    local stations = debugfs .. "/" .. self.phy .. "/netdev:" .. self.iface .. "/stations/"
+    local out = {}
+    if ( isDir ( stations ) ) then
+        for _, name in ipairs ( scandir ( stations ) ) do
+            if ( name ~= "." and name ~= "..") then
+                out [ #out + 1 ] = name
+            end
+        end
+    end
+    return out
 end
