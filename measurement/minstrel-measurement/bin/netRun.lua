@@ -326,9 +326,10 @@ if ( ctrl_pid == nil ) then
 end
 print ()
 
--- -------------------------------------------------------------------
-
-local succ, err = ctrl_ref:init_nodes ( args.disable_autostart, args.disable_reachable )
+local succ, err = ctrl_ref:init_nodes ( args.disable_autostart
+                                      , args.disable_reachable
+                                      , args.disable_synchronize
+                                      )
 if ( succ == false ) then
     print ( "Error: " .. err )
     ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
@@ -338,22 +339,6 @@ else
 end
 
 -- ----------------------------------------------------------
-
-for node_name, board in pairs ( ctrl_ref:get_boards () ) do
-    print ( node_name .. " board: " .. board )
-end
-
-for node_name, os_release in pairs ( ctrl_ref:get_os_releases () ) do
-    print ( node_name .. " os_release: " .. os_release )
-end
-
--- synchonize time
-if ( args.disable_synchronize == false ) then
-    ctrl_ref:set_dates ()
-end
-
--- set nameserver on all nodes
-ctrl_ref:set_nameservers ( args.nameserver or nameserver )
 
 print ( "Prepare APs" )
 if ( ctrl_ref:prepare_aps ( aps_config ) == false ) then

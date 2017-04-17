@@ -81,15 +81,15 @@ function ControlNodeRef:init ( disable_autostart, net, disable_synchronize
 
     local succ = self:connect_control ( self.ctrl_port )
     if ( succ ) then
-        print ( "Control board: " .. ( self:get_board () or "unknown" ) )
-        print ( "Control os-release: " .. ( self:get_os_release () or "unknown" ) )
+        print ( "Control board: " .. ( self.rpc.get_board () or "unknown" ) )
+        print ( "Control os-release: " .. ( self.rpc.get_os_release () or "unknown" ) )
         print ()
 
         --synchronize time
         if ( disable_synchronize == false ) then
             local err
             local time = os.date ( "*t", os.time() )
-            local cur_time, err = self:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+            local cur_time, err = self.rpc.set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
             if ( err == nil ) then
                 print ( "Set date/time to " .. cur_time )
             else
@@ -145,34 +145,6 @@ function ControlNodeRef:restart_wifi_debug ()
     self.rpc.restart_wifi_debug()
 end
 
-function ControlNodeRef:set_nameservers ( nameserver )
-    self.rpc.set_nameservers ( nameserver )
-end
-
-function ControlNodeRef:get_board ()
-    return self.rpc.get_board ()
-end
-
-function ControlNodeRef:get_boards ()
-    return self.rpc.get_boards ()
-end
-
-function ControlNodeRef:get_os_release ()
-    return self.rpc.get_os_release ()
-end
-
-function ControlNodeRef:get_os_releases ()
-    return self.rpc.get_os_releases ()
-end
-
-function ControlNodeRef:set_date ( ... )
-    return self.rpc.set_date ( ... )
-end
-
-function ControlNodeRef:set_dates ()
-    return self.rpc.set_dates ()
-end
-
 function ControlNodeRef:set_ani ( enabled )
     for _, node_name in ipairs ( self:list_nodes() ) do
         self.rpc.set_ani ( node_name, enabled )
@@ -222,6 +194,7 @@ end
 
 function ControlNodeRef:init_nodes ( disable_autostart
                                    , disable_reachable
+                                   , disable_synchonize
                                    )
     if ( table_size ( self:list_nodes() ) == 0 ) then
         return false, "no nodes present"
@@ -237,7 +210,7 @@ function ControlNodeRef:init_nodes ( disable_autostart
     -- and auto start nodes
     if ( disable_autostart == false ) then
         -- check known_hosts at control
-        if ( self:hosts_known () == false ) then
+        if ( self.rpc.hosts_known () == false ) then
             return false, "Not all hosts are known on control node. Check know_hosts file."
         end
 
@@ -254,6 +227,22 @@ function ControlNodeRef:init_nodes ( disable_autostart
     if ( self.rpc.connect_nodes ( self.ctrl_port ) == false ) then
         return false, "connections to nodes failed!"
     end
+
+    for node_name, board in pairs ( self.rpc.get_boards () ) do
+        print ( node_name .. " board: " .. board )
+    end
+
+    for node_name, os_release in pairs ( self.rpc.get_os_releases () ) do
+        print ( node_name .. " os_release: " .. os_release )
+    end
+
+    -- synchonize time
+    if ( disable_synchronize == false ) then
+        self.rpc.set_dates ()
+    end
+
+    -- set nameserver on all nodes
+    self.rpc.set_nameservers ( self.nameserver )
 
     return true, nil
 end
@@ -461,10 +450,6 @@ function ControlNodeRef:reachable ()
         end
     end
     return true
-end
-
-function ControlNodeRef:hosts_known ()
-    return self.rpc.hosts_known ()
 end
 
 function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, keys )
