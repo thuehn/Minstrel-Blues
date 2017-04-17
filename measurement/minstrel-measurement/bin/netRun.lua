@@ -228,11 +228,11 @@ if ( args.verbose == true) then
     print ( )
     print ( )
     print ( "Access Points:" )
-    for _, ap in ipairs ( args.ap ) do print ( ap ) end
+    print ( table_tostring ( args.ap ) )
     print ( )
     print ( "Stations:" )
     print ( )
-    for _, sta in ipairs ( args.sta ) do print ( sta ) end
+    print ( table_tostring ( args.sta ) )
     print ( )
 end
 
@@ -378,7 +378,7 @@ for _, ap_name in ipairs ( ctrl_ref:list_aps() ) do
     print ( "STATIONS on " .. ap_name )
     print ( "==================")
     local wifi_stations = ctrl_ref:list_stations ( ap_name )
-    for _, wifi_station in ipairs ( wifi_stations ) do print ( wifi_station ) end
+    print ( table_tostring ( wifi_stations ) )
     print ()
 end
 

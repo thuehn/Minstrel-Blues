@@ -16,7 +16,7 @@ function WifiIF:create ( iface, addr, mon, phy, node )
                            , addr = addr
                            , mon = mon
                            , phy = phy
-                           , node = node
+                           , node = node -- logging, kill
                            , regmon_proc = nil
                            , cpusage_proc = nil
                            , rc_stats_procs = {}

@@ -109,4 +109,4 @@ function set_nameserver (...) return node:set_nameserver (...) end
 function check_bridge (...) return node:check_bridge (...) end
 
 print ( node )
-node:run( args.port )
+print ( node:run ( args.port ) )

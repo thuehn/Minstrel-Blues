@@ -42,4 +42,4 @@ function set_cut () node:set_cut () end
 function stop ( ... ) node:stop ( ... ) end
 
 -- make all functions available via RPC
-node:run ( args.port )
+print ( node:run ( args.port ) )

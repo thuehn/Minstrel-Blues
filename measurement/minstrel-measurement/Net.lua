@@ -81,7 +81,7 @@ Net.get_interface_name = function ( phy )
     end
     for file in lfs.dir( dname ) do
         if ( string.sub ( file, 1, 7 ) == "netdev:" and string.sub ( file, 8, 10 ) ~= "mon" ) then
-            return string.sub( file, 8 )
+            return string.sub ( file, 8 )
         end
     end
     return nil, "No debugfs entry for " .. phy .. " found"
@@ -97,7 +97,10 @@ function Net.run ( port, name, log_f )
         return nil
     end
     log_f ( " Start service " .. ( name or "unset" ) .. " with PRC port " .. tostring ( port ) )
-    rpc.server ( port )
+    
+    function run_rpc () rpc.server ( port ) end
+
+    return pcall ( run_rpc )
 end
 
 Net.connect = function ( addr, port, runs, name, log_f )

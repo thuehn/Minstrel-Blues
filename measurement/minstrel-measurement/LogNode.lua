@@ -137,9 +137,10 @@ end
 
 function LogNode:run ( port )
     self:set_cut ()
-    net.run ( port, self.name,
-              function ( msg ) self:send_info ( self.name, msg ) end
-            )
+    return net.run ( port
+                   , self.name
+                   , function ( msg ) self:send_info ( self.name, msg ) end
+                   )
 end
 
 function LogNode:stop ()

@@ -44,9 +44,10 @@ function NodeBase:run ()
     if ( os_release ~= nil ) then
         self:send_info ( os_release )
     end
-    net.run ( self.port, self.name,
-              function ( msg ) self:send_info ( msg ) end
-            )
+    return net.run ( self.port
+                   , self.name
+                   , function ( msg ) self:send_info ( msg ) end
+                   )
 end
 
 function NodeBase:set_nameserver (  nameserver )

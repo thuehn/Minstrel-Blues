@@ -82,4 +82,4 @@ function check_bridges (...) return node:check_bridges (...) end
 
 -- make all functions available via RPC
 print ( node:__tostring() )
-node:run ()
+print ( node:run () )
