@@ -22,6 +22,9 @@ ControlNodeRef = { name = nil
                  , log_ref = nil
                  , nameserver = nil
                  , ctrl_port = nil
+                 , aps_config = nil
+                 , sta_config = nil
+                 , connections = nil
                  }
 
 function ControlNodeRef:new (o)
@@ -32,7 +35,9 @@ function ControlNodeRef:new (o)
 end
 
 function ControlNodeRef:create ( name, ctrl_if, ctrl_port, output_dir
-                               , log_fname, log_port, distance, net, nameserver )
+                               , log_fname, log_port
+                               , distance, net, nameserver
+                               , aps_config, stas_config, connections )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
@@ -44,6 +49,9 @@ function ControlNodeRef:create ( name, ctrl_if, ctrl_port, output_dir
                                  , distance = distance
                                  , net = net
                                  , nameserver = nameserver
+                                 , aps_config = aps_config
+                                 , stas_config = stas_config
+                                 , connections = connections
                                  }
 
     if ( log_port ~= nil and log_fname ~= nil ) then
@@ -68,9 +76,7 @@ function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
 end
 
-function ControlNodeRef:init ( disable_autostart, net, disable_synchronize
-                             , aps_config, stas_config
-                             )
+function ControlNodeRef:init ( disable_autostart, net, disable_synchronize )
     if ( disable_autostart == false ) then
         if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
             local ctrl_pid = self:start_remote ( self.ctrl_port )
@@ -103,8 +109,9 @@ function ControlNodeRef:init ( disable_autostart, net, disable_synchronize
         end
 
         -- add station and accesspoint references to control
-        self:add_aps ( aps_config )
-        self:add_stas ( stas_config )
+        self:add_aps ( self.aps_config )
+        self:add_stas ( self.stas_config )
+
     end
 
     return self:get_pid ()
@@ -243,6 +250,21 @@ function ControlNodeRef:init_nodes ( disable_autostart
 
     -- set nameserver on all nodes
     self.rpc.set_nameservers ( self.nameserver )
+
+    if ( self:prepare_aps ( self.aps_config ) == false ) then
+        return false, "preparation of access points failed!"
+    end
+
+    if ( self:prepare_stas ( self.stas_config ) == false ) then
+        return false, "preparation of stations failed!"
+    end
+
+    self:associate_stas ( self.connections )
+
+    local all_linked = self:link_stas ( self.connections )
+    if ( all_linked == false ) then
+        return false, "Cannot get ssid from acceesspoint"
+    end
 
     return true, nil
 end

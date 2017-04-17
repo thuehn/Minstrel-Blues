@@ -285,6 +285,9 @@ local ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
                                        , args.distance
                                        , net
                                        , nameserver or args.nameserver
+                                       , aps_config
+                                       , stas_config
+                                       , connections
                                        )
 
 if ( ctrl_ref == nil ) then
@@ -300,8 +303,6 @@ end
 local ctrl_pid = ctrl_ref:init ( args.disable_autostart
                                , net
                                , args.disable_synchronize
-                               , aps_config
-                               , stas_config
                                )
 
 if ( ctrl_pid == nil ) then
@@ -323,32 +324,6 @@ else
 end
 
 -- ----------------------------------------------------------
-
-print ( "Prepare APs" )
-if ( ctrl_ref:prepare_aps ( aps_config ) == false ) then
-    print ( "preparation of access points failed!" )
-    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
-    os.exit (1)
-end
-print ()
-
-print ( "Prepare STAs" )
-if ( ctrl_ref:prepare_stas ( stas_config ) == false ) then
-    print ( "preparation of stations failed!" )
-    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
-    os.exit (1)
-end
-
-print ( "Associate AP with STAs" )
-ctrl_ref:associate_stas ( connections )
-
-print ( "Connect STAs to APs SSID" )
-local all_linked = ctrl_ref:link_stas ( connections )
-if ( all_linked == false ) then
-    print ( "error: cannot get ssid from acceesspoint" )
-    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
-    os.exit (1)
-end
 
 -- check bridges
 local all_bridgeless = ctrl_ref:check_bridges()
