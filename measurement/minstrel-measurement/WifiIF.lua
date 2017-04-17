@@ -76,7 +76,7 @@ function WifiIF:restart_wifi ( proc_version )
         local wifi, err = misc.execute ( "/sbin/wifi" )
         self.node:send_info( "restart wifi done: " .. wifi )
         return true
-    elseif ( self.node.proc_version.system == "Gentoo" ) then
+    elseif ( proc_version.system == "Gentoo" ) then
         local init_script = "/etc/init.d/net." .. self.iface
         if ( isFile ( init_script ) ) then
             local wifi, err = misc.execute ( init_script, "restart")
