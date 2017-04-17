@@ -118,30 +118,11 @@ local sta_setups
 
 local keys = nil
 local output_dir = args.output
+
 if ( isDir ( output_dir ) == false ) then
     local status, err = lfs.mkdir ( output_dir )
 else
-    for _, name in ipairs ( ( scandir ( output_dir ) ) ) do
-        if ( name ~= "." and name ~= ".."  and isDir ( args.output .. "/" .. name )
-             and Config.find_node ( name, nodes ) ~= nil ) then
-            local measurement = Measurement.parse ( name, args.output )
-            print ( measurement:__tostring () )
-            for key, pcap in pairs ( measurement.tcpdump_pcaps ) do
-                if ( pcap == nil or pcap == "" ) then
-                    if ( keys == nil ) then
-                        keys = {}
-                        keys [1] = {}
-                    end
-                    print ( "resume key: " .. key )
-                    if ( Misc.index_of ( key, keys [1] ) == nil ) then
-                        keys [1] [ #keys [1] + 1 ] = key
-                    end
-                end
-            end
-        end
-    end
-    pprint ( keys )
-
+    keys = Measurement.resume ( output_dir )
     if ( keys == nil ) then
         for _, fname in ipairs ( ( scandir ( output_dir ) ) ) do
             if ( fname ~= "." and fname ~= ".." ) then
@@ -153,6 +134,8 @@ else
                 break
             end
         end
+    else
+        print ( "resume keys: " .. table_to_string ( keys ) )
     end
 end
 

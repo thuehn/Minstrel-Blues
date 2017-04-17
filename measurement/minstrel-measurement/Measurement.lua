@@ -430,3 +430,25 @@ function Measurement:fetch ( phy, key )
         end
     end
 end
+
+function Measurement.resume ( output_dir )
+    keys = nil
+    for _, name in ipairs ( ( scandir ( output_dir ) ) ) do
+        if ( name ~= "." and name ~= ".."  and isDir ( output_dir .. "/" .. name )
+             and Config.find_node ( name, nodes ) ~= nil ) then
+            local measurement = Measurement.parse ( name, output_dir )
+            for key, pcap in pairs ( measurement.tcpdump_pcaps ) do
+                if ( pcap == nil or pcap == "" ) then
+                    if ( keys == nil ) then
+                        keys = {}
+                        keys [1] = {}
+                    end
+                    if ( Misc.index_of ( key, keys [1] ) == nil ) then
+                        keys [1] [ #keys [1] + 1 ] = key
+                    end
+                end
+            end
+        end
+    end
+    return keys
+end
