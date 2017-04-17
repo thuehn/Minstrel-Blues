@@ -123,7 +123,7 @@ function ControlNodeRef:cleanup ( disable_autostart, net, ctrl_pid )
         if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
             self:stop_remote ( self.ctrl_net_ref.addr, ctrl_pid )
         else
-            self:stop ( ctrl_pid )
+            self:stop_local ( ctrl_pid )
         end
     end
     self:disconnect_control ()
@@ -394,13 +394,13 @@ function ControlNodeRef:disconnect_control ()
 end
 
 function ControlNodeRef:stop_control ()
-    self.rpc.stop()
+    self.rpc.stop ()
     if ( self.log_ref ~= nil ) then
         self.log_ref:stop ()
     end
 end
 
-function ControlNodeRef:stop ( pid )
+function ControlNodeRef:stop_local ( pid )
     ps.kill ( pid, ps.SIGINT )
     ps.kill ( pid, ps.SIGINT )
     lpc.wait ( pid )

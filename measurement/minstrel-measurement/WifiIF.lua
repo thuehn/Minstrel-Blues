@@ -28,8 +28,8 @@ function WifiIF:create ( iface, addr, mon, phy, node )
     return o
 end
 
-function WifiIF:enable_wifi ( enabled )
-    if ( self.node.proc_version.system == "LEDE" ) then
+function WifiIF:enable_wifi ( enabled, proc_version )
+    if ( proc_version.system == "LEDE" ) then
         local var = "wireless.radio"
         var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
         var = var .. ".disabled"
@@ -70,9 +70,9 @@ function WifiIF:get_ssid ()
     return nil, nil
 end
 
-function WifiIF:restart_wifi ()
+function WifiIF:restart_wifi ( proc_version )
     self.node:send_debug ("restart wifi" )
-    if ( self.node.proc_version.system == "LEDE" ) then
+    if ( proc_version.system == "LEDE" ) then
         local wifi, err = misc.execute ( "/sbin/wifi" )
         self.node:send_info( "restart wifi done: " .. wifi )
         return true

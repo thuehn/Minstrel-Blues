@@ -113,7 +113,7 @@ end
 function Node:enable_wifi ( enabled, phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:enable_wifi ( enabled )
+        return dev:enable_wifi ( enabled, self.proc_version )
     end
     return false
 end
@@ -134,10 +134,10 @@ function Node:get_ssid ( phy )
     return nil
 end
 
-function Node:restart_wifi( phy )
+function Node:restart_wifi ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:restart_wifi ()
+        return dev:restart_wifi ( self.proc_version )
     end
     return false
 end
