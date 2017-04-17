@@ -282,81 +282,45 @@ print ( )
 
 Config.save ( output_dir, ctrl_config, aps_config, stas_config )
 
-local ctrl_pid
-local ctrl_ref
-local net
-
-function cleanup ()
-    if ( ctrl_ref.rpc == nil ) then return true end
-
-    print ( " disconnect nodes " )
-    ctrl_ref:disconnect_nodes ()
-
-    -- kill nodes if desired by the user
-    if ( args.disable_autostart == false ) then
-        print ( "stop control" )
-        ctrl_ref:stop_control ()
-        if ( ctrl_ref.ctrl_net_ref.addr ~= nil and ctrl_ref.ctrl_net_ref.addr ~= net.addr ) then
-            ctrl_ref:stop_remote ( ctrl_ref.ctrl_net_ref.addr, ctrl_pid )
-        else
-            ctrl_ref:stop ( ctrl_pid )
-        end
-    end
-    ctrl_ref:disconnect ()
-end
-
 -- local ctrl iface
-net = NetIF:create ( args.net_if )
+local net = NetIF:create ( args.net_if )
 net:get_addr()
-
--- remote control node interface
-ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
-                                 , ctrl_config ['ctrl_if']
-                                 , output_dir
-                                 , args.log_file
-                                 , args.log_port
-                                 , args.distance
-                                 , net
-                                 )
-
--- stop when nameserver is not reachable / not working
-if ( nameserver ~= nil or args.nameserver ~= nil ) then
-    local addr, _ = parse_ipv4 ( nameserver or args.nameserver )
-    local ping_ns, exit_code = Misc.execute ( "ping", "-c1", nameserver or args.nameserver )
-    if ( exit_code ~= 0 ) then
-        print ( "Cannot reach nameserver" )
-        os.exit (1)
-    end
-end
 
 if ( net.addr == nil ) then
     print ( "Cannot get IP address of local interface" )
     os.exit (1)
 end
+
+-- remote control node interface
+local ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
+                                       , ctrl_config ['ctrl_if']
+                                       , output_dir
+                                       , args.log_file
+                                       , args.log_port
+                                       , args.distance
+                                       , net
+                                       , nameserver or args.nameserver
+                                       )
+
+if ( ctrl_ref == nil ) then
+    print ( "Cannot reach nameserver" )
+    os.exit (1)
+end
+
 if ( ctrl_ref.ctrl_net_ref.addr == nil ) then
     print ( "Cannot get IP address of control node reference" )
     os.exit (1)
 end
 
-if ( args.disable_autostart == false ) then
-    if ( ctrl_ref.ctrl_net_ref.addr ~= nil and ctrl_ref.ctrl_net_ref.addr ~= net.addr ) then
-        ctrl_pid = ctrl_ref:start_remote ( args.ctrl_port )
-    else
-        ctrl_pid = ctrl_ref:start ( args.ctrl_port )
-    end
-end
+local ctrl_pid = ctrl_ref:init ( args.disable_autostart, net, args.ctrl_port )
 
--- ---------------------------------------------------------------
-
--- connect to control
-
-ctrl_ref:connect ( args.ctrl_port )
-if ( ctrl_ref.rpc == nil) then
+if ( ctrl_pid == nil ) then
     print ( "Connection to control node faild" )
     os.exit (1)
 end
 print ()
-ctrl_pid = ctrl_ref:get_pid ()
+
+-- ---------------------------------------------------------------
 
 print ( "Control board: " .. ( ctrl_ref:get_board () or "unknown" ) )
 print ( "Control os-release: " .. ( ctrl_ref:get_os_release () or "unknown" ) )
@@ -383,7 +347,7 @@ ctrl_ref:add_stas ( stas_config )
 
 if ( table_size ( ctrl_ref:list_nodes() ) == 0 ) then
     error ("no nodes present")
-    cleanup ()
+    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
     os.exit (1)
 end
 
@@ -398,7 +362,7 @@ end
 -- check reachability 
 if ( args.disable_reachable == false ) then
     if ( ctrl_ref:reachable () == false ) then
-        cleanup ()
+        ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
         os.exit (1)
     end
 end
@@ -414,7 +378,7 @@ if ( args.disable_autostart == false ) then
 
     print ("start nodes")
     if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl_net_ref.addr, args.log_port ) == false ) then
-        cleanup ()
+        ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
         print ( "Error: Not all nodes started")
         os.exit (1)
     end
@@ -429,7 +393,7 @@ posix.sleep (3)
 print ( "connect to nodes at port " .. args.ctrl_port )
 if ( ctrl_ref:connect_nodes ( args.ctrl_port ) == false ) then
     print ( "connections to nodes failed!" )
-    cleanup ()
+    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
     os.exit (1)
 else
     print ("All nodes connected")
@@ -455,7 +419,7 @@ ctrl_ref:set_nameservers ( args.nameserver or nameserver )
 print ( "Prepare APs" )
 if ( ctrl_ref:prepare_aps ( aps_config ) == false ) then
     print ( "preparation of access points failed!" )
-    cleanup ()
+    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
     os.exit (1)
 end
 print ()
@@ -463,7 +427,7 @@ print ()
 print ( "Prepare STAs" )
 if ( ctrl_ref:prepare_stas ( stas_config ) == false ) then
     print ( "preparation of stations failed!" )
-    cleanup ()
+    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
     os.exit (1)
 end
 
@@ -474,7 +438,7 @@ print ( "Connect STAs to APs SSID" )
 local all_linked = ctrl_ref:link_stas ( connections )
 if ( all_linked == false ) then
     print ( "error: cannot get ssid from acceesspoint" )
-    cleanup ()
+    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
     os.exit (1)
 end
 
@@ -499,7 +463,7 @@ print ( )
 
 if ( args.dry_run ) then 
     print ( "dry run is set, quit here" )
-    cleanup ()
+    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
     os.exit (1)
 end
 print ( )
@@ -552,5 +516,5 @@ else
     end
 end
 
-cleanup ()
+ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
 os.exit ( 0 )

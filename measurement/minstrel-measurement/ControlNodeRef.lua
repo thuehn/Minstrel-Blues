@@ -29,7 +29,7 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname, log_port, distance, net )
+function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname, log_port, distance, net, nameserver )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
@@ -47,6 +47,15 @@ function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname, log_port,
         o:send_info ( "wait until logger is running" )
     end
 
+    -- stop when nameserver is not reachable / not working
+    if ( nameserver ~= nil ) then
+        local addr, _ = parse_ipv4 ( nameserver )
+        local ping_ns, exit_code = Misc.execute ( "ping", "-c1", nameserver )
+        if ( exit_code ~= 0 ) then
+            return nil
+        end
+    end
+
     return o
 end
 
@@ -54,8 +63,46 @@ function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
 end
 
+function ControlNodeRef:init ( disable_autostart, net, ctrl_port )
+    -- autostart nodes
+    if ( disable_autostart == false ) then
+        if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
+            local ctrl_pid = self:start_remote ( ctrl_port )
+        else
+            local ctrl_pid = self:start ( ctrl_port )
+        end
+    end
+
+    -- connect to control
+    self:connect ( ctrl_port )
+    return self:get_pid ()
+end
+
+function ControlNodeRef:cleanup ( disable_autostart, net, ctrl_pid )
+    if ( self.rpc == nil ) then return true end
+
+    print ( " disconnect nodes " )
+    self:disconnect_nodes ()
+
+    -- kill nodes if desired by the user
+    if ( disable_autostart == false ) then
+        print ( "stop control" )
+        self:stop_control ()
+        if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
+            self:stop_remote ( self.ctrl_net_ref.addr, ctrl_pid )
+        else
+            self:stop ( ctrl_pid )
+        end
+    end
+    self:disconnect ()
+end
+
+
 function ControlNodeRef:get_pid ()
-    return self.rpc.get_pid ()
+    if ( self.rpc ~= nil ) then
+        return self.rpc.get_pid ()
+    end
+    return nil
 end
 
 function ControlNodeRef:check_bridges ()
