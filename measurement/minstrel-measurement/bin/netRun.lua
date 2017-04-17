@@ -312,36 +312,19 @@ if ( ctrl_ref.ctrl_net_ref.addr == nil ) then
     os.exit (1)
 end
 
-local ctrl_pid = ctrl_ref:init ( args.disable_autostart, net, args.ctrl_port )
+local ctrl_pid = ctrl_ref:init ( args.disable_autostart
+                               , net
+                               , args.ctrl_port
+                               , args.disable_synchronize
+                               , aps_config
+                               , stas_config
+                               )
 
 if ( ctrl_pid == nil ) then
     print ( "Connection to control node faild" )
     os.exit (1)
 end
 print ()
-
--- ---------------------------------------------------------------
-
-print ( "Control board: " .. ( ctrl_ref:get_board () or "unknown" ) )
-print ( "Control os-release: " .. ( ctrl_ref:get_os_release () or "unknown" ) )
-print ()
-
---synchronize time
-if ( args.disable_synchronize == false ) then
-    local err
-    local time = os.date("*t", os.time() )
-    local cur_time, err = ctrl_ref:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
-    if ( err == nil ) then
-        print ( "Set date/time to " .. cur_time )
-    else
-        print ( "Set date/time failed: " .. err )
-        print ( "Time is: " .. ( cur_time or "unset" ) )
-    end
-end
-
--- add station and accesspoint references to control
-ctrl_ref:add_aps ( aps_config )
-ctrl_ref:add_stas ( stas_config )
 
 -- -------------------------------------------------------------------
 

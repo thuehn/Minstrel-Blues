@@ -63,8 +63,9 @@ function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
 end
 
-function ControlNodeRef:init ( disable_autostart, net, ctrl_port )
-    -- autostart nodes
+function ControlNodeRef:init ( disable_autostart, net, ctrl_port, disable_synchronize
+                             , aps_config, stas_config
+                             )
     if ( disable_autostart == false ) then
         if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
             local ctrl_pid = self:start_remote ( ctrl_port )
@@ -73,8 +74,29 @@ function ControlNodeRef:init ( disable_autostart, net, ctrl_port )
         end
     end
 
-    -- connect to control
-    self:connect ( ctrl_port )
+    local succ = self:connect_control ( ctrl_port )
+    if ( succ ) then
+        print ( "Control board: " .. ( self:get_board () or "unknown" ) )
+        print ( "Control os-release: " .. ( self:get_os_release () or "unknown" ) )
+        print ()
+
+        --synchronize time
+        if ( disable_synchronize == false ) then
+            local err
+            local time = os.date ( "*t", os.time() )
+            local cur_time, err = self:set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
+            if ( err == nil ) then
+                print ( "Set date/time to " .. cur_time )
+            else
+                print ( "Error: Set date/time failed: " .. err )
+                print ( "Time is: " .. ( cur_time or "unset" ) )
+            end
+        end
+        -- add station and accesspoint references to control
+        self:add_aps ( aps_config )
+        self:add_stas ( stas_config )
+    end
+
     return self:get_pid ()
 end
 
@@ -94,7 +116,7 @@ function ControlNodeRef:cleanup ( disable_autostart, net, ctrl_pid )
             self:stop ( ctrl_pid )
         end
     end
-    self:disconnect ()
+    self:disconnect_control ()
 end
 
 
@@ -339,14 +361,14 @@ function ControlNodeRef:start_remote ( ctrl_port )
     return pid
 end
 
-function ControlNodeRef:connect ( ctrl_port )
+function ControlNodeRef:connect_control ( ctrl_port )
     print ( "connect " .. self.ctrl_net_ref:__tostring() )
     self.rpc = net.connect ( self.ctrl_net_ref.addr, ctrl_port, 10, self.name,
                                function ( msg ) print ( msg ) end )
-    return self.rpc
+    return ( self.rpc ~= nil )
 end
 
-function ControlNodeRef:disconnect ()
+function ControlNodeRef:disconnect_control ()
     net.disconnect ( self.rpc )
 end
 
