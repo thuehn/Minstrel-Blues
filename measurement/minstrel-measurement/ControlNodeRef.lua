@@ -18,13 +18,14 @@ ControlNodeRef = { name = nil
                  , output_dir = nil
                  , stats = nil   -- maps node name to statistics ( measurement )
                  , distance = nil --approx.distance between node just for the log file
-                 , net = nil
+                 , net_if = nil
                  , log_ref = nil
                  , nameserver = nil
                  , ctrl_port = nil
                  , aps_config = nil
                  , sta_config = nil
                  , connections = nil
+                 , ctrl_pid = nil
                  }
 
 function ControlNodeRef:new (o)
@@ -36,7 +37,7 @@ end
 
 function ControlNodeRef:create ( name, ctrl_if, ctrl_port, output_dir
                                , log_fname, log_port
-                               , distance, net, nameserver
+                               , distance, net_if, nameserver
                                , aps_config, stas_config, connections )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
@@ -47,7 +48,7 @@ function ControlNodeRef:create ( name, ctrl_if, ctrl_port, output_dir
                                  , output_dir = output_dir
                                  , stats = {}
                                  , distance = distance
-                                 , net = net
+                                 , net_if = net_if
                                  , nameserver = nameserver
                                  , aps_config = aps_config
                                  , stas_config = stas_config
@@ -55,7 +56,7 @@ function ControlNodeRef:create ( name, ctrl_if, ctrl_port, output_dir
                                  }
 
     if ( log_port ~= nil and log_fname ~= nil ) then
-        o.log_ref = LogNodeRef:create ( net.addr, log_port )
+        o.log_ref = LogNodeRef:create ( net_if.addr, log_port )
         o.log_ref:start ( output_dir .. "/" .. log_fname )
         o:send_info ( "wait until logger is running" )
     end
@@ -76,16 +77,16 @@ function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
 end
 
-function ControlNodeRef:init ( disable_autostart, net, disable_synchronize )
+function ControlNodeRef:init ( disable_autostart, disable_synchronize )
     if ( disable_autostart == false ) then
-        if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
-            local ctrl_pid = self:start_remote ( self.ctrl_port )
+        if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= self.net_if.addr ) then
+            self.ctrl_pid = self:start_remote ()
         else
-            local ctrl_pid = self:start ( self.ctrl_port )
+            self.ctrl_pid = self:start ()
         end
     end
 
-    local succ = self:connect_control ( self.ctrl_port )
+    local succ = self:connect_control ()
     if ( succ ) then
         print ( "Control board: " .. ( self.rpc.get_board () or "unknown" ) )
         print ( "Control os-release: " .. ( self.rpc.get_os_release () or "unknown" ) )
@@ -109,15 +110,16 @@ function ControlNodeRef:init ( disable_autostart, net, disable_synchronize )
         end
 
         -- add station and accesspoint references to control
-        self:add_aps ( self.aps_config )
-        self:add_stas ( self.stas_config )
+        self:add_aps ()
+        self:add_stas ()
 
     end
 
-    return self:get_pid ()
+    self.ctrl_pid = self:get_pid ()
+    return self.ctrl_pid
 end
 
-function ControlNodeRef:cleanup ( disable_autostart, net, ctrl_pid )
+function ControlNodeRef:cleanup ( disable_autostart )
     if ( self.rpc == nil ) then return true end
 
     print ( " disconnect nodes " )
@@ -127,10 +129,10 @@ function ControlNodeRef:cleanup ( disable_autostart, net, ctrl_pid )
     if ( disable_autostart == false ) then
         print ( "stop control" )
         self:stop_control ()
-        if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
-            self:stop_remote ( self.ctrl_net_ref.addr, ctrl_pid )
+        if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= self.net_if.addr ) then
+            self:stop_remote ()
         else
-            self:stop_local ( ctrl_pid )
+            self:stop_local ()
         end
     end
     self:disconnect_control ()
@@ -158,14 +160,14 @@ function ControlNodeRef:set_ani ( enabled )
     end
 end
 
-function ControlNodeRef:add_aps ( ap_configs )
-    for _, ap_config in ipairs ( ap_configs ) do
+function ControlNodeRef:add_aps ()
+    for _, ap_config in ipairs ( self.aps_config ) do
         self.rpc.add_ap ( ap_config.name,  ap_config.ctrl_if, ap_config.rsa_key )
     end
 end
 
-function ControlNodeRef:add_stas ( sta_configs )
-    for _, sta_config in ipairs ( sta_configs ) do
+function ControlNodeRef:add_stas ()
+    for _, sta_config in ipairs ( self.stas_config ) do
         self.rpc.add_sta ( sta_config.name,  sta_config.ctrl_if,
                            sta_config.rsa_key, sta_config.mac )
     end
@@ -251,17 +253,17 @@ function ControlNodeRef:init_nodes ( disable_autostart
     -- set nameserver on all nodes
     self.rpc.set_nameservers ( self.nameserver )
 
-    if ( self:prepare_aps ( self.aps_config ) == false ) then
+    if ( self:prepare_aps () == false ) then
         return false, "preparation of access points failed!"
     end
 
-    if ( self:prepare_stas ( self.stas_config ) == false ) then
+    if ( self:prepare_stas () == false ) then
         return false, "preparation of stations failed!"
     end
 
-    self:associate_stas ( self.connections )
+    self:associate_stas ()
 
-    local all_linked = self:link_stas ( self.connections )
+    local all_linked = self:link_stas ()
     if ( all_linked == false ) then
         return false, "Cannot get ssid from acceesspoint"
     end
@@ -269,10 +271,10 @@ function ControlNodeRef:init_nodes ( disable_autostart
     return true, nil
 end
 
-function ControlNodeRef:prepare_aps ( ap_configs )
-    local ap_names = self.rpc.list_aps()
+function ControlNodeRef:prepare_aps ()
+    local ap_names = self.rpc.list_aps ()
     for _, ap_name in ipairs ( ap_names ) do
-        local config = config.find_node ( ap_name, ap_configs )
+        local config = config.find_node ( ap_name, self.aps_config )
         if ( config == nil ) then
             print ( "config for node " .. ap_name .. " not found" )
             return false
@@ -297,9 +299,9 @@ function ControlNodeRef:prepare_aps ( ap_configs )
     return true
 end
 
-function ControlNodeRef:prepare_stas ( sta_configs )
-    for _, sta_name in ipairs ( self.rpc.list_stas() ) do
-        local config = config.find_node ( sta_name, sta_configs )
+function ControlNodeRef:prepare_stas ()
+    for _, sta_name in ipairs ( self.rpc.list_stas () ) do
+        local config = config.find_node ( sta_name, self.stas_config )
         if ( config == nil ) then
             print ( "config for node " .. sta_name .. " not found" )
             return false
@@ -326,8 +328,8 @@ end
 -- set ssid of AP and STA to ssid
 -- fixme: set interface static address
 -- fixme: setup dhcp server for wlan0
-function ControlNodeRef:associate_stas ( connections )
-    for ap, stas in pairs ( connections ) do
+function ControlNodeRef:associate_stas ()
+    for ap, stas in pairs ( self.connections ) do
         for _, sta in ipairs ( stas ) do
             print ( " connect " .. ap .. " with " .. sta )
             self.rpc.add_station ( ap, sta )
@@ -347,8 +349,8 @@ function ControlNodeRef:save_ssid ( name, ssid )
 
 end
 
-function ControlNodeRef:link_stas ( connections )
-    for ap, stas in pairs ( connections ) do
+function ControlNodeRef:link_stas ()
+    for ap, stas in pairs ( self.connections ) do
         local ssid = self.rpc.get_ssid ( ap )
         if ( ssid ~= nil ) then
             print ( "SSID: " .. ssid )
@@ -364,19 +366,19 @@ function ControlNodeRef:link_stas ( connections )
     return true
 end
 
-function ControlNodeRef:start ( ctrl_port )
+function ControlNodeRef:start ()
     local cmd = {}
     cmd [1] = "lua"
     cmd [2] = "/usr/bin/runControl"
     cmd [3] = "--port"
-    cmd [4] = ctrl_port 
+    cmd [4] = self.ctrl_port 
     cmd [5] = "--ctrl_if"
     cmd [6] = self.ctrl_net_ref.iface
     cmd [7] = "--output"
     cmd [8] = self.output_dir
-    if ( self.log_ref ~= nil and self.net.addr ~= nil ) then
+    if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
         cmd [9] = "--log_ip"
-        cmd [10] = self.net.addr
+        cmd [10] = self.net_if.addr
         cmd [11] = "--log_port"
         cmd [12] = self.log_ref.port 
     end
@@ -387,14 +389,14 @@ function ControlNodeRef:start ( ctrl_port )
     return pid
 end
 
-function ControlNodeRef:start_remote ( ctrl_port )
+function ControlNodeRef:start_remote ()
     local remote_cmd = "lua /usr/bin/runControl"
-                 .. " --port " .. ctrl_port 
+                 .. " --port " .. self.ctrl_port 
                  .. " --ctrl_if " .. self.ctrl_net_ref.iface
                  .. " --output " .. self.output_dir
 
-    if ( self.log_ref ~= nil and self.net.addr ~= nil ) then
-        remote_cmd = remote_cmd .. " --log_ip " .. self.net.addr
+    if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
+        remote_cmd = remote_cmd .. " --log_ip " .. self.net_if.addr
                        .. " --log_port " .. self.log_ref.port
     end
     print ( remote_cmd )
@@ -404,9 +406,9 @@ function ControlNodeRef:start_remote ( ctrl_port )
     return pid
 end
 
-function ControlNodeRef:connect_control ( ctrl_port )
+function ControlNodeRef:connect_control ()
     print ( "connect " .. self.ctrl_net_ref:__tostring() )
-    self.rpc = net.connect ( self.ctrl_net_ref.addr, ctrl_port, 10, self.name,
+    self.rpc = net.connect ( self.ctrl_net_ref.addr, self.ctrl_port, 10, self.name,
                                function ( msg ) print ( msg ) end )
     return ( self.rpc ~= nil )
 end
@@ -422,15 +424,15 @@ function ControlNodeRef:stop_control ()
     end
 end
 
-function ControlNodeRef:stop_local ( pid )
-    ps.kill ( pid, ps.SIGINT )
-    ps.kill ( pid, ps.SIGINT )
-    lpc.wait ( pid )
+function ControlNodeRef:stop_local ()
+    ps.kill ( self.ctrl_pid, ps.SIGINT )
+    ps.kill ( self.ctrl_pid, ps.SIGINT )
+    lpc.wait ( self.ctrl_pid )
 end
 
-function ControlNodeRef:stop_remote ( addr, pid )
-    local remote_cmd = "lua /usr/bin/kill_remote " .. pid .. " --INT -i 2"
-    local ssh, exit_code = misc.execute ( "ssh", "root@" .. addr, remote_cmd )
+function ControlNodeRef:stop_remote ()
+    local remote_cmd = "lua /usr/bin/kill_remote " .. self.ctrl_pid .. " --INT -i 2"
+    local ssh, exit_code = misc.execute ( "ssh", "root@" .. self.ctrl_net_ref.addr, remote_cmd )
     if ( exit_code == 0 ) then
         return true, nil
     else

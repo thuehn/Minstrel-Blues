@@ -301,7 +301,6 @@ if ( ctrl_ref.ctrl_net_ref.addr == nil ) then
 end
 
 local ctrl_pid = ctrl_ref:init ( args.disable_autostart
-                               , net
                                , args.disable_synchronize
                                )
 
@@ -317,7 +316,7 @@ local succ, err = ctrl_ref:init_nodes ( args.disable_autostart
                                       )
 if ( succ == false ) then
     print ( "Error: " .. err )
-    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
+    ctrl_ref:cleanup ( args.disable_autostart )
     os.exit (1)
 else
     print ( "All nodes connected" )
@@ -346,7 +345,7 @@ print ( )
 
 if ( args.dry_run ) then 
     print ( "dry run is set, quit here" )
-    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
+    ctrl_ref:cleanup ( args.disable_autostart )
     os.exit (1)
 end
 print ( )
@@ -399,5 +398,5 @@ else
     end
 end
 
-ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
+ctrl_ref:cleanup ( args.disable_autostart )
 os.exit ( 0 )
