@@ -294,6 +294,7 @@ end
 -- remote control node interface
 local ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
                                        , ctrl_config ['ctrl_if']
+                                       , args.ctrl_port
                                        , output_dir
                                        , args.log_file
                                        , args.log_port
@@ -303,85 +304,40 @@ local ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
                                        )
 
 if ( ctrl_ref == nil ) then
-    print ( "Cannot reach nameserver" )
+    print ( "Error: Cannot reach nameserver" )
     os.exit (1)
 end
 
 if ( ctrl_ref.ctrl_net_ref.addr == nil ) then
-    print ( "Cannot get IP address of control node reference" )
+    print ( "Error: Cannot get IP address of control node reference" )
     os.exit (1)
 end
 
 local ctrl_pid = ctrl_ref:init ( args.disable_autostart
                                , net
-                               , args.ctrl_port
                                , args.disable_synchronize
                                , aps_config
                                , stas_config
                                )
 
 if ( ctrl_pid == nil ) then
-    print ( "Connection to control node faild" )
+    print ( "Error: Connection to control node faild" )
     os.exit (1)
 end
 print ()
 
 -- -------------------------------------------------------------------
 
-if ( table_size ( ctrl_ref:list_nodes() ) == 0 ) then
-    error ("no nodes present")
-    ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
-    os.exit (1)
-end
-
-print ( "Reachability:" )
-print ( "=============" )
-print ( )
-
-if ( nameserver ~= nil or args.nameserver ~= nil ) then
-    ctrl_ref:set_nameserver ( args.nameserver or nameserver )
-end
-
--- check reachability 
-if ( args.disable_reachable == false ) then
-    if ( ctrl_ref:reachable () == false ) then
-        ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
-        os.exit (1)
-    end
-end
-print ()
-
--- and auto start nodes
-if ( args.disable_autostart == false ) then
-    -- check known_hosts at control
-    if ( ctrl_ref:hosts_known () == false ) then
-        print ( "Not all hosts are known on control node. Check know_hosts file." )
-        os.exit (1)
-    end
-
-    print ("start nodes")
-    if ( ctrl_ref:start_nodes ( ctrl_ref.ctrl_net_ref.addr, args.log_port ) == false ) then
-        ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
-        print ( "Error: Not all nodes started")
-        os.exit (1)
-    end
-end
-
--- ----------------------------------------------------------
-
-print ( "Wait 3 seconds for nodes initialisation" )
-posix.sleep (3)
-
--- and connect to nodes
-print ( "connect to nodes at port " .. args.ctrl_port )
-if ( ctrl_ref:connect_nodes ( args.ctrl_port ) == false ) then
-    print ( "connections to nodes failed!" )
+local succ, err = ctrl_ref:init_nodes ( args.disable_autostart, args.disable_reachable )
+if ( succ == false ) then
+    print ( "Error: " .. err )
     ctrl_ref:cleanup ( args.disable_autostart, net, ctrl_pid )
     os.exit (1)
 else
-    print ("All nodes connected")
+    print ( "All nodes connected" )
 end
-print ()
+
+-- ----------------------------------------------------------
 
 for node_name, board in pairs ( ctrl_ref:get_boards () ) do
     print ( node_name .. " board: " .. board )

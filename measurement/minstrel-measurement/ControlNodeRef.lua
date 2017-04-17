@@ -20,6 +20,8 @@ ControlNodeRef = { name = nil
                  , distance = nil --approx.distance between node just for the log file
                  , net = nil
                  , log_ref = nil
+                 , nameserver = nil
+                 , ctrl_port = nil
                  }
 
 function ControlNodeRef:new (o)
@@ -29,16 +31,19 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create ( name, ctrl_if, output_dir, log_fname, log_port, distance, net, nameserver )
+function ControlNodeRef:create ( name, ctrl_if, ctrl_port, output_dir
+                               , log_fname, log_port, distance, net, nameserver )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
     local o = ControlNodeRef:new { name = name
                                  , ctrl_net_ref = ctrl_net_ref
+                                 , ctrl_port = ctrl_port
                                  , output_dir = output_dir
                                  , stats = {}
                                  , distance = distance
                                  , net = net
+                                 , nameserver = nameserver
                                  }
 
     if ( log_port ~= nil and log_fname ~= nil ) then
@@ -63,18 +68,18 @@ function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
 end
 
-function ControlNodeRef:init ( disable_autostart, net, ctrl_port, disable_synchronize
+function ControlNodeRef:init ( disable_autostart, net, disable_synchronize
                              , aps_config, stas_config
                              )
     if ( disable_autostart == false ) then
         if ( self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= net.addr ) then
-            local ctrl_pid = self:start_remote ( ctrl_port )
+            local ctrl_pid = self:start_remote ( self.ctrl_port )
         else
-            local ctrl_pid = self:start ( ctrl_port )
+            local ctrl_pid = self:start ( self.ctrl_port )
         end
     end
 
-    local succ = self:connect_control ( ctrl_port )
+    local succ = self:connect_control ( self.ctrl_port )
     if ( succ ) then
         print ( "Control board: " .. ( self:get_board () or "unknown" ) )
         print ( "Control os-release: " .. ( self:get_os_release () or "unknown" ) )
@@ -92,6 +97,11 @@ function ControlNodeRef:init ( disable_autostart, net, ctrl_port, disable_synchr
                 print ( "Time is: " .. ( cur_time or "unset" ) )
             end
         end
+
+        if ( self.nameserver ) then
+            self.rpc.set_nameserver ( self.nameserver )
+        end
+
         -- add station and accesspoint references to control
         self:add_aps ( aps_config )
         self:add_stas ( stas_config )
@@ -104,7 +114,7 @@ function ControlNodeRef:cleanup ( disable_autostart, net, ctrl_pid )
     if ( self.rpc == nil ) then return true end
 
     print ( " disconnect nodes " )
-    self:disconnect_nodes ()
+    self.rpc.disconnect_nodes ()
 
     -- kill nodes if desired by the user
     if ( disable_autostart == false ) then
@@ -133,10 +143,6 @@ end
 
 function ControlNodeRef:restart_wifi_debug ()
     self.rpc.restart_wifi_debug()
-end
-
-function ControlNodeRef:set_nameserver ( nameserver )
-    self.rpc.set_nameserver ( nameserver )
 end
 
 function ControlNodeRef:set_nameservers ( nameserver )
@@ -214,16 +220,42 @@ function ControlNodeRef:list_stations ( ap_name )
     return self.rpc.list_stations ( ap_name )
 end
 
-function ControlNodeRef:start_nodes ()
-    return self.rpc.start_nodes ( self.distance )
-end
+function ControlNodeRef:init_nodes ( disable_autostart
+                                   , disable_reachable
+                                   )
+    if ( table_size ( self:list_nodes() ) == 0 ) then
+        return false, "no nodes present"
+    end
 
-function ControlNodeRef:connect_nodes ( port )
-    return self.rpc.connect_nodes ( port )
-end
+    -- check reachability 
+    if ( disable_reachable == false ) then
+        if ( self:reachable () == false ) then
+            return false, "Some nodes are not reachable"
+        end
+    end
 
-function ControlNodeRef:disconnect_nodes ()
-    return self.rpc.disconnect_nodes ()
+    -- and auto start nodes
+    if ( disable_autostart == false ) then
+        -- check known_hosts at control
+        if ( self:hosts_known () == false ) then
+            return false, "Not all hosts are known on control node. Check know_hosts file."
+        end
+
+        if ( self.rpc.start_nodes ( self.distance ) == false ) then
+            return falsem, "Not all nodes started"
+        end
+    end
+
+    print ( "Wait 3 seconds for nodes initialisation" )
+    posix.sleep (3)
+
+    -- and connect to nodes
+    print ( "connect to nodes at port " .. self.ctrl_port )
+    if ( self.rpc.connect_nodes ( self.ctrl_port ) == false ) then
+        return false, "connections to nodes failed!"
+    end
+
+    return true, nil
 end
 
 function ControlNodeRef:prepare_aps ( ap_configs )
