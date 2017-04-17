@@ -1,4 +1,7 @@
 -- run a single measurement between access points (APs) and stations (STAs)
+-- note: to run measurements simultaniuosly use different ports for logging (-L) and control (-C)
+--       as well as different output directories (--output)
+-- since the radios are not yet locked in any kind you have to ensure not them twice
 
 -- TODO:
 -- - rpc: transfer tcpdump binary lines/packages and stats online to support large experiment with low ram
@@ -11,9 +14,8 @@
 --  rssi is an estimated value and is detemined periodically (temperature changes ambient/background noise in the chip)
 -- MCS has is own ordering: modulation & coding x channel Mhz x short/long gard interval (SGI/GI)
 -- plugin support with loadfile
--- derive MeshRef from AcceesspointRef
+-- derive MeshRef from AccesspointRef
 -- abort experiment when not connected ( and no rates are available )
--- run multiple experiments simultaniuosly ( by using more nodes with different ports )
 -- check authorized keys
 -- initialize NetIF for disabled phys ( no netdev:wlan0/1 in debugfs )
 -- abort when AP or STA not in config
@@ -29,7 +31,6 @@
 -- experiment direction (AP->STA, STA->AP)
 -- move config part to control node
 -- analyse throughput
--- catch address in use
 
 local pprint = require ('pprint')
 

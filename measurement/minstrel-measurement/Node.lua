@@ -49,9 +49,13 @@ function Node:create ( name, ctrl, port, log_port, log_addr )
         netif.node = o
         netif.phy = phy
         netif.mon = "mon" .. tostring ( i - 1 )
-        netif.iface, msg = net.get_interface_name ( phy )
+        netif.iface, _ = net.get_interface_name ( phy )
         if ( netif.iface == nil ) then
-            o:send_error ( "Empty ieee80211 debugfs: please check permissions and kernel config, i.e. ATH9K_DEBUGFS: " .. msg )
+            o:enable_wifi ( phy )
+            netif.iface, msg = net.get_interface_name ( phy )
+            if ( netif.iface == nil ) then
+                o:send_error ( "Empty ieee80211 debugfs: please check permissions and kernel config, i.e. ATH9K_DEBUGFS: " .. msg )
+            end
         else
             netif.addr, msg = net.get_addr ( netif.iface )
             o.wifis [ phy ] = netif

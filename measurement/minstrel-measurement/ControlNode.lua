@@ -332,6 +332,7 @@ function ControlNode:start_nodes ( distance )
         local remote_cmd = "lua /usr/bin/runNode"
                     .. " --name " .. node_ref.name 
                     .. " --ctrl_if " .. node_ref.ctrl_net_ref.iface
+                    .. " --port " .. self.port 
 
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
@@ -342,7 +343,7 @@ function ControlNode:start_nodes ( distance )
         self:send_info ( "ssh " .. "-i " .. ( node_ref.rsa_key or "none" )
                         .. " root@" .. ( node_ref.ctrl_net_ref.addr or "none" ) .. " " .. remote_cmd )
         local pid, _, _ = misc.spawn ( "ssh", "-i", node_ref.rsa_key, 
-                                      "root@" .. ( node_ref.ctrl_net_ref.addr or "none" ), remote_cmd )
+                                       "root@" .. ( node_ref.ctrl_net_ref.addr or "none" ), remote_cmd )
         return pid
     end
     self:send_debug ( "exeriment approximate distance: " .. ( distance or "not specified" ) )
