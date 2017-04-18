@@ -498,9 +498,12 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
         -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
         --     self:send_debug ( "station: " .. station )
         -- end
-        if ( self.exp:settle_measurement ( ap_ref, key, 10 ) == false ) then
-            self:send_error ( "experiment aborted, settledment failed. please check the wifi connnections." )
-            return false
+        local status, err = self.exp:settle_measurement ( ap_ref, key, 10 )
+        if ( status == false ) then
+            local msg = "experiment aborted, settledment failed."
+            msg = msg .. " please check the wifi connnections of " .. ( ap_ref.name or "none" ) .. "."
+            self:send_error ( msg )
+            return false, msg
         end
         -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
         --     self:send_debug ( "station: " .. station )
@@ -584,7 +587,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
         self.exp:unsettle_measurement ( ap_ref, key )
     end
 
-    return true
+    return true, nil
 end
 
 -- -------------------------

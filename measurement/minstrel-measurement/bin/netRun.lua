@@ -15,8 +15,7 @@
 -- MCS has is own ordering: modulation & coding x channel Mhz x short/long gard interval (SGI/GI)
 -- plugin support with loadfile
 -- derive MeshRef from AccesspointRef
--- abort experiment when not connected ( and no rates are available )
--- check authorized keys manually
+-- check authorized keys manually ( no ssh-copy-id)
 -- add UDP iperf for x MB instead of x seconds with y Mbit/s data creation rate
 -- plot ath and non-ath networks
 -- regmon: luci config allows non-existant debugfs entries
@@ -25,7 +24,6 @@
 -- cooperative channel selection
 -- deamon working dir should be / and stdout,in,err /dev/null
 -- filter by used UDP port
--- station wifi addr is not resolvable when not connected (detect and abort)
 -- experiment direction (AP->STA, STA->AP)
 -- analyse throughput
 

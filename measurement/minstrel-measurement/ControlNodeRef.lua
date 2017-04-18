@@ -590,6 +590,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
     end
 
     local ret = true
+    local err = nil
     -- run expriments
     print ( "Run " .. min_len .. " experiments." )
 
@@ -598,7 +599,10 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
                             .. " with key " .. ( key or "none" ) .. " *"
         print ( exp_header )
 
-        ret = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len )
+        ret, err = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len )
+        if ( ret == false ) then
+            return ret, err
+        end
 
         print ("* Transfer Measurement Result *")
 
@@ -639,7 +643,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         counter = counter + 1
     end
 
-    return ret
+    return ret, err
 
 end
 
