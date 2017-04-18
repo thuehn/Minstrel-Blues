@@ -142,6 +142,15 @@ function Node:get_ctrl_addr ()
     return self.ctrl.addr 
 end
 
+function Node:get_regmon_rate ()
+    if ( self.proc_version.system == "LEDE" ) then
+        local var = "regmon.regmon.samplingrate"
+        return tonumber ( uci.get_var ( var ) )
+    else
+        return 500000000
+    end
+end
+
 -- --------------------------
 -- wifi
 -- --------------------------
@@ -592,7 +601,8 @@ end
 function Node:start_regmon_stats ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:start_regmon_stats ()
+        local sampling_rate = self:get_regmon_rate ()
+        return dev:start_regmon_stats ( sampling_rate )
     end
     return nil
 end

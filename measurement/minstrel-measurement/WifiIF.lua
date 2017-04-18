@@ -2,7 +2,6 @@
 require ('NetIF')
 require ('parsers/iw_info')
 require ('parsers/iw_link')
-local uci = require ('Uci')
 
 local misc = require ('misc')
 local pprint = require ('pprint')
@@ -170,7 +169,7 @@ end
 
 local fetch_file_bin = "/usr/bin/fetch_file"
 
-function WifiIF:start_regmon_stats ()
+function WifiIF:start_regmon_stats ( sampling_rate )
     if ( self.regmon_proc ~= nil ) then
         self.node:send_error ( "Not collecting regmon stats for " 
                                .. self.iface .. ", " .. self.phy .. ". Alraedy running" )
@@ -183,7 +182,7 @@ function WifiIF:start_regmon_stats ()
         return nil
     end
     self.node:send_info ( "start collecting regmon stats for " .. self.iface .. ", " .. self.phy )
-    local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-l", "-i", 500000000, file )
+    local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-l", "-i", sampling_rate, file )
     self.regmon_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
@@ -263,7 +262,8 @@ end
 -- rc_stats
 -- --------------------------
 
-function WifiIF:start_rc_stats ( station )
+function WifiIF:start_rc_stats ( station, sampling_rate )
+    if ( sampling_rate == nil ) then sampling_rate = 500000000 end
     if ( self.rc_stats_procs [ station ] ~= nil ) then
         self.node:send_error ( "rc stats for station " .. station .. " already running" )
         return nil
@@ -273,7 +273,7 @@ function WifiIF:start_rc_stats ( station )
     local file = debugfs .. "/" .. self.phy .. "/netdev:" .. self.iface .. "/stations/"
                          .. station .. "/rc_stats_csv"
     if ( isFile ( file ) == true ) then
-        local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-i", 500000000, file )
+        local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-i", sampling_rate, file )
         self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
         self.node:send_info ( "rc stats for station " .. station .. " started with pid: " .. pid )
         return pid
