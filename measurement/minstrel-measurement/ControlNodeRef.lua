@@ -35,14 +35,61 @@ function ControlNodeRef:new (o)
     return o
 end
 
-function ControlNodeRef:create ( name, ctrl_if, ctrl_port, output_dir
+function ControlNodeRef:create ( ctrl_port, output_dir
                                , log_fname, log_port
                                , distance, net_if, nameserver
-                               , aps_config, stas_config, connections )
-    local ctrl_net_ref = NetIfRef:create ( ctrl_if )
-    ctrl_net_ref:set_addr ( name )
+                               , ctrl_arg, ap_args, sta_args, connections
+                               , ap_setups, sta_setups, command )
+    local ap_names = {}
+    for _, ap in ipairs ( ap_args ) do
+        local parts = split ( ap, "," )
+        ap_names [ #ap_names + 1 ] = parts [ 1 ]
+    end
 
-    local o = ControlNodeRef:new { name = name
+    local aps_config = Config.select_configs ( ap_setups, ap_names )
+    if ( table_size ( aps_config ) == 0 ) then return nil end
+
+    local sta_names = {}
+    for _, sta in ipairs ( sta_args ) do
+        local parts = split ( sta, "," )
+        sta_names [ #sta_names + 1 ] = parts [ 1 ]
+    end
+
+    local stas_config = Config.select_configs ( sta_setups, sta_names )
+    if ( table_size ( stas_config ) == 0 ) then return nil end
+
+    local ctrl_config = Config.select_config ( nodes, ctrl_arg )
+    if ( ctrl_config == nil ) then return nil end
+
+    print ( "Configuration:" )
+    print ( "==============" )
+    print ( )
+    print ( "Command: " .. command )
+    print ( )
+    print ( "Control: " .. Config.cnode_to_string ( ctrl_config ) )
+    print ( )
+    print ( "Access Points:" )
+    print ( "--------------" )
+
+    for _, ap in ipairs ( aps_config ) do
+        print ( Config.cnode_to_string ( ap ) )
+    end
+
+    print ( )
+    print ( "Stations:" )
+    print ( "---------" )
+
+    for _, sta_config in ipairs ( stas_config ) do
+        print ( Config.cnode_to_string ( sta_config ) )
+    end
+    print ( )
+
+    Config.save ( output_dir, ctrl_config, aps_config, stas_config )
+
+    local ctrl_net_ref = NetIfRef:create ( ctrl_config ['ctrl_if'] )
+    ctrl_net_ref:set_addr ( ctrl_config ['name'] )
+
+    local o = ControlNodeRef:new { name = ctrl_config ['name']
                                  , ctrl_net_ref = ctrl_net_ref
                                  , ctrl_port = ctrl_port
                                  , output_dir = output_dir

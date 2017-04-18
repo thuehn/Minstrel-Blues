@@ -16,7 +16,7 @@
 -- plugin support with loadfile
 -- derive MeshRef from AccesspointRef
 -- abort experiment when not connected ( and no rates are available )
--- check authorized keys
+-- check authorized keys manually
 -- add UDP iperf for x MB instead of x seconds with y Mbit/s data creation rate
 -- plot ath and non-ath networks
 -- regmon: luci config allows non-existant debugfs entries
@@ -27,7 +27,6 @@
 -- filter by used UDP port
 -- station wifi addr is not resolvable when not connected (detect and abort)
 -- experiment direction (AP->STA, STA->AP)
--- move config part to control node
 -- analyse throughput
 
 local pprint = require ('pprint')
@@ -218,52 +217,6 @@ if ( args.verbose == true) then
     print ( )
 end
 
-local ap_names = {}
-for _, ap in ipairs ( args.ap ) do
-    local parts = split ( ap, "," )
-    ap_names [ #ap_names + 1 ] = parts [ 1 ]
-end
-
-local aps_config = Config.select_configs ( ap_setups, ap_names )
-if ( table_size ( aps_config ) == 0 ) then os.exit (1) end
-
-local sta_names = {}
-for _, sta in ipairs ( args.sta ) do
-    local parts = split ( sta, "," )
-    sta_names [ #sta_names + 1 ] = parts [ 1 ]
-end
-
-local stas_config = Config.select_configs ( sta_setups, sta_names )
-if ( table_size ( stas_config ) == 0 ) then os.exit (1) end
-
-local ctrl_config = Config.select_config ( nodes, args.ctrl )
-if ( ctrl_config == nil ) then os.exit (1) end
-
-print ( "Configuration:" )
-print ( "==============" )
-print ( )
-print ( "Command: " .. args.command )
-print ( )
-print ( "Control: " .. Config.cnode_to_string ( ctrl_config ) )
-print ( )
-print ( "Access Points:" )
-print ( "--------------" )
-
-for _, ap in ipairs ( aps_config ) do
-    print ( Config.cnode_to_string ( ap ) )
-end
-
-print ( )
-print ( "Stations:" )
-print ( "---------" )
-
-for _, sta_config in ipairs ( stas_config ) do
-    print ( Config.cnode_to_string ( sta_config ) )
-end
-print ( )
-
-Config.save ( output_dir, ctrl_config, aps_config, stas_config )
-
 -- local ctrl iface
 local net = NetIF:create ( args.net_if )
 net:get_addr()
@@ -274,18 +227,17 @@ if ( net.addr == nil ) then
 end
 
 -- remote control node interface
-local ctrl_ref = ControlNodeRef:create ( ctrl_config ['name']
-                                       , ctrl_config ['ctrl_if']
-                                       , args.ctrl_port
+local ctrl_ref = ControlNodeRef:create ( args.ctrl_port
                                        , output_dir
                                        , args.log_file
                                        , args.log_port
                                        , args.distance
                                        , net
                                        , nameserver or args.nameserver
-                                       , aps_config
-                                       , stas_config
+                                       , args.ctrl, args.ap, args.sta
                                        , connections
+                                       , ap_setups, sta_setups
+                                       , args.command
                                        )
 
 if ( ctrl_ref == nil ) then
