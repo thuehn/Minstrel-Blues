@@ -709,10 +709,10 @@ function Node:run_tcp_iperf ( phy, iperf_port, addr, tcpdata, wait )
     return nil
 end
 
-function Node:run_udp_iperf ( phy, iperf_port, addr, rate, duration, wait )
+function Node:run_udp_iperf ( phy, iperf_port, addr, rate, duration, amount, wait )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:run_udp_iperf ( iperf_port, addr, rate, duration, wait )
+        return dev:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
     end
     return nil
 end

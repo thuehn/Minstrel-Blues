@@ -445,8 +445,10 @@ function WifiIF:run_tcp_iperf ( iperf_port, addr, tcpdata, wait )
     return pid, exit_code
 end
 
--- iperf -u -c 192.168.1.240 -p 12000 -l 1500B -b 600000 -t 240
-function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, wait )
+-- rate: bitrate of data generation, i.e. "10M"
+-- duration: duration of sending data, i.e. "10" for 10 seconds
+-- amount: amount of data in bytes, i.e. 10485760 for 10MB
+function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
     if ( addr == nil ) then
         self.node:send_error (" Iperf client (udp) not started. Address is unset" )
         return nil
@@ -455,20 +457,30 @@ function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, wait )
         self.node:send_error (" Iperf client (udp) not started for address " .. addr .. ". Already running." )
         return nil
     end
-    self.node:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
-                                .. " to addr " .. ( addr or "none" )
-                                .. " with rate " .. rate .. " and duration " .. duration )
-    --self.node:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
-    --                            .. " to addr " .. ( addr or "none" )
-    --                            .. " with size, rate and interval " .. size .. ", " .. rate .. ", " .. interval )
-    --local bitspersec = size * 8 * rate
-    self.node:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. ( iperf_port or "none" )
-                        .. " -b " .. rate .. " -t " .. duration )
+    if ( duration ~= nil ) then
+        self.node:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
+                                    .. " to addr " .. ( addr or "none" )
+                                    .. " with rate " .. rate .. " and duration " .. duration )
+        self.node:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. ( iperf_port or "none" )
+                            .. " -b " .. rate .. " -t " .. duration )
 
-    local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port, 
-                                            "-b", rate, "-t", duration )
+        local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port,
+                                                "-b", rate, "-t", duration )
+        self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
+    elseif ( amount ~= nil ) then
+        self.node:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
+                                    .. " to addr " .. ( addr or "none" )
+                                    .. " with rate " .. rate .. " and amount " .. amount )
+        self.node:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. ( iperf_port or "none" )
+                            .. " -b " .. rate .. " -n " .. amount )
 
-    self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
+        local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port,
+                                                "-b", rate, "-n", amount )
+        self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
+    else
+        self.node:send_error (" Iperf client (udp) not started. No duration and no amount set." )
+        return nil
+    end
     local exit_code
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )

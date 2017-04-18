@@ -48,6 +48,19 @@ Config.connections_tostring = function ( connections )
     return str
 end
 
+Config.show_choice_error = function ( parser, args, missing )
+    local str = ""
+    for i, arg in ipairs ( args ) do
+        if ( i ~= 1 ) then str = str .. " or " end
+        str = str .. "<".. arg .. ">"
+    end
+    if ( missing ) then
+        str = str .. " missing"
+    end
+    print ( str )
+    parser:error (str)
+end
+
 Config.show_config_error = function ( parser, arg, option )
     local str
     if ( option == true) then

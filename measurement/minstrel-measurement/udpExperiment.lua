@@ -20,6 +20,7 @@ function UdpExperiment:create ( control, data, is_fixed )
                                  , tx_rates = data [3]
                                  , packet_rates = data [4]
                                  , durations = data [5]
+                                 , amounts = data [6]
                                  , is_fixed = is_fixed
                                  } )
     return o
@@ -58,12 +59,19 @@ function UdpExperiment:keys ( ap_ref )
                 local txrate_key = tostring ( tx_rate )
                 for _, tx_power in ipairs ( self.tx_powers ) do
                     local power_key = tostring ( tx_power )
-                    for _, duration in ipairs ( split ( self.durations, "," ) ) do
-                        local duration_key = tostring ( duration )
+                    local director = "d"
+                    local list = self.durations
+                    if ( self.durations == nil ) then
+                        director = "a"
+                        list = self.amounts
+                    end
+                    for _, dur_or_amount in ipairs ( split ( list, "," ) ) do
+                        local dur_or_amount_key = tostring ( dur_or_amount )
                         for _, rate in ipairs ( split ( self.packet_rates, "," ) ) do
                             local rate_key = tostring ( rate )
                             keys [ #keys + 1 ] = txrate_key .. "-" .. power_key 
-                                                 .. "-" .. duration_key .. "-"  .. rate_key .. "-" .. run_key
+                                                 .. "-" .. director .. dur_or_amount_key 
+                                                 .. "-"  .. rate_key .. "-" .. run_key
                         end
                     end
                 end
@@ -97,14 +105,19 @@ function UdpExperiment:start_experiment ( ap_ref, key )
     -- start iperf client on AP
     local wait = false
     local keys = split ( key, "-" )
-    local duration = keys [3]
+    local dur_or_amount = string.sub ( keys [3], 2 )
+    local director = string.sub ( keys[3], 1, 1 )
     local rate = keys [4]
     for i, sta_ref in ipairs ( ap_ref.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             local addr = sta_ref:get_addr ()
             local phy_num = tonumber ( string.sub ( ap_ref.wifi_cur, 4 ) )
             local iperf_port = 12000 + phy_num
-            ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, duration, wait )
+            if ( director == "d" ) then
+                ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, dur_or_amount, nil, wait )
+            else
+                ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, nil, dur_or_amount, wait )
+            end
         end
     end
     return true

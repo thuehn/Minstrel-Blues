@@ -16,7 +16,6 @@
 -- plugin support with loadfile
 -- derive MeshRef from AccesspointRef
 -- check authorized keys manually ( no ssh-copy-id)
--- add UDP iperf for x MB instead of x seconds with y Mbit/s data creation rate
 -- plot ath and non-ath networks
 -- regmon: luci config allows non-existant debugfs entries
 -- reachability of stations for all access points
@@ -69,7 +68,8 @@ parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
 parser:option ("--runs", "Number of iterations", "1" )
 parser:option ("-T --tcpdata", "Amount of TCP data", "5MB" )
 parser:option ("-R --packet_rates", "Rates of UDP data", "10M,100M" )
-parser:option ("-t --udp_durations", "how long iperf sends UDP traffic", "10,20,30" )
+parser:option ("-t --udp_durations", "how long iperf sends UDP traffic, i.e. \"10,20,30\"" )
+parser:option ("-n --udp_amounts", "amounts of udp data, i.e. \"10485760\" for 10MB" )
 parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" ) --fixme: ???
 
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
@@ -93,6 +93,16 @@ local args = parser:parse()
 args.command = string.lower ( args.command )
 if ( args.command ~= "tcp" and args.command ~= "udp" and args.command ~= "mcast" and args.command ~= "noop" ) then
     Config.show_config_error ( parser, "command", false )
+end
+
+if ( args.command == "udp" and args.udp_amounts == nil and args.udp_durations == nil ) then
+    Config.show_choice_error ( parser, { "udp_durations", "udp_amounts" }, true )
+    print ("")
+end
+
+if ( args.command == "udp" and args.udp_amounts ~= nil and args.udp_durations ~= nil ) then
+    Config.show_choice_error ( parser, { "udp_durations", "udp_amounts" }, falsee )
+    print ("")
 end
 
 if ( args.enable_fixed == false 
@@ -315,7 +325,7 @@ elseif ( args.command == "mcast" ) then
            }
 elseif ( args.command == "udp" ) then
     data = { runs, args.tx_powers, args.tx_rates
-           , args.packet_rates, args.udp_durations
+           , args.packet_rates, args.udp_durations, args.udp_amounts
            }
 elseif ( args.command == "noop" ) then
     data = { runs, args.tx_powers, args.tx_rates
