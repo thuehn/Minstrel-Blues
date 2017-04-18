@@ -25,6 +25,9 @@ local debugfs = "/sys/kernel/debug/ieee80211"
 Node = NodeBase:new()
 
 function Node:create ( name, ctrl, port, log_port, log_addr )
+    if ( name == nil) then
+        error ( "A Node needs to have a name set, but it isn't!" )
+    end
     local o = Node:new ( { name = name
                          , ctrl = ctrl
                          , port = port
@@ -33,9 +36,7 @@ function Node:create ( name, ctrl, port, log_port, log_addr )
                          , wifis = {}
                          } )
 
-    if ( name == nil) then
-        error ( "A Node needs to have a name set, but it isn't!" )
-    end
+    self:get_proc_version ()
     local phys, err = net.list_phys ()
     if ( phys == nil ) then
         o:send_error ( err )
@@ -51,7 +52,9 @@ function Node:create ( name, ctrl, port, log_port, log_addr )
         netif.mon = "mon" .. tostring ( i - 1 )
         netif.iface, _ = net.get_interface_name ( phy )
         if ( netif.iface == nil ) then
-            o:enable_wifi ( phy )
+            o:enable_wifi ( true, phy )
+            o:restart_wifi ( phy )
+            posix.sleep (1)
             netif.iface, msg = net.get_interface_name ( phy )
             if ( netif.iface == nil ) then
                 o:send_error ( "Empty ieee80211 debugfs: please check permissions and kernel config, i.e. ATH9K_DEBUGFS: " .. msg )
@@ -62,6 +65,51 @@ function Node:create ( name, ctrl, port, log_port, log_addr )
         end
     end
     return o
+end
+
+function Node:enable_wifi ( enabled, phy )
+    if ( phy == nil ) then return false end
+    if ( enabled == nil ) then enabled = false end
+    if ( self.proc_version.system == "LEDE" ) then
+        local value = 1
+        if ( enabled == true ) then 
+            value = 0
+        else
+            value = 1
+        end
+        local var = "wireless.radio"
+        var = var .. string.sub ( phy, 4, string.len ( phy ) )
+        var = var .. ".disabled"
+        self:send_debug ( " enable wifi: " .. var .. " = " .. tostring ( not enabled ) )
+        local _, exit_code = uci.set_var ( var, value )
+        local var = "wireless.default_radio"
+        var = var .. string.sub ( phy, 4, string.len ( phy ) )
+        var = var .. ".disabled"
+        self:send_debug ( " enable wifi: " .. var .. " = " .. tostring ( not enabled ) )
+        local _, exit_code = uci.set_var ( var, value )
+        return ( exit_code == 0 )
+    end
+    return true
+end
+
+function Node:restart_wifi ( phy )
+    if ( phy == nil ) then return nil end
+    self:send_debug ("restart wifi" )
+    if ( self.proc_version.system == "LEDE" ) then
+        local wifi, err = misc.execute ( "/sbin/wifi" )
+        self:send_info( "restart wifi done: " .. wifi )
+        return true
+    elseif ( self.proc_version.system == "Gentoo" ) then
+        local init_script = "/etc/init.d/net." .. self.iface
+        if ( isFile ( init_script ) ) then
+            local wifi, err = misc.execute ( init_script, "restart")
+            self:send_info( "restart wifi done (" .. ( self.iface or "none" ) .. "): " .. ( wifi or "none" ) )
+            return ( err == 0 )
+        end
+        self:send_debug ( "Cannot restart wifi. No init script found for phy " .. ( self.phy or "none" ) )
+        return false
+    end
+    return false
 end
 
 function Node:__tostring() 
@@ -98,7 +146,7 @@ function Node:phy_devices ()
     for phy, _ in pairs ( self.wifis ) do
         phys [ #phys + 1 ] = phy
     end
-    self:send_info(" phys: " .. table_tostring ( phys ) )
+    self:send_info (" phys: " .. table_tostring ( phys ) )
     return phys
 end
 
@@ -112,14 +160,6 @@ function Node:find_wifi_device ( phy )
         self:send_error ( "device not found" )
     end
     return dev
-end
-
-function Node:enable_wifi ( enabled, phy )
-    local dev = self:find_wifi_device ( phy )
-    if ( dev ~= nil ) then
-        return dev:enable_wifi ( enabled, self.proc_version )
-    end
-    return false
 end
 
 function Node:get_iw_info ( phy )
@@ -136,14 +176,6 @@ function Node:get_ssid ( phy )
         return dev:get_ssid ()
     end
     return nil
-end
-
-function Node:restart_wifi ( phy )
-    local dev = self:find_wifi_device ( phy )
-    if ( dev ~= nil ) then
-        return dev:restart_wifi ( self.proc_version )
-    end
-    return false
 end
 
 function Node:add_monitor ( phy )

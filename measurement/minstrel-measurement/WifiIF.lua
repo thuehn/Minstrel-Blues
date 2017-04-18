@@ -28,24 +28,6 @@ function WifiIF:create ( iface, addr, mon, phy, node )
     return o
 end
 
-function WifiIF:enable_wifi ( enabled, proc_version )
-    if ( proc_version.system == "LEDE" ) then
-        local var = "wireless.radio"
-        var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
-        var = var .. ".disabled"
-        self.node:send_debug ( " enable wifi: " .. var .. " = " .. tostring ( not enabled ) )
-        local value = 1
-        if ( enabled == true ) then 
-            value = 0
-        else
-            value = 1
-        end
-        local _, exit_code = uci.set_var ( var, value )
-        return ( exit_code == 0 )
-    end
-    return true
-end
-
 function WifiIF:get_iw_info ()
     self.node:send_info ( "send iw info for " .. ( self.iface or "none" ) )
     local str, exit_code = misc.execute ( "iw", self.iface, "info" )
@@ -68,25 +50,6 @@ function WifiIF:get_ssid ()
         end
     end
     return nil, nil
-end
-
-function WifiIF:restart_wifi ( proc_version )
-    self.node:send_debug ("restart wifi" )
-    if ( proc_version.system == "LEDE" ) then
-        local wifi, err = misc.execute ( "/sbin/wifi" )
-        self.node:send_info( "restart wifi done: " .. wifi )
-        return true
-    elseif ( proc_version.system == "Gentoo" ) then
-        local init_script = "/etc/init.d/net." .. self.iface
-        if ( isFile ( init_script ) ) then
-            local wifi, err = misc.execute ( init_script, "restart")
-            self.node:send_info( "restart wifi done (" .. ( self.iface or "none" ) .. "): " .. ( wifi or "none" ) )
-            return ( err == 0 )
-        end
-        self.node:send_debug ( "Cannot restart wifi. No init script found for phy " .. ( self.phy or "none" ) )
-        return false
-    end
-    return false
 end
 
 -- iw dev mon0 info

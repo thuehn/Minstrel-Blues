@@ -17,7 +17,6 @@
 -- derive MeshRef from AccesspointRef
 -- abort experiment when not connected ( and no rates are available )
 -- check authorized keys
--- initialize NetIF for disabled phys ( no netdev:wlan0/1 in debugfs )
 -- abort when AP or STA not in config
 -- add UDP iperf for x MB instead of x seconds with y Mbit/s data creation rate
 -- plot ath and non-ath networks

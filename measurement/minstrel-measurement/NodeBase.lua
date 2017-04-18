@@ -31,13 +31,18 @@ function NodeBase:new ( o )
     return o
 end
 
--- fixme: try to catch address in use
+function NodeBase:get_proc_version ()
+    if ( self.proc_version == nil ) then
+        local fname = "/proc/version"
+        local file = io.open ( fname )
+        local line = file:read ( "*l" )
+        self.proc_version = parse_proc_version ( line )
+        file:close()
+    end
+end
+
 function NodeBase:run ()
-    local fname = "/proc/version"
-    local file = io.open ( fname )
-    local line = file:read ("*l")
-    self.proc_version = parse_proc_version ( line )
-    file:close()
+    self:get_proc_version ()
     self:send_info ( self.proc_version:__tostring() )
     self:set_cut ()
     local os_release = self.get_os_release ()
