@@ -17,7 +17,6 @@
 -- derive MeshRef from AccesspointRef
 -- abort experiment when not connected ( and no rates are available )
 -- check authorized keys
--- abort when AP or STA not in config
 -- add UDP iperf for x MB instead of x seconds with y Mbit/s data creation rate
 -- plot ath and non-ath networks
 -- regmon: luci config allows non-existant debugfs entries
@@ -127,7 +126,7 @@ else
             if ( fname ~= "." and fname ~= ".." ) then
                 local time = os.time ()
                 print ("--output " .. output_dir
-                        .. " already exists and is not empty. Measurement saved into subdirectory " .. time)
+                        .. " already exists and is not empty. Save measurement into subdirectory " .. time)
                 output_dir = output_dir .. "/" .. time
                 local status, err = lfs.mkdir ( output_dir )
                 break
@@ -166,7 +165,7 @@ if ( has_config ) then
     Config.read_connections ( args.con )
 
     Config.set_config_from_arg ( ctrl, 'ctrl_if', args.ctrl_if )
-    
+
     ap_setups = Config.accesspoints ( nodes, connections )
     Config.set_configs_from_args ( ap_setups, args.ap )
 
@@ -226,7 +225,7 @@ for _, ap in ipairs ( args.ap ) do
 end
 
 local aps_config = Config.select_configs ( ap_setups, ap_names )
-if ( aps_config == {} ) then os.exit (1) end
+if ( table_size ( aps_config ) == 0 ) then os.exit (1) end
 
 local sta_names = {}
 for _, sta in ipairs ( args.sta ) do
@@ -235,7 +234,7 @@ for _, sta in ipairs ( args.sta ) do
 end
 
 local stas_config = Config.select_configs ( sta_setups, sta_names )
-if ( stas_config == {} ) then os.exit (1) end
+if ( table_size ( stas_config ) == 0 ) then os.exit (1) end
 
 local ctrl_config = Config.select_config ( nodes, args.ctrl )
 if ( ctrl_config == nil ) then os.exit (1) end

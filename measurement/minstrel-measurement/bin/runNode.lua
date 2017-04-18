@@ -18,6 +18,10 @@ local args = parser:parse ()
 
 local ctrl = NetIF:create ( args.ctrl_if )
 local node = Node:create ( args.name, ctrl, args.port, args.log_port, args.log_ip )
+if ( node == nil ) then
+    print ( "Error: node not started" )
+    od.exit (1)
+end
 
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 

@@ -157,8 +157,7 @@ Config.select_config = function ( all_configs, name )
 
     local node = Config.find_node ( name, all_configs )
 
-    if ( node == nil ) then return nil end
-    if ( node.name ~= name ) then
+    if ( node == nil or node.name ~= name ) then
         print ( "Error: select_config: no configuration for node with name '" .. name .. "' found")
         return nil
     end
