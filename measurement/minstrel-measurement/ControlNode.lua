@@ -465,7 +465,7 @@ end
 
 -- runs experiment 'exp' for all nodes 'ap_refs'
 -- in parallel
-function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, number, count, channel, ht )
+function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, number, count, channel, htmode )
 
     function find_rate ( rate_name, rate_names, rate_indices )
         rate_name = string.gsub ( rate_name, " ", "" )
@@ -498,8 +498,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     for _, ap_ref in ipairs ( self.ap_refs ) do
 
         -- set channel and ht
-        ap_ref.rpc.set_channel ( ap_ref.wifi_cur, channel )
-        ap_ref.rpc.set_htmode ( ap_ref.wifi_cur, ht )
+        ap_ref.rpc.set_channel_htmode ( ap_ref.wifi_cur, channel, htmode )
 
         -- self:send_debug ( ap_ref:__tostring() )
         -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
@@ -534,8 +533,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
 
         for i, sta_ref in ipairs ( ap_ref.refs ) do
 
-            sta_ref.rpc.set_channel ( sta_ref.wifi_cur, channel )
-            sta_ref.rpc.set_htmode ( sta_ref.wifi_cur, ht )
+            sta_ref.rpc.set_channel_htmode ( sta_ref.wifi_cur, channel, htmode )
 
             if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
 

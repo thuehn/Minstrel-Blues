@@ -523,7 +523,7 @@ function ControlNodeRef:reachable ()
     return true
 end
 
-function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, keys, channel, ht )
+function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, keys, channel, htmode )
 
     function check_mem ( mem, name )
         -- local warn_threshold = 40960
@@ -539,22 +539,14 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         return true
     end
 
-    -- save wifi channel
-    local fname = self.output_dir .. "/wifi_channel.txt"
+    -- save wifi channel and htmode
+    local fname = self.output_dir .. "/wifi_config.txt"
     local file = io.open ( fname, "w" )
     if ( file ~= nil ) then
-        file:write ( channel .. '\n' )
+        file:write ( "channel = " .. channel .. '\n' )
+        file:write ( "htmode = " .. htmode .. '\n' )
         file:close ()
     end
-
-    -- save wifi htmode
-    local fname = self.output_dir .. "/wifi_htmode.txt"
-    local file = io.open ( fname, "w" )
-    if ( file ~= nil ) then
-        file:write ( htmode .. '\n' )
-        file:close ()
-    end
-    print ()
 
     self.rpc.randomize_nodes ()
 

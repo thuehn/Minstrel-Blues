@@ -24,6 +24,7 @@
 -- filter by used UDP port
 -- experiment direction (AP->STA, STA->AP)
 -- analyse throughput
+-- save experiment information into file as name = value pairs
 
 local pprint = require ('pprint')
 
@@ -40,13 +41,15 @@ require ('ControlNodeRef')
 
 local parser = argparse( "netRun", "Run minstrel blues multi AP / multi STA mesurement" )
 
-parser:argument("command", "tcp, udp, mcast, noop")
+parser:argument ("command", "tcp, udp, mcast, noop")
 
 parser:option ("-c --config", "config file name", nil)
 
-parser:option("--sta", "Station host name or ip address and optional radio, ctrl_if, rsa_key and mac separated by comma"):count("*")
-parser:option("--ap", "Access Point host name or ip address and optional radio, ctrl_if, rsa_key and mac separated by comma"):count("*")
-parser:option("--con", "Connection between APs and STAs, format: ap_name=sta_name1,sta_name2"):count("*")
+parser:option ("--sta", "Station host name or ip address and optional radio, ctrl_if, "
+                         .. "rsa_key and mac separated by comma"):count("*")
+parser:option ("--ap", "Access Point host name or ip address and optional radio, "
+                        .. "ctrl_if, rsa_key and mac separated by comma"):count("*")
+parser:option ("--con", "Connection between APs and STAs, format: ap_name=sta_name1,sta_name2"):count("*")
 
 parser:option ("--ctrl", "Control node host name or ip address" )
 parser:option ("--ctrl_if", "RPC Interface of Control node" )

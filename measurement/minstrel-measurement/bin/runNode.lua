@@ -23,8 +23,7 @@ if ( node == nil ) then
     od.exit (1)
 end
 
-function set_channel ( ... ) return node:set_channel ( ... ) end
-function set_htmode ( ... ) return node:set_htmode ( ... ) end
+function set_channel_htmode ( ... ) return node:set_channel ( ... ) end
 
 function get_ctrl_addr ( ... ) return node:get_ctrl_addr ( ... ) end
 

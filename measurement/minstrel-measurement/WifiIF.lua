@@ -28,23 +28,23 @@ function WifiIF:create ( iface, addr, mon, phy, node )
     return o
 end
 
-function WifiIF:set_channel ( channel, proc_version )
-    self.node:send_info ( "set channel of " .. ( self.iface or "none" )  .. " to " .. ( channel or "none" ) )
+function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
+    self.node:send_info ( "set channel and htmode of " .. ( self.iface or "none" )
+                        .. " to " .. ( channel or "none" ) .. " " .. ( htmode or "none" ) )
     if ( proc_version.system == "LEDE" ) then
         local var = "wireless.wifi-device." .. self.iface .. ".channel"
         local _, exit_code = uci.set_var ( var, channel )
-    else
-        error ( "set_channel NYI" )
-    end
-end
-
-function WifiIF:set_htmode ( ht_mode, proc_version )
-    self.node:send_info ( "set ht_mode of " .. ( self.iface or "none" )  .. " to " .. ( ht_mode or "none" ) )
-    if ( proc_version.system == "LEDE" ) then
         local var = "wireless.wifi-device." .. self.iface .. ".htmode"
-        local _, exit_code = uci.set_var ( var, channel )
+        local _, exit_code = uci.set_var ( var, htmode )
     else
-        error ( "set_ht NYI" )
+        if ( htmode == "HT40" and tonumber ( channel ) >= 1 and tonumber ( channel ) <= 7 ) then
+            htmode = "HT40+"
+            self.node:send_info ( "htmode HT40 without direction (+/-). " .. htmode .. " selected" )
+        elseif ( htmode == "HT40" and tonumber ( channel ) >= 5 and tonumber ( channel ) <= 11 ) then
+            htmode = "HT40-"
+            self.node:send_info ( "htmode HT40 without direction (+/-). " .. htmode .. " selected" )
+        end
+        local str, exit_code = misc.execute ( "iw", phy, self.phy, "set", "channel", channel, htmode )
     end
 end
 
