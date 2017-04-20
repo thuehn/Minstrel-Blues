@@ -102,6 +102,8 @@ function Measurement.parse ( name, input_dir, key )
                 end
                 measurement.rc_stats [ station ] [ key ] = ""
             end
+            measurement.iperf_s_outs [ key ] = ""
+            measurement.iperf_c_outs [ key ] = ""
         end
     end
 
@@ -231,6 +233,28 @@ function Measurement:read ()
         end
     end
 
+    -- iperf server out
+    for key, stats in pairs ( self.iperf_s_outs ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf-server.txt"
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            stats = file:read ( "*a" )
+            self.iperf_s_outs [ key ] = stats
+            file:close ()
+        end
+    end
+
+    -- iperf server out
+    for key, stats in pairs ( self.iperf_c_outs ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf-client.txt"
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            stats = file:read ( "*a" )
+            self.iperf_c_outs [ key ] = stats
+            file:close ()
+        end
+    end
+
     return true, nil
 end
 
@@ -326,6 +350,27 @@ function Measurement:write ()
             end
         end
     end
+
+    -- iperf server out
+    for key, stats in pairs ( self.iperf_s_outs ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf_server.txt"
+        local file = io.open ( fname, "w")
+        if ( file ~= nil )  then
+            file:write ( stats )
+            file:close()
+        end
+    end
+
+    -- iperf client out
+    for key, stats in pairs ( self.iperf_c_outs ) do
+        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf_client.txt"
+        local file = io.open ( fname, "w")
+        if ( file ~= nil )  then
+            file:write ( stats )
+            file:close()
+        end
+    end
+
     return true
 end
 
@@ -441,6 +486,10 @@ function Measurement:fetch ( phy, key )
             self.rc_stats [ station ] [ key ] = stats 
         end
     end
+
+    -- iperf server out
+    -- iperf client out
+    -- already done by wait_iperf_c and stop_iperf_s
 end
 
 function Measurement.resume ( output_dir )
