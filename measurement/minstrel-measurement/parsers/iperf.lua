@@ -1,4 +1,5 @@
 require ('parsers/parsers')
+local pprint = require ('pprint')
 
 -- iperf2 server / client output parse
 -- note: iperf3 has --json flag for json output
@@ -44,6 +45,8 @@ end
 
 function parse_iperf_client ( iperf )
 
+    print ( iperf )
+
     local out = IperfClient:create()
 
     if ( iperf == nil ) then return out end
@@ -51,6 +54,19 @@ function parse_iperf_client ( iperf )
 
     local rest = iperf
     local state = true
+
+    state, rest = parse_str ( rest, "------------------------------------------------------------" )
+    if ( state == true ) then return out end
+
+    state, rest = parse_str ( rest, "Client connecting to" )
+    if ( state == true ) then return out end
+
+    state, rest = parse_str ( rest, "Sending" )
+    if ( state == true ) then return out end
+
+    state, rest = parse_str ( rest, "UDP buffer size:" )
+    if ( state == true ) then return out end
+
     local id = nil
     local interval_start = nil
     local interval_end = nil
@@ -65,18 +81,17 @@ function parse_iperf_client ( iperf )
     rest = skip_layout ( rest )
 
     state, rest = parse_str ( rest, "ID" )
-    if ( state == true ) then
-        return out
-    end
+    if ( state == true ) then return out end
 
     id, rest = parse_num ( rest )
     state, rest = parse_str ( rest, "]" )
     rest = skip_layout ( rest )
 
     state, rest = parse_str ( rest, "local" )
-    if ( state == true ) then
-        return out
-    end
+    if ( state == true ) then return out end
+
+    state, rest = parse_str ( rest, "Sent" )
+    if ( state == true ) then return out end
 
     interval_start, rest = parse_real ( rest )
     state, rest = parse_str ( rest, "-" )
@@ -95,21 +110,24 @@ function parse_iperf_client ( iperf )
     state, rest = parse_str ( rest, "Mbits/sec" )
     rest = skip_layout ( rest )
 
-    jitter, rest = parse_real ( rest )
-    rest = skip_layout ( rest )
-    state, rest = parse_str ( rest, "ms" )
-    rest = skip_layout ( rest )
-    
-    lost_datagrams, rest = parse_num ( rest )
-    state, rest = parse_str ( rest, "/" )
-    rest = skip_layout ( rest )
-    total_datagrams, rest = parse_num ( rest )
-    rest = skip_layout ( rest )
+    pprint ( rest )
+    if ( rest ~= "" ) then
+        jitter, rest = parse_real ( rest )
+        rest = skip_layout ( rest )
+        state, rest = parse_str ( rest, "ms" )
+        rest = skip_layout ( rest )
 
-    state, rest = parse_str ( rest, "(" )
-    percent, rest = parse_num ( rest )
-    state, rest = parse_str ( rest, "%" )
-    state, rest = parse_str ( rest, ")" )
+        lost_datagrams, rest = parse_num ( rest )
+        state, rest = parse_str ( rest, "/" )
+        rest = skip_layout ( rest )
+        total_datagrams, rest = parse_num ( rest )
+        rest = skip_layout ( rest )
+
+        state, rest = parse_str ( rest, "(" )
+        percent, rest = parse_num ( rest )
+        state, rest = parse_str ( rest, "%" )
+        state, rest = parse_str ( rest, ")" )
+    end
 
     out.id = tonumber ( id )
     out.interval_start = tonumber ( interval_start )
