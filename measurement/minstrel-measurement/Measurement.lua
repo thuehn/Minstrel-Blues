@@ -19,6 +19,8 @@ Measurement = { rpc_node = nil
               , cpusage_stats = nil
               , rc_stats = nil
               , rc_stats_enabled = nil
+              , iperf_s_outs = nil
+              , iperf_c_outs = nil
               , stations = nil
               , output_dir = nil
               }
@@ -42,6 +44,8 @@ function Measurement:create ( name, mac, opposite_macs, rpc, output_dir )
                                , cpusage_stats = {}
                                , rc_stats = {}
                                , rc_stats_enabled = false
+                               , iperf_s_outs = {}
+                               , iperf_c_outs = {}
                                , output_dir = output_dir
                                } )
     return o
@@ -364,6 +368,14 @@ function Measurement:__tostring ()
                 end
             end
         end
+    end
+    -- iperf server out
+    for key, stat in pairs ( self.iperf_s_outs ) do
+        out = out .. "iperf-server-" .. key .. ": " .. stat .. "\n"
+    end
+    -- iperf client out
+    for key, stat in pairs ( self.iperf_c_outs ) do
+        out = out .. "iperf-client-" .. key .. ": " .. stat .. "\n"
     end
 
     return out 

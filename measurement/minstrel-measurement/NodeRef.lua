@@ -184,9 +184,10 @@ function NodeRef:start_udp_iperf_s ()
     end
 end
 
-function NodeRef:stop_iperf_server ()
+function NodeRef:stop_iperf_server ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        self.rpc.stop_iperf_server ( self.wifi_cur )
+        local _, out = self.rpc.stop_iperf_server ( self.wifi_cur )
+        self.stats.iperf_s_outs [ key ] = out
     end
 end
 

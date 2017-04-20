@@ -391,10 +391,10 @@ function WifiIF:start_tcp_iperf_s ( iperf_port )
     self.node:send_debug ( iperf_bin .. " -s -p " .. ( iperf_port or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-p", iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
-    local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
-    if ( out ~= nil ) then
-        self.node:send_info ( out )
-    end
+    --local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
+    --if ( out ~= nil ) then
+    --    self.node:send_info ( out )
+    --end
     return pid
 end
 
@@ -408,10 +408,10 @@ function WifiIF:start_udp_iperf_s ( iperf_port )
     self.node:send_debug ( iperf_bin .. " -s -u -p " .. ( iperf_port or "none" ) )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-s", "-u", "-p", iperf_port )
     self.iperf_server_proc = { pid = pid, stdin = stdin, stdout = stdout }
-    local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
-    if ( out ~= nil ) then
-        self.node:send_info ( out )
-    end
+    --local out = misc.read_nonblock ( self.iperf_server_proc.stdout, 500, 1024 )
+    --if ( out ~= nil ) then
+    --    self.node:send_info ( out )
+    --end
     return pid
 end
 
@@ -432,9 +432,10 @@ function WifiIF:run_tcp_iperf ( iperf_port, addr, tcpdata, wait )
     local pid, stdin, stdout = misc.spawn ( iperf_bin, "-c", addr, "-p", iperf_port, "-n", tcpdata )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
+    local out
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )
-        local out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+        out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
         if ( out ~= nil ) then
             self.node:send_info ( out )
         end
@@ -442,7 +443,7 @@ function WifiIF:run_tcp_iperf ( iperf_port, addr, tcpdata, wait )
         self.iperf_client_procs [ addr ].stdout:close ()
         self.iperf_client_procs [ addr ] = nil
     end
-    return pid, exit_code
+    return pid, exit_code, out
 end
 
 -- rate: bitrate of data generation, i.e. "10M"
@@ -482,9 +483,10 @@ function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
         return nil
     end
     local exit_code
+    local out
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )
-        local out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+        out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
         if ( out ~= nil ) then
             self.node:send_info ( out )
         end
@@ -492,7 +494,7 @@ function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
         self.iperf_client_procs [ addr ].stdout:close ()
         self.iperf_client_procs [ addr ] = nil
     end
-    return pid, exit_code
+    return pid, exit_code, out
 end
 
 -- iperf -c 224.0.67.0 -u -T 32 -t 3 -i 1 -B 192.168.1.1
@@ -516,9 +518,10 @@ function WifiIF:run_multicast ( iperf_port, addr, multicast_addr, ttl, bitrate, 
                                          "-T", ttl, "-t", duration, "-b", bitrate, "-B", addr )
     self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     local exit_code
+    local out
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )
-        local out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+        out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
         if ( out ~= nil ) then
             self.node:send_info ( out )
         end
@@ -526,7 +529,7 @@ function WifiIF:run_multicast ( iperf_port, addr, multicast_addr, ttl, bitrate, 
         self.iperf_client_procs [ addr ].stdout:close ()
         self.iperf_client_procs [ addr ] = nil
     end
-    return pid, exit_code
+    return pid, exit_code, out
 end
 
 function WifiIF:wait_iperf_c ( addr )
@@ -547,7 +550,7 @@ function WifiIF:wait_iperf_c ( addr )
     self.iperf_client_procs [ addr ].stdin:close ()
     self.iperf_client_procs [ addr ].stdout:close ()
     self.iperf_client_procs [ addr ] = nil
-    return exit_code
+    return exit_code, out
 end
 
 function WifiIF:stop_iperf_server ()
@@ -567,5 +570,5 @@ function WifiIF:stop_iperf_server ()
     self.iperf_server_proc.stdin:close ()
     self.iperf_server_proc.stdout:close ()
     self.iperf_server_proc = nil
-    return exit_code
+    return exit_code, out
 end

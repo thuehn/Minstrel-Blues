@@ -630,14 +630,17 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
             merge_map ( stats [ 'rc_stats' ] , self.stats [ ref_name ].rc_stats )
             merge_map ( stats [ 'regmon_stats' ] , self.stats [ ref_name ].regmon_stats )
             merge_map ( stats [ 'tcpdump_pcaps' ] , self.stats [ ref_name ].tcpdump_pcaps )
+            merge_map ( stats [ 'iperf_s_outs' ] , self.stats [ ref_name ].iperf_s_outs )
+            merge_map ( stats [ 'iperf_c_outs' ] , self.stats [ ref_name ].iperf_c_outs )
 
             local status, err = self.stats [ ref_name ]:write ()
             if ( status == false ) then
                 print ( "err: can't access directory '" ..  ( output_dir or "unset" )
                                 .. "': " .. ( err or "unknown error" ) )
             else
-                self.stats [ ref_name ] = nil
+                print ( self.stats [ ref_name ]:__tostring() )
             end
+            self.stats [ ref_name ] = nil
         end
 
         counter = counter + 1

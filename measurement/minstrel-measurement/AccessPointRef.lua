@@ -196,10 +196,11 @@ function AccessPointRef:start_iperf_servers ( tcp )
     end
 end
 
-function AccessPointRef:stop_iperf_servers ()
+function AccessPointRef:stop_iperf_servers ( key )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            sta_ref:stop_iperf_server ()
+            local _, out = sta_ref:stop_iperf_server ( key )
+            self.stats.iperf_s_outs [ key ] = out
         end
     end
 end

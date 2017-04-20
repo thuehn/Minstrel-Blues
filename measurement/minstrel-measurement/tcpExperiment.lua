@@ -67,7 +67,7 @@ function TcpExperiment:start_measurement ( ap_ref, key )
 end
 
 function TcpExperiment:stop_measurement ( ap_ref, key )
-    ap_ref:stop_iperf_servers()
+    ap_ref:stop_iperf_servers ( key )
     ap_ref:stop_measurement ( key )
 end
 
@@ -88,7 +88,7 @@ function TcpExperiment:start_experiment ( ap_ref, key )
     end
 end
 
-function TcpExperiment:wait_experiment ( ap_ref )
+function TcpExperiment:wait_experiment ( ap_ref, key )
     -- wait for clients on AP
     for _, sta_ref in ipairs ( ap_ref.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
@@ -97,7 +97,8 @@ function TcpExperiment:wait_experiment ( ap_ref )
                 error ( "wait_experiment: address is unset" )
                 return
             end
-            local exit_code = ap_ref.rpc.wait_iperf_c ( ap_ref.wifi_cur, addr )
+            local _, out = ap_ref.rpc.wait_iperf_c ( ap_ref.wifi_cur, addr )
+            ap_ref.stats.iperf_c_outs [ key ] = out
         end
     end
 end

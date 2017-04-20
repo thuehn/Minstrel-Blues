@@ -1,13 +1,12 @@
 -- run a single measurement between access points (APs) and stations (STAs)
 -- note: to run measurements simultaniuosly use different ports for logging (-L) and control (-C)
 --       as well as different output directories (--output)
--- since the radios are not yet locked in any kind you have to ensure not them twice
+-- since the radios are not yet locked in any kind you have to ensure not using them twice
 
 -- TODO:
 -- - rpc: transfer tcpdump binary lines/packages and stats online to support large experiment with low ram
 -- implement experiments as list of closures
 -- erease debug table in production ( debug = nil )
--- sample rate rc_stats, regmon-stats, cpusage (how many updates / second) from luci regmon
 -- init scripts for nodes
 -- io.tmpfile () for writing pcaps?
 -- convert signal / rssi : http://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
@@ -348,12 +347,6 @@ local status, err = ctrl_ref:run_experiments ( args.command
 
 if ( status == false ) then
     print ( "err: experiments failed: " .. ( err or "unknown error" ) )
-else
-    print ()
-    for name, stats in pairs ( ctrl_ref.stats ) do
-        print ( stats:__tostring() )
-        print ( )
-    end
 end
 
 ctrl_ref:cleanup ( args.disable_autostart )
