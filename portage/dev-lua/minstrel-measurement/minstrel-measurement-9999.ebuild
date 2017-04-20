@@ -14,7 +14,7 @@ IUSE=""
 
 DEPEND=">=dev-lang/lua-5.1
 		dev-lua/luafilesystem
-		dev-lua/luaposix
+		<=dev-lua/luaposix-33.2.1
 		dev-lua/LuaBitOp
 		dev-lua/pcap-lua
 		dev-lua/lpc
