@@ -6,6 +6,7 @@ require ('parsers/iw_link')
 local misc = require ('misc')
 local pprint = require ('pprint')
 local lpc = require ('lpc')
+local uci = require ('Uci')
 
 WifiIF = NetIF:new()
 local debugfs = "/sys/kernel/debug/ieee80211"
@@ -25,6 +26,26 @@ function WifiIF:create ( iface, addr, mon, phy, node )
                            } )
 
     return o
+end
+
+function WifiIF:set_channel ( channel, proc_version )
+    self.node:send_info ( "set channel of " .. ( self.iface or "none" )  .. " to " .. ( channel or "none" ) )
+    if ( proc_version.system == "LEDE" ) then
+        local var = "wireless.wifi-device." .. self.iface .. ".channel"
+        local _, exit_code = uci.set_var ( var, channel )
+    else
+        error ( "set_channel NYI" )
+    end
+end
+
+function WifiIF:set_htmode ( ht_mode, proc_version )
+    self.node:send_info ( "set ht_mode of " .. ( self.iface or "none" )  .. " to " .. ( ht_mode or "none" ) )
+    if ( proc_version.system == "LEDE" ) then
+        local var = "wireless.wifi-device." .. self.iface .. ".htmode"
+        local _, exit_code = uci.set_var ( var, channel )
+    else
+        error ( "set_ht NYI" )
+    end
 end
 
 function WifiIF:get_iw_info ()

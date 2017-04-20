@@ -74,6 +74,8 @@ parser:option ("-i --interval", "Intervals of TCP or UDP data", "1" ) --fixme: ?
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
 parser:option ("--tx_rates", "TX rate indices")
 parser:option ("--tx_powers", "TX power indices")
+parser:option ("--channel", "wifi channel")
+parser:option ("--htmode", "wifi htmode")
 
 parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes", false )
 parser:flag ("--disable_synchronize", "Don't synchronize time in network", false )
@@ -343,6 +345,8 @@ local status, err = ctrl_ref:run_experiments ( args.command
                                              , ctrl_ref:list_aps()
                                              , args.enable_fixed
                                              , keys
+                                             , args.channel
+                                             , args.htmode
                                              )
 
 if ( status == false ) then

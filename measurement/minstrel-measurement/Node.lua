@@ -177,6 +177,22 @@ function Node:find_wifi_device ( phy )
     return dev
 end
 
+function Node:set_channel ( phy, channel )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:set_channel ( channel, self.proc_version )
+    end
+    return nil
+end
+
+function Node:set_htmode ( phy, htmode )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:set_htmode ( htmode, self.proc_version )
+    end
+    return nil
+end
+
 function Node:get_iw_info ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
