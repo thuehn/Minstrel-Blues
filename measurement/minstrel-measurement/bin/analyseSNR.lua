@@ -22,28 +22,34 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
     if ( name ~= "." and name ~= ".."  and isDir ( args.input .. "/" .. name ) ) then
 
         print ( "read measurement: " .. name )
+        local base_dir = args.input .. "/" .. name
         local keys = read_keys ( args.input )
         local all_snrs = {}
         for _, key in ipairs ( keys ) do
-            local measurement = Measurement.parse ( name, args.input, key )
-            --print ( measurement:__tostring () )
+            local snrs_fname = base_dir .. "/snr-histogram-per_rate-power.csv"
+            local snrs = {}
+            if ( isFile ( snrs_fname ) == false ) then
 
-            --print ( "Analyse SNR" )
-            --print ( key )
-            local analyser = FXsnrAnalyser:create ( aps, stas )
-            local snrs
-            if ( args.tshark == true ) then
-                snrs = analyser:snrs_tshark ( measurement )
-            else
-                snrs = analyser:snrs ( measurement )
+                local measurement = Measurement.parse ( name, args.input, key )
+                --print ( measurement:__tostring () )
+
+                --print ( "Analyse SNR" )
+                --print ( key )
+                local analyser = FXsnrAnalyser:create ( aps, stas )
+                local snrs
+                if ( args.tshark == true ) then
+                    snrs = analyser:snrs_tshark ( measurement )
+                else
+                    snrs = analyser:snrs ( measurement )
+                end
+                merge_map ( snrs, all_snrs )
+                --pprint ( snrs )
+                print ( )
+                print ( "#values: " .. table_size ( all_snrs ) )
             end
-            merge_map ( snrs, all_snrs )
-            --pprint ( snrs )
         end
-        print ( )
-        print ( "#values: " .. table_size ( all_snrs ) )
 
         local renderer = SNRRendererPerRate:create ( all_snrs )
-        renderer:run ( args.input .. "/" .. name )
+        renderer:run ( base_dir )
     end
 end

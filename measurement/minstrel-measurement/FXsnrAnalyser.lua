@@ -107,9 +107,10 @@ function FXsnrAnalyser:calc_snrs_stats ( snrs, power, rate )
     local ret = {}
     if ( table_size ( snrs ) > 0 ) then
         local unique_snrs = misc.Set_count ( snrs )
-        --for snr, count in pairs ( unique_snrs ) do
-        --    print ( "antenna signal: " .. snr, count )
-        --end
+        for snr, count in pairs ( unique_snrs ) do
+            --print ( "antenna signal: " .. snr, count )
+            ret [ power .. "-" .. rate .. "-WAVG-" .. count ] = snr
+        end
 
         ret [ power .. "-" .. rate .. "-MIN" ] = self:min ( snrs )
         ret [ power .. "-" .. rate .. "-MAX" ] = self:max ( snrs )

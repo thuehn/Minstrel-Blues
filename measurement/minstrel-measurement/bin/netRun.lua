@@ -24,7 +24,14 @@
 -- filter by used UDP port
 -- experiment direction (AP->STA, STA->AP)
 -- analyse throughput
+--  - both pcap wlan_radio.data_rate, radiotab.datarate and iperf.bandwidth
+--  - wireshark->statistics->summary
+--  - tcpstat -r file.pcap  -o "%S %R %b \n" 1 ( %b bits per seconds / %B bytes per seconds )
+--  - plot power x rate x bandwidth (rolling median, median, mean)
+--  - cut first and last second
 -- save experiment information into file as name = value pairs
+--  frequency, mcs index, rate
+-- filter pcap by mcs (when rate index 10 -> mcs 8, see rc_stats_csv.{name,idx})
 
 local pprint = require ('pprint')
 

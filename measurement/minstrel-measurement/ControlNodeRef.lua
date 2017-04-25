@@ -271,7 +271,7 @@ function ControlNodeRef:init_nodes ( disable_autostart
         end
 
         if ( self.rpc.start_nodes ( self.distance ) == false ) then
-            return falsem, "Not all nodes started"
+            return false, "Not all nodes started"
         end
     end
 
@@ -545,6 +545,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
     if ( file ~= nil ) then
         file:write ( "channel = " .. channel .. '\n' )
         file:write ( "htmode = " .. htmode .. '\n' )
+        file:write ( "distance = " .. self.distance .. '\n' )
         file:close ()
     end
 
