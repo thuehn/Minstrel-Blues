@@ -163,13 +163,13 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
                 filter = filter .. " ) "
             end
             if ( measurement.node_mac ~= nil ) then
-                filter = filter .. "or wlan.ta==" .. measurement.node_mac
+                filter = filter .. "and wlan.ta==" .. measurement.node_mac
                 --filter = filter .. "and wlan.ta==" .. measurement.node_mac
                 filter = filter .. " ) or ( "
                 filter = filter .. "wlan.ra==" .. measurement.node_mac
             end
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
-                filter = filter .. " or ( "
+                filter = filter .. " and ( "
                 --filter = filter .. " and ( "
                 for i, mac in ipairs ( measurement.opposite_macs ) do
                     if ( i ~= 1 ) then filter = filter .. " or " end
