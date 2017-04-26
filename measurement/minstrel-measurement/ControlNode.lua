@@ -72,7 +72,7 @@ function ControlNode:restart_wifi_debug()
         print ( "Cannot start wifi on APs. Not initialized" )
     end
     for _, ap_ref in ipairs ( self.ap_refs ) do
-        ap_ref.rpc.restart_wifi()
+        ap_ref.restart_wifi ()
     end
 end
 

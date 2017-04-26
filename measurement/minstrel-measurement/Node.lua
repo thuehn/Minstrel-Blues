@@ -99,7 +99,10 @@ function Node:enable_wifi ( enabled, phy )
 end
 
 function Node:restart_wifi ( phy )
-    if ( phy == nil ) then return nil end
+    if ( phy == nil ) then
+        self:send_debug ("Can't restart wifi. phy is not set." )
+        return nil
+    end
     self:send_debug ("restart wifi" )
     if ( self.proc_version.system == "LEDE" ) then
         local wifi, err = misc.execute ( "/sbin/wifi" )

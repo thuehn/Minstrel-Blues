@@ -127,6 +127,16 @@ if ( args.distance == nil ) then
     print ("")
 end
 
+if ( args.channel == nil ) then
+    Config.show_config_error ( parser, "channel", true )
+    print ("")
+end
+
+if ( args.htmode == nil ) then
+    Config.show_config_error ( parser, "htmode", true )
+    print ("")
+end
+
 local has_config = Config.load_config ( args.config ) 
 
 local ap_setups

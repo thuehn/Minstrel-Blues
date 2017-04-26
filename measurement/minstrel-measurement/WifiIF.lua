@@ -32,9 +32,13 @@ function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
     self.node:send_info ( "set channel and htmode of " .. ( self.iface or "none" )
                         .. " to " .. ( channel or "none" ) .. " " .. ( htmode or "none" ) )
     if ( proc_version.system == "LEDE" ) then
-        local var = "wireless.wifi-device." .. self.iface .. ".channel"
+        local var = "wireless.radio"
+        var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
+        var = var .. ".channel"
         local _, exit_code = uci.set_var ( var, channel )
-        local var = "wireless.wifi-device." .. self.iface .. ".htmode"
+        local var = "wireless.radio"
+        var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
+        var = var .. ".htmode"
         local _, exit_code = uci.set_var ( var, htmode )
     else
         if ( htmode == "HT40" and tonumber ( channel ) >= 1 and tonumber ( channel ) <= 7 ) then

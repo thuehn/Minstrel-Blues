@@ -6,7 +6,7 @@ Uci.uci_bin = "/sbin/uci"
 Uci.set_var = function ( var, value )
     if ( isFile ( Uci.uci_bin ) and var ~= nil and value ~= nil ) then
         if ( type ( value ) == "string" ) then
-            value = "'" .. value .. "'"
+            value = value
         else
             value = tostring ( value )
         end

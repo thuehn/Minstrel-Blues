@@ -111,7 +111,7 @@ function AccessPointRef:create_measurement ()
     self.stats.enable_rc_stats ( self.stations )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            sta_ref:create_measurement()
+            sta_ref:create_measurement ()
         end
     end
 end
@@ -119,10 +119,12 @@ end
 function AccessPointRef:restart_wifi ()
     --fixme: router reboot when "/sbin/wifi" is executed on AP
     --NodeRef.restart_wifi ( self )
-    --posix.sleep ( 20 )
+    --self.rpc.restart_wifi ( self.wifi_cur )
+    --posix.sleep ( 3 )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            sta_ref:restart_wifi ()
+            sta_ref.rpc.restart_wifi ( sta_ref.wifi_cur )
+            --sta_ref:restart_wifi ()
         end
     end
 end

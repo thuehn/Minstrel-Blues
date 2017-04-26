@@ -607,7 +607,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
                             .. " with key " .. ( key or "none" ) .. " *"
         print ( exp_header )
 
-        ret, err = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, ht )
+        ret, err = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, htmode )
         if ( ret == false ) then
             return ret, err
         end

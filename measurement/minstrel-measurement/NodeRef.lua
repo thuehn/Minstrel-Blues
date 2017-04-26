@@ -135,7 +135,7 @@ end
 
 function NodeRef:restart_wifi ()
     if ( self.is_passive == nil or self.is_passive == false ) then
-        self.rpc.restart_wifi ()
+        self.rpc.restart_wifi ( self.wifi_cur )
     end
 end
 
