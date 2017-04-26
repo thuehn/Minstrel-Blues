@@ -44,25 +44,25 @@ function SNRRendererPerRate:run ( basedir )
                 local rate = parts [2]
                 local stat = parts [3]
                 local count = nil
-                if ( stat == "WAVG" and table_size ( parts ) > 3 ) then
-                    count = parts [4]
+                if ( snr ~= nil and stat == "WAVG" and table_size ( parts ) > 3 ) then
+                    count = tonumber ( parts [4] )
+                    if ( count > 10 ) then
+                        print ( rate, power, snr, count )
+                        file:write ( rate )
+                        file:write ( " " )
+                        file:write ( power )
+                        file:write ( " " )
+                        file:write ( snr )
+                        file:write ( " " )
+                        file:write ( count )
+                        file:write ( "\n" )
+                    end
                 end
 --        if ( stat == "AVG" ) then
 --            if ( snrs_per_rate [ rate ] == nil ) then
 --                snrs_per_rate [ rate ] = {}
 --            end
 --            snrs_per_rate [ rate ] [ key ] = snr
-                if ( stat == "WAVG" ) then
-                    --print ( rate, power, snr, count )
-                    file:write ( rate )
-                    file:write ( " " )
-                    file:write ( power )
-                    file:write ( " " )
-                    file:write ( snr )
-                    file:write ( " " )
-                    file:write ( count )
-                    file:write ( "\n" )
-                end
             end
             file:close ()
         end
