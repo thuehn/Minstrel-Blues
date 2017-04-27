@@ -140,7 +140,8 @@ function ControlNodeRef:init ( disable_autostart, disable_synchronize )
         print ()
 
         --synchronize time
-        if ( disable_synchronize == false ) then
+        if ( disable_synchronize == false
+             and  self.ctrl_net_ref.addr ~= nil and self.ctrl_net_ref.addr ~= self.net_if.addr ) then
             local err
             local time = os.date ( "*t", os.time() )
             local cur_time, err = self.rpc.set_date ( time.year, time.month, time.day, time.hour, time.min, time.sec )
