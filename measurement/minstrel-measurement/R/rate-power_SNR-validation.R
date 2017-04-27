@@ -105,7 +105,11 @@ rate_idx <- c(
     `114` = "MCS 20, HT40, SGI, ss:3",
     `115` = "MCS 21, HT40, SGI, ss:3",
     `116` = "MCS 22, HT40, SGI, ss:3",
-    `117` = "MCS 23, HT40, SGI, ss:3"
+    `117` = "MCS 23, HT40, SGI, ss:3",
+    `120` = "1.0M, CCK, LP, ss:1",
+    `121` = "2.0M, CCK, LP, ss:1",
+    `122` = "5.0M, CCK, LP, ss:1",
+    `123` = "11.0M, CCK, LP, ss:1"
 )
 
 args = commandArgs(trailingOnly=TRUE)
