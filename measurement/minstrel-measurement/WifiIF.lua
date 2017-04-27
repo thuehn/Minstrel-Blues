@@ -167,11 +167,29 @@ function WifiIF:set_ani ( enabled )
         local filename = debugfs .. "/" .. self.phy .. "/" .. "ath9k" .. "/"  .. "ani"
         local file = io.open ( filename, "w" )
         if ( enabled ) then
-            file:write(1)
+            file:write ( 1 )
         else
-            file:write(0)
+            file:write ( 0 )
         end
         file:close()
+    end
+end
+
+function WifiIF:set_ldpc ( enabled, proc_version )
+    self.node:send_info ( "set ldpc for " .. ( self.phy or "none" ) .. " to " .. tostring ( enabled ) )
+    if ( proc_version.system == "LEDE" ) then
+        local var = "wireless.radio"
+        var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
+        var = var .. ".ldpc"
+        local value = '1'
+        if ( enabled == false ) then
+            value = '0'
+        end
+        local _, exit_code = uci.set_var ( var, value )
+        return ( exit_code ~= 0 )
+    else
+        self.node:send_error ("NYI WifiIF set_ldpc")
+        return false
     end
 end
 

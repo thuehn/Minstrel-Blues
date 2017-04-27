@@ -249,6 +249,13 @@ function ControlNode:set_ani ( name, ani )
     end
 end
 
+function ControlNode:set_ldpc ( name, enabled )
+    local node_ref = self:find_node_ref ( name )
+    if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+        node_ref.rpc.set_ldpc ( node_ref.wifi_cur, enabled )
+    end
+end
+
 function ControlNode:find_node_ref( name ) 
     for _, node in ipairs ( self.node_refs ) do 
         if ( node.name == name ) then return node end

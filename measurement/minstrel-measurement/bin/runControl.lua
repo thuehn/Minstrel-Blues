@@ -76,6 +76,7 @@ function add_station ( ... ) return node:add_station ( ... ) end
 function list_stations ( ... ) return node:list_stations ( ... ) end
 
 function set_ani ( ... ) return node:set_ani ( ... ) end
+function set_ldpc ( ... ) return node:set_ldpc ( ... ) end
 function set_nameserver (...) return node:set_nameserver (...) end
 function set_nameservers (...) return node:set_nameservers (...) end
 function check_bridges (...) return node:check_bridges (...) end

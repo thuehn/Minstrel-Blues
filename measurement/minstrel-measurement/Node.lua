@@ -239,6 +239,13 @@ function Node:set_ani ( phy, enabled )
     end
 end
 
+function Node:set_ldpc ( phy, enabled )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        dev:set_ldpc ( enabled, self.proc_version )
+    end
+end
+
 function Node:get_mac ( phy, bridged )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then

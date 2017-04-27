@@ -82,6 +82,7 @@ parser:option ("-l --log_file", "Logging to File", "measurement.log" )
 parser:option ("-d --distance", "approximate distance between nodes" )
 
 parser:flag ("--disable_ani", "Runs experiment with ani disabled", false )
+parser:flag ("--disable_ldpc", "Disable Low-Density Parity-Check codec", false )
 
 parser:option ("--runs", "Number of iterations", "1" )
 parser:option ("-T --tcpdata", "Amount of TCP data", "5MB" )
@@ -343,6 +344,7 @@ print ( )
 local runs = tonumber ( args.runs )
 
 ctrl_ref:set_ani ( not args.disable_ani )
+ctrl_ref:set_ldpc ( not args.disable_ldpc )
 
 local data
 if ( args.command == "tcp" ) then

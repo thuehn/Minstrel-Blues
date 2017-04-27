@@ -203,8 +203,14 @@ function ControlNodeRef:restart_wifi_debug ()
 end
 
 function ControlNodeRef:set_ani ( enabled )
-    for _, node_name in ipairs ( self:list_nodes() ) do
+    for _, node_name in ipairs ( self:list_nodes () ) do
         self.rpc.set_ani ( node_name, enabled )
+    end
+end
+
+function ControlNodeRef:set_ldpc ( enabled )
+    for _, node_name in ipairs ( self:list_nodes () ) do
+        self.rpc.set_ldpc ( node_name, enabled )
     end
 end
 
