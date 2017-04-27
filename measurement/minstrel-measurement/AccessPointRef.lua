@@ -120,7 +120,7 @@ function AccessPointRef:restart_wifi ()
     --fixme: router reboot when "/sbin/wifi" is executed on AP
     --NodeRef.restart_wifi ( self )
     --self.rpc.restart_wifi ( self.wifi_cur )
-    --posix.sleep ( 3 )
+    --posix.sleep ( 10 )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             sta_ref.rpc.restart_wifi ( sta_ref.wifi_cur )

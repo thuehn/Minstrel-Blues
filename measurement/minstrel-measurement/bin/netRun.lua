@@ -32,6 +32,15 @@
 -- save experiment information into file as name = value pairs
 --  frequency, mcs index, rate
 -- filter pcap by mcs (when rate index 10 -> mcs 8, see rc_stats_csv.{name,idx})
+-- check pcap trace
+--  - first second maybe have lot spikes
+--  - rare spike values
+-- anonymise pcap traces with radiotap header support
+--  - foreign mac addresses
+--  - foreign ssids
+--  - snaplen that truncates packet data
+--  measure 2.4Ghz without ani
+--  try reload_config instead of /sbin/wifi
 
 local pprint = require ('pprint')
 

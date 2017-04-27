@@ -53,7 +53,7 @@ runtime
 lua
 tcpdump: dump monitor interface packets
 iperf (NOT iperf3): generation of payload for measurement
-cputime: cpu load
+cpusage: cpu load
 ping: reachablity
 ssh/ssh-keygen: start/stop nodes, with authorized keys
 dropbear-ssh,dropbearkeygen:

@@ -105,7 +105,7 @@ function Node:restart_wifi ( phy )
     end
     self:send_debug ("restart wifi" )
     if ( self.proc_version.system == "LEDE" ) then
-        local wifi, err = misc.execute ( "/sbin/wifi" )
+        local wifi, err = misc.execute ( "/bin/ash", "/sbin/wifi" )
         self:send_info( "restart wifi done: " .. wifi )
         return true
     elseif ( self.proc_version.system == "Gentoo" ) then

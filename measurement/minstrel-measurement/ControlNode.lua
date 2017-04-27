@@ -325,7 +325,7 @@ function ControlNode:hosts_known ()
     return true
 end
 
-function ControlNode:start_nodes ( distance )
+function ControlNode:start_nodes ( rsa_key, distance )
 
     function start_node ( node_ref, log_addr, log_port )
 
@@ -340,10 +340,15 @@ function ControlNode:start_nodes ( distance )
         if ( log_port ~= nil ) then
             remote_cmd = remote_cmd .. " --log_port " .. log_port
         end
-        self:send_info ( "ssh " .. "-i " .. ( node_ref.rsa_key or "none" )
-                        .. " root@" .. ( node_ref.ctrl_net_ref.addr or "none" ) .. " " .. remote_cmd )
-        local pid, _, _ = misc.spawn ( "ssh", "-i", node_ref.rsa_key, 
-                                       "root@" .. ( node_ref.ctrl_net_ref.addr or "none" ), remote_cmd )
+        local ssh_command = { "ssh" }
+        if ( rsa_key ~= nil ) then
+            ssh_command [ #ssh_command + 1 ] = "-i"
+            ssh_command [ #ssh_command + 1 ] = rsa_key
+        end
+        ssh_command [ #ssh_command + 1 ]  = "root@" .. ( node_ref.ctrl_net_ref.addr or "none" )
+        ssh_command [ #ssh_command + 1 ] = remote_cmd
+        self:send_info ( table_tostring ( ssh_command ) )
+        local pid, _, _ = misc.spawn ( unpack ( ssh_command ) )
         return pid
     end
     self:send_debug ( "exeriment approximate distance: " .. ( distance or "not specified" ) )
@@ -383,7 +388,7 @@ end
 
 -- kill all running nodes with two times sigint(2)
 -- (default kill signal is sigterm(15) )
-function ControlNode:stop ()
+function ControlNode:stop ( rsa_key )
     -- fixme: nodes should implement a stop function and kill itself with getpid
     -- and wait
     for i, node_ref in ipairs ( self.node_refs ) do
@@ -391,10 +396,17 @@ function ControlNode:stop ()
             self:send_info ( "stop node at " .. node_ref.ctrl_net_ref.addr .. " with pid " .. self.pids [ node_ref.name ] )
             local ssh
             local exit_code
-            local remote = "root@" .. node_ref.ctrl_net_ref.addr
             local remote_cmd = "lua /usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
             self:send_debug ( remote_cmd )
-            ssh, exit_code = misc.execute ( "ssh", "-i", node_ref.rsa_key, remote, remote_cmd )
+            local ssh_command = { "ssh" }
+            if ( rsa_key ~= nil ) then
+                ssh_command [ #ssh_command + 1 ] = "-i"
+                ssh_command [ #ssh_command + 1 ] = rsa_key
+            end
+            ssh_command [ #ssh_command + 1]  = "root@" .. ( node_ref.ctrl_net_ref.addr or "none" )
+            ssh_command [ #ssh_command + 1 ] = remote_cmd
+            self:send_debug ( table_tostring ( ssh_command ) )
+            ssh, exit_code = misc.execute ( unpack ( ssh_command ) )
             if ( exit_code ~= 0 ) then
                 self:send_debug ( "send signal -2 to remote pid " .. self.pids [ node_ref.name ] .. " failed" )
             end

@@ -328,34 +328,32 @@ snr_3d <- plot_ly(mean_snr,
 plotly_IMAGE(snr_3d, format = "png", out_file = "mean_snr_3d.png")
 
 
-#if (!require("webshot")) install.packages("webshot")
-## RSelenium
-#tmpFile <- tempfile(fileext = ".png")
-#export(plot_ly(mean_snr,
-#               x = ~txpower,
-#               y = ~txrate,
-#               z = ~weighted_snr,
-#               type = "scatter3d",
-#               mode = "markers",
-#               color = ~ weighted_snr, colors=c("green","red"),
-#               hoverinfo = 'text',
-#               text = ~paste('TX-Rate Index: ', txrate,
-#                             '<br>TX-Power:', txpower, ' dBm',
-#                             '<br>SNR:', txpower, ' dB'),
-#               marker = list( size = 3 , opacity = 0.8,
-#                              colorbar = list (thickness = 10,
-#                                               title = 'SNR [dB]'))
-#) %>%
-#    layout(title = 'Validation of Transmit Power Control Using ath9k on Atheros AR9344 
-#                    <br> Measured Mean-SNR as Function of TX-Rate and TX-Power',
-#           titlefont = list(size = 18),
-#           scene = list(xaxis = x_axis,
-#                        yaxis = y_axis,
-#                        zaxis = z_axis,
-#                        aspectratio = list(x=2,y=3,z=1)
-#           )
-#    ) , file = tmpFile, selenium = RSelenium::rsDriver)
-#browseURL(tmpFile)
-    
-
-
+if (!require("webshot")) install.packages("webshot")
+# RSelenium
+tmpFile <- tempfile(fileext = ".png")
+export(plot_ly(mean_snr,
+               x = ~txpower,
+               y = ~txrate,
+               z = ~weighted_snr,
+               type = "scatter3d",
+               mode = "markers",
+               color = ~ weighted_snr, colors=c("green","red"),
+               hoverinfo = 'text',
+               text = ~paste('TX-Rate Index: ', txrate,
+                             '<br>TX-Power:', txpower, ' dBm',
+                             '<br>SNR:', txpower, ' dB'),
+               marker = list( size = 3 , opacity = 0.8,
+                              colorbar = list (thickness = 10,
+                                               title = 'SNR [dB]'))
+) %>%
+    layout(title = 'Validation of Transmit Power Control Using ath9k on Atheros AR9344 
+                    <br> Measured Mean-SNR as Function of TX-Rate and TX-Power',
+           titlefont = list(size = 18),
+           scene = list(xaxis = x_axis,
+                        yaxis = y_axis,
+                        zaxis = z_axis,
+                        aspectratio = list(x=2,y=3,z=1)
+           )
+    ) , file = tmpFile)
+   # ) , file = tmpFile, selenium = RSelenium::rsDriver)
+browseURL(tmpFile)

@@ -271,7 +271,7 @@ function ControlNodeRef:init_nodes ( disable_autostart
             return false, "Not all hosts are known on control node. Check know_hosts file."
         end
 
-        if ( self.rpc.start_nodes ( self.distance ) == false ) then
+        if ( self.rpc.start_nodes ( self.rsa_key , self.distance ) == false ) then
             return false, "Not all nodes started"
         end
     end
