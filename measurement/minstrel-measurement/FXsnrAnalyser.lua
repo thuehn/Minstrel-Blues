@@ -142,7 +142,7 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
                 break
             end
             local fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
-            --print ( fname )
+            print ( fname )
             -- run tshark
             -- measurement.node_mac
             -- measurement.opposite_macs
@@ -151,7 +151,10 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             --       use wlan.ta and wlan.ra instead or use bridge mac
             local filter = ""
             filter = filter .. "( ( wlan.fc.type==2 and wlan.fc.type_subtype==40 )"
-            --filter = filter .. " or ( wlan.fc.type==0 and wlan.fc.type_subtype==8 ) )"
+            filter = filter .. " or ( wlan.fc.type==0 and wlan.fc.type_subtype==8 )"
+            filter = filter .. " or ( wlan.fc.type==1 and wlan.fc.type_subtype==8 )"
+            filter = filter .. " or ( wlan.fc.type==2 and wlan.fc.type_subtype==8 )"
+            filter = filter .. " or ( wlan.fc.type==1 and wlan.fc.type_subtype==24 )"
             filter = filter .. " or ( wlan.fc.type==1 and wlan.fc.type_subtype==25 )"
             filter = filter .. " or ( wlan.fc.type==1 and wlan.fc.type_subtype==29 ) )"
             if ( measurement.opposite_macs ~= nil and measurement.opposite_macs ~= {} ) then
