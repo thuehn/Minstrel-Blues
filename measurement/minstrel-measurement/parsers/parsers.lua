@@ -80,8 +80,12 @@ function parse_real ( str )
     local state
     num1, rest = parse_num ( rest )
     state, rest = parse_str ( rest, "." )
-    num2, rest = parse_num ( rest )
-    return tonumber ( num1 .. "." .. num2 ), rest
+    if ( state == true ) then
+        num2, rest = parse_num ( rest )
+        return tonumber ( num1 .. "." .. num2 ), rest
+    else
+        return tonumber ( num1 ), rest
+    end
 end
 
 -- return: str without leading whitespaces ('\n', ' ', '\t')

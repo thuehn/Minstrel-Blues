@@ -1,7 +1,7 @@
 local pprint = require ('pprint')
 local misc = require ('misc')
 
-SNRRendererPerRate = { snrs = nil
+SNRRendererPerRate = { values = nil
                      , power = nil
                      , rate = nil
                      }
@@ -13,8 +13,8 @@ function SNRRendererPerRate:new (o)
     return o
 end
 
-function SNRRendererPerRate:create ( snrs )
-    local o = SNRRendererPerRate:new( { snrs = snrs } )
+function SNRRendererPerRate:create ( values )
+    local o = SNRRendererPerRate:new( { values = values } )
     return o
 end
 
@@ -27,64 +27,55 @@ function SNRRendererPerRate:get_rate ( key )
 end
 
 
-function SNRRendererPerRate:run ( basedir )
+function SNRRendererPerRate:run ( basedir, fname, field )
 
 --    print ( basedir )
 
---    pprint ( self.snrs )
---    local snrs_per_rate = {}
-    local fname = basedir .. "/snr-histogram-per_rate-power.csv"
+    pprint ( self.values )
+    local fname = basedir .. "/" .. fname
     if ( isFile ( fname ) == false ) then
-        if ( self.snrs ~= nil) then
+        if ( self.values ~= nil) then
             local file = io.open ( fname, "w" )
             if ( file ~= nil ) then
-                file:write ( "txrate txpower snr count\n" )
-                for key, snr in pairs ( self.snrs ) do
+                file:write ( "txrate txpower value count\n" )
+                for key, value in pairs ( self.values ) do
                     local parts = split ( key, "-" )
                     local power = parts [1]
                     local rate = parts [2]
                     local stat = parts [3]
                     local count = nil
-                    if ( snr ~= nil and stat == "WAVG" and table_size ( parts ) > 3 ) then
-                        count = tonumber ( parts [4] )
-                        if ( count > 10 ) then
-                            print ( rate, power, snr, count )
-                            file:write ( rate )
-                            file:write ( " " )
-                            file:write ( power )
-                            file:write ( " " )
-                            file:write ( snr )
-                            file:write ( " " )
-                            file:write ( count )
-                            file:write ( "\n" )
+                    print ( rate, power, stat, value )
+                    if ( value ~= nil ) then
+                        if ( stat == "WAVG" and table_size ( parts ) > 3 ) then
+                            count = tonumber ( parts [4] )
+                            if ( count > 10 ) then
+                                print ( rate, power, value, count )
+                                file:write ( rate )
+                                file:write ( " " )
+                                file:write ( power )
+                                file:write ( " " )
+                                file:write ( value )
+                                file:write ( " " )
+                                file:write ( count )
+                                file:write ( "\n" )
+                            end
+                        else
+                           if ( stat == "AVG" ) then
+                                file:write ( rate )
+                                file:write ( " " )
+                                file:write ( power )
+                                file:write ( " " )
+                                file:write ( value )
+                                file:write ( " " )
+                                file:write ( "1" )
+                                file:write ( "\n" )
+                           end 
                         end
                     end
---        if ( stat == "AVG" ) then
---            if ( snrs_per_rate [ rate ] == nil ) then
---                snrs_per_rate [ rate ] = {}
---            end
---            snrs_per_rate [ rate ] [ key ] = snr
                 end
                 file:close ()
             end
         end
     end
-    misc.execute ( "Rscript", "--vanilla", "R/rate-power_SNR-validation.R", basedir, basedir .. "/../wifi_config.txt" )
-
---    for rate, snrs in pairs ( snrs_per_rate ) do
---        local fname = basedir .. "/" .. "snrs-" .. rate .. ".txt"
---        local file = io.open ( fname, "w" )
---        if ( file ~= nil ) then
---            local i = 1
---            for key, snr in pairs ( snrs ) do
---                if ( i ~= 1 ) then file:write (" ") end
---                file:write (snr)
---                i = i + 1
---            end
---            file:write('\n')
---            file:close ()
---            misc.execute ( "Rscript", "--vanilla", "R/plot_snr_per_rate.R", fname ) 
---        end
---    end
---    --pprint ( snrs_per_rate )
+    misc.execute ( "Rscript", "--vanilla", "R/rate-power_SNR-validation.R", basedir, basedir .. "/../wifi_config.txt", fname, field )
 end

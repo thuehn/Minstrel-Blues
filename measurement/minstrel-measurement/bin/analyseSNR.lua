@@ -25,9 +25,10 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
         local base_dir = args.input .. "/" .. name
         local keys = read_keys ( args.input )
         local all_snrs = {}
+        local fname = "snr-histogram-per_rate-power.csv"
         if ( keys ~= nil ) then
             for _, key in ipairs ( keys ) do
-                local snrs_fname = base_dir .. "/snr-histogram-per_rate-power.csv"
+                local snrs_fname = base_dir .. "/" .. fname
                 local snrs = {}
                 if ( isFile ( snrs_fname ) == false ) then
 
@@ -39,7 +40,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
                     local analyser = FXsnrAnalyser:create ( aps, stas )
                     local snrs
                     if ( args.tshark == true ) then
-                        snrs = analyser:snrs_tshark ( measurement )
+                        snrs = analyser:snrs_tshark ( measurement, "radiotap.dbm_antsignal", "snrs" )
                     else
                         snrs = analyser:snrs ( measurement )
                     end
@@ -52,6 +53,6 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
         end
 
         local renderer = SNRRendererPerRate:create ( all_snrs )
-        renderer:run ( base_dir )
+        renderer:run ( base_dir, fname, "snr" )
     end
 end

@@ -12,7 +12,9 @@ IperfClient = { id = nil
               , interval_start = nil
               , interval_end = nil
               , transfer = nil
+              , transfer_unit = nil
               , bandwidth = nil
+              , bandwidth_unit = nil
               , jitter = nil
               , lost_datagrams = nil
               , total_datagrams = nil
@@ -36,7 +38,9 @@ function IperfClient:__tostring()
             .. " interval_start: " .. ( self.interval_start or "unset" )
             .. " interval_end: " .. ( self.interval_end or "unset" )
             .. " transfer: " .. ( self.transfer or "unset" )
+            .. " transfer_unit: " .. ( self.transfer_unit or "unset" )
             .. " bandwidth: " .. ( self.bandwidth or "unset" )
+            .. " bandwidth_unit: " .. ( self.bandwidth_unit or "unset" )
             .. " jitter: " .. ( self.jitter or "unset" )
             .. " lost_datagrams: " .. ( self.lost_datagrams or "unset" )
             .. " total_datagrams: " .. ( self.total_datagrams or "unset" )
@@ -44,8 +48,6 @@ function IperfClient:__tostring()
 end
 
 function parse_iperf_client ( iperf )
-
-    print ( iperf )
 
     local out = IperfClient:create()
 
@@ -71,7 +73,9 @@ function parse_iperf_client ( iperf )
     local interval_start = nil
     local interval_end = nil
     local transfer = nil
+    local transfer_unit = nil
     local bandwidth = nil
+    local bandwidth_unit = nil
     local jitter = nil
     local lost_datagrams = nil
     local total_datagrams = nil
@@ -93,8 +97,12 @@ function parse_iperf_client ( iperf )
     state, rest = parse_str ( rest, "Sent" )
     if ( state == true ) then return out end
 
+    state, rest = parse_str ( rest, "Server Report:" )
+    if ( state == true ) then return out end
+
     interval_start, rest = parse_real ( rest )
     state, rest = parse_str ( rest, "-" )
+    rest = skip_layout ( rest )
     interval_end, rest = parse_real ( rest )
     rest = skip_layout ( rest )
     state, rest = parse_str ( rest, "sec" )
@@ -102,15 +110,16 @@ function parse_iperf_client ( iperf )
 
     transfer, rest = parse_real ( rest )
     rest = skip_layout ( rest )
-    state, rest = parse_str ( rest, "MBytes" )
+
+    transfer_unit, rest = parse_ide ( rest )
     rest = skip_layout ( rest )
 
+    local add_chars = { "/" }
     bandwidth, rest = parse_real ( rest )
     rest = skip_layout ( rest )
-    state, rest = parse_str ( rest, "Mbits/sec" )
+    bandwidth_unit, rest = parse_ide ( rest, add_chars )
     rest = skip_layout ( rest )
 
-    pprint ( rest )
     if ( rest ~= "" ) then
         jitter, rest = parse_real ( rest )
         rest = skip_layout ( rest )

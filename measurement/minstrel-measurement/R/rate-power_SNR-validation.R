@@ -113,15 +113,18 @@ rate_idx <- c(
 )
 
 args = commandArgs(trailingOnly=TRUE)
-if ( length ( args ) < 2 ) {
-    stop ( "At least two arguments must be supplied (input file, wifi_config).\n", call.=FALSE )
+if ( length ( args ) < 4 ) {
+    stop ( "At least four arguments must be supplied (working dir, wifi_config, input file, field name).\n", call.=FALSE )
 }
 workingdir = args [1]
+wifi_config_file = args [2]
+input_file = args[3]
+field_name = args[4] # value name
+
 print ( workingdir )
 # set working directory
 setwd(workingdir)
 
-wifi_config_file = args [2]
 print ( wifi_config_file )
 wifi_config = read_delim ( wifi_config_file, col_names = FALSE, delim="=", col_types = "cc")
 
@@ -129,35 +132,37 @@ channel <- trimws ( wifi_config [1, 2] )
 htmode <- trimws ( wifi_config [2, 2] )
 distance <- trimws ( wifi_config [3, 2] )
 
-#read our snr data
-# rate power weighted_snr count
-snr_raw <- read_delim("snr-histogram-per_rate-power.csv", col_names = TRUE, delim=" ", col_types = "iiii")
 
-#remove measurement errors of snr outliers when 30dB is max txpower value range
-#snr <- snr %>% filter(snr > (max(snr) - 30))
+#read our value data
+# rate power weighted_value count
+value_raw <- read_delim(input_file, col_names = TRUE, delim=" ", col_types = "iini")
+
+#remove measurement errors of value outliers when 30dB is max txpower value range
+#value <- value %>% filter(value > (max(value) - 30))
 
 #respect current max txpower supported by the hardware, so remove power levels > 21 dBm
-snr <- snr_raw %>% filter(txpower < 22)
+value <- value_raw %>% filter(txpower < 22)
 
 #add weighted mean for each rate/power combination
-snr <- snr %>%
+value <- value %>%
         group_by(txrate,txpower) %>%
-        mutate(weighted_snr = weighted.mean(snr,count))
+        mutate(weighted_value = weighted.mean(value,count))
 
-#add maximum & minimum of weighted_snr to each txrate group
-snr <- snr %>%
+#add maximum & minimum of weighted_value to each txrate group
+value <- value %>%
         group_by(txrate) %>%
         arrange(txrate,txpower) %>%
-        mutate(max_snr = max(weighted_snr)) %>%
-        mutate(min_snr = min(weighted_snr))
+        mutate(max_value = max(weighted_value)) %>%
+        mutate(min_value = min(weighted_value))
 
-#mean snr for each txrate & txpower combination
-mean_snr <- snr %>%
-    group_by(txrate,txpower,weighted_snr) %>%
+#mean value for each txrate & txpower combination
+mean_value <- value %>%
+    group_by(txrate,txpower,weighted_value) %>%
     summarise()
 
 #save as csv
-write.csv(mean_snr, file = "mean_snr.csv")
+mean_filename = paste ( "mean_", field_name, ".csv", sep="")
+write.csv(mean_value, file = mean_filename)
 
 textsize = 8
 titlesize = 20
@@ -168,23 +173,23 @@ legendmargin = 10
 axismarginH = 10
 
 txpowerscale = 3
-txpowercount = length ( seq ( min ( snr$txpower ) , max ( snr$txpower ) ) )
+txpowercount = length ( seq ( min ( value$txpower ) , max ( value$txpower ) ) )
 if ( txpowercount > 25 ) { txpowerscale = 5 }
 if ( txpowercount > 40 ) { txpowerscale = 10 }
 
-snrscale = 3
-snrcount = length ( seq ( min ( snr$snr ) , max ( snr$snr ) ) )
-if ( snrcount > 20 ) { snrscale = 5 }
-if ( snrcount > 30 ) { snrscale = 10 }
-if ( snrcount > 40 ) { snrscale = 15 }
+valuescale = 3
+valuecount = length ( seq ( min ( value$value ) , max ( value$value ) ) )
+if ( valuecount > 20 ) { valuescale = 5 }
+if ( valuecount > 30 ) { valuescale = 10 }
+if ( valuecount > 40 ) { valuescale = 15 }
 
 #single plot per rate_idx in facet_wrap
-plot_snr_1 <- ggplot(data = snr, aes(x = txpower, y = snr, weight = count/sum(as.numeric(count)))) +
+plot_value_1 <- ggplot(data = value, aes(x = txpower, y = value, weight = count/sum(as.numeric(count)))) +
     geom_point(size=0.4, alpha=0.6) +
     stat_summary(fun.data = "mean_cl_boot", geom = "crossbar", colour = "red", width = 0.5, alpha=0.4) +
     geom_smooth(aes(colour=as.factor(txrate%%10)), stat = "smooth", method = "loess", size = 0.8, alpha=0.5) +
-    scale_x_continuous(breaks = seq(min(snr$txpower), max(snr$txpower), by = txpowerscale)) +
-    scale_y_continuous(breaks = seq(min(snr$snr), max(snr$snr), by = snrscale)) +
+    scale_x_continuous(breaks = seq(min(value$txpower), max(value$txpower), by = txpowerscale)) +
+    scale_y_continuous(breaks = seq(min(value$value), max(value$value), by = valuescale)) +
     labs(x = "Adjusted TX-Power at Transmitter [dBm]", y = "Measured SNR at Receiver [dB]") +
     theme_bw() +
     labs(title = "Validation of Transmit Power Control Using ath9k on Atheros AR9344",
@@ -208,14 +213,15 @@ plot_snr_1 <- ggplot(data = snr, aes(x = txpower, y = snr, weight = count/sum(as
     facet_wrap(~ txrate, ncol = 8, labeller = as_labeller(rate_idx))
 
 #save plot
-ggsave(plot_snr_1, file="snr_per_rate-power_v1.png", width=11, height=8, dpi=600)
+output_file = paste ( field_name, "_per_rate_power_v1.png", sep="")
+ggsave(plot_value_1, file=output_file, width=11, height=8, dpi=600)
 
 #single plot per rate_idx in facet_wrap
-plot_snr_2 <- ggplot(data = snr, aes(x = txpower, y = snr, weight = count/sum(as.numeric(count)))) +
+plot_value_2 <- ggplot(data = value, aes(x = txpower, y = value, weight = count/sum(as.numeric(count)))) +
     geom_boxplot(aes(group=cut_width(txpower,1)), outlier.colour = "red", outlier.size=1) +
     geom_smooth(aes(colour=as.factor(txrate%%10)), stat = "smooth", method = "loess", size = 1.2) +
-    scale_x_continuous(breaks = seq(min(snr$txpower), max(snr$txpower), by = txpowerscale)) +
-    scale_y_continuous(breaks = seq(min(snr$snr), max(snr$snr), by = snrscale)) +
+    scale_x_continuous(breaks = seq(min(value$txpower), max(value$txpower), by = txpowerscale)) +
+    scale_y_continuous(breaks = seq(min(value$value), max(value$value), by = valuescale)) +
     labs(x = "Adjusted TX-Power at Transmitter [dBm]", y = "Measured SNR at Receiver [dB]") +
     theme_bw() +
     labs(title = "Validation of Transmit Power Control Using ath9k on Atheros AR9344",
@@ -240,7 +246,8 @@ plot_snr_2 <- ggplot(data = snr, aes(x = txpower, y = snr, weight = count/sum(as
     facet_wrap(~ txrate, ncol = 8, labeller = as_labeller(rate_idx))
 
 #save plot
-ggsave(plot_snr_2, file="snr_per_rate-power_v2.png", width=11, height=8, dpi=600)
+output_file = paste ( field_name, "_per_rate_power_v2.png", sep="")
+ggsave(plot_value_2, file=output_file, width=11, height=8, dpi=600)
 
 #3D Scatter Plot
 
@@ -303,13 +310,13 @@ z_axis <- list(
     ticksuffix='dB'
 )
 
-snr_3d <- plot_ly(mean_snr,
+value_3d <- plot_ly(mean_value,
         x = ~txpower,
         y = ~txrate,
-        z = ~weighted_snr,
+        z = ~weighted_value,
         type = "scatter3d",
         mode = "markers",
-        color = ~ weighted_snr, colors=c("green","red"),
+        color = ~ weighted_value, colors=c("green","red"),
         hoverinfo = 'text',
         text = ~paste('TX-Rate Index: ', txrate,
                       '<br>TX-Power:', txpower, ' dBm',
@@ -328,20 +335,21 @@ snr_3d <- plot_ly(mean_snr,
     )
 ) 
 
-#plot 3d snr
-plotly_IMAGE(snr_3d, format = "png", out_file = "mean_snr_3d.png")
+#plot 3d value
+mean_3d_filename = paste ( "mean_", field_name, "_3d.png", sep="")
+plotly_IMAGE(value_3d, format = "png", out_file = mean_3d_filename)
 
 
 if (!require("webshot")) install.packages("webshot")
 # RSelenium
 tmpFile <- tempfile(fileext = ".png")
-export(plot_ly(mean_snr,
+export(plot_ly(mean_value,
                x = ~txpower,
                y = ~txrate,
-               z = ~weighted_snr,
+               z = ~weighted_value,
                type = "scatter3d",
                mode = "markers",
-               color = ~ weighted_snr, colors=c("green","red"),
+               color = ~ weighted_value, colors=c("green","red"),
                hoverinfo = 'text',
                text = ~paste('TX-Rate Index: ', txrate,
                              '<br>TX-Power:', txpower, ' dBm',

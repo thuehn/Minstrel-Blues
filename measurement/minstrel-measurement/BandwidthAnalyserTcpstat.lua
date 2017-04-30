@@ -1,36 +1,35 @@
 require ('misc')
-require ('parsers/iperf')
 
 local pprint = require ('pprint')
 local misc = require ('misc')
 
-BandwidthAnalyser = { aps = nil
+BandwidthTcpstatAnalyser = { aps = nil
                     , stas = nil
                     }
 
-function BandwidthAnalyser:new (o)
+function BandwidthTcpstatAnalyser:new (o)
     local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
-function BandwidthAnalyser:create ( aps, stas )
-    local o = BandwidthAnalyser:new( { aps = aps, stas = stas } )
+function BandwidthTcpstatAnalyser:create ( aps, stas )
+    local o = BandwidthTcpstatAnalyser:new( { aps = aps, stas = stas } )
     return o
 end
 
 -- duplicate of experiment:get_rate
-function BandwidthAnalyser:get_rate ( key )
+function BandwidthTcpstatAnalyser:get_rate ( key )
     return split ( key, "-" ) [1]
 end
 
 -- duplicate of experiment:get_rate
-function BandwidthAnalyser:get_power ( key )
+function BandwidthTcpstatAnalyser:get_power ( key )
     return split ( key, "-" ) [2]
 end
 
-function BandwidthAnalyser:min ( t )
+function BandwidthTcpstatAnalyser:min ( t )
     if ( t == nil ) then return nil end
     if ( table_size ( t ) == 0 ) then return nil end
     if ( table_size ( t ) == 1 ) then return t [1] end
@@ -41,7 +40,7 @@ function BandwidthAnalyser:min ( t )
     return min
 end
 
-function BandwidthAnalyser:max ( t )
+function BandwidthTcpstatAnalyser:max ( t )
     if ( t == nil ) then return nil end
     if ( table_size ( t ) == 0 ) then return nil end
     if ( table_size ( t ) == 1 ) then return t [1] end
@@ -52,7 +51,7 @@ function BandwidthAnalyser:max ( t )
     return max
 end
 
-function BandwidthAnalyser:avg ( t )
+function BandwidthTcpstatAnalyser:avg ( t )
     local sum = 0
     local count = 0
     
@@ -65,7 +64,7 @@ function BandwidthAnalyser:avg ( t )
     return ( sum / count )
 end
 
-function BandwidthAnalyser:read_ssid ( dir, name )
+function BandwidthTcpstatAnalyser:read_ssid ( dir, name )
     local ssid = nil
     local fname = dir .. "/" .. name .. "/ssid.txt"
     local file = io.open ( fname )
@@ -79,7 +78,7 @@ function BandwidthAnalyser:read_ssid ( dir, name )
     return ssid
 end
 
-function BandwidthAnalyser:write_bandwidths ( fname, bandwidths )
+function BandwidthTcpstatAnalyser:write_bandwidths ( fname, bandwidths )
     local file = io.open ( fname, "w" )
     if ( file ~= nil ) then
         for i, bandwidth in ipairs ( bandwidths ) do
@@ -90,7 +89,7 @@ function BandwidthAnalyser:write_bandwidths ( fname, bandwidths )
     end
 end
 
-function BandwidthAnalyser:read_bandwidths ( fname )
+function BandwidthTcpstatAnalyser:read_bandwidths ( fname )
     local bandwidths = {}
     local file = io.open ( fname, "r" )
     if ( file ~= nil ) then
@@ -103,14 +102,9 @@ function BandwidthAnalyser:read_bandwidths ( fname )
     return bandwidths
 end
 
-function BandwidthAnalyser:calc_bandwidths_stats ( bandwidths, power, rate )
+function BandwidthTcpstatAnalyser:calc_bandwidths_stats ( bandwidths, power, rate )
     local ret = {}
     if ( table_size ( bandwidths ) > 0 ) then
-        local unique_bandwidths = misc.Set_count ( bandwidths )
-        --for bandwidth, count in pairs ( unique_bandwidths ) do
-        --    print ( "bandwidth: " .. bandwidth, count )
-        --end
-
         ret [ power .. "-" .. rate .. "-MIN" ] = self:min ( bandwidths )
         ret [ power .. "-" .. rate .. "-MAX" ] = self:max ( bandwidths )
         ret [ power .. "-" .. rate .. "-AVG" ] = misc.round ( self:avg ( bandwidths ), 2 )
@@ -118,12 +112,12 @@ function BandwidthAnalyser:calc_bandwidths_stats ( bandwidths, power, rate )
     return ret
 end
 
-function BandwidthAnalyser:bandwidths_iperf ( measurement, client )
+function BandwidthTcpstatAnalyser:bandwidths ( measurement )
     local ret = {}
     
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
 
-    for key, stats in pairs ( measurement.iperf_c_outs ) do
+    for key, stats in pairs ( measurement.tcpdump_pcaps ) do
         local bandwidths_fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-bandwidths.txt"
         local bandwidths = {}
         if ( isFile ( bandwidths_fname ) == false ) then
@@ -131,25 +125,23 @@ function BandwidthAnalyser:bandwidths_iperf ( measurement, client )
                 print ( "ERROR: unsupported key encoding" )
                 break
             end
-            local suffix = "client"
-            if ( client == false ) then
-                suffix = "server"
-            end
-            local fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-iperf_" .. suffix .. ".txt"
+            local fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
             
             print ( fname )
 
             if ( isFile ( fname ) == true ) then
-                local file = io.open ( fname, "r" )
-                local content = file:read ( "*a" )
-                file:close ()
+                local content, exit_code = misc.execute ( "/usr/bin/tcpstat", "-r", fname, "-o", "%S %R %b \n", "1" )
+                print ( content )
                 if ( content ~= nil and content ~= "" ) then
-                    for _, iperf_str in ipairs ( split ( content, "\n" ) ) do
-                        local iperf = parse_iperf_client ( iperf_str )
-                        if ( iperf.id ~= nil ) then
-                            --pprint ( iperf )
-                            bandwidths [ #bandwidths + 1 ] = iperf.bandwidth
-                        end
+                    for _, bandwidth_str in ipairs ( split ( content, "\n" ) ) do
+                        --pprint ( bandwidth_str )
+                        if ( bandwidth_str ~= "" ) then
+                            local parts = split ( bandwidth_str , " " )
+                            local ts = parts [ 1 ]
+                            local id = parts [ 2 ]
+                            local bandwidth = parts [ 3 ]
+                            bandwidths [ #bandwidths + 1 ] = tonumber ( bandwidth / 1024 )
+                       end
                     end
                     if ( table_size ( bandwidths ) == 0 ) then
                         bandwidths = { 0 }

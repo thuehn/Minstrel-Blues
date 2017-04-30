@@ -127,14 +127,14 @@ end
 -- TODO: filter port, i.e udp 12000
 -- radiotap.dbm_antsignal
 
-function FXsnrAnalyser:snrs_tshark ( measurement )
+function FXsnrAnalyser:snrs_tshark ( measurement, field, suffix )
     local ret = {}
 
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
     local tshark_bin = "/usr/bin/tshark"
 
     for key, stats in pairs ( measurement.tcpdump_pcaps ) do
-        local snrs_fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-snrs.txt"
+        local snrs_fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-" .. suffix .. ".txt"
         local snrs = {}
         if ( isFile ( snrs_fname ) == false ) then
             if ( table_size ( split ( key, "-" ) ) < 3 ) then
@@ -184,7 +184,7 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
             local content, exit_code = Misc.execute_nonblock ( nil, nil
                                                             , tshark_bin, "-r", fname, "-Y", filter
                                                             , "-T", "fields"
-                                                            , "-e", "radiotap.dbm_antsignal" )
+                                                            , "-e", field )
             --print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields"
             --        .. " -e " .. "radiotap.dbm_antsignal" )
             if ( exit_code ~= 0 ) then
@@ -193,7 +193,7 @@ function FXsnrAnalyser:snrs_tshark ( measurement )
                 --print ("tshark:" .. content )
                 for _, line in ipairs ( split ( content, "\n" ) ) do
                     local antsignals = split ( line, "," )
-                    --pprint ( antsignals )
+                    pprint ( antsignals )
                     if ( antsignals ~= nil and #antsignals > 0
                          and antsignals [1] ~= nil and antsignals [1] ~= "" ) then
                         snrs [ #snrs + 1 ] = tonumber ( antsignals [1] )

@@ -41,6 +41,7 @@ print ( tshark_bin .. " -r " .. fname .. " -Y " .. filter .. " -T " .. "fields"
 print ()
 
 local content, exit_code = Misc.execute_nonblock ( nil, nil, tshark_bin, "-r", fname, "-Y", filter, "-T", "fields"
-                                        , "-e", "radiotap.dbm_antsignal", "-e", "wlan.fc.type", "-e", "wlan.fc.type_subtype" )
+                                        , "-e", "radiotap.dbm_antsignal", "-e", "wlan.fc.type", "-e", "wlan.fc.type_subtype"
+                                        , "-e", "wlan_radio.data_rate")
 print ( exit_code )
 print ( "content: " .. ( content or "none" ) )
