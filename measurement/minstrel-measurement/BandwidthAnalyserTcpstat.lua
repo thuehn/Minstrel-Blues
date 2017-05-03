@@ -140,7 +140,7 @@ function BandwidthTcpstatAnalyser:bandwidths ( measurement )
                             local ts = parts [ 1 ]
                             local id = parts [ 2 ]
                             local bandwidth = parts [ 3 ]
-                            bandwidths [ #bandwidths + 1 ] = tonumber ( bandwidth / 1024 )
+                            bandwidths [ #bandwidths + 1 ] = tonumber ( bandwidth / 1024 / 1024 )
                        end
                     end
                     if ( table_size ( bandwidths ) == 0 ) then

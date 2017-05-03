@@ -1,33 +1,33 @@
 local pprint = require ('pprint')
 local misc = require ('misc')
 
-SNRRendererPerRate = { values = nil
-                     , power = nil
-                     , rate = nil
-                     }
+RendererPerRate = { values = nil
+                  , power = nil
+                  , rate = nil
+                  }
 
-function SNRRendererPerRate:new (o)
+function RendererPerRate:new (o)
     local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
-function SNRRendererPerRate:create ( values )
-    local o = SNRRendererPerRate:new( { values = values } )
+function RendererPerRate:create ( values )
+    local o = RendererPerRate:new( { values = values } )
     return o
 end
 
-function SNRRendererPerRate:get_power ( key )
+function RendererPerRate:get_power ( key )
     return tonumber ( split ( key, "-" ) [1] )
 end
 
-function SNRRendererPerRate:get_rate ( key )
+function RendererPerRate:get_rate ( key )
     return tonumber ( split ( key, "-" ) [2] )
 end
 
 
-function SNRRendererPerRate:run ( basedir, fname, field )
+function RendererPerRate:run ( basedir, fname, field )
 
 --    print ( basedir )
 
@@ -77,5 +77,5 @@ function SNRRendererPerRate:run ( basedir, fname, field )
             end
         end
     end
-    misc.execute ( "Rscript", "--vanilla", "R/rate-power_SNR-validation.R", basedir, basedir .. "/../wifi_config.txt", fname, field )
+    misc.execute ( "Rscript", "--vanilla", "R/rate-power_validation.R", basedir, basedir .. "/../wifi_config.txt", fname, field )
 end

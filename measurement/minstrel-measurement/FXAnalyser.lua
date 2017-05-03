@@ -4,33 +4,33 @@ require ('parsers/radiotap')
 local pprint = require ('pprint')
 local misc = require ('misc')
 
-FXsnrAnalyser = { aps = nil
-                , stas = nil
-                }
+FXAnalyser = { aps = nil
+             , stas = nil
+             }
 
-function FXsnrAnalyser:new (o)
+function FXAnalyser:new (o)
     local o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
-function FXsnrAnalyser:create ( aps, stas )
-    local o = FXsnrAnalyser:new( { aps = aps, stas = stas } )
+function FXAnalyser:create ( aps, stas )
+    local o = FXAnalyser:new( { aps = aps, stas = stas } )
     return o
 end
 
 -- duplicate of experiment:get_rate
-function FXsnrAnalyser:get_rate( key )
+function FXAnalyser:get_rate( key )
     return split ( key, "-" ) [1]
 end
 
 -- duplicate of experiment:get_rate
-function FXsnrAnalyser:get_power( key )
+function FXAnalyser:get_power( key )
     return split ( key, "-" ) [2]
 end
 
-function FXsnrAnalyser:min ( t )
+function FXAnalyser:min ( t )
     if ( t == nil ) then return nil end
     if ( table_size ( t ) == 0 ) then return nil end
     if ( table_size ( t ) == 1 ) then return t [1] end
@@ -41,7 +41,7 @@ function FXsnrAnalyser:min ( t )
     return min
 end
 
-function FXsnrAnalyser:max ( t )
+function FXAnalyser:max ( t )
     if ( t == nil ) then return nil end
     if ( table_size ( t ) == 0 ) then return nil end
     if ( table_size ( t ) == 1 ) then return t [1] end
@@ -52,7 +52,7 @@ function FXsnrAnalyser:max ( t )
     return max
 end
 
-function FXsnrAnalyser:avg ( t )
+function FXAnalyser:avg ( t )
     local sum = 0
     local count = 0
     
@@ -65,7 +65,7 @@ function FXsnrAnalyser:avg ( t )
     return ( sum / count )
 end
 
-function FXsnrAnalyser:read_ssid ( dir, name )
+function FXAnalyser:read_ssid ( dir, name )
     local ssid = nil
     local fname = dir .. "/" .. name .. "/ssid.txt"
     local file = io.open ( fname )
@@ -79,7 +79,7 @@ function FXsnrAnalyser:read_ssid ( dir, name )
     return ssid
 end
 
-function FXsnrAnalyser:write_snrs ( fname, snrs )
+function FXAnalyser:write_snrs ( fname, snrs )
     local file = io.open ( fname, "w" )
     if ( file ~= nil ) then
         for i, snr in ipairs ( snrs ) do
@@ -90,7 +90,7 @@ function FXsnrAnalyser:write_snrs ( fname, snrs )
     end
 end
 
-function FXsnrAnalyser:read_snrs ( fname )
+function FXAnalyser:read_snrs ( fname )
     local snrs = {}
     local file = io.open ( fname, "r" )
     if ( file ~= nil ) then
@@ -103,7 +103,7 @@ function FXsnrAnalyser:read_snrs ( fname )
     return snrs
 end
 
-function FXsnrAnalyser:calc_snrs_stats ( snrs, power, rate )
+function FXAnalyser:calc_snrs_stats ( snrs, power, rate )
     local ret = {}
     if ( table_size ( snrs ) > 0 ) then
         local unique_snrs = misc.Set_count ( snrs )
@@ -127,7 +127,7 @@ end
 -- TODO: filter port, i.e udp 12000
 -- radiotap.dbm_antsignal
 
-function FXsnrAnalyser:snrs_tshark ( measurement, field, suffix )
+function FXAnalyser:snrs_tshark ( measurement, field, suffix )
     local ret = {}
 
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
@@ -218,7 +218,7 @@ end
 -- returns list of SNRs stats (MIN/MAX/AVG) for each measurement
 -- stored in map indexed by a string concatenated by power and rate 
 -- and MIN/MAX/AVG seperated by "-"
-function FXsnrAnalyser:snrs ( measurement )
+function FXAnalyser:snrs ( measurement )
     local ret = {}
     
     local frame_type_data = PCAP.radiotap_frametype [ "IEEE80211_FRAMETYPE_DATA" ] - 1
@@ -281,7 +281,7 @@ function FXsnrAnalyser:snrs ( measurement )
                 print ( #snrs .. " read" )
                 file:close()
             else
-                print ("FXsnrAnalyser: pcap open failed: " .. fname)
+                print ("FXAnalyser: pcap open failed: " .. fname)
             end
             self:write_snrs ( snrs_fname, snrs )
             print ( os.time () )

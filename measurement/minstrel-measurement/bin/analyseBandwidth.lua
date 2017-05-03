@@ -5,10 +5,10 @@ local config = require ('Config')
 
 require ('Measurement')
 
-require ('FXsnrAnalyser')
+require ('FXAnalyser')
 require ('BandwidthAnalyser')
 require ('BandwidthAnalyserTcpstat')
-require ('SNRRendererPerRate')
+require ('RendererPerRate')
 
 local parser = argparse ("analyseBandwidth", "Analyse and render Bandwidth Diagram for a measurement")
 
@@ -41,7 +41,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
                     merge_map ( bandwidths, all_bandwidths )
                     --pprint ( bandwidths_iperf )
                 elseif ( args.tshark == true ) then
-                    local analyser = FXsnrAnalyser:create ( aps, stas )
+                    local analyser = FXAnalyser:create ( aps, stas )
                     local bandwidths = analyser:snrs_tshark ( measurement, "wlan_radio.data_rate", "drate" )
                     merge_map ( bandwidths, all_bandwidths )
                     --pprint ( bandwidths )
@@ -57,7 +57,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
         end
 
          
-        local renderer = SNRRendererPerRate:create ( all_bandwidths )
+        local renderer = RendererPerRate:create ( all_bandwidths )
         renderer:run ( args.input .. "/" .. name, fname, "bandwidth" )
     end
 end

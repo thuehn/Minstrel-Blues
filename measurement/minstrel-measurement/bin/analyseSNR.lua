@@ -5,8 +5,8 @@ local config = require ('Config')
 
 require ('Measurement')
 
-require ('FXsnrAnalyser')
-require ('SNRRendererPerRate')
+require ('FXAnalyser')
+require ('RendererPerRate')
 
 local parser = argparse ("analyseSNR", "Analyse and render SNR Diagram for a measurement")
 
@@ -37,7 +37,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
 
                     --print ( "Analyse SNR" )
                     --print ( key )
-                    local analyser = FXsnrAnalyser:create ( aps, stas )
+                    local analyser = FXAnalyser:create ( aps, stas )
                     local snrs
                     if ( args.tshark == true ) then
                         snrs = analyser:snrs_tshark ( measurement, "radiotap.dbm_antsignal", "snrs" )
@@ -52,7 +52,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
             end
         end
 
-        local renderer = SNRRendererPerRate:create ( all_snrs )
+        local renderer = RendererPerRate:create ( all_snrs )
         renderer:run ( base_dir, fname, "snr" )
     end
 end
