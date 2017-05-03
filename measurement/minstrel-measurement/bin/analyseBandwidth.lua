@@ -15,6 +15,7 @@ local parser = argparse ("analyseBandwidth", "Analyse and render Bandwidth Diagr
 parser:argument ("input", "measurement / analyse data directory", "/tmp")
 parser:flag ("-t --tshark", "use tshark as pcap analyser", false )
 parser:flag ("-i --iperf", "use iperf output for bandwidth analyse", false )
+parser:option ("-b --border", "skip values at the begin and the end of a time series", 1 )
 
 local args = parser:parse()
 
@@ -34,20 +35,20 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
                 --print ( measurement:__tostring () )
                 if ( args.iperf == true ) then
                     local analyser = BandwidthAnalyser:create ( aps, stas )
-                    local bandwidths = analyser:bandwidths ( measurement, false )
+                    local bandwidths = analyser:bandwidths ( measurement, args.border, false )
                     if ( false and table_size ( bandwidths ) == 1 and bandwidths [ 1 ] == 0 ) then
-                        bandwidths = analyser:bandwidths ( measurement, true )
+                        bandwidths = analyser:bandwidths ( measurement, args.border, true )
                     end
                     merge_map ( bandwidths, all_bandwidths )
                     --pprint ( bandwidths_iperf )
                 elseif ( args.tshark == true ) then
                     local analyser = FXAnalyser:create ( aps, stas )
-                    local bandwidths = analyser:snrs_tshark ( measurement, "wlan_radio.data_rate", "drate" )
+                    local bandwidths = analyser:snrs_tshark ( measurement, args.border, "wlan_radio.data_rate", "drate" )
                     merge_map ( bandwidths, all_bandwidths )
                     --pprint ( bandwidths )
                 else
                     local analyser = BandwidthTcpstatAnalyser:create ( aps, stas )
-                    local bandwidths = analyser:bandwidths ( measurement )
+                    local bandwidths = analyser:bandwidths ( measurement, args.border )
                     merge_map ( bandwidths, all_bandwidths )
                     --pprint ( bandwidths )
                 end

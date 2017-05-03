@@ -12,7 +12,10 @@ function BandwidthTcpstatAnalyser:create ( aps, stas )
     return o
 end
 
-function BandwidthTcpstatAnalyser:bandwidths ( measurement )
+-- border: number of values to skip in analysis
+--         the first and the last <border> values are sipped
+function BandwidthTcpstatAnalyser:bandwidths ( measurement, border )
+    if ( border == nil ) then border = 0 end
     local ret = {}
     
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
@@ -33,15 +36,20 @@ function BandwidthTcpstatAnalyser:bandwidths ( measurement )
                 local content, exit_code = misc.execute ( "/usr/bin/tcpstat", "-r", fname, "-o", "%S %R %b \n", "1" )
                 --print ( content )
                 if ( content ~= nil and content ~= "" ) then
-                    for _, bandwidth_str in ipairs ( split ( content, "\n" ) ) do
+                    local lines = split ( content, "\n" )
+                    local begin_interval = 1 + border
+                    local end_interval = table_size ( lines ) - border
+                    for i, bandwidth_str in ipairs ( lines ) do
                         --pprint ( bandwidth_str )
                         if ( bandwidth_str ~= "" ) then
-                            local parts = split ( bandwidth_str , " " )
-                            local ts = parts [ 1 ]
-                            local id = parts [ 2 ]
-                            local bandwidth = parts [ 3 ]
-                            bandwidths [ #bandwidths + 1 ] = tonumber ( bandwidth / 1024 / 1024 )
-                       end
+                            if ( i >= begin_interval and i <= end_interval ) then
+                                local parts = split ( bandwidth_str , " " )
+                                local ts = parts [ 1 ]
+                                local id = parts [ 2 ]
+                                local bandwidth = parts [ 3 ]
+                                bandwidths [ #bandwidths + 1 ] = tonumber ( bandwidth / 1024 / 1024 )
+                            end
+                        end
                     end
                     if ( table_size ( bandwidths ) == 0 ) then
                         bandwidths = { 0 }

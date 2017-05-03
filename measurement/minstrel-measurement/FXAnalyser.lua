@@ -21,7 +21,8 @@ end
 -- TODO: filter port, i.e udp 12000
 -- radiotap.dbm_antsignal
 
-function FXAnalyser:snrs_tshark ( measurement, field, suffix )
+function FXAnalyser:snrs_tshark ( measurement, border, field, suffix )
+    if ( border == nil ) then border = 0 end
     local ret = {}
 
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
@@ -85,12 +86,17 @@ function FXAnalyser:snrs_tshark ( measurement, field, suffix )
                 print ( "tshark error: " .. exit_code )
             else
                 --print ("tshark:" .. content )
-                for _, line in ipairs ( split ( content, "\n" ) ) do
-                    local antsignals = split ( line, "," )
-                    pprint ( antsignals )
-                    if ( antsignals ~= nil and #antsignals > 0
-                         and antsignals [1] ~= nil and antsignals [1] ~= "" ) then
-                        snrs [ #snrs + 1 ] = tonumber ( antsignals [1] )
+                local lines = split ( content, "\n" )
+                local begin_interval = 1 + border
+                local end_interval = table_size ( lines ) - border
+                for i, line in ipairs ( lines ) do
+                    if ( i >= begin_interval and i <= end_interval ) then
+                        local antsignals = split ( line, "," )
+                        pprint ( antsignals )
+                        if ( antsignals ~= nil and #antsignals > 0
+                             and antsignals [1] ~= nil and antsignals [1] ~= "" ) then
+                            snrs [ #snrs + 1 ] = tonumber ( antsignals [1] )
+                        end
                     end
                 end
             end
@@ -112,7 +118,8 @@ end
 -- returns list of SNRs stats (MIN/MAX/AVG) for each measurement
 -- stored in map indexed by a string concatenated by power and rate 
 -- and MIN/MAX/AVG seperated by "-"
-function FXAnalyser:snrs ( measurement )
+function FXAnalyser:snrs ( measurement, border )
+    if ( border == nil ) then border = 0 end
     local ret = {}
     
     local frame_type_data = PCAP.radiotap_frametype [ "IEEE80211_FRAMETYPE_DATA" ] - 1

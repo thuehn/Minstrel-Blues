@@ -12,6 +12,7 @@ local parser = argparse ("analyseSNR", "Analyse and render SNR Diagram for a mea
 
 parser:argument ("input", "measurement / analyse data directory", "/tmp")
 parser:flag ("-t --tshark", "use tshark as pcap analyser", false )
+parser:option ("-b --border", "skip values at the begin and the end of a time series", 1 )
 
 local args = parser:parse()
 
@@ -40,9 +41,9 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
                     local analyser = FXAnalyser:create ( aps, stas )
                     local snrs
                     if ( args.tshark == true ) then
-                        snrs = analyser:snrs_tshark ( measurement, "radiotap.dbm_antsignal", "snrs" )
+                        snrs = analyser:snrs_tshark ( measurement, args.border, "radiotap.dbm_antsignal", "snrs" )
                     else
-                        snrs = analyser:snrs ( measurement )
+                        snrs = analyser:snrs ( measurement, args.border )
                     end
                     merge_map ( snrs, all_snrs )
                     --pprint ( snrs )

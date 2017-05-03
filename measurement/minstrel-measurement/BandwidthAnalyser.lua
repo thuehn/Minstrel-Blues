@@ -13,7 +13,8 @@ function BandwidthAnalyser:create ( aps, stas )
     return o
 end
 
-function BandwidthAnalyser:bandwidths ( measurement, client )
+function BandwidthAnalyser:bandwidths ( measurement, border, client )
+    if ( border == nil ) then border = 0 end
     local ret = {}
     
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
@@ -39,11 +40,16 @@ function BandwidthAnalyser:bandwidths ( measurement, client )
                 local content = file:read ( "*a" )
                 file:close ()
                 if ( content ~= nil and content ~= "" ) then
-                    for _, iperf_str in ipairs ( split ( content, "\n" ) ) do
-                        local iperf = parse_iperf_client ( iperf_str )
-                        if ( iperf.id ~= nil ) then
-                            --pprint ( iperf )
-                            bandwidths [ #bandwidths + 1 ] = iperf.bandwidth
+                    local lines = split ( content, "\n" )
+                    local begin_interval = 1 + border
+                    local end_interval = table_size ( lines ) - border
+                    for i, iperf_str in ipairs ( lines ) do
+                        if ( i >= begin_interval and i <= end_interval ) then
+                            local iperf = parse_iperf_client ( iperf_str )
+                            if ( iperf.id ~= nil ) then
+                                --pprint ( iperf )
+                                bandwidths [ #bandwidths + 1 ] = iperf.bandwidth
+                            end
                         end
                     end
                     if ( table_size ( bandwidths ) == 0 ) then
