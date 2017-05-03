@@ -31,7 +31,7 @@ function RendererPerRate:run ( basedir, fname, field )
 
 --    print ( basedir )
 
-    pprint ( self.values )
+    --pprint ( self.values )
     local fname = basedir .. "/" .. fname
     if ( isFile ( fname ) == false ) then
         if ( self.values ~= nil) then
@@ -47,17 +47,18 @@ function RendererPerRate:run ( basedir, fname, field )
                     print ( rate, power, stat, value )
                     if ( value ~= nil ) then
                         if ( stat == "WAVG" and table_size ( parts ) > 3 ) then
-                            count = tonumber ( parts [4] )
-                            if ( count > 10 ) then
-                                print ( rate, power, value, count )
-                                file:write ( rate )
-                                file:write ( " " )
-                                file:write ( power )
-                                file:write ( " " )
-                                file:write ( value )
-                                file:write ( " " )
-                                file:write ( count )
-                                file:write ( "\n" )
+                            for unique_value, count in pairs ( value ) do
+                                if ( count > 10 ) then
+                                    print ( rate, power, unique_value, count )
+                                    file:write ( rate )
+                                    file:write ( " " )
+                                    file:write ( power )
+                                    file:write ( " " )
+                                    file:write ( unique_value )
+                                    file:write ( " " )
+                                    file:write ( count )
+                                    file:write ( "\n" )
+                                end
                             end
                         else
                            if ( stat == "AVG" ) then

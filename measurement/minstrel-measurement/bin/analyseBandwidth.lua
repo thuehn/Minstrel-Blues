@@ -36,7 +36,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
                     local analyser = BandwidthAnalyser:create ( aps, stas )
                     local bandwidths = analyser:bandwidths ( measurement, false )
                     if ( false and table_size ( bandwidths ) == 1 and bandwidths [ 1 ] == 0 ) then
-                        bandwidths_iperf = analyser:bandwidths ( measurement, true )
+                        bandwidths = analyser:bandwidths ( measurement, true )
                     end
                     merge_map ( bandwidths, all_bandwidths )
                     --pprint ( bandwidths_iperf )

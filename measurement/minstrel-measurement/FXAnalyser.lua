@@ -4,119 +4,13 @@ require ('parsers/radiotap')
 local pprint = require ('pprint')
 local misc = require ('misc')
 
-FXAnalyser = { aps = nil
-             , stas = nil
-             }
+require ('Analyser')
 
-function FXAnalyser:new (o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    return o
-end
+FXAnalyser = Analyser:new()
 
 function FXAnalyser:create ( aps, stas )
     local o = FXAnalyser:new( { aps = aps, stas = stas } )
     return o
-end
-
--- duplicate of experiment:get_rate
-function FXAnalyser:get_rate( key )
-    return split ( key, "-" ) [1]
-end
-
--- duplicate of experiment:get_rate
-function FXAnalyser:get_power( key )
-    return split ( key, "-" ) [2]
-end
-
-function FXAnalyser:min ( t )
-    if ( t == nil ) then return nil end
-    if ( table_size ( t ) == 0 ) then return nil end
-    if ( table_size ( t ) == 1 ) then return t [1] end
-    local min = t[1]
-    for _, v in ipairs ( t ) do
-        if ( v ~= nil and type ( v ) == 'number' and v < min ) then min = v end
-    end
-    return min
-end
-
-function FXAnalyser:max ( t )
-    if ( t == nil ) then return nil end
-    if ( table_size ( t ) == 0 ) then return nil end
-    if ( table_size ( t ) == 1 ) then return t [1] end
-    local max = t[1]
-    for _, v in ipairs ( t ) do
-        if ( v ~= nil and type ( v ) == 'number' and v > max ) then max = v end
-    end
-    return max
-end
-
-function FXAnalyser:avg ( t )
-    local sum = 0
-    local count = 0
-    
-    for _, v in ipairs ( t ) do
-        if ( v ~= nil and type ( v ) == 'number' ) then
-            sum = sum + v
-            count = count + 1
-        end
-    end
-    return ( sum / count )
-end
-
-function FXAnalyser:read_ssid ( dir, name )
-    local ssid = nil
-    local fname = dir .. "/" .. name .. "/ssid.txt"
-    local file = io.open ( fname )
-    if ( file ~= nil ) then
-        local content = file:read ( "*a" )
-        if ( content ~= nil ) then
-            ssid = string.sub ( content, 1, #content - 1 )
-        end
-        file:close()
-    end
-    return ssid
-end
-
-function FXAnalyser:write_snrs ( fname, snrs )
-    local file = io.open ( fname, "w" )
-    if ( file ~= nil ) then
-        for i, snr in ipairs ( snrs ) do
-            if ( i ~= 1 ) then file:write( "," ) end
-            file:write ( snr )
-        end
-        file:close ()
-    end
-end
-
-function FXAnalyser:read_snrs ( fname )
-    local snrs = {}
-    local file = io.open ( fname, "r" )
-    if ( file ~= nil ) then
-        local snrs_str = split ( file:read ( "*a" ), "," )
-        for _, snr in ipairs ( snrs_str ) do
-            snrs [ #snrs + 1 ] = tonumber ( snr )
-        end
-        file:close ()
-    end
-    return snrs
-end
-
-function FXAnalyser:calc_snrs_stats ( snrs, power, rate )
-    local ret = {}
-    if ( table_size ( snrs ) > 0 ) then
-        local unique_snrs = misc.Set_count ( snrs )
-        for snr, count in pairs ( unique_snrs ) do
-            --print ( "antenna signal: " .. snr, count )
-            ret [ power .. "-" .. rate .. "-WAVG-" .. count ] = snr
-        end
-
-        ret [ power .. "-" .. rate .. "-MIN" ] = self:min ( snrs )
-        ret [ power .. "-" .. rate .. "-MAX" ] = self:max ( snrs )
-        ret [ power .. "-" .. rate .. "-AVG" ] = misc.round ( self:avg ( snrs ) )
-    end
-    return ret
 end
 
 -- Filter for all data frames:              wlan.fc.type == 2
@@ -200,15 +94,15 @@ function FXAnalyser:snrs_tshark ( measurement, field, suffix )
                     end
                 end
             end
-            self:write_snrs ( snrs_fname, snrs )
+            self:write ( snrs_fname, snrs )
         else
             --print ( snrs_fname )
-            snrs = self:read_snrs ( snrs_fname )
+            snrs = self:read ( snrs_fname )
         end
 
         local rate = self:get_rate ( key )
         local power = self:get_power ( key )
-        local snrs_stats = self:calc_snrs_stats ( snrs, power, rate )
+        local snrs_stats = self:calc_stats ( snrs, power, rate )
         merge_map ( snrs_stats, ret )
     end
 
@@ -239,7 +133,6 @@ function FXAnalyser:snrs ( measurement )
             end
             local fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. ".pcap"
             print ( fname )
-            --local ssid_m = self:read_ssid ( measurement.output_dir, measurement.node_name )
 
             local rest
             local pos
@@ -283,16 +176,16 @@ function FXAnalyser:snrs ( measurement )
             else
                 print ("FXAnalyser: pcap open failed: " .. fname)
             end
-            self:write_snrs ( snrs_fname, snrs )
+            self:write ( snrs_fname, snrs )
             print ( os.time () )
         else
             print ( snrs_fname )
-            snrs = self:read_snrs ( snrs_fname )
+            snrs = self:read ( snrs_fname )
         end
 
         local rate = self:get_rate ( key )
         local power = self:get_power ( key )
-        local snrs_stats = self:calc_snrs_stats ( snrs, power, rate )
+        local snrs_stats = self:calc_stats ( snrs, power, rate )
         merge_map ( snrs_stats, ret )
     end
 
