@@ -1,6 +1,6 @@
 
 # Maintainer: Your Name <denis.roeper@posteo.de>
-pkgname=lua-posix-git
+pkgname=lua-posix
 pkgver=33.2.1
 pkgrel=1
 epoch=

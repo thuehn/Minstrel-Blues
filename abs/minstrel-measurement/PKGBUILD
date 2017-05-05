@@ -1,0 +1,51 @@
+# cd ~/abs
+# repo-add ./custom.db.tar.gz
+# vi /etc/pacman.conf
+# [custom]
+# Server file:///home/droeper/abs
+# pacman -y
+
+# Maintainer: Your Name <denis.roeper@posteo.de>
+pkgname=minstrel-measurement-git
+pkgver=r456.06ce9ac
+pkgrel=1
+epoch=
+pkgdesc="Minstrel measurement for Lua 5.1"
+arch=("x86_64")
+url="https://github.com/thuehn/Minstrel-Blues"
+license=('GPL')
+groups=()
+depends=(lua51 lua-system lua-filesystem lua-posix lua-argparse lua-lpc lua-pprint lua-rpc lua51-bitop procps-ng coreutils net-tools bind-tools iw tcpdump iperf openssh )
+#lua-cjson
+makedepends=(lua51)
+checkdepends=()
+optdepends=()
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=()
+install=
+changelog=
+source=("git+https://github.com/thuehn/Minstrel-Blues.git")
+noextract=()
+md5sums=('SKIP')
+validpgpkeys=()
+
+pkgver() {
+	cd Minstrel-Blues/measurement/minstrel-measurement
+  	printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+
+build() {
+	cd Minstrel-Blues/measurement/minstrel-measurement
+	make
+}
+
+package() {
+	depends=('lua51')
+	cd Minstrel-Blues/measurement/minstrel-measurement
+	msg2 "Building $pkgdir with Lua 5.1"
+	make ROOT="$pkgdir"/usr LUA_LIBDIR="$(PREFIX)/lib/lua/5.1" install
+}

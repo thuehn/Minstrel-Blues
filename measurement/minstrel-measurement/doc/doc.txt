@@ -32,7 +32,7 @@ lua-rpc: remote procedure calls for lua [+openwrt] (alternative: nixio)
 pcap-lua: parse pcap files [+openwrt]
 LuaBitOp [-openwrt]
 pprint.lua: lua pretty printing [+openwrt]
-lua-system: sleep with nanosecond support [-openwrt]
+lua-system: sleep with nanosecond support [+openwrt]
 lpc: run process with pid, stdin, stdout and wait with exit_code support
 #luajit, luasocket, lua-rclient, lua-xsys, Rserve: plot SNR with R
 #    - https://github.com/stepelu/lua-xsys

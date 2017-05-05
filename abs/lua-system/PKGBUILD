@@ -1,0 +1,42 @@
+
+# Maintainer: Your Name <denis.roeper@posteo.de>
+pkgname=lua-system-git
+pkgver=r14.16a5314
+pkgrel=1
+epoch=
+pkgdesc="Platform independent system calls for Lua "
+arch=("x86_64")
+url="https://github.com/o-lim/luasystem"
+license=('GPL')
+groups=()
+depends=(lua51)
+makedepends=(lua51)
+checkdepends=()
+optdepends=()
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=()
+install=
+changelog=
+source=("git+https://github.com/o-lim/luasystem.git")
+noextract=()
+md5sums=('SKIP')
+validpgpkeys=()
+
+pkgver() {
+  cd luasystem
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  	cd luasystem
+	make LUA_VERSION=5.1
+}
+
+package() {
+	depends=('lua51')
+  	cd luasystem
+	make LUA_VERSION=5.1 LUAPREFIX_linux="$pkgdir"/usr LDIR_linux="$pkgdir"/usr/lib/lua/5.1 install
+}
