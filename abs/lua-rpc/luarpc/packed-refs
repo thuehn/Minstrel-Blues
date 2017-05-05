@@ -1,0 +1,6 @@
+# pack-refs with: peeled fully-peeled 
+16b79b868e26edf8e7f955a4586e13b948b98f9d refs/heads/cmake_build
+f8a2849fa14f8c6ebebbedfb912cc665d0c098b4 refs/heads/dynamic_varname_length
+fd9f46aeaff1fbc81959fedc00c984aeb2557e62 refs/heads/float_double_support
+962cc33e5a6c0f714895bfa1d75c83b3f5c6f682 refs/heads/gh-pages
+123eb319b1df7194140c91a0dbae4f7befa1be6b refs/heads/master

@@ -1,11 +1,12 @@
+
 # Maintainer: Your Name <denis.roeper@posteo.de>
-pkgname=lua-argparse-git
-pkgver=r166.a40458f
+pkgname=lua-rpc-git
+pkgver=r99.123eb31
 pkgrel=1
 epoch=
-pkgdesc="Feature-rich command line parser for Lua"
+pkgdesc="LuaRPC for Lua 5.1.x"
 arch=("x86_64")
-url="https://github.com/mpeterv/argparse"
+url="https://github.com/jsnyder/luarpc"
 license=('GPL')
 groups=()
 depends=(lua51)
@@ -19,26 +20,24 @@ backup=()
 options=()
 install=
 changelog=
-source=("git+https://github.com/mpeterv/argparse.git")
+source=("git+https://github.com/jsnyder/luarpc.git")
 noextract=()
 md5sums=('SKIP')
 validpgpkeys=()
 
 pkgver() {
-  cd argparse
+  cd luarpc
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
-prepare() {
-	cd argparse
-}
-
 build() {
-	cd argparse
+	cd luarpc
+	make
 }
 
 package() {
-	cd argparse
+	depends=('lua51')
+	cd luarpc
 	mkdir -p "$pkgdir"/usr/lib/lua/5.1
-	install src/argparse.lua "$pkgdir"/usr/lib/lua/5.1/argparse.lua
+	install rpc.so "$pkgdir"/usr/lib/lua/5.1/rpc.so
 }

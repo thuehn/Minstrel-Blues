@@ -1,11 +1,11 @@
 # Maintainer: Your Name <denis.roeper@posteo.de>
-pkgname=lua-argparse-git
-pkgver=r166.a40458f
+pkgname=lua-pprint-git
+pkgver=r46.ae50bf8
 pkgrel=1
 epoch=
-pkgdesc="Feature-rich command line parser for Lua"
+pkgdesc="yet another lua pretty printer"
 arch=("x86_64")
-url="https://github.com/mpeterv/argparse"
+url="https://github.com/jagt/pprint.lua"
 license=('GPL')
 groups=()
 depends=(lua51)
@@ -19,26 +19,26 @@ backup=()
 options=()
 install=
 changelog=
-source=("git+https://github.com/mpeterv/argparse.git")
+source=("git+https://github.com/jagt/pprint.lua.git")
 noextract=()
 md5sums=('SKIP')
 validpgpkeys=()
 
 pkgver() {
-  cd argparse
+  cd pprint.lua
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
-	cd argparse
+	cd pprint.lua
 }
 
 build() {
-	cd argparse
+	cd pprint.lua
 }
 
 package() {
-	cd argparse
+	cd pprint.lua
 	mkdir -p "$pkgdir"/usr/lib/lua/5.1
-	install src/argparse.lua "$pkgdir"/usr/lib/lua/5.1/argparse.lua
+	install pprint.lua "$pkgdir"/usr/lib/lua/5.1/pprint.lua
 }
