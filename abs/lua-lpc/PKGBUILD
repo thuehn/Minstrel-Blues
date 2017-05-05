@@ -6,7 +6,7 @@ pkgrel=1
 epoch=
 pkgdesc="Allows Lua scripts to call external processes while capturing both their input and output."
 arch=("x86_64")
-url=""
+url="https://github.com/LuaDist/lpc"
 license=('GPL')
 groups=()
 depends=(lua51)
@@ -23,7 +23,7 @@ changelog=
 source=("git+https://github.com/LuaDist/lpc.git"
 	"prefix.patch")
 noextract=()
-md5sums=()
+md5sums=('SKIP' '9d2cb2ab8d183244f0ec8c6eaffbb063')
 validpgpkeys=()
 
 pkgver() {
