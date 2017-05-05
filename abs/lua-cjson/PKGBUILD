@@ -1,0 +1,43 @@
+
+# Maintainer: Your Name <denis.roeper@posteo.de>
+pkgname=lua-cjson-git
+pkgver=r237.e8972ac
+pkgrel=1
+epoch=
+pkgdesc="Lua CJSON is a fast JSON encoding/parsing module for Lua"
+arch=("x86_64")
+url="https://github.com/mpx/lua-cjson"
+license=('GPL')
+groups=()
+depends=(lua51)
+makedepends=(lua51)
+checkdepends=()
+optdepends=()
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=()
+install=
+changelog=
+source=("git+https://github.com/mpx/lua-cjson.git")
+noextract=()
+md5sums=('SKIP')
+validpgpkeys=()
+
+pkgver() {
+  cd lua-cjson
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  	cd lua-cjson
+	make LUA_VERSION=5.1
+}
+
+package() {
+	depends=('lua51')
+  	cd lua-cjson
+	make LUA_VERSION=5.1 PREFIX="$pkgdir"/usr install
+#LUA_MODULE_DIR = $(PREFIX)/share/lua/$(LUA_VERSION)
+}

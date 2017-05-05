@@ -15,8 +15,7 @@ arch=("x86_64")
 url="https://github.com/thuehn/Minstrel-Blues"
 license=('GPL')
 groups=()
-depends=(lua51 lua-system lua-filesystem lua-posix lua-argparse lua-lpc lua-pprint lua-rpc lua51-bitop procps-ng coreutils net-tools bind-tools iw tcpdump iperf openssh )
-#lua-cjson
+depends=(lua51 lua-system lua-cjson lua-filesystem lua-posix lua-argparse lua-lpc lua-pprint lua-rpc lua51-bitop procps-ng coreutils net-tools bind-tools iw tcpdump iperf openssh )
 makedepends=(lua51)
 checkdepends=()
 optdepends=()
