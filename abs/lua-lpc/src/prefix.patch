@@ -1,0 +1,21 @@
+diff --git a/Makefile b/Makefile
+index 8c0ebee..438ce30 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+-LUA_PREFIX = /usr/local/
+-PREFIX	= /usr/local/
++LUA_PREFIX = /usr/
++PREFIX	= /usr/
+ MODULE = lpc
+ VERSION = 1.0.0
+ 
+@@ -9,7 +9,7 @@ CC	= gcc
+ TARGET	= lpc.so
+ OBJS	= lpc.o
+ LIBS	=
+-CFLAGS	= -I $(LUA_PREFIX)/include -fPIC
++CFLAGS	= -I $(LUA_PREFIX)/include/lua5.1 -fPIC
+ LDFLAGS	= -shared -fPIC
+ 
+ default: $(TARGET)

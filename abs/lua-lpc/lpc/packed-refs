@@ -1,0 +1,7 @@
+# pack-refs with: peeled fully-peeled 
+7eb4082c8e993366a2b474ce5b7fbbf44afd75e6 refs/heads/Ubuntu-x86_64
+d960e8a59da249f4c1a7c1f335ad1b673b4fb691 refs/heads/master
+bfeda7204ff2630adc73e6c60e4ad800d3f933d7 refs/pull/1/head
+1990a738b80d558bdcd72a9e793bea1c44cc47cc refs/pull/1/merge
+19ee80f1a8df30336e4fcf712dee0b77cffe6460 refs/tags/1.0.0
+7eb4082c8e993366a2b474ce5b7fbbf44afd75e6 refs/tags/1.0.0-Ubuntu-x86_64
