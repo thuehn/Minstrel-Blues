@@ -1,0 +1,45 @@
+
+# Maintainer: Your Name <denis.roeper@posteo.de>
+pkgname=lua-argparse-git
+pkgver=r166.a40458f
+pkgrel=1
+epoch=
+pkgdesc="Feature-rich command line parser for Lua"
+arch=("x86_64")
+url="https://github.com/mpeterv/argparse"
+license=('GPL')
+groups=()
+depends=(lua51)
+makedepends=(lua51)
+checkdepends=()
+optdepends=()
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=()
+install=
+changelog=
+source=("git+https://github.com/mpeterv/argparse.git")
+noextract=()
+md5sums=('SKIP')
+validpgpkeys=()
+
+pkgver() {
+  cd argparse
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+	cd argparse
+}
+
+build() {
+	cd argparse
+}
+
+package() {
+	cd argparse
+	mkdir -p "$pkgdir"/usr/lib/lua/5.1
+	install src/argparse.lua "$pkgdir"/usr/lib/lua/5.1/argparse.lua
+}
