@@ -16,6 +16,7 @@ parser:argument ("input", "measurement / analyse data directory", "/tmp")
 parser:flag ("-t --tshark", "use tshark as pcap analyser", false )
 parser:flag ("-i --iperf", "use iperf output for bandwidth analyse", false )
 parser:option ("-b --border", "skip values at the begin and the end of a time series", 1 )
+parser:option ("-c --min_count", "discard rare values", 10 )
 
 local args = parser:parse()
 
@@ -59,6 +60,6 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
 
          
         local renderer = RendererPerRate:create ( all_bandwidths )
-        renderer:run ( args.input .. "/" .. name, fname, "bandwidth" )
+        renderer:run ( args.input .. "/" .. name, fname, "bandwidth", "Mbit/s", args.min_count, args.border )
     end
 end

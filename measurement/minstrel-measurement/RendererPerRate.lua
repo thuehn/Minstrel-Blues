@@ -27,7 +27,7 @@ function RendererPerRate:get_rate ( key )
 end
 
 
-function RendererPerRate:run ( basedir, fname, field )
+function RendererPerRate:run ( basedir, fname, field, unit, min_count, border )
 
 --    print ( basedir )
 
@@ -48,7 +48,7 @@ function RendererPerRate:run ( basedir, fname, field )
                     if ( value ~= nil ) then
                         if ( stat == "WAVG" and table_size ( parts ) > 3 ) then
                             for unique_value, count in pairs ( value ) do
-                                if ( count > 10 ) then
+                                if ( count > min_count ) then
                                     print ( rate, power, unique_value, count )
                                     file:write ( rate )
                                     file:write ( " " )
@@ -70,7 +70,7 @@ function RendererPerRate:run ( basedir, fname, field )
                                 file:write ( " " )
                                 file:write ( "1" )
                                 file:write ( "\n" )
-                           end 
+                           end
                         end
                     end
                 end
@@ -78,5 +78,7 @@ function RendererPerRate:run ( basedir, fname, field )
             end
         end
     end
-    misc.execute ( "Rscript", "--vanilla", "R/rate-power_validation.R", basedir, basedir .. "/../wifi_config.txt", fname, field )
+    print ( fname )
+    misc.execute ( "Rscript", "--vanilla", "R/rate-power_validation.R", basedir
+                 , basedir .. "/../wifi_config.txt", fname, field, unit, min_count, border )
 end

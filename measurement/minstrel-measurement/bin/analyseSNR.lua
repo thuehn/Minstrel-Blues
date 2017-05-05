@@ -13,6 +13,7 @@ local parser = argparse ("analyseSNR", "Analyse and render SNR Diagram for a mea
 parser:argument ("input", "measurement / analyse data directory", "/tmp")
 parser:flag ("-t --tshark", "use tshark as pcap analyser", false )
 parser:option ("-b --border", "skip values at the begin and the end of a time series", 1 )
+parser:option ("-c --min_count", "discard rare values", 10 )
 
 local args = parser:parse()
 
@@ -54,6 +55,6 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
         end
 
         local renderer = RendererPerRate:create ( all_snrs )
-        renderer:run ( base_dir, fname, "snr" )
+        renderer:run ( base_dir, fname, "snr", "dB", args.min_count, args.border )
     end
 end

@@ -120,6 +120,9 @@ workingdir = args [1]
 wifi_config_file = args [2]
 input_file = args[3]
 field_name = args[4] # value name
+field_unit = args[5] # unit of plotted value
+min_count = args[6] # minimum number of occurances of a value (filter rare values)
+border = args[7] # number of skipped first and last seconds
 
 print ( workingdir )
 # set working directory
@@ -179,9 +182,11 @@ if ( txpowercount > 40 ) { txpowerscale = 10 }
 
 valuescale = 3
 valuecount = length ( seq ( min ( value$value ) , max ( value$value ) ) )
-if ( valuecount > 20 ) { valuescale = 5 }
-if ( valuecount > 30 ) { valuescale = 10 }
-if ( valuecount > 40 ) { valuescale = 15 }
+if ( valuecount >= 15 ) { valuescale = 5 }
+if ( valuecount >= 25 ) { valuescale = 10 }
+if ( valuecount >= 40 ) { valuescale = 15 }
+
+#breaks = trans_breaks(identity, identity, n = numticks)
 
 #single plot per rate_idx in facet_wrap
 plot_value_1 <- ggplot(data = value, aes(x = txpower, y = value, weight = count/sum(as.numeric(count)))) +
@@ -190,11 +195,12 @@ plot_value_1 <- ggplot(data = value, aes(x = txpower, y = value, weight = count/
     geom_smooth(aes(colour=as.factor(txrate%%10)), stat = "smooth", method = "loess", size = 0.8, alpha=0.5) +
     scale_x_continuous(breaks = seq(min(value$txpower), max(value$txpower), by = txpowerscale)) +
     scale_y_continuous(breaks = seq(min(value$value), max(value$value), by = valuescale)) +
-    labs(x = "Adjusted TX-Power at Transmitter [dBm]", y = "Measured SNR at Receiver [dB]") +
+    labs(x = "Adjusted TX-Power at Transmitter [dBm]", y = sprintf("Measured %s at Receiver [%s]",
+                                                                    toupper(field_name), field_unit)) +
     theme_bw() +
     labs(title = "Validation of Transmit Power Control Using ath9k on Atheros AR9344",
-         subtitle=sprintf("Boxplot of Measured SNR as Function of TX-Rate and TX-Power, Channel %s %s and Distance %s",
-                          channel, htmode, distance)) +
+         subtitle=sprintf("Boxplot of Measured %s as Function of TX-Rate and TX-Power, Channel %s %s and Distance %s, minimum value occurrence > %s, skipped seconds %s",
+                          toupper(field_name), channel, htmode, distance, min_count, border)) +
     theme(strip.text = element_text(size=textsize),
           strip.text.x = element_text(size=textsize),
           strip.text.y = element_text(size=textsize),
@@ -222,11 +228,12 @@ plot_value_2 <- ggplot(data = value, aes(x = txpower, y = value, weight = count/
     geom_smooth(aes(colour=as.factor(txrate%%10)), stat = "smooth", method = "loess", size = 1.2) +
     scale_x_continuous(breaks = seq(min(value$txpower), max(value$txpower), by = txpowerscale)) +
     scale_y_continuous(breaks = seq(min(value$value), max(value$value), by = valuescale)) +
-    labs(x = "Adjusted TX-Power at Transmitter [dBm]", y = "Measured SNR at Receiver [dB]") +
+    labs(x = "Adjusted TX-Power at Transmitter [dBm]", y = sprintf("Measured %s at Receiver [%s]"
+                                                                    , toupper(field_name), field_unit)) +
     theme_bw() +
     labs(title = "Validation of Transmit Power Control Using ath9k on Atheros AR9344",
-         subtitle=sprintf("Boxplot of Measured SNR as Function of TX-Rate and TX-Power, Channel %s %s and Distance %s",
-                          channel, htmode, distance)) +
+         subtitle=sprintf("Boxplot of Measured %s as Function of TX-Rate and TX-Power, Channel %s %s and Distance %s, minimum value occurrence > %s, skipped seconds %s",
+                          toupper(field_name), channel, htmode, distance, min_count, border)) +
     theme(strip.text = element_text(size=textsize),
           strip.text.x = element_text(size=textsize),
           strip.text.y = element_text(size=textsize),
