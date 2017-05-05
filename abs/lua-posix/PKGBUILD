@@ -1,0 +1,39 @@
+
+# Maintainer: Your Name <denis.roeper@posteo.de>
+pkgname=lua-posix-git
+pkgver=33.2.1
+pkgrel=1
+epoch=
+pkgdesc="Bindings for POSIX APIs"
+arch=("x86_64")
+url="https://luaposix.github.io/luaposix/ https://github.com/luaposix/luaposix"
+license=('GPL')
+groups=()
+depends=(lua51)
+makedepends=(lua51)
+checkdepends=()
+optdepends=()
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=()
+install=
+changelog=
+source=("https://github.com/luaposix/luaposix/archive/release-v33.2.1.tar.gz")
+noextract=()
+md5sums=('aa68b5c07ab1ecea81bb466c81e88056')
+validpgpkeys=()
+
+build() {
+	cd luaposix-release-v33.2.1
+	./configure --prefix="$pkgdir"/usr LUA=/usr/bin/lua5.1 LUA_INCLUDE=-I/usr/include/lua5.1
+	make
+}
+
+package() {
+	depends=('lua51')
+	cd luaposix-release-v33.2.1
+	msg2 "Building $pkgdir with Lua 5.1"
+	make PREFIX="$pkgdir"/usr LUA_LIBDIR="$(PREFIX)/lib/lua/5.1" install
+}

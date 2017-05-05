@@ -1,12 +1,12 @@
 
 # Maintainer: Your Name <denis.roeper@posteo.de>
-pkgname=lua-argparse-git
-pkgver=r166.a40458f
+pkgname=lua-lpc-git
+pkgver=r8.d960e8a
 pkgrel=1
 epoch=
-pkgdesc="Feature-rich command line parser for Lua"
+pkgdesc="Allows Lua scripts to call external processes while capturing both their input and output."
 arch=("x86_64")
-url="https://github.com/mpeterv/argparse"
+url="https://github.com/LuaDist/lpc"
 license=('GPL')
 groups=()
 depends=(lua51)
@@ -20,26 +20,29 @@ backup=()
 options=()
 install=
 changelog=
-source=("git+https://github.com/mpeterv/argparse.git")
+source=("git+https://github.com/LuaDist/lpc.git"
+	"prefix.patch")
 noextract=()
-md5sums=('SKIP')
+md5sums=('SKIP' '9d2cb2ab8d183244f0ec8c6eaffbb063')
 validpgpkeys=()
 
 pkgver() {
-  cd argparse
+  cd lpc
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
-	cd argparse
+	cd lpc
+	patch -p1 -i "$srcdir/prefix.patch"
 }
 
 build() {
-	cd argparse
+	cd lpc
+	make LUA_INC=/usr/include/lua5.1
 }
 
 package() {
-	cd argparse
-	mkdir -p "$pkgdir"/usr/lib/lua/5.1
-	install src/argparse.lua "$pkgdir"/usr/lib/lua/5.1/argparse.lua
+	cd lpc
+	make PREFIX="$pkgdir"/usr LUA_LIBDIR='$(PREFIX)/lib/lua/5.1' install
+	install lpc.so "$pkgdir"/usr/lib/lua/5.1/lpc.so
 }
