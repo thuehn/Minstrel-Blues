@@ -3,11 +3,14 @@
 # vi /etc/pacman.conf
 # [custom]
 # Server file:///home/droeper/abs
-# pacman -y
+# ln -s lua-posix/lua-posix-xxxx.tar.xz ~/abs/
+# pacman -Sy
+# pacman -S lua-posix
+# pacman -S lua-system-git
 
 # Maintainer: Your Name <denis.roeper@posteo.de>
 pkgname=minstrel-measurement-git
-pkgver=r456.06ce9ac
+pkgver=r459.5a68388
 pkgrel=1
 epoch=
 pkgdesc="Minstrel measurement for Lua 5.1"
@@ -15,7 +18,7 @@ arch=("x86_64")
 url="https://github.com/thuehn/Minstrel-Blues"
 license=('GPL')
 groups=()
-depends=(lua51 lua-system lua-cjson lua-filesystem lua-posix lua-argparse lua-lpc lua-pprint lua-rpc lua51-bitop procps-ng coreutils net-tools bind-tools iw tcpdump iperf openssh )
+depends=(lua51 lua-system-git lua-cjson-git lua-filesystem lua-posix lua-argparse-git lua-lpc-git lua-pprint-git lua-rpc-git lua51-bitop procps-ng coreutils net-tools bind-tools iw tcpdump iperf openssh )
 makedepends=(lua51)
 checkdepends=()
 optdepends=()
