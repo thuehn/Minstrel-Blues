@@ -1,5 +1,5 @@
 builddir = /home/droeper/abs/lua-argparse
-pkgbuild_sha256sum = 65dc244016081429c50eed71e22e5416e0200fb733f5df5964d73278a3b3bac8
+pkgbuild_sha256sum = 0d82c86f0daba15647cf832cb9d41c6af2437805d4504a8b8ad45cb5bb011fd0
 buildenv = !distcc
 buildenv = color
 buildenv = !ccache

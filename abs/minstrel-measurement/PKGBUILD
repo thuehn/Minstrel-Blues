@@ -1,5 +1,5 @@
 # cd ~/abs
-# repo-add ./custom.db.tar.gz
+# repo-add ./custom.db.tar.gz package.tar.xz
 # vi /etc/pacman.conf
 # [custom]
 # Server file:///home/droeper/abs
