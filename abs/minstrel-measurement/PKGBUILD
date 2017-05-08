@@ -10,7 +10,7 @@
 
 # Maintainer: Your Name <denis.roeper@posteo.de>
 pkgname=minstrel-measurement-git
-pkgver=r459.5a68388
+pkgver=r460.dfcdadd
 pkgrel=1
 epoch=
 pkgdesc="Minstrel measurement for Lua 5.1"
@@ -49,5 +49,5 @@ package() {
 	depends=('lua51')
 	cd Minstrel-Blues/measurement/minstrel-measurement
 	msg2 "Building $pkgdir with Lua 5.1"
-	make ROOT="$pkgdir"/usr LUA_LIBDIR="$(PREFIX)/lib/lua/5.1" install
+	make ROOT="$pkgdir" LUAC="luac5.1" install
 }

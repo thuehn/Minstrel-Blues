@@ -1,8 +1,9 @@
-LUAC = luac
+LUAC ?= luac
 SRC_DIR	= .
-BIN_DIR	= bin
-INSTALL_BIN_DIR	= $(ROOT)/usr/bin
-INSTALL_LUA_LIB_DIR	= $(ROOT)/usr/lib/lua/5.1
+BIN_DIR	?= bin
+ROOT ?= /
+INSTALL_BIN_DIR	?= $(ROOT)/usr/bin
+INSTALL_LUA_LIB_DIR	?= $(ROOT)/usr/lib/lua/5.1
 
 CPUSAGE_SINGLE = cpusage_single
 FETCH_FILE = fetch_file
