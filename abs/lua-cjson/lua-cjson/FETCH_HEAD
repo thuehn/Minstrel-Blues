@@ -1,0 +1,66 @@
+e8972ac754788d3ef10a57a36016d6c3e85ba20d	not-for-merge	branch 'master' of https://github.com/mpx/lua-cjson
+23d19ba2551e6f432ada6f7cd5ac3e874b4d35d1	not-for-merge	branch 'vendor-netlib-dtoa' of https://github.com/mpx/lua-cjson
+3ce63c9d4571186101885a62539c183f2f8e6134	not-for-merge	'refs/pull/1/head' of https://github.com/mpx/lua-cjson
+8b1b9f0d5348759f2346a8609497ee4719729e2e	not-for-merge	'refs/pull/1/merge' of https://github.com/mpx/lua-cjson
+659e292fc741163f6e4370ff682e3e42312cd51d	not-for-merge	'refs/pull/10/head' of https://github.com/mpx/lua-cjson
+46a8b2cc9abe8252f944e1d0b0432bc86de89d48	not-for-merge	'refs/pull/10/merge' of https://github.com/mpx/lua-cjson
+402af6e707d52092e82a05060f25bdc31c9c51ea	not-for-merge	'refs/pull/13/head' of https://github.com/mpx/lua-cjson
+8e928aa929de3eb8bb173230e573a996b55b343d	not-for-merge	'refs/pull/13/merge' of https://github.com/mpx/lua-cjson
+06fb9cc94d719a1706d221bccfaf035ccbc36c60	not-for-merge	'refs/pull/14/head' of https://github.com/mpx/lua-cjson
+eab831bcc7d6f85c7de6ea0fc3f240da3b7ba4ea	not-for-merge	'refs/pull/14/merge' of https://github.com/mpx/lua-cjson
+e111e9a648304c039939a6e9199aae637da43df1	not-for-merge	'refs/pull/15/head' of https://github.com/mpx/lua-cjson
+7ed33aef1dfb203bc987068ab5c35426c6fb5acf	not-for-merge	'refs/pull/15/merge' of https://github.com/mpx/lua-cjson
+b690bec81693c58f2efa9b09e247ce5b45d39b86	not-for-merge	'refs/pull/16/head' of https://github.com/mpx/lua-cjson
+5d0cdab96fb514eb10754bc58c60fd184d30cff7	not-for-merge	'refs/pull/16/merge' of https://github.com/mpx/lua-cjson
+d8485decd41cad682f873f9979dfd08659d66ac2	not-for-merge	'refs/pull/20/head' of https://github.com/mpx/lua-cjson
+5bf02c2db8dbb200c5d4c18b933408ecd63c4e6f	not-for-merge	'refs/pull/20/merge' of https://github.com/mpx/lua-cjson
+db6d0b21be8f03c094537d4eeea08a59fcfad20d	not-for-merge	'refs/pull/21/head' of https://github.com/mpx/lua-cjson
+b141f24dcb90ab9e5d5993c321b284d7dba3d266	not-for-merge	'refs/pull/21/merge' of https://github.com/mpx/lua-cjson
+f5ee43d284d24c100bb11ecf286a04999bca6514	not-for-merge	'refs/pull/22/head' of https://github.com/mpx/lua-cjson
+97ab85ff29127f102f680509cc846aba7b1df16a	not-for-merge	'refs/pull/22/merge' of https://github.com/mpx/lua-cjson
+22cb1e0a2d0858e86721e74789cc5f3e31ed6e56	not-for-merge	'refs/pull/23/head' of https://github.com/mpx/lua-cjson
+fa0b57cff5d10300b79614dd79fd0693035ecac1	not-for-merge	'refs/pull/23/merge' of https://github.com/mpx/lua-cjson
+4ca3cf1606c324863afade0b3c8f6a259a72480c	not-for-merge	'refs/pull/24/head' of https://github.com/mpx/lua-cjson
+42df096da93d6967d8501d8ba571f05320fac858	not-for-merge	'refs/pull/24/merge' of https://github.com/mpx/lua-cjson
+3b1429fabbaa6c2fc3d8c0f7c83b3810e530caf9	not-for-merge	'refs/pull/25/head' of https://github.com/mpx/lua-cjson
+aa6fedf7eac24b8dc84c457fe4a1410c312791b1	not-for-merge	'refs/pull/25/merge' of https://github.com/mpx/lua-cjson
+f348ecbd343c9ee0d706a47d697e78e1348e79c7	not-for-merge	'refs/pull/26/head' of https://github.com/mpx/lua-cjson
+65f807b43934c105d3a81d21fc451bb73ea492c2	not-for-merge	'refs/pull/26/merge' of https://github.com/mpx/lua-cjson
+05d30cf89a38d86bbd5917ab4b00367c0d67c4c7	not-for-merge	'refs/pull/27/head' of https://github.com/mpx/lua-cjson
+1a4e66fdf6ad5b67a5d0b63758017fc2a91cc607	not-for-merge	'refs/pull/27/merge' of https://github.com/mpx/lua-cjson
+f9ffcc42daf19385b29518dbbb4745c9b3f8782b	not-for-merge	'refs/pull/35/head' of https://github.com/mpx/lua-cjson
+7104b76f3b58553048841e4675eea127f8a7394a	not-for-merge	'refs/pull/35/merge' of https://github.com/mpx/lua-cjson
+3b12741114d121ce4f808b7cd989f14450dfbc7b	not-for-merge	'refs/pull/36/head' of https://github.com/mpx/lua-cjson
+61819fcaa8965a56eac7eef72bfa225e2594a675	not-for-merge	'refs/pull/36/merge' of https://github.com/mpx/lua-cjson
+ebac7de2e7aa71f6fadf9ee507f851162002372c	not-for-merge	'refs/pull/38/head' of https://github.com/mpx/lua-cjson
+e8c2a03f977ac82fe34b93ab57da9358bf500b2c	not-for-merge	'refs/pull/38/merge' of https://github.com/mpx/lua-cjson
+3a52d80879cb433a4f6997e1901aef4e42ef0202	not-for-merge	'refs/pull/39/head' of https://github.com/mpx/lua-cjson
+23a5f143caab5677c9e3807a160a3ae1ddcbdce6	not-for-merge	'refs/pull/39/merge' of https://github.com/mpx/lua-cjson
+8317e466bce60b8e73c5c510d1da6b6bda0d2b04	not-for-merge	'refs/pull/4/head' of https://github.com/mpx/lua-cjson
+bda1de364b97747db98bc5e51e76f41273d88200	not-for-merge	'refs/pull/4/merge' of https://github.com/mpx/lua-cjson
+c4638de78d046e8d7c6ca73366dcd62ff6a695cd	not-for-merge	'refs/pull/43/head' of https://github.com/mpx/lua-cjson
+a6d7fe99854342ac5b6eaca8df639bdb63374f69	not-for-merge	'refs/pull/43/merge' of https://github.com/mpx/lua-cjson
+244d7b8a7ac2125d37b0bb04ed48321a55f4b131	not-for-merge	'refs/pull/44/head' of https://github.com/mpx/lua-cjson
+a82331a377267faccb458a89c1ab00305d4d213c	not-for-merge	'refs/pull/44/merge' of https://github.com/mpx/lua-cjson
+651a4f34cbabe24d6d139e5eec492ad3256089b9	not-for-merge	'refs/pull/47/head' of https://github.com/mpx/lua-cjson
+eabbba671ad9f5e914db6c3ad13678e654a3d9f4	not-for-merge	'refs/pull/47/merge' of https://github.com/mpx/lua-cjson
+cd14175b7d4db0ee7d376a84a679cf18e316a9f4	not-for-merge	'refs/pull/48/head' of https://github.com/mpx/lua-cjson
+fc0226f212f89e41b0f03e84026b3c1171d9aa5d	not-for-merge	'refs/pull/48/merge' of https://github.com/mpx/lua-cjson
+9f7bd7f7d08cc53a78b7cc68c3563cdfde8d1b1f	not-for-merge	'refs/pull/5/head' of https://github.com/mpx/lua-cjson
+db8df75868305c0cff4dd3cff6437b206bf727c1	not-for-merge	'refs/pull/5/merge' of https://github.com/mpx/lua-cjson
+a6f950fa3b1f5d2b50a405cca5a74000dcf3dd16	not-for-merge	'refs/pull/6/head' of https://github.com/mpx/lua-cjson
+3da0293e3e8e1d9feb70270c9fa2ebff4a84cdc3	not-for-merge	'refs/pull/6/merge' of https://github.com/mpx/lua-cjson
+3e73a7c00f97859da7b9e5215f635b1a84c798cf	not-for-merge	'refs/pull/7/head' of https://github.com/mpx/lua-cjson
+ec01ee744967f7be240976156b059b246c5eb166	not-for-merge	'refs/pull/7/merge' of https://github.com/mpx/lua-cjson
+b576404bbdb3fd70c5390de552d91f645400b6c9	not-for-merge	'refs/pull/8/head' of https://github.com/mpx/lua-cjson
+7aead93e68baeb420939afaa3ef086f11b4808a8	not-for-merge	'refs/pull/8/merge' of https://github.com/mpx/lua-cjson
+c5a0a3b31debcb3f6774fe1feb9f0bc4d7a00faf	not-for-merge	'refs/pull/9/head' of https://github.com/mpx/lua-cjson
+adbf5439dad066f8a5bf792c062a19afb59d5511	not-for-merge	'refs/pull/9/merge' of https://github.com/mpx/lua-cjson
+a1495d103ed87eb8bdb23e4f653f6e878605efc2	not-for-merge	tag '1.0' of https://github.com/mpx/lua-cjson
+ff03aaa9bb5442f8c44c9e626f62fc50e0c2c391	not-for-merge	tag '1.0.1' of https://github.com/mpx/lua-cjson
+37e0ab5144d2f7293f687bc73e5cf125699b7f39	not-for-merge	tag '1.0.2' of https://github.com/mpx/lua-cjson
+540d814f37c82a1298feec3d604927d862516ad9	not-for-merge	tag '1.0.3' of https://github.com/mpx/lua-cjson
+2eb05867c5ac5aa69738dded45fc85da8f971b0d	not-for-merge	tag '1.0.4' of https://github.com/mpx/lua-cjson
+60c6230ea72bdf8f899c6dba8a81e28f62748532	not-for-merge	tag '2.0.0' of https://github.com/mpx/lua-cjson
+1900f6687bf3e31f844025672851322998da9951	not-for-merge	tag '2.1.0' of https://github.com/mpx/lua-cjson
+87d61509a2d0a80fb8126181c68116d1aa68e76d	not-for-merge	tag 'empty' of https://github.com/mpx/lua-cjson

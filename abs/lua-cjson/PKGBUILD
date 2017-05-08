@@ -20,9 +20,10 @@ backup=()
 options=()
 install=
 changelog=
-source=("git+https://github.com/mpx/lua-cjson.git")
+source=("git+https://github.com/mpx/lua-cjson.git"
+	"no_env_default.patch")
 noextract=()
-md5sums=('SKIP')
+md5sums=('SKIP' 'cbf41726d7e69e4469da1c9cc88dea70')
 validpgpkeys=()
 
 pkgver() {
@@ -32,7 +33,12 @@ pkgver() {
 
 build() {
   	cd lua-cjson
-	make LUA_VERSION=5.1
+	patch -p1 -i "$srcdir/no_env_default.patch"
+}
+
+build() {
+  	cd lua-cjson
+	make PREFIX="$pkgdir/usr" LUA_VERSION=5.1 LUA_INCLUDE_DIR=/usr/include/lua5.1
 }
 
 package() {

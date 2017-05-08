@@ -560,7 +560,7 @@ configure:13430: $? = 0
 configure:13430: result: yes
 configure:13453: checking for library containing crypt
 configure:13484: gcc -o conftest -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wl,-O1,--sort-common,--as-needed,-z,relro conftest.c  >&5
-/tmp/ccSKAT77.o: In function `main':
+/tmp/cc6i77Ot.o: In function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `crypt'
 collect2: error: ld returned 1 exit status
 configure:13484: $? = 1
@@ -793,7 +793,7 @@ configure:14394: $? = 0
 configure:14394: result: yes
 configure:14408: checking for strlcpy
 configure:14408: gcc -o conftest -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wl,-O1,--sort-common,--as-needed,-z,relro conftest.c  >&5
-/tmp/ccdmdzmr.o: In function `main':
+/tmp/ccfNJLfK.o: In function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `strlcpy'
 collect2: error: ld returned 1 exit status
 configure:14408: $? = 1
@@ -886,7 +886,7 @@ configure: failed program was:
 configure:14408: result: no
 configure:14431: checking for sched_getsheduler
 configure:14431: gcc -o conftest -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wl,-O1,--sort-common,--as-needed,-z,relro conftest.c  >&5
-/tmp/ccw2Grhh.o: In function `main':
+/tmp/ccxdouTM.o: In function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `sched_getsheduler'
 collect2: error: ld returned 1 exit status
 configure:14431: $? = 1

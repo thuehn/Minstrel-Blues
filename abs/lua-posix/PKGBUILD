@@ -34,6 +34,5 @@ build() {
 package() {
 	depends=('lua51')
 	cd luaposix-release-v33.2.1
-	msg2 "Building $pkgdir with Lua 5.1"
-	make PREFIX="$pkgdir"/usr LUA_LIBDIR="$(PREFIX)/lib/lua/5.1" install
+	make install
 }

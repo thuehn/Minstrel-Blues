@@ -10,7 +10,7 @@
 
 # Maintainer: Your Name <denis.roeper@posteo.de>
 pkgname=minstrel-measurement-git
-pkgver=r461.f68cf53
+pkgver=r462.31080c5
 pkgrel=1
 epoch=
 pkgdesc="Minstrel measurement for Lua 5.1"
@@ -18,7 +18,7 @@ arch=("x86_64")
 url="https://github.com/thuehn/Minstrel-Blues"
 license=('GPL')
 groups=()
-depends=(lua51 lua-system-git lua-cjson-git lua-filesystem lua-posix lua-argparse-git lua-lpc-git lua-pprint-git lua-rpc-git lua51-bitop procps-ng coreutils net-tools bind-tools iw tcpdump iperf openssh )
+depends=(lua51 lua-system-git lua-cjson-git lua51-filesystem lua-posix lua-argparse-git lua-lpc-git lua-pprint-git lua-rpc-git lua51-bitop procps-ng coreutils net-tools bind-tools iw tcpdump iperf openssh )
 makedepends=(lua51)
 checkdepends=()
 optdepends=()

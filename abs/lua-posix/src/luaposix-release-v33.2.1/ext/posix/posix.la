@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/usr/lib/lua/5.3'
+libdir='/home/droeper/abs/lua-posix/pkg/lua-posix/usr/lib/lua/5.1'
