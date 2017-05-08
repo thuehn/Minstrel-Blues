@@ -108,7 +108,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
 
     if ( log_port ~= nil and log_fname ~= nil ) then
         o.log_ref = LogNodeRef:create ( net_if.addr, log_port )
-        o.log_ref:start ( output_dir .. "/" .. log_fname, self.lua_bin )
+        o.log_ref:start ( output_dir .. "/" .. log_fname, o.lua_bin )
         o:send_info ( "wait until logger is running" )
     end
 
@@ -426,7 +426,7 @@ end
 
 function ControlNodeRef:start ()
     local cmd = {}
-    cmd [1] = self.lua_bin
+    cmd [1] = self.lua_bin or "/usr/bin/lua"
     cmd [2] = "/usr/bin/runControl"
     cmd [3] = "--port"
     cmd [4] = self.ctrl_port 
