@@ -12,20 +12,22 @@ require ('NetIfRef')
 require ('Measurement')
 require ('LogNodeRef')
 
-ControlNodeRef = { name = nil
-                 , ctrl = nil
-                 , rpc = nil
-                 , output_dir = nil
-                 , stats = nil   -- maps node name to statistics ( measurement )
-                 , distance = nil --approx.distance between node just for the log file
-                 , net_if = nil
-                 , log_ref = nil
-                 , nameserver = nil
-                 , ctrl_port = nil
-                 , aps_config = nil
-                 , sta_config = nil
-                 , connections = nil
-                 , ctrl_pid = nil
+ControlNodeRef = { name = nil           -- hostname of the control node ( String )
+                 , ssh_port = nil       -- ssh port ( Number )
+                 , lua_bin = nil        -- lua binary path ( String )
+                 , ctrl_net_ref = nil   -- reference to control interface ( NetRef )
+                 , rpc = nil            -- rpc client ( userdata )
+                 , output_dir = nil     -- path to measurment result ( String )
+                 , stats = nil          -- maps node name to statistics ( Measurement )
+                 , distance = nil       -- approx.distance between node just for the log file ( String )
+                 , net_if = nil         -- local network interface ( NetIF )
+                 , log_ref = nil        -- reference to logger ( LogNodeRef )
+                 , nameserver = nil     -- IP of the nameserver ( String )
+                 , ctrl_port = nil      -- port of control node ( Number )
+                 , aps_config = nil     -- list of AP configs
+                 , sta_config = nil     -- list of STA configs
+                 , connections = nil    -- list of APs and connections to STAs
+                 , ctrl_pid = nil       -- PID of control node process
                  }
 
 function ControlNodeRef:new (o)
@@ -90,6 +92,8 @@ function ControlNodeRef:create ( ctrl_port, output_dir
     ctrl_net_ref:set_addr ( ctrl_config ['name'] )
 
     local o = ControlNodeRef:new { name = ctrl_config ['name']
+                                 , ssh_port = tonumber ( ctrl_config ['ssh_port'] ) or 22
+                                 , lua_bin = ctrl_config ['lua_bin'] or "/usr/bin/lua"
                                  , ctrl_net_ref = ctrl_net_ref
                                  , ctrl_port = ctrl_port
                                  , output_dir = output_dir
@@ -104,7 +108,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
 
     if ( log_port ~= nil and log_fname ~= nil ) then
         o.log_ref = LogNodeRef:create ( net_if.addr, log_port )
-        o.log_ref:start ( output_dir .. "/" .. log_fname )
+        o.log_ref:start ( output_dir .. "/" .. log_fname, self.lua_bin )
         o:send_info ( "wait until logger is running" )
     end
 
@@ -216,13 +220,13 @@ end
 
 function ControlNodeRef:add_aps ()
     for _, ap_config in ipairs ( self.aps_config ) do
-        self.rpc.add_ap ( ap_config.name,  ap_config.ctrl_if, ap_config.rsa_key )
+        self.rpc.add_ap ( ap_config.name, ap_config.lua_bin or "/usr/bin/lua", ap_config.ctrl_if, ap_config.rsa_key )
     end
 end
 
 function ControlNodeRef:add_stas ()
     for _, sta_config in ipairs ( self.stas_config ) do
-        self.rpc.add_sta ( sta_config.name,  sta_config.ctrl_if,
+        self.rpc.add_sta ( sta_config.name, sta_config.lua_bin or "/usr/bin/lua", sta_config.ctrl_if,
                            sta_config.rsa_key, sta_config.mac )
     end
 end
@@ -422,7 +426,7 @@ end
 
 function ControlNodeRef:start ()
     local cmd = {}
-    cmd [1] = "lua"
+    cmd [1] = self.lua_bin
     cmd [2] = "/usr/bin/runControl"
     cmd [3] = "--port"
     cmd [4] = self.ctrl_port 
@@ -444,7 +448,8 @@ function ControlNodeRef:start ()
 end
 
 function ControlNodeRef:start_remote ()
-    local remote_cmd = "lua /usr/bin/runControl"
+    local remote_cmd = self.lua_bin
+                 .. " /usr/bin/runControl"
                  .. " --port " .. self.ctrl_port 
                  .. " --ctrl_if " .. self.ctrl_net_ref.iface
                  .. " --output " .. self.output_dir
@@ -455,7 +460,7 @@ function ControlNodeRef:start_remote ()
     end
     print ( remote_cmd )
     -- fixme:  "-i", node_ref.rsa_key, 
-    local pid, _, _ = misc.spawn ( "ssh", "root@" .. self.ctrl_net_ref.addr, remote_cmd )
+    local pid, _, _ = misc.spawn ( "ssh", "-p", self.ssh_port, "root@" .. self.ctrl_net_ref.addr, remote_cmd )
     print ( "Control: " .. pid )
     return pid
 end
@@ -485,8 +490,8 @@ function ControlNodeRef:stop_local ()
 end
 
 function ControlNodeRef:stop_remote ()
-    local remote_cmd = "lua /usr/bin/kill_remote " .. self.ctrl_pid .. " --INT -i 2"
-    local ssh, exit_code = misc.execute ( "ssh", "root@" .. self.ctrl_net_ref.addr, remote_cmd )
+    local remote_cmd = self.lua_bin .. " /usr/bin/kill_remote " .. self.ctrl_pid .. " --INT -i 2"
+    local ssh, exit_code = misc.execute ( "ssh", "-p", self.ssh_port, "root@" .. self.ctrl_net_ref.addr, remote_cmd )
     if ( exit_code == 0 ) then
         return true, nil
     else

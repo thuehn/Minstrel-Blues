@@ -26,8 +26,8 @@ function LogNodeRef:__tostring ()
     return ( addr or "no address" ) .. ( port or "no port") 
 end
 
-function LogNodeRef:start ( log_file )
-    self.pid, _, _ = misc.spawn ( "lua", "/usr/bin/runLogger", log_file
+function LogNodeRef:start ( log_file, lua_bin )
+    self.pid, _, _ = misc.spawn ( lua_bin, "/usr/bin/runLogger", log_file
                                 , "--port", self.port )
 end
 

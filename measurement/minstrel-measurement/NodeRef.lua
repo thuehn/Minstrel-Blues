@@ -7,6 +7,7 @@ require ('Measurement')
 require ('LogNodeRef')
 
 NodeRef = { name = nil
+          , lua_bin = nil
           , ctrl_net_ref = nil
           , rsa_key = nil
           , rpc = nil

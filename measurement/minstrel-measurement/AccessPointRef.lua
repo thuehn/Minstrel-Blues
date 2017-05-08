@@ -5,11 +5,12 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, ctrl_if, rsa_key, output_dir, log_addr, log_port )
+function AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, log_addr, log_port )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
     local o = AccessPointRef:new { name = name
+                                 , lua_bin = lua_bin
                                  , ctrl_net_ref = ctrl_net_ref
                                  , rsa_key = rsa_key
                                  , output_dir = output_dir

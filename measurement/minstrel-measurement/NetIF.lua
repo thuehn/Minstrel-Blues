@@ -4,7 +4,13 @@ require ('Net')
 -- i.e. for pretty printing and have a named triple instead of unprintable
 -- table with keys
 
-NetIF = { iface = nil, addr = nil, mon = nil, phy = nil, is_remote = nil }
+NetIF = { lua_bin= nil
+        , iface = nil
+        , addr = nil
+        , mon = nil
+        , phy = nil
+        , is_remote = nil
+        }
 
 function NetIF:new (o)
     local o = o or {}

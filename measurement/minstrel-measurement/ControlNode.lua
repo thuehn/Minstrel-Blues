@@ -76,16 +76,18 @@ function ControlNode:restart_wifi_debug()
     end
 end
 
-function ControlNode:add_ap ( name, ctrl_if, rsa_key )
+function ControlNode:add_ap ( name, lua_bin, ctrl_if, rsa_key )
     self:send_info ( " add access point " .. name )
-    local ref = AccessPointRef:create ( name, ctrl_if, rsa_key, self.output_dir, self.log_addr, self.log_port )
+    local ref = AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key
+                                      , self.output_dir, self.log_addr, self.log_port )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
-function ControlNode:add_sta ( name, ctrl_if, rsa_key, mac )
+function ControlNode:add_sta ( name, lua_bin, ctrl_if, rsa_key, mac )
     self:send_info ( " add station " .. name )
-    local ref = StationRef:create ( name, ctrl_if, rsa_key, self.output_dir, mac, self.log_addr, self.log_port )
+    local ref = StationRef:create ( name, lua_bin, ctrl_if, rsa_key
+                                  , self.output_dir, mac, self.log_addr, self.log_port )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -336,7 +338,7 @@ function ControlNode:start_nodes ( rsa_key, distance )
 
     function start_node ( node_ref, log_addr, log_port )
 
-        local remote_cmd = "lua /usr/bin/runNode"
+        local remote_cmd = node_ref.lua_bin .. " /usr/bin/runNode"
                     .. " --name " .. node_ref.name 
                     .. " --ctrl_if " .. node_ref.ctrl_net_ref.iface
                     .. " --port " .. self.port 
@@ -403,7 +405,7 @@ function ControlNode:stop ( rsa_key )
             self:send_info ( "stop node at " .. node_ref.ctrl_net_ref.addr .. " with pid " .. self.pids [ node_ref.name ] )
             local ssh
             local exit_code
-            local remote_cmd = "lua /usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
+            local remote_cmd = node_ref.lua_bin .. " /usr/bin/kill_remote " .. self.pids [ node_ref.name ] .. " --INT -i 2"
             self:send_debug ( remote_cmd )
             local ssh_command = { "ssh" }
             if ( rsa_key ~= nil ) then

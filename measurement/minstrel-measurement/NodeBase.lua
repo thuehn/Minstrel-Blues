@@ -15,6 +15,7 @@ local json = require ('cjson')
 require ('LogNodeRef')
 
 NodeBase = { name = nil
+           , lua_bin = nil
            , ctrl = nil
            , port = nil
            , log_port = nil

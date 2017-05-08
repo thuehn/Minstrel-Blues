@@ -11,8 +11,9 @@ local uci = require ('Uci')
 WifiIF = NetIF:new()
 local debugfs = "/sys/kernel/debug/ieee80211"
 
-function WifiIF:create ( iface, addr, mon, phy, node )
-    local o = WifiIF:new ( { iface = iface
+function WifiIF:create ( lua_bin, iface, addr, mon, phy, node )
+    local o = WifiIF:new ( { lua_bin = lua_bin
+                           , iface = iface
                            , addr = addr
                            , mon = mon
                            , phy = phy
@@ -225,7 +226,7 @@ function WifiIF:start_regmon_stats ( sampling_rate )
         return nil
     end
     self.node:send_info ( "start collecting regmon stats for " .. self.iface .. ", " .. self.phy )
-    local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-l", "-i", sampling_rate, file )
+    local pid, stdin, stdout = misc.spawn ( self.lua_bin, fetch_file_bin, "-l", "-i", sampling_rate, file )
     self.regmon_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
@@ -316,7 +317,7 @@ function WifiIF:start_rc_stats ( station, sampling_rate )
     local file = debugfs .. "/" .. self.phy .. "/netdev:" .. self.iface .. "/stations/"
                          .. station .. "/rc_stats_csv"
     if ( isFile ( file ) == true ) then
-        local pid, stdin, stdout = misc.spawn ( "lua", fetch_file_bin, "-i", sampling_rate, file )
+        local pid, stdin, stdout = misc.spawn ( self.lua_bin, fetch_file_bin, "-i", sampling_rate, file )
         self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
         self.node:send_info ( "rc stats for station " .. station .. " started with pid: " .. pid )
         return pid

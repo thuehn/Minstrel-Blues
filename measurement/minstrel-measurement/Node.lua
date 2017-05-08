@@ -25,11 +25,12 @@ local debugfs = "/sys/kernel/debug/ieee80211"
 
 Node = NodeBase:new()
 
-function Node:create ( name, ctrl, port, log_port, log_addr )
+function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr )
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
     end
     local o = Node:new ( { name = name
+                         , lua_bin = lua_bin
                          , ctrl = ctrl
                          , port = port
                          , log_addr = log_addr
@@ -47,7 +48,7 @@ function Node:create ( name, ctrl, port, log_port, log_addr )
         ctrl:get_addr ( )
     end
     for i, phy in ipairs ( phys ) do
-        local netif = WifiIF:create ()
+        local netif = WifiIF:create ( lua_bin )
         netif.node = o
         netif.phy = phy
         netif.mon = "mon" .. tostring ( i - 1 )
@@ -117,6 +118,8 @@ function Node:restart_wifi ( phy )
         end
         self:send_debug ( "Cannot restart wifi. No init script found for phy " .. ( self.phy or "none" ) )
         return false
+    else
+        error ("Node:restart_wifi: NYI")
     end
     return false
 end
