@@ -10,7 +10,7 @@
 
 # Maintainer: Your Name <denis.roeper@posteo.de>
 pkgname=minstrel-measurement-git
-pkgver=r460.dfcdadd
+pkgver=r461.f68cf53
 pkgrel=1
 epoch=
 pkgdesc="Minstrel measurement for Lua 5.1"
@@ -42,7 +42,7 @@ pkgver() {
 
 build() {
 	cd Minstrel-Blues/measurement/minstrel-measurement
-	make
+	make LUAC="luac5.1"
 }
 
 package() {

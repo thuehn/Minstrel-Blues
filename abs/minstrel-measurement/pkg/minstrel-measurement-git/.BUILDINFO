@@ -1,5 +1,5 @@
 builddir = /home/droeper/abs/minstrel-measurement
-pkgbuild_sha256sum = c135a2e24c16621ec4f75eaed8aa6cebc47f4f2ea94cd0a23de144b1906db756
+pkgbuild_sha256sum = aaa4e567a9471c00b96aafd8cbcb8ed9e5077487eae59002dfba51c94638b870
 buildenv = !distcc
 buildenv = color
 buildenv = !ccache
@@ -165,6 +165,7 @@ installed = make-4.2.1-2
 installed = man-db-2.7.6.1-2
 installed = man-pages-4.10-3
 installed = mdadm-4.0-1
+installed = minstrel-measurement-git-r460.dfcdadd-1
 installed = mkinitcpio-23-1
 installed = mkinitcpio-busybox-1.25.1-1
 installed = mpfr-3.1.5.p2-1
