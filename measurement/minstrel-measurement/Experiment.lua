@@ -21,7 +21,7 @@ function Experiment:keys ( ap_ref )
     return keys
 end
 
-function Experiment:get_rate( key )
+function Experiment:get_rate ( key )
     if ( key ~= nil ) then
         local keys = split ( key, "-" )
         if ( keys ~= nil and table_size ( keys ) > 0 ) then
@@ -31,7 +31,7 @@ function Experiment:get_rate( key )
     return nil
 end
 
-function Experiment:get_power( key )
+function Experiment:get_power ( key )
     if ( key ~= nil ) then
         local keys = split ( key, "-" )
         if ( keys ~= nil and table_size ( keys ) > 1 ) then

@@ -36,6 +36,7 @@ function get_os_releases ( ... ) return node:get_os_releases ( ... ) end
 
 function add_ap ( ... ) return node:add_ap ( ... ) end
 function add_sta ( ... ) return node:add_sta ( ... ) end
+function add_mesh_node ( ... ) return node:add_mesh_node ( ... ) end
 
 function reachable ( ... ) return node:reachable ( ... ) end
 

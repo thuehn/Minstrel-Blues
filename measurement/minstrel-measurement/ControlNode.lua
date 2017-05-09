@@ -66,7 +66,7 @@ function ControlNode:__tostring()
     return out
 end
 
-function ControlNode:restart_wifi_debug()
+function ControlNode:restart_wifi_debug ()
     if ( table_size ( self.ap_refs ) == 0 ) then
         self:send_warning ( "Cannot start wifi on APs. Not initialized" )
         print ( "Cannot start wifi on APs. Not initialized" )
@@ -92,6 +92,12 @@ function ControlNode:add_sta ( name, lua_bin, ctrl_if, rsa_key, mac )
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
+function ControlNode:add_mesh_node ( name, lua_bin, ctrl_if, rsa_key, mac )
+    self:send_info ( " add mesh_node " .. name )
+    local ref = MeshNodeRef:create ( name, lua_bin, ctrl_if, rsa_key
+                                  , self.output_dir, mac, self.log_addr, self.log_port )
+    self.node_refs [ #self.node_refs + 1 ] = ref
+end
 -- randomize ap and station order
 function ControlNode:randomize_nodes ()
     --randomize aps
@@ -112,15 +118,27 @@ function ControlNode:randomize_nodes ()
         sta_refs [ #sta_refs + 1 ] = sta_ref
     end
     self.sta_refs = sta_refs
-    -- copy to node_refs
-    local node_refs = {}
-    for _, ref in ipairs ( self.ap_refs ) do
-        node_refs [ #node_refs + 1 ] = ref
+    if ( table_size ( self.ap_refs ) > 0 ) then
+        -- copy to node_refs
+        local node_refs = {}
+        for _, ref in ipairs ( self.ap_refs ) do
+            node_refs [ #node_refs + 1 ] = ref
+        end
+        for _, ref in ipairs ( self.sta_refs ) do
+            node_refs [ #node_refs + 1 ] = ref
+        end
+        self.node_refs = node_refs
+    else
+        -- randomize mesh nodes
+        local nodes = self:list_nodes ()
+        local nodes_random = misc.randomize_list ( nodes )
+        local node_refs = {}
+        for _, name in ipairs ( nodes_random ) do
+            local node_ref = self:find_node_ref ( name )
+            node_refs [ #node_refs + 1 ] = node_ref
+        end
+        self.node_refs = node_refs
     end
-    for _, ref in ipairs ( self.sta_refs ) do
-        node_refs [ #node_refs + 1 ] = ref
-    end
-    self.node_refs = node_refs
     -- randomized associated stations
     for _, ap_ref in ipairs ( self.ap_refs ) do
         ap_ref:randomize_stations ()
@@ -438,6 +456,7 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
     end
 
     self:send_info ("*** Generate measurement keys ***")
+    -- fixme: MESH
     self.keys = {}
     for i, ap_ref in ipairs ( self.ap_refs ) do
         self.keys[i] = self.exp:keys ( ap_ref )
@@ -445,6 +464,7 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
     return true
 end
 
+-- fixme: MESH
 function ControlNode:get_txpowers ()
     local powers = {}
     for i, ap_ref in ipairs ( self.ap_refs ) do
@@ -456,6 +476,7 @@ function ControlNode:get_txpowers ()
     return powers
 end
 
+-- fixme: MESH
 function ControlNode:get_txrates ()
     local rates = {}
     for i, ap_ref in ipairs ( self.ap_refs ) do
@@ -509,6 +530,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ( exp_header )
     self:send_info ( hrule )
 
+    -- fixme: MESH
     self:send_info ("*** Prepare measurement ***")
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:prepare_measurement ( ap_ref )
@@ -516,6 +538,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
 
     self:send_info ("*** Settle measurement ***")
 
+    -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
 
         -- set channel and ht
@@ -536,15 +559,18 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
         --     self:send_debug ( "station: " .. station )
         -- end
 
-        local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations[1] )
+        -- fixme: MESH
+        local rate_names = ap_ref.rpc.tx_rate_names ( ap_ref.wifi_cur, ap_ref.stations [1] )
         local msg = "rate names: "
         self:send_debug ( msg .. table_tostring ( rate_names, 80 - string.len ( msg ) ) )
 
-        local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
+        -- fixme: MESH
+        local rates = ap_ref.rpc.tx_rate_indices ( ap_ref.wifi_cur, ap_ref.stations [1] )
         local msg = "rate indices: "
         self:send_debug ( msg .. table_tostring ( rates, 80 - string.len ( msg ) ) )
 
-        local powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations[1] )
+        -- fixme: MESH
+        local powers = ap_ref.rpc.tx_power_indices ( ap_ref.wifi_cur, ap_ref.stations [1] )
         local msg = "power indices: "
         self:send_debug ( msg .. table_tostring ( powers, 80 - string.len ( msg ) ) )
 
@@ -552,6 +578,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
         local msg = "iw info: "
         self:send_info ( msg .. ( iw_info or "none" ), 80 - string.len ( msg ) )
 
+        -- fixme: MESH
         for i, sta_ref in ipairs ( ap_ref.refs ) do
 
             sta_ref.rpc.set_channel_htmode ( sta_ref.wifi_cur, channel, htmode )
@@ -581,8 +608,9 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ("*** Start Measurement ***" )
 
     -- -------------------------------------------------------
+    -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
-         self.exp:start_measurement (ap_ref, key )
+         self.exp:start_measurement ( ap_ref, key )
     end
 
     -- -------------------------------------------------------
@@ -590,11 +618,13 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     -- -------------------------------------------------------
 
     self:send_info ("*** Start Experiment ***" )
+    -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
          self.exp:start_experiment ( ap_ref, key )
     end
     
     self:send_info ("*** Wait Experiment ***" )
+    -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:wait_experiment ( ap_ref, key )
     end
@@ -602,16 +632,19 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     -- -------------------------------------------------------
 
     self:send_info ("*** Stop Measurement ***" )
+    -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:stop_measurement (ap_ref, key )
     end
 
     self:send_info ("*** Fetch Measurement ***" )
+    -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:fetch_measurement (ap_ref, key )
     end
 
     self:send_info ("*** Unsettle measurement ***" )
+    -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:unsettle_measurement ( ap_ref, key )
     end

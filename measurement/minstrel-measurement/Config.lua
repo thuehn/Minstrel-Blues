@@ -212,7 +212,7 @@ Config.accesspoints = function ( nodes, connections )
     local names = Config.list_connections ( connections )
     local aps = {}
     for _, name in ipairs ( names ) do
-        aps [ #aps  + 1] = Config.find_node ( name, nodes )
+        aps [ #aps + 1] = Config.find_node ( name, nodes )
     end
     return aps
 end
@@ -227,6 +227,16 @@ Config.stations = function ( nodes, connections )
     return stations
 end
 
+-- TODO: adjacence matix?
+Config.meshs = function ( nodes, connections )
+    local names = Config.list_connections ( connections )
+    local mesh = {}
+    for _, name in ipairs ( names ) do
+        mesh [ #mesh + 1] = Config.find_node ( name, nodes )
+    end
+    return mesh
+end
+
 -- global var connections
 Config.read_connections = function ( cons )
     if ( cons ~= nil and cons ~= {} ) then
@@ -234,9 +244,9 @@ Config.read_connections = function ( cons )
     end
 
     for _, con in ipairs ( cons ) do
-        local ap, stas, err = parse_argparse_con ( con )
+        local node, stas, err = parse_argparse_con ( con )
         if ( err == nil ) then
-            connections [ ap ] = stas
+            connections [ node ] = stas
         else
             print ( err )
         end
@@ -245,7 +255,7 @@ Config.read_connections = function ( cons )
 
 end
 
-Config.save = function ( dir, ctrl, aps, stas )
+Config.save = function ( dir, ctrl, aps, stas, meshs )
     -- ctrl
     local fname = dir .. "/control.txt"
     local file = io.open ( fname, "w" )
@@ -254,22 +264,37 @@ Config.save = function ( dir, ctrl, aps, stas )
         file:close ()
     end
     -- aps
-    local fname = dir .. "/accesspoints.txt"
-    local file = io.open ( fname, "w" )
-    if ( file ~= nil ) then
-        for _, ap in ipairs ( aps ) do
-            file:write ( ap.name .. "\n" )
+    if ( table_size ( aps ) > 0 ) then
+        local fname = dir .. "/accesspoints.txt"
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            for _, ap in ipairs ( aps ) do
+                file:write ( ap.name .. "\n" )
+            end
+            file:close ()
         end
-        file:close ()
     end
     -- stas
-    local fname = dir .. "/stations.txt"
-    local file = io.open ( fname, "w" )
-    if ( file ~= nil ) then
-        for _, sta in ipairs ( stas ) do
-            file:write ( sta.name .. "\n" )
+    if ( table_size ( stas ) > 0 ) then
+        local fname = dir .. "/stations.txt"
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            for _, sta in ipairs ( stas ) do
+                file:write ( sta.name .. "\n" )
+            end
+            file:close ()
         end
-        file:close ()
+    end
+    -- meshs
+    if ( table_size ( meshs ) > 0 ) then
+        local fname = dir .. "/meshs.txt"
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            for _, mesh in ipairs ( meshs ) do
+                file:write ( mesh.name .. "\n" )
+            end
+            file:close ()
+        end
     end
 end
 

@@ -67,6 +67,9 @@ parser:option ("--ap", "Access Point host name or ip address and optional radio,
                         .. "ctrl_if, rsa_key and mac separated by comma"):count("*")
 parser:option ("--con", "Connection between APs and STAs, format: ap_name=sta_name1,sta_name2"):count("*")
 
+parser:option ("--mesh", "Mesh node host name or ip address and options radio, ctrl_if, "
+                         .. "rsa_key and mac separated by comma"):count("*")
+
 parser:option ("--ctrl", "Control node host name or ip address" )
 parser:option ("--ctrl_if", "RPC Interface of Control node" )
 parser:option ("-C --ctrl_port", "Port for control RPC", "12346" )
@@ -151,6 +154,7 @@ local has_config = Config.load_config ( args.config )
 
 local ap_setups
 local sta_setups
+local mesh_setups
 
 local keys = nil
 local output_dir = args.output
@@ -185,13 +189,13 @@ if ( has_config ) then
     end
 
     if ( args.ctrl_only == false ) then
-        if (table_size ( nodes ) < 2) then
+        if ( table_size ( nodes ) < 2 ) then
             print ( "Error: config file '" .. Config.get_config_fname ( args.config ) 
                         .. "' have to contain at least two node descriptions in var 'nodes'.")
             os.exit (1)
         end
 
-        if (table_size ( connections ) < 1) then
+        if ( table_size ( connections ) < 1 ) then
             print ( "Error: config file '" .. Config.get_config_fname ( args.config )
                         .. "' have to contain at least one connection declaration in var 'connections'.")
             os.exit (1)
@@ -210,6 +214,8 @@ if ( has_config ) then
     sta_setups = Config.stations ( nodes, connections )
     Config.set_configs_from_args ( sta_setups, args.sta )
 
+    mesh_setups = Config.meshs ( nodes, connections )
+    Config.set_configs_from_args ( mesh_setups, args.mesh )
 else
 
     if ( args.ctrl ~= nil ) then
@@ -219,20 +225,25 @@ else
     end
 
     if ( args.ctrl_only == false ) then
-        if (args.ap == nil or table_size ( args.ap ) == 0 ) then
+        if ( ( args.ap == nil or table_size ( args.ap ) == 0 ) 
+            and ( args.mesh == nil or table_size ( args.mesh ) == 0 ) ) then
             Config.show_config_error ( parser, "ap", true)
         end
 
-        if (args.sta == nil or table_size ( args.sta ) == 0 ) then
+        if ( args.sta == nil or table_size ( args.sta ) == 0 ) then
             Config.show_config_error ( parser, "sta", true)
         end
     end
     nodes [1] = ctrl
 
     ap_setups = Config.create_configs ( args.ap )
-    sta_setups = Config.create_configs ( args.sta )
     Config.copy_config_nodes ( ap_setups, nodes )
+
+    sta_setups = Config.create_configs ( args.sta )
     Config.copy_config_nodes ( sta_setups, nodes )
+
+    mesh_setups = Config.create_configs ( args.mesh )
+    Config.copy_config_nodes ( mesh_setups, nodes )
 
     Config.read_connections ( args.con )
 end
@@ -247,13 +258,29 @@ if ( args.verbose == true) then
     print ( "Command: " .. args.command)
     print ( )
     print ( )
-    print ( "Access Points:" )
-    print ( table_tostring ( args.ap ) )
-    print ( )
-    print ( "Stations:" )
-    print ( )
-    print ( table_tostring ( args.sta ) )
-    print ( )
+    if ( table_size ( args.ap ) > 0 ) then
+        print ( "Access Points:" )
+        print ( table_tostring ( args.ap ) )
+        print ( )
+    end
+    if ( table_size ( args.sta ) > 0 ) then
+        print ( "Stations:" )
+        print ( )
+        print ( table_tostring ( args.sta ) )
+        print ( )
+    end
+    if ( table_size ( args.mesh ) > 0 ) then
+        print ( "Mesh:" )
+        print ( )
+        print ( table_tostring ( args.mesh ) )
+        print ( )
+    end
+    if ( table_size ( args.con ) > 0 ) then
+        print ( "Connections:" )
+        print ( )
+        print ( table_tostring ( args.con ) )
+        print ( )
+    end
 end
 
 -- local ctrl iface
@@ -273,9 +300,9 @@ local ctrl_ref = ControlNodeRef:create ( args.ctrl_port
                                        , args.distance
                                        , net
                                        , nameserver or args.nameserver
-                                       , args.ctrl, args.ap, args.sta
+                                       , args.ctrl, args.ap, args.sta, args.mesh
                                        , connections
-                                       , ap_setups, sta_setups
+                                       , ap_setups, sta_setups, mesh_setups
                                        , args.command
                                        )
 

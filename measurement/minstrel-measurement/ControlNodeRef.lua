@@ -27,6 +27,7 @@ ControlNodeRef = { name = nil           -- hostname of the control node ( String
                  , aps_config = nil     -- list of AP configs
                  , sta_config = nil     -- list of STA configs
                  , connections = nil    -- list of APs and connections to STAs
+                 , mesh_nodes_config = nil -- list of mesh nodes configs
                  , ctrl_pid = nil       -- PID of control node process
                  }
 
@@ -40,26 +41,44 @@ end
 function ControlNodeRef:create ( ctrl_port, output_dir
                                , log_fname, log_port
                                , distance, net_if, nameserver
-                               , ctrl_arg, ap_args, sta_args, connections
-                               , ap_setups, sta_setups, command )
+                               , ctrl_arg
+                               , ap_args, sta_args
+                               , mesh_args
+                               , connections
+                               , ap_setups, sta_setups, mesh_setups
+                               , command )
+    -- access points
     local ap_names = {}
     for _, ap in ipairs ( ap_args ) do
         local parts = split ( ap, "," )
         ap_names [ #ap_names + 1 ] = parts [ 1 ]
     end
-
     local aps_config = Config.select_configs ( ap_setups, ap_names )
-    if ( table_size ( aps_config ) == 0 ) then return nil end
 
+    -- stations
     local sta_names = {}
     for _, sta in ipairs ( sta_args ) do
         local parts = split ( sta, "," )
         sta_names [ #sta_names + 1 ] = parts [ 1 ]
     end
-
     local stas_config = Config.select_configs ( sta_setups, sta_names )
-    if ( table_size ( stas_config ) == 0 ) then return nil end
 
+    -- mesh nodes
+    local mesh_names = {}
+    for _, node in ipairs ( mesh_args ) do
+        local parts = split ( node, "," )
+        mesh_names [ #mesh_names + 1 ] = parts [ 1 ]
+    end
+    local mesh_nodes_config = Config.select_configs ( mesh_setups, mesh_names )
+    
+    -- check configs
+    if ( ( aps_config ~= nil and table_size ( aps_config ) == 0 
+            and stas_config ~= nil and table_size ( stas_config ) == 0 )
+        or ( mesh_nodes_config ~= nil and table_size ( mesh_nodes_config ) == 0 ) ) then
+        return nil
+    end
+
+    -- control
     local ctrl_config = Config.select_config ( nodes, ctrl_arg )
     if ( ctrl_config == nil ) then return nil end
 
@@ -70,23 +89,39 @@ function ControlNodeRef:create ( ctrl_port, output_dir
     print ( )
     print ( "Control: " .. Config.cnode_to_string ( ctrl_config ) )
     print ( )
-    print ( "Access Points:" )
-    print ( "--------------" )
 
-    for _, ap in ipairs ( aps_config ) do
-        print ( Config.cnode_to_string ( ap ) )
+    if ( aps_config ~= nil and table_size ( aps_config ) > 0 ) then
+        print ( "Access Points:" )
+        print ( "--------------" )
+
+        for _, ap in ipairs ( aps_config ) do
+            print ( Config.cnode_to_string ( ap ) )
+        end
     end
 
-    print ( )
-    print ( "Stations:" )
-    print ( "---------" )
+    if ( stas_config ~= nil and table_size ( stas_config ) > 0 ) then
+        print ( )
+        print ( "Stations:" )
+        print ( "---------" )
 
-    for _, sta_config in ipairs ( stas_config ) do
-        print ( Config.cnode_to_string ( sta_config ) )
+        for _, sta_config in ipairs ( stas_config ) do
+            print ( Config.cnode_to_string ( sta_config ) )
+        end
+        print ( )
     end
-    print ( )
 
-    Config.save ( output_dir, ctrl_config, aps_config, stas_config )
+    if ( meshs_config ~= nil and table_size ( meshs_config ) > 0 ) then
+        print ( )
+        print ( "Mesh:" )
+        print ( "---------" )
+
+        for _, mesh_config in ipairs ( meshs_config ) do
+            print ( Config.cnode_to_string ( mesh_config ) )
+        end
+        print ( )
+    end
+
+    Config.save ( output_dir, ctrl_config, aps_config, stas_config, mesh_nodes_config )
 
     local ctrl_net_ref = NetIfRef:create ( ctrl_config ['ctrl_if'] )
     ctrl_net_ref:set_addr ( ctrl_config ['name'] )
@@ -103,6 +138,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                  , nameserver = nameserver
                                  , aps_config = aps_config
                                  , stas_config = stas_config
+                                 , mesh_nodes_config
                                  , connections = connections
                                  }
 
@@ -162,8 +198,13 @@ function ControlNodeRef:init ( disable_autostart, disable_synchronize )
         end
 
         -- add station and accesspoint references to control
-        self:add_aps ()
-        self:add_stas ()
+        local is_mesh = self.mesh_node_config ~= nil and table_size ( self.mesh_nodes_config ) > 0
+        if ( is_mesh ~= true ) then
+            self:add_aps ()
+            self:add_stas ()
+        else
+            self:add_mesh_nodes ()
+        end
 
     end
 
@@ -231,12 +272,23 @@ function ControlNodeRef:add_stas ()
     end
 end
 
+function ControlNodeRef:add_mesh_nodes ()
+    for _, node_config in ipairs ( self.mesh_nodes_config ) do
+        self.rpc.add_mesh_node ( node_config.name, node_config.lua_bin or "/usr/bin/lua", node_config.ctrl_if,
+                                 node_config.rsa_key )
+    end
+end
+
 function ControlNodeRef:list_nodes ()
     return self.rpc.list_nodes ()
 end
 
 function ControlNodeRef:list_aps ()
     return self.rpc.list_aps ()
+end
+
+function ControlNodeRef:list_stations ( ap_name )
+    return self.rpc.list_stations ( ap_name )
 end
 
 function ControlNodeRef:get_mac ( node_name )
@@ -253,10 +305,6 @@ end
 
 function ControlNodeRef:get_opposite_macs_br ( node_name )
     return self.rpc.get_opposite_macs_br ( node_name )
-end
-
-function ControlNodeRef:list_stations ( ap_name )
-    return self.rpc.list_stations ( ap_name )
 end
 
 function ControlNodeRef:init_nodes ( disable_autostart
@@ -311,19 +359,28 @@ function ControlNodeRef:init_nodes ( disable_autostart
     -- set nameserver on all nodes
     self.rpc.set_nameservers ( self.nameserver )
 
-    if ( self:prepare_aps () == false ) then
-        return false, "preparation of access points failed!"
-    end
+    if ( table_size ( self.aps_config ) > 0 ) then
+        if ( self:prepare_aps () == false ) then
+            return false, "preparation of access points failed!"
+        end
 
-    if ( self:prepare_stas () == false ) then
-        return false, "preparation of stations failed!"
-    end
+        if ( self:prepare_stas () == false ) then
+            return false, "preparation of stations failed!"
+        end
 
-    self:associate_stas ()
+        self:associate_stas ()
 
-    local all_linked = self:link_stas ()
-    if ( all_linked == false ) then
-        return false, "Cannot get ssid from acceesspoint"
+        local all_linked = self:link_stas ()
+        if ( all_linked == false ) then
+            return false, "Cannot get ssid from acceesspoint"
+        end
+    else
+        if ( self:prepare_meshs () == false ) then
+            return false, "preparation of mesh nodes failed!"
+        end
+
+        self:asociate_mesh ()
+        --fixme: link to mesh_id
     end
 
     return true, nil
@@ -381,6 +438,30 @@ function ControlNodeRef:prepare_stas ()
     return true
 end
 
+function ControlNodeRef:prepare_meshs ()
+    for _, node_name in ipairs ( self.rpc.list_nodes () ) do
+        local config = config.find_node ( node_name, self.nodes_config )
+        if ( config == nil ) then
+            print ( "config for node " .. node_name .. " not found" )
+            return false
+        end
+        local phys = self.rpc.list_phys ( node_name )
+        local found = false
+        for _, phy in ipairs ( phys ) do
+            if ( string.sub ( config.radio, 6, 6 ) == string.sub ( phy, 4, 4 ) ) then
+                self.rpc.set_phy ( node_name, phy )
+                self.rpc.enable_wifi ( node_name, true )
+            end
+            found = true
+        end
+        if ( found == false ) then
+            print ( "configured radio " .. config.radio .. " for " .. node_name .. " not found" )
+            return false
+        end
+    end
+    return true
+end
+
 -- set mode of AP to 'ap'
 -- set mode of STA to 'sta'
 -- set ssid of AP and STA to ssid
@@ -393,7 +474,15 @@ function ControlNodeRef:associate_stas ()
             self.rpc.add_station ( ap, sta )
         end
     end
+end
 
+function ControlNodeRef:associate_mesh ()
+    for node, stas in pairs ( self.connections ) do
+        for _, sta in ipairs ( stas ) do
+            print ( " connect " .. node .. " with " .. sta )
+            self.rpc.add_station ( node, sta )
+        end
+    end
 end
 
 function ControlNodeRef:save_ssid ( name, ssid )
@@ -483,6 +572,7 @@ function ControlNodeRef:stop_control ()
     end
 end
 
+-- fixme: sometimes this waits forever
 function ControlNodeRef:stop_local ()
     ps.kill ( self.ctrl_pid, ps.SIGINT )
     ps.kill ( self.ctrl_pid, ps.SIGINT )
@@ -499,6 +589,7 @@ function ControlNodeRef:stop_remote ()
     end
 end
 
+-- fixme: MESH
 function ControlNodeRef:init_experiments ( command, args, ap_names, is_fixed )
     print ( "Init Experiments" )
 
@@ -520,7 +611,7 @@ function ControlNodeRef:init_experiments ( command, args, ap_names, is_fixed )
 end
 
 function ControlNodeRef:reachable ()
-    local reached = self.rpc.reachable()
+    local reached = self.rpc.reachable ()
     if ( table_size ( reached ) == 0 ) then
         print ( "No hosts reachables" )
         return false
@@ -535,6 +626,7 @@ function ControlNodeRef:reachable ()
     return true
 end
 
+-- fixme: MESH
 function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, keys, channel, htmode )
 
     function check_mem ( mem, name )
@@ -619,6 +711,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
                             .. " with key " .. ( key or "none" ) .. " *"
         print ( exp_header )
 
+        -- fixme: MESH
         ret, err = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, htmode )
         if ( ret == false ) then
             return ret, err
