@@ -11,9 +11,8 @@
 -- io.tmpfile () for writing pcaps?
 -- convert signal / rssi : http://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
 --  rssi is an estimated value and is detemined periodically (temperature changes ambient/background noise in the chip)
--- MCS has is own ordering: modulation & coding x channel Mhz x short/long gard interval (SGI/GI)
+-- MCS has it's own ordering: modulation & coding x channel Mhz x short/long gard interval (SGI/GI)
 -- plugin support with loadfile
--- derive MeshRef from AccesspointRef
 -- check authorized keys manually ( no ssh-copy-id)
 -- plot ath and non-ath networks
 -- regmon: luci config allows non-existant debugfs entries
@@ -23,24 +22,15 @@
 -- deamon working dir should be / and stdout,in,err /dev/null
 -- filter by used UDP port
 -- experiment direction (AP->STA, STA->AP)
--- analyse throughput
---  - both pcap wlan_radio.data_rate, radiotab.datarate and iperf.bandwidth
---  - wireshark->statistics->summary
---  - tcpstat -r file.pcap  -o "%S %R %b \n" 1 ( %b bits per seconds / %B bytes per seconds )
---  - plot power x rate x bandwidth (rolling median, median, mean)
---  - cut first and last second
--- save experiment information into file as name = value pairs
---  frequency, mcs index, rate
 -- filter pcap by mcs (when rate index 10 -> mcs 8, see rc_stats_csv.{name,idx})
--- check pcap trace
---  - first second maybe have lot spikes
---  - rare spike values
 -- anonymise pcap traces with radiotap header support
 --  - foreign mac addresses
 --  - foreign ssids
 --  - snaplen that truncates packet data
---  measure 2.4Ghz without ani
---  try reload_config instead of /sbin/wifi
+-- try reload_config instead of /sbin/wifi
+-- discover mesh with iw dev MESH_IFACE {station,mpath} dump
+-- command line options for (proactive) mesh
+-- mesh_id
 
 local pprint = require ('pprint')
 

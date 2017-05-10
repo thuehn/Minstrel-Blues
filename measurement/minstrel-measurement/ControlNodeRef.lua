@@ -574,7 +574,7 @@ end
 
 -- fixme: sometimes this waits forever
 function ControlNodeRef:stop_local ()
-    print ( self.ctrl_pid )
+    print ( "kill control:" .. ( self.ctrl_pid or "none" ) )
     ps.kill ( self.ctrl_pid, ps.SIGINT )
     ps.kill ( self.ctrl_pid, ps.SIGINT )
     lpc.wait ( self.ctrl_pid )
