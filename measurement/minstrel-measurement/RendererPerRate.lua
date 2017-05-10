@@ -79,6 +79,6 @@ function RendererPerRate:run ( basedir, fname, field, unit, min_count, border )
         end
     end
     print ( fname )
-    misc.execute ( "Rscript", "--vanilla", "R/rate-power_validation.R", basedir
+    misc.execute ( "Rscript", "--vanilla", "R/rate-power-validation.R", basedir
                  , basedir .. "/../wifi_config.txt", fname, field, unit, min_count, border )
 end
