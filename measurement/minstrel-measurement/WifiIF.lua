@@ -49,7 +49,11 @@ function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
             htmode = "HT40-"
             self.node:send_info ( "htmode HT40 without direction (+/-). " .. htmode .. " selected" )
         end
+        local _,_ = misc.execute ( "ifconfig", self.iface, "down" )
+        -- interface has to be disabled when setting channel, freq or htmode
+        -- command failed: Device or resource busy (-16)
         local str, exit_code = misc.execute ( "iw", "phy", self.phy, "set", "channel", channel, htmode )
+        local _,_ = misc.execute ( "ifconfig", self.iface, "up" )
     end
 end
 

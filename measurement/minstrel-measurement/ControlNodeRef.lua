@@ -311,7 +311,7 @@ function ControlNodeRef:init_nodes ( disable_autostart
                                    , disable_reachable
                                    , disable_synchonize
                                    )
-    if ( table_size ( self:list_nodes() ) == 0 ) then
+    if ( table_size ( self:list_nodes () ) == 0 ) then
         return false, "no nodes present"
     end
 
@@ -514,23 +514,23 @@ function ControlNodeRef:link_stas ()
 end
 
 function ControlNodeRef:start ()
-    local cmd = {}
-    cmd [1] = self.lua_bin or "/usr/bin/lua"
-    cmd [2] = "/usr/bin/runControl"
-    cmd [3] = "--port"
-    cmd [4] = self.ctrl_port 
-    cmd [5] = "--ctrl_if"
-    cmd [6] = self.ctrl_net_ref.iface
-    cmd [7] = "--output"
-    cmd [8] = self.output_dir
+    local cmd = { self.lua_bin or "/usr/bin/lua"
+                , "/usr/bin/runControl"
+                , "--port"
+                , self.ctrl_port
+                , "--ctrl_if"
+                , self.ctrl_net_ref.iface
+                , "--output"
+                , self.output_dir
+                }
     if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
-        cmd [9] = "--log_ip"
-        cmd [10] = self.net_if.addr
-        cmd [11] = "--log_port"
-        cmd [12] = self.log_ref.port 
+        cmd [ #cmd + 1 ] = "--log_ip"
+        cmd [ #cmd + 1 ] = self.net_if.addr
+        cmd [ #cmd + 1 ] = "--log_port"
+        cmd [ #cmd + 1 ] = self.log_ref.port
     end
 
-    print ( cmd )
+    print ( table_tostring ( cmd, nil, "" ) )
     local pid, _, _ = misc.spawn ( unpack ( cmd ) )
     print ( "Control: " .. pid )
     return pid
@@ -574,6 +574,7 @@ end
 
 -- fixme: sometimes this waits forever
 function ControlNodeRef:stop_local ()
+    print ( self.ctrl_pid )
     ps.kill ( self.ctrl_pid, ps.SIGINT )
     ps.kill ( self.ctrl_pid, ps.SIGINT )
     lpc.wait ( self.ctrl_pid )

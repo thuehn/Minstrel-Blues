@@ -14,13 +14,14 @@ function table_size ( tbl )
     return count
 end
 
-function table_tostring ( tbl, max_line_size )
+function table_tostring ( tbl, max_line_size, delim )
+    if ( delim == nil ) then delim = ", " end
     local count = 1
     local lines = {}
     lines [ count ] = ""
     for i, elem in ipairs ( tbl ) do
         local elem_str = tostring ( elem )
-        if ( i ~= 1 ) then lines [ count ] = lines [ count ] .. ", " end
+        if ( i ~= 1 ) then lines [ count ] = lines [ count ] .. delim end
         if ( max_line_size ~= nil and ( ( string.len ( lines [ count ] ) + string.len ( elem_str ) ) >= max_line_size ) ) then
             count = count + 1
             lines [ count ] = ""
@@ -227,7 +228,10 @@ function Misc.nanosleep( s )
   repeat until os.clock() > ntime
 end
 
+-- LPC child error: No such file or directory
 function Misc.execute ( ... )
+    io.stderr:write( table_tostring ( { ... }, nil, " " ) .. "\n")
+
     local pid, stdin, stdout = lpc.run ( ... )
     stdin:close()
     if ( pid ~= nil ) then
@@ -240,9 +244,11 @@ function Misc.execute ( ... )
             return nil, exit_code
         end
     end
+    return nil, nil
 end
 
 function Misc.spawn ( ... )
+    io.stderr:write( table_tostring ( { ... }, nil, " " ) .. "\n")
     return lpc.run ( ... )
 end
 

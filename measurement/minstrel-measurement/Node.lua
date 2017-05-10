@@ -96,6 +96,10 @@ function Node:enable_wifi ( enabled, phy )
     return true
 end
 
+-- /etc/init.d/net.wlan0 restart
+-- RTNETLINK answers: No such file or directory
+-- Error talking to the kernel
+-- net.wlan0         | * WARNING: net.wlan0 has started, but is inactive
 function Node:restart_wifi ( phy )
     if ( phy == nil ) then
         self:send_debug ("Can't restart wifi. phy is not set." )
@@ -203,6 +207,8 @@ function Node:find_wifi_device ( phy )
     return dev
 end
 
+-- iw phy phy0 set channel 13 HT20
+-- command failed: Device or resource busy (-16)
 function Node:set_channel_htmode ( phy, channel, htmode )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
