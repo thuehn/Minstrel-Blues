@@ -49,7 +49,7 @@ function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
             htmode = "HT40-"
             self.node:send_info ( "htmode HT40 without direction (+/-). " .. htmode .. " selected" )
         end
-        local str, exit_code = misc.execute ( "iw", phy, self.phy, "set", "channel", channel, htmode )
+        local str, exit_code = misc.execute ( "iw", "phy", self.phy, "set", "channel", channel, htmode )
     end
 end
 
