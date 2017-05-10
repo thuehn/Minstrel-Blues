@@ -117,6 +117,22 @@ function skip_until ( str, char )
     return rest
 end
 
+function parse_until ( str, char )
+    local state = false
+    local rest = str
+    local out = ""
+    repeat
+        local c = shead( rest )
+        if ( c == char ) then
+            state = true
+        else
+            out = out .. c
+            rest = stail ( rest )
+        end
+    until state
+    return out, rest
+end
+
 function skip_line_comment ( str, cc )
     local state = false
     local rest = str
