@@ -8,6 +8,7 @@ ProcVersion = { lx_version = nil
               , system = nil
               , num_cpu = nil
               , smp_enabled = nil
+              , preemptive = nil
               , date = nil
               }
 
@@ -32,6 +33,7 @@ function ProcVersion:__tostring()
         .. "\n"
         .. " num_cpu: " .. ( tostring ( self.num_cpu ) or "none" )
         .. " smp_enabled: " .. ( tostring ( self.smp_enabled ) or "none" )
+        .. " preemptive: " .. ( tostring ( self.preemptive ) or "none" )
         .. " date: " .. ( self.date or "none" )
 end
 
@@ -39,6 +41,7 @@ function parse_proc_version ( str )
 
     local rest = str
     local state
+    local num
     local num1
     local num2
     local num3
@@ -51,7 +54,8 @@ function parse_proc_version ( str )
     local gcc_version = ""
     local system
     local num_cpu
-    local smp_enabled
+    local smp_enabled = false
+    local preemptive = false
 
     state, rest = parse_str ( rest, "Linux version")
     rest = skip_layout ( rest )
@@ -85,8 +89,15 @@ function parse_proc_version ( str )
     state, rest = parse_str ( rest, ".")
     num3, rest = parse_num ( rest )
     gcc_version = num1 .. "." .. num2 .. "." .. num3
+    rest = skip_layout ( rest )
 
-    state, rest = parse_str ( rest, " (")
+
+    num, rest = parse_num ( rest )
+    if ( num ~= nil ) then
+        rest = skip_layout ( rest )
+    end
+
+    state, rest = parse_str ( rest, "(")
     system, rest = parse_ide ( rest )
     rest = skip_until ( rest, ')' )
     state, rest = parse_str ( rest, ")")
@@ -100,6 +111,9 @@ function parse_proc_version ( str )
     if ( smp_enabled ) then 
         rest = skip_layout ( rest )
     end
+    preemptive, rest = parse_str ( rest, "PREEMPT")
+    rest = skip_layout ( rest )
+
     date = rest
 
     local proc_version = ProcVersion:create()
@@ -109,6 +123,7 @@ function parse_proc_version ( str )
     proc_version.system = system
     proc_version.num_cpu = tonumber ( num_cpu )
     proc_version.smp_enabled = smp_enabled
+    proc_version.preemptive = preemptive
     proc_version.date = date
 
     return proc_version

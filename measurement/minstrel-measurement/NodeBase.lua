@@ -21,6 +21,7 @@ NodeBase = { name = nil
            , log_port = nil
            , log_addr = nil
            , proc_version = nil
+           , os_release = nil
            , log_ref = nil
            }
 
@@ -46,9 +47,9 @@ function NodeBase:run ()
     self:get_proc_version ()
     self:send_info ( self.proc_version:__tostring() )
     self:set_cut ()
-    local os_release = self.get_os_release ()
-    if ( os_release ~= nil ) then
-        self:send_info ( os_release )
+    self.os_release = self.get_os_release ()
+    if ( self.os_release ~= nil ) then
+        self:send_info ( self.os_release )
     end
     return net.run ( self.port
                    , self.name

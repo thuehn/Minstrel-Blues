@@ -33,3 +33,7 @@ assert ( gentoo_sys2.system == "Gentoo" )
 assert ( gentoo_sys2.num_cpu == 1 )
 assert ( gentoo_sys2.smp_enabled == true )
 assert ( gentoo_sys2.date == "Fri Mar 10 06:05:17 CET 2017" )
+
+local arch_sys = parse_proc_version ( "Linux version 4.10.11-1-ARCH (builduser@icke) (gcc version 6.3.1 20170306 (GCC) ) #1 SMP PREEMPT Tue Apr 18 08:39:42 CEST 2017" )
+
+print ( arch_sys )

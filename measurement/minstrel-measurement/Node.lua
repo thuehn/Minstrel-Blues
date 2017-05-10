@@ -110,16 +110,39 @@ function Node:restart_wifi ( phy )
         self:send_info( "restart wifi done: " .. wifi )
         return true
     elseif ( self.proc_version.system == "Gentoo" ) then
-        local init_script = "/etc/init.d/net." .. self.iface
-        if ( isFile ( init_script ) ) then
-            local wifi, err = misc.execute ( init_script, "restart")
-            self:send_info( "restart wifi done (" .. ( self.iface or "none" ) .. "): " .. ( wifi or "none" ) )
-            return ( err == 0 )
+        local dev = self:find_wifi_device ( phy )
+        if ( dev ~= nil ) then
+            local init_script = "/etc/init.d/net." .. ( dev.iface or "none" )
+            if ( isFile ( init_script ) ) then
+                local wifi, err = misc.execute ( init_script, "restart")
+                self:send_info( "restart wifi done (" .. ( dev.iface or "none" ) .. "): " .. ( wifi or "none" ) )
+                return ( err == 0 )
+            end
         end
         self:send_debug ( "Cannot restart wifi. No init script found for phy " .. ( self.phy or "none" ) )
         return false
+    elseif ( self.proc_version.system == "GCC") then
+        -- check os-release to get system name
+        if ( self.os_release ~= nil ) then
+            local dev = self:find_wifi_device ( phy )
+            if ( dev ~= nil ) then
+                local lines = split ( self.os_release, "\n" )
+                for _, line in ipairs ( lines ) do
+                    local parts = split ( line, "=" )
+                    local name = parts [1]
+                    local value = parts [2]
+                    if ( name == "NAME" ) then
+                        if ( value == "Arch Linux" ) then
+                            local out, err = misc.execute ( "/usr/bin/netctl", "restart", dev.iface )
+                            self:send_info( "restart wifi done (" .. ( dev.iface or "none" ) .. "): " .. ( out or "none" ) )
+                            return ( err == 0 )
+                        end
+                    end
+                end
+            end
+        end
     else
-        error ("Node:restart_wifi: NYI")
+        self:send_debug ("Node:restart_wifi: NYI")
     end
     return false
 end
