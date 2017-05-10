@@ -49,6 +49,7 @@ function NodeBase:run ()
     self:set_cut ()
     self.os_release = self.get_os_release ()
     if ( self.os_release ~= nil ) then
+        -- TODO: split [NAME=VALUE] here
         self:send_info ( self.os_release )
     end
     return net.run ( self.port

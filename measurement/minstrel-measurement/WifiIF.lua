@@ -166,13 +166,17 @@ function WifiIF:set_ani ( enabled )
     self.node:send_info ( "set ani for " .. ( self.phy or "none" ) .. " to " .. tostring ( enabled ) )
     if ( self.phy ~= nil and debugfs ~= nil ) then
         local filename = debugfs .. "/" .. self.phy .. "/" .. "ath9k" .. "/"  .. "ani"
-        local file = io.open ( filename, "w" )
-        if ( enabled ) then
-            file:write ( 1 )
-        else
-            file:write ( 0 )
+        if ( isFile ( filename ) ) then
+            local file = io.open ( filename, "w" )
+            if ( file ~= nil ) then
+                if ( enabled ) then
+                    file:write ( 1 )
+                else
+                    file:write ( 0 )
+                end
+            file:close()
+            end
         end
-        file:close()
     end
 end
 

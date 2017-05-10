@@ -1,8 +1,5 @@
 
 -- TODO: extend lpc with stderr
--- TODO: extract wifi functionss into new class
---          rpc.wifi [ self.cur_wifi ].set_ssid ( ssid )
---       to support multiple radios
 
 require ('NodeBase')
 
