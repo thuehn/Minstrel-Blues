@@ -1,5 +1,0 @@
-#!/bin/ash
-
-while true; do
-	cpusage -s
-done
