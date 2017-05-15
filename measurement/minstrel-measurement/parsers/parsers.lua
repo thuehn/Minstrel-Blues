@@ -20,76 +20,80 @@ function stail ( str )
     return string.sub ( str, 2 )
 end
 
+function cursor ( pos )
+    if ( pos == nil ) then return nil else return pos + 1 end
+end
+
 -- parse string 'key' from begin of string 'str'
 -- return: true, rest when matches else false, str
-function parse_str ( str, key )
-    function parse ( str, key, ide )
+function parse_str ( str, key, pos )
+    function parse ( str, key, ide, pos )
         local rest = str
-        if ( string.len ( key ) == 0 ) then return true, rest end
+        if ( string.len ( key ) == 0 ) then return true, rest, pos end
         if ( shead ( rest ) == shead ( key ) ) then
-            return parse ( stail ( rest ), stail ( key ), ide .. shead ( rest ) )
+            return parse ( stail ( rest ), stail ( key ), ide .. shead ( rest ), cursor ( pos ) )
         else
-            return false, ide .. rest
+            return false, ide .. rest, pos
         end
     end
-    return parse ( str, key, "" )
+    return parse ( str, key, "", pos )
 end
 
 -- checks whether string 'num' is a number
 -- return: true or false
-function is_num( num ) 
-    return tonumber( num ) ~= nil
+function is_num ( num )
+    return tonumber ( num ) ~= nil
 end
 
 -- parse n digits from begin of string 'str'
 -- return: num, rest or "", rest
-function parse_num ( str )
-    function parse ( str, num )
+function parse_num ( str, pos )
+    function parse ( str, num, pos )
         local parsed = str
         local ft = shead ( parsed )
         if ( is_num ( ft ) or ( string.len ( num ) == 0 and ft == '-' ) ) then
-            return parse ( stail ( parsed ), num .. ft )
+            return parse ( stail ( parsed ), num .. ft, cursor ( pos ) )
         else
             if ( num == "" ) then
-                return nil, str
+                return nil, str, pos
             end
-            return num, parsed
+            return num, parsed, pos
         end
      end
-     return parse ( str, "" )
+     return parse ( str, "", pos )
 end
 
-function parse_hex_num ( str )
-    function parse ( str, num )
+function parse_hex_num ( str, pos )
+    function parse ( str, num, pos )
         local rest = str
         local ft = shead ( rest )
         if ( is_hexdigit ( ft ) ) then
-            return parse ( stail ( rest ), num .. ft )
+            return parse ( stail ( rest ), num .. ft, cursor ( pos ) )
         else
-            return num, rest
+            return num, rest, pos
         end
      end
-     return parse ( str, "")
+     return parse ( str, "", pos )
 end
 
 -- parse real number from begin of str
 -- return: real, rest
-function parse_real ( str )
+function parse_real ( str, pos )
     local rest = str
     local num1; local num2
     local state
-    num1, rest = parse_num ( rest )
-    state, rest = parse_str ( rest, "." )
+    num1, rest, pos = parse_num ( rest, pos )
+    state, rest, pos = parse_str ( rest, ".", pos )
     if ( state == true ) then
-        num2, rest = parse_num ( rest )
-        return tonumber ( num1 .. "." .. num2 ), rest
+        num2, rest, pos = parse_num ( rest, pos )
+        return tonumber ( num1 .. "." .. num2 ), rest, pos
     else
-        return tonumber ( num1 ), rest
+        return tonumber ( num1 ), rest, pos
     end
 end
 
 -- return: str without leading whitespaces ('\n', ' ', '\t')
-function skip_layout ( str )
+function skip_layout ( str, pos )
     local state = false
     local rest = str
     repeat
@@ -98,26 +102,28 @@ function skip_layout ( str )
             state = true
         else
             rest = stail ( rest )
+            pos = cursor ( pos )
         end
     until state
-    return rest
+    return rest, pos
 end
 
-function skip_until ( str, char )
+function skip_until ( str, char, pos )
     local state = false
     local rest = str
     repeat
-        local c = shead( rest )
+        local c = shead ( rest )
         if ( c == char ) then
             state = true
         else
             rest = stail ( rest )
+            pos = cursor ( pos )
         end
     until state
-    return rest
+    return rest, pos
 end
 
-function parse_until ( str, char )
+function parse_until ( str, char, pos )
     local state = false
     local rest = str
     local out = ""
@@ -128,12 +134,13 @@ function parse_until ( str, char )
         else
             out = out .. c
             rest = stail ( rest )
+            pos = cursor ( pos )
         end
     until state
-    return out, rest
+    return out, rest, pos
 end
 
-function skip_line_comment ( str, cc )
+function skip_line_comment ( str, cc, pos )
     local state = false
     local rest = str
     local rest_cc = cc
@@ -141,16 +148,19 @@ function skip_line_comment ( str, cc )
         local c1 = shead ( rest )
         local c2 = shead ( rest_cc )
         rest = stail ( rest )
+        pos = cursor ( pos )
         rest_cc = stail ( rest_cc )
-        if (c1 ~= c2) then
-            return false, str
+        if ( c1 ~= c2 ) then
+            return false, str, pos
         end
-    until string.len( rest_cc ) == 0
+    until string.len ( rest_cc ) == 0
+    local c
     repeat
-        local c = shead ( rest )
+        c = shead ( rest )
         rest = stail ( rest )
+        pos = cursor ( pos )
     until c == '\n'
-    return true, rest
+    return true, rest, pos
 end
 
 -- check whether char c is a hexadecimal digit
@@ -184,10 +194,10 @@ end
 -- parse string of digits and letters from begin of 'str'
 -- return ide, rest
 -- todo: maybe first char should never be a digit
-function parse_ide ( str, additional_chars )
+function parse_ide ( str, additional_chars, pos )
     function is_in ( l, c )
         if ( l == nil) then return false end
-        for _, c2 in ipairs(l) do
+        for _, c2 in ipairs ( l ) do
             if ( c == c2) then return true end
         end
         return false
@@ -197,19 +207,20 @@ function parse_ide ( str, additional_chars )
     local ide = nil 
     repeat
         local c = shead ( rest )
-        if ( is_digit(c) == false and is_char(c) == false and not is_in (additional_chars, c) ) then
+        if ( is_digit ( c ) == false and is_char ( c ) == false and not is_in ( additional_chars, c ) ) then
             state = true
         else
             rest = stail ( rest )
+            pos = cursor ( pos )
             if ( ide == nil) then ide = "" end
             ide = ide .. c
         end
     until state
-    return ide, rest
+    return ide, rest, pos
 end
 
 -- parse two hexadecimal digits from begin of 'str'
-function parse_hexbyte ( str )
+function parse_hexbyte ( str, pos )
     local state = false
     local rest = str
     local num = "" 
@@ -218,36 +229,38 @@ function parse_hexbyte ( str )
     if ( is_hexdigit (c) ) then
         num = num .. c
         rest = stail ( rest )
+        pos = cursor ( pos )
     else
-        return nil, rest
+        return nil, rest, cursor ( pos)
     end
 
     local c = shead ( rest )
     if ( is_hexdigit (c) ) then
         num = num .. c
         rest = stail ( rest )
-        return num, rest
+        pos = cursor ( pos )
+        return num, rest, pos
     else
-        return nil, rest
+        return nil, rest, pos
     end
 end
 
 -- parse six hexadecimal tuples seperated by colons from begin of 'str'
-function parse_mac ( str )
+function parse_mac ( str, pos )
     local rest = str
     local mac = {} 
     local state
     local num
     for i = 1, 6 do
         if ( i ~= 1 ) then
-            state, rest = parse_str ( rest, ":" )
-            if (state == false) then return {}, rest end
+            state, rest, pos = parse_str ( rest, ":", pos )
+            if ( state == false ) then return {}, rest, pos end
         end
-        num, rest = parse_hexbyte ( rest )
-        if (num ~= nil) then 
+        num, rest, pos = parse_hexbyte ( rest, pos )
+        if ( num ~= nil ) then 
             mac[i] = num
         else
-            return nil, str
+            return nil, str, pos
         end
     end
 
@@ -256,40 +269,40 @@ function parse_mac ( str )
         if ( string.len ( out ) > 0) then out = out .. ":" end
         out = out .. byte
     end
-    return out, rest
+    return out, rest, pos
 end
 
 -- parse four decimals seperated by dot from begin of 'str'
-function parse_ipv4 ( str )
+function parse_ipv4 ( str, pos )
     local num1 = nil; local num2 = nil 
     local num3 = nil; local num4 = nil
     local rest = str
     local state
-    num1, rest = parse_num( rest )
-    state, rest = parse_str( rest, "." )
-    num2, rest = parse_num( rest )
-    state, rest = parse_str( rest, "." )
-    num3, rest = parse_num( rest )
-    state, rest = parse_str( rest, "." )
-    num4, rest = parse_num( rest )
+    num1, rest, pos = parse_num ( rest, pos )
+    state, rest, pos = parse_str ( rest, ".", pos )
+    num2, rest, pos = parse_num ( rest, pos )
+    state, rest, pos = parse_str ( rest, ".", pos )
+    num3, rest , pos= parse_num ( rest, pos )
+    state, rest, pos = parse_str ( rest, ".", pos )
+    num4, rest, pos = parse_num ( rest, pos )
     if ( num1 == nil or num2 == nil or num3 == nil or num4 == nil ) then
-        return nil, str
+        return nil, str, pos
     end
-    return num1 .. "." .. num2 .. "." .. num3 .. "." .. num4, rest
+    return num1 .. "." .. num2 .. "." .. num3 .. "." .. num4, rest, pos
 end
 
-function parse_ipv6 ( str )
+function parse_ipv6 ( str, pos )
     local rest = str
     local num
     local state
     local result = ""
     repeat
-        num, rest = parse_hex_num ( rest )
+        num, rest, pos = parse_hex_num ( rest, pos )
         result = result .. num
-        state, rest = parse_str( rest, ":" )
+        state, rest, pos = parse_str ( rest, ":", pos )
         if ( state == true ) then 
             result = result .. ":"
         end
     until state == false
-    return result, rest
+    return result, rest, pos
 end

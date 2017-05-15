@@ -493,7 +493,7 @@ function Measurement:fetch ( phy, key )
 end
 
 function Measurement.resume ( output_dir )
-    keys = nil
+    local keys = nil
     for _, name in ipairs ( ( scandir ( output_dir ) ) ) do
         if ( name ~= "." and name ~= ".."  and isDir ( output_dir .. "/" .. name )
              and Config.find_node ( name, nodes ) ~= nil ) then

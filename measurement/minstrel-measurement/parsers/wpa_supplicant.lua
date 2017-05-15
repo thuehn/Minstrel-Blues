@@ -46,6 +46,7 @@ function parse_wpa_supplicant_conf ( conf )
     if ( string.len ( conf ) == 0 ) then return out end
 
     local rest = conf
+    local pos = 0
     local state = true
     local name
     local value
@@ -53,21 +54,25 @@ function parse_wpa_supplicant_conf ( conf )
     while ( rest ~= "" ) do
         local c = shead ( rest )
         if ( c == "#" ) then
-            state, rest = skip_line_comment ( rest, "#" )
+            state, rest, pos = skip_line_comment ( rest, "#", pos )
         elseif ( c == "\n" ) then
             rest = stail ( rest )
+            pos = cursor ( pos )
         else
-            name, rest = parse_ide ( rest )
-            rest = skip_layout ( rest )
-            state, rest = parse_str ( rest, "=" )
-            rest = skip_layout ( rest )
-            state, rest = parse_str ( rest, "{" )
+            name, rest, pos = parse_ide ( rest, { '_' }, pos )
+            rest, pos = skip_layout ( rest, pos )
+
+            state, rest, pos = parse_str ( rest, "=", pos )
+            rest, pos = skip_layout ( rest, pos )
+
+            state, rest, pos = parse_str ( rest, "{", pos )
             if ( state == false ) then
-                value, rest = parse_until ( rest, "\n" )
+                value, rest, pos = parse_until ( rest, "\n", pos )
             else
                 if ( name == "network" ) then
-                    state, rest = parse_str ( rest, "\n" )
-                    local network = parse_wpa_supplicant ( rest )
+                    local network
+                    state, rest, pos = parse_str ( rest, "\n", pos )
+                    network, rest, pos = parse_wpa_supplicant ( rest, pos )
                     out [ #out + 1 ] = network
                 end
             end
@@ -77,7 +82,7 @@ function parse_wpa_supplicant_conf ( conf )
     return out
 end
 
-function parse_wpa_supplicant ( network )
+function parse_wpa_supplicant ( network, pos )
 
     local out = WpaSupplicant:create ()
 
@@ -85,12 +90,16 @@ function parse_wpa_supplicant ( network )
     local state = true
 
     while ( shead ( rest ) ~= "}" ) do
-        rest = skip_layout ( rest )
-        name, rest = parse_ide ( rest )
-        rest = skip_layout ( rest )
-        state, rest = parse_str ( rest, "=" )
-        rest = skip_layout ( rest )
-        value, rest = parse_until ( rest, "\n" )
+        rest, pos = skip_layout ( rest, pos )
+        name, rest, pos = parse_ide ( rest, { '_' }, pos )
+
+        rest, pos = skip_layout ( rest, pos )
+        state, rest, pos = parse_str ( rest, "=", pos )
+
+        rest, pos, pos = skip_layout ( rest, pos )
+        value, rest, pos = parse_until ( rest, "\n", pos )
+        state, rest, pos = parse_str ( rest, "\n", pos )
+
         if ( name == "ssid" ) then
             out.ssid = value 
         elseif ( name == "priority" ) then
@@ -112,8 +121,8 @@ function parse_wpa_supplicant ( network )
         else
             out.unknown [ name ] = value 
         end
-        state, rest = parse_str ( rest, "\n" )
     end
-
-    return out
+    rest = stail ( rest )
+    pos = cursor ( pos )
+    return out, rest, pos
 end

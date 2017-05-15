@@ -165,7 +165,7 @@ else
             end
         end
     else
-        print ( "resume keys: " .. table_to_string ( keys ) )
+        print ( "resume keys: " .. table_tostring ( keys ) )
     end
 end
 
