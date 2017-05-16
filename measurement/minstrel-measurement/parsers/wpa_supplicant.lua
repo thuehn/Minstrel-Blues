@@ -21,12 +21,16 @@ function WpaSupplicant:new (o)
 end
 
 function WpaSupplicant:create ()
-    local o = WpaSupplicant:new()
+    local o = WpaSupplicant:new ()
     o.unknown = {}
     return o
 end
 
-function WpaSupplicant:__tostring() 
+function WpaSupplicant:__tostring ()
+    local unknown = ""
+    for name, value in pairs ( self.unknown ) do
+        unknown = unknown .. name .. " = " .. value .. "\n"
+    end
     return "WpaSupplicant ssid: " .. ( self.id or "unset" )
             .. " priority: " .. ( self.priority or "unset" )
             .. " mode: " .. ( self.mode or "unset" )
@@ -36,6 +40,7 @@ function WpaSupplicant:__tostring()
             .. " proto: " .. ( self.proto or "unset" )
             .. " group: " .. ( self.group or "unset" )
             .. " pairwise: " .. ( self.pairwise or "unset" )
+            .. " unknown: " .. unknown
 end
 
 function parse_wpa_supplicant_conf ( conf )
