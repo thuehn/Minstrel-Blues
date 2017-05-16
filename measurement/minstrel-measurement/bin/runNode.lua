@@ -80,6 +80,9 @@ function remove_monitor(...) return node:remove_monitor(...) end
 function set_tx_power ( ... ) return node:set_tx_power ( ... ) end -- AP only
 function set_tx_rate ( ... ) return node:set_tx_rate ( ... ) end -- AP only
 
+-- global stats
+function get_dmesg ( ... ) return node:get_dmesg ( ... ) end
+
 -- rc_stats
 function start_rc_stats(...) return node:start_rc_stats(...) end
 function get_rc_stats(...) return node:get_rc_stats(...) end

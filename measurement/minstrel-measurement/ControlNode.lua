@@ -502,6 +502,7 @@ function ControlNode:get_stats ( ref_name )
     out [ 'rc_stats' ] = copy_map ( node_ref.stats.rc_stats )
     out [ 'iperf_s_outs' ] = copy_map ( node_ref.stats.iperf_s_outs )
     out [ 'iperf_c_outs' ] = copy_map ( node_ref.stats.iperf_c_outs )
+    out [ 'dmesg_out'] = node_ref.stats.dmesg_out
     return out
 end
 

@@ -614,6 +614,15 @@ function Node:get_global_tx_rate ( phy )
 end
 
 -- --------------------------
+-- global stats
+-- --------------------------
+
+function Node:get_dmesg ()
+    self:send_info ( "Get kernel messages" )
+    return misc.execute ( "dmesg" )
+end
+
+-- --------------------------
 -- rc_stats
 -- --------------------------
 
