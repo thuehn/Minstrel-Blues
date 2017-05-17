@@ -20,6 +20,7 @@ NodeRef = { name = nil
           , log_addr = nil
           , log_port = nil
           , log_ref = nil
+          , retries = nil
           }
 
 function NodeRef:new (o)
@@ -30,13 +31,13 @@ function NodeRef:new (o)
     o.refs = {}
     setmetatable (o, self)
     self.__index = self
-    o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port )
+    o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port, o.retries )
     return o
 end
 
 function NodeRef:connect ( ctrl_port, msg_fun )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        local slave = net.connect ( self.ctrl_net_ref.addr, ctrl_port, 10, self.name, msg_fun )
+        local slave = net.connect ( self.ctrl_net_ref.addr, ctrl_port, self.retries, self.name, msg_fun )
         if ( slave == nil ) then
             return false
         else
@@ -44,6 +45,7 @@ function NodeRef:connect ( ctrl_port, msg_fun )
             self:init ( slave )
         end
     end
+    return true
 end
 
 function NodeRef:disconnect ()
@@ -106,14 +108,13 @@ function NodeRef:__tostring ()
 end
 
 -- wait for station is linked to ssid
-function NodeRef:wait_linked ( runs )
+function NodeRef:wait_linked ()
     local connected = false
-
+    local retries = tonumber ( self.retries )
     if ( self.is_passive ~= nil and self.is_passive == true ) then
         return true
     end
 
-    local retrys = runs
     repeat
         local ssid = self.rpc.get_linked_ssid ( self.wifi_cur )
         if ( ssid == nil ) then 
@@ -121,9 +122,9 @@ function NodeRef:wait_linked ( runs )
         else
             connected = true
         end
-        retrys = retrys - 1
-    until ( connected or retrys == 0 )
-    return ( retrys ~= 0 )
+        retries = retries - 1
+    until ( connected or retries == 0 )
+    return ( retries ~= 0 )
 end
 
 function NodeRef:create_measurement ()

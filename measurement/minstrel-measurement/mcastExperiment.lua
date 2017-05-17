@@ -66,7 +66,7 @@ function McastExperiment:keys ( ap_ref )
     return keys
 end
 
-function McastExperiment:settle_measurement ( ap_ref, key, retrys )
+function McastExperiment:settle_measurement ( ap_ref, key )
     if ( self.is_fixed == true ) then
         local tx_rate = self:get_rate ( key )
         ap_ref.rpc.set_global_tx_rate ( ap_ref.wifi_cur, tx_rate )
@@ -91,9 +91,9 @@ function McastExperiment:settle_measurement ( ap_ref, key, retrys )
     ap_ref:restart_wifi ()
     self.control:send_info ("wifi restarted")
     self.control:send_info ("wait station")
-    local visible = ap_ref:wait_station ( retrys )
+    local visible = ap_ref:wait_station ()
     self.control:send_info ("wait linked")
-    local linked = ap_ref:wait_linked ( retrys )
+    local linked = ap_ref:wait_linked ()
     ap_ref:add_monitor ()
     return (linked and visible)
 end

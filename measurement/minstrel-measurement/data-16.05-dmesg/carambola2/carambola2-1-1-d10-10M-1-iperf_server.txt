@@ -1,0 +1,8 @@
+------------------------------------------------------------
+Server listening on UDP port 12000
+Receiving 1470 byte datagrams
+UDP buffer size:  160 KByte (default)
+------------------------------------------------------------
+[  3] local 192.168.1.174 port 12000 connected with 192.168.1.103 port 41355
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  3]  0.0- 9.8 sec  7.76 MBytes  6.66 Mbits/sec   3.901 ms 2233/ 7769 (29%)

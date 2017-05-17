@@ -21,7 +21,6 @@ Measurement = { rpc_node = nil
               , rc_stats_enabled = nil
               , iperf_s_outs = nil
               , iperf_c_outs = nil
-              , dmesg_out = nil
               , stations = nil
               , output_dir = nil
               }
@@ -47,7 +46,6 @@ function Measurement:create ( name, mac, opposite_macs, rpc, output_dir )
                                 , rc_stats_enabled = false
                                 , iperf_s_outs = {}
                                 , iperf_c_outs = {}
-                                , dmesg_out = ""
                                 , output_dir = output_dir
                                 } )
     return o
@@ -106,7 +104,6 @@ function Measurement.parse ( name, input_dir, key )
             end
             measurement.iperf_s_outs [ key ] = ""
             measurement.iperf_c_outs [ key ] = ""
-            measurement.dmesg_out = ""
         end
     end
 
@@ -182,17 +179,6 @@ function Measurement:read ()
         end
     end
 
-    -- dmesg
-    local fname = base_dir .. "/dmesg.txt"
-    local file = io.open ( fname )
-    if ( file ~= nil ) then
-        local content = file:read ( "*a" )
-        if ( content ~= nil ) then
-            self.dmesg_out = content
-        end
-        file:close()
-    end
-
     -- regmon stats
     for key, stats in pairs ( self.regmon_stats ) do
         local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
@@ -223,7 +209,7 @@ function Measurement:read ()
         if ( file ~= nil ) then
             stats = file:read ("*a")
             self.tcpdump_pcaps [ key ] = stats
-            file:close()
+            file:close ()
         else
             self.tcpdump_pcaps [ key ] = ""
         end
@@ -290,7 +276,7 @@ function Measurement:write ()
         local file = io.open ( fname, "w" )
         if ( file ~= nil ) then
             file:write ( self.node_mac .. '\n' )
-            file:close()
+            file:close ()
         end
     end
     if ( self.node_mac_br ~= nil ) then
@@ -298,7 +284,7 @@ function Measurement:write ()
         local file = io.open ( fname, "w" )
         if ( file ~= nil ) then
             file:write ( self.node_mac_br .. '\n' )
-            file:close()
+            file:close ()
         end
     end
 
@@ -310,7 +296,7 @@ function Measurement:write ()
             for _, mac in ipairs ( self.opposite_macs ) do
                 file:write ( mac .. '\n' )
             end
-            file:close()
+            file:close ()
         end
     end
     if ( self.opposite_macs_br ~= nil ) then
@@ -320,17 +306,7 @@ function Measurement:write ()
             for _, mac in ipairs ( self.opposite_macs_br ) do
                 file:write ( mac .. '\n' )
             end
-            file:close()
-        end
-    end
-
-    -- dmesg
-    if ( self.node_mac ~= nil ) then
-        local fname = base_dir .. "/dmesg.txt"
-        local file = io.open ( fname, "w" )
-        if ( file ~= nil ) then
-            file:write ( self.dmesg_out )
-            file:close()
+            file:close ()
         end
     end
 
@@ -356,7 +332,7 @@ function Measurement:write ()
         local file = io.open ( fname, "w")
         if ( file ~= nil )  then
             file:write ( stats )
-            file:close()
+            file:close ()
         end
     end
     
@@ -381,7 +357,7 @@ function Measurement:write ()
         local file = io.open ( fname, "w")
         if ( file ~= nil )  then
             file:write ( stats )
-            file:close()
+            file:close ()
         end
     end
 
@@ -391,7 +367,7 @@ function Measurement:write ()
         local file = io.open ( fname, "w")
         if ( file ~= nil )  then
             file:write ( stats )
-            file:close()
+            file:close ()
         end
     end
 
@@ -446,7 +422,6 @@ function Measurement:__tostring ()
     for key, stat in pairs ( self.iperf_c_outs ) do
         out = out .. "iperf-client-" .. key .. ": " .. stat .. "\n"
     end
-    out = out .. "#dmesg: " .. string.len ( self.dmesg_out ) .. "\n"
 
     return out 
 end
@@ -515,7 +490,6 @@ function Measurement:fetch ( phy, key )
     -- iperf server out
     -- iperf client out
     -- already done by wait_iperf_c and stop_iperf_s
-    self.dmesg_out = self.rpc_node.get_dmesg ()
 end
 
 function Measurement.resume ( output_dir )

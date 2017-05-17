@@ -1,0 +1,332 @@
+1494929618 INFO : Logger : Logger :: log file name = /tmp/1494929618/measurement.log, open = true
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1494929618 INFO : Logger :  Start service Logger with PRC port 12347
+1494929619 INFO : sinope : wait until logger is running
+1494929619 INFO : Control : ProcVersion :: lx_version: 4.11.0-gentoo lx_build_user: root@sinope gcc_version: 5.4.0 system: Gentoo
+                             num_cpu: 1 smp_enabled: true preemptive: false date: Tue May 2 11:14:34 CEST 2017
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1494929619 INFO : Control : NAME=Gentoo
+                            ID=gentoo
+                            PRETTY_NAME="Gentoo/Linux"
+                            ANSI_COLOR="1;32"
+                            HOME_URL="https://www.gentoo.org/"
+                            SUPPORT_URL="https://www.gentoo.org/support/"
+                            BUG_REPORT_URL="https://bugs.gentoo.org/"
+                            
+
+1494929619 INFO : Control :  Start service Control with PRC port 12346
+1494929620 INFO : Control :  add access point tp4300-2
+1494929620 INFO : Control :  add station carambola2
+1494929620 INFO : Control : query nodes
+1494929620 DEBUG : Control : reachable 2 nodes
+1494929620 DEBUG : Control : tp4300-2 :: ctrl: iface = eth0.2, addr = 192.168.2.16, mon = none, phy = none, mac = none
+                             	rpc not connected
+                             	radios:
+                             	stations: 
+
+1494929620 DEBUG : Control : carambola2 :: ctrl: iface = br-lan, addr = 192.168.2.17, mon = none, phy = none, mac = none
+                             	rpc not connected
+                             	radios:
+
+1494929621 DEBUG : Control : exeriment approximate distance: near
+1494929621 DEBUG : Control : start 2 nodes
+1494929621 DEBUG : Control : tp4300-2 :: ctrl: iface = eth0.2, addr = 192.168.2.16, mon = none, phy = none, mac = none
+                             	rpc not connected
+                             	radios:
+                             	stations: 
+
+1494929621 INFO : Control : ssh, root@192.168.2.16, /usr/bin/lua /usr/bin/runNode --name tp4300-2 --ctrl_if 
+                            eth0.2 --port 12346 --log_ip 192.168.2.20 --log_port 12347
+
+1494929621 DEBUG : Control : carambola2 :: ctrl: iface = br-lan, addr = 192.168.2.17, mon = none, phy = none, mac = none
+                             	rpc not connected
+                             	radios:
+
+1494929621 INFO : Control : ssh, root@192.168.2.17, /usr/bin/lua /usr/bin/runNode --name carambola2 --ctrl_i
+                            f br-lan --port 12346 --log_ip 192.168.2.20 --log_port 12347
+
+1494929623 INFO : tp4300-2 : ProcVersion :: lx_version: 4.4.61 lx_build_user: denis@sinope gcc_version: 5.4.0 system: LEDE
+                              num_cpu: 0 smp_enabled: false preemptive: false date: Wed Apr 26 11:40:37 2017
+
+1494929623 INFO : carambola2 : ProcVersion :: lx_version: 4.4.61 lx_build_user: denis@sinope gcc_version: 5.4.0 system: LEDE
+                                num_cpu: 0 smp_enabled: false preemptive: false date: Wed Apr 26 11:40:37 2017
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1494929624 INFO : tp4300-2 : NAME="LEDE"
+                             VERSION="SNAPSHOT, Reboot"
+                             ID="lede"
+                             ID_LIKE="lede openwrt"
+                             PRETTY_NAME="LEDE Reboot SNAPSHOT"
+                             VERSION_ID="snapshot"
+                             HOME_URL="http://lede-project.org/"
+                             BUG_URL="http://bugs.lede-project.org/"
+                             SUPPORT_URL="http://forum.lede-project.org/"
+                             BUILD_ID="r4108-6f01abf"
+                             LEDE_BOARD="ar71xx/generic"
+                             LEDE_ARCH="mips_24kc"
+                             LEDE_TAINTS="no-all"
+                             LEDE_DEVICE_MANUFACTURER="LEDE"
+                             LEDE_DEVICE_MANUFACTURER_URL="http://lede-project.org/"
+                             LEDE_DEVICE_PRODUCT="Generic"
+                             LEDE_DEVICE_REVISION="v0"
+                             LEDE_RELEASE="LEDE Reboot SNAPSHOT r4108-6f01abf"
+                             
+
+1494929624 INFO : tp4300-2 :  Start service tp4300-2 with PRC port 12346
+1494929624 INFO : carambola2 : NAME="LEDE"
+                               VERSION="SNAPSHOT, Reboot"
+                               ID="lede"
+                               ID_LIKE="lede openwrt"
+                               PRETTY_NAME="LEDE Reboot SNAPSHOT"
+                               VERSION_ID="snapshot"
+                               HOME_URL="http://lede-project.org/"
+                               BUG_URL="http://bugs.lede-project.org/"
+                               SUPPORT_URL="http://forum.lede-project.org/"
+                               BUILD_ID="r4108-6f01abf"
+                               LEDE_BOARD="ar71xx/generic"
+                               LEDE_ARCH="mips_24kc"
+                               LEDE_TAINTS="no-all"
+                               LEDE_DEVICE_MANUFACTURER="LEDE"
+                               LEDE_DEVICE_MANUFACTURER_URL="http://lede-project.org/"
+                               LEDE_DEVICE_PRODUCT="Generic"
+                               LEDE_DEVICE_REVISION="v0"
+                               LEDE_RELEASE="LEDE Reboot SNAPSHOT r4108-6f01abf"
+                               
+
+1494929624 INFO : carambola2 :  Start service carambola2 with PRC port 12346
+1494929625 ERROR : Control : Connected to tp4300-2
+1494929625 INFO : tp4300-2 : Send phy devices.
+1494929625 INFO : tp4300-2 :  phys: phy0, phy1
+1494929625 INFO : tp4300-2 : send ipv4 addr for wlan0
+1494929625 INFO : tp4300-2 :  addr for wlan0: 192.168.1.103
+1494929626 INFO : tp4300-2 : send mac for wlan0
+1494929626 INFO : tp4300-2 :  mac for wlan0: 90:f6:52:f6:04:c5
+1494929626 INFO : tp4300-2 : send ipv4 addr for wlan1
+1494929626 INFO : tp4300-2 :  addr for wlan1: 192.168.1.103
+1494929626 INFO : tp4300-2 : send mac for wlan1
+1494929626 INFO : tp4300-2 :  mac for wlan1: 90:f6:52:f6:04:c6
+1494929626 ERROR : Control : Connected to carambola2
+1494929626 INFO : carambola2 : Send phy devices.
+1494929626 INFO : carambola2 :  phys: phy0
+1494929626 INFO : carambola2 : send ipv4 addr for wlan0
+1494929626 INFO : carambola2 :  addr for wlan0: 192.168.1.174
+1494929626 INFO : carambola2 : send mac for wlan0
+1494929626 INFO : carambola2 :  mac for wlan0: c4:93:00:00:b2:49
+1494929626 INFO : tp4300-2 : Send phy devices.
+1494929626 INFO : tp4300-2 :  phys: phy0, phy1
+1494929626 DEBUG : tp4300-2 :  enable wifi: wireless.radio0.disabled = false
+1494929626 DEBUG : tp4300-2 :  enable wifi: wireless.default_radio0.disabled = false
+1494929626 INFO : carambola2 : Send phy devices.
+1494929626 INFO : carambola2 :  phys: phy0
+1494929626 DEBUG : carambola2 :  enable wifi: wireless.radio0.disabled = false
+1494929626 DEBUG : carambola2 :  enable wifi: wireless.default_radio0.disabled = false
+1494929626 INFO : carambola2 : send mac for wlan0
+1494929626 INFO : carambola2 :  mac for wlan0: c4:93:00:00:b2:49
+1494929626 INFO : Control : get ssid tp4300-2
+1494929626 INFO : Control : get ssid from node_ref tp4300-2
+1494929626 INFO : tp4300-2 : send ssid for wlan0
+1494929626 INFO : tp4300-2 :  ssid LEDE-tp4300-2
+1494929626 INFO : Control : link carambola2 to ssid LEDE-tp4300-2
+1494929626 INFO : Control : link node carambola2 to ssid LEDE-tp4300-2
+1494929626 ERROR : tp4300-2 : phy argument is not set
+1494929626 INFO : Control : tp4300-2 has no bridged setup
+1494929626 ERROR : carambola2 : phy argument is not set
+1494929626 INFO : Control : carambola2 has no bridged setup
+1494929626 INFO : Control : query nodes
+1494929626 INFO : tp4300-2 : set ani for phy0 to true
+1494929626 INFO : carambola2 : set ani for phy0 to true
+1494929626 INFO : Control : query nodes
+1494929626 INFO : tp4300-2 : set ldpc for phy0 to true
+1494929626 INFO : carambola2 : set ldpc for phy0 to true
+1494929626 INFO : Control : *** Generate measurement keys ***
+1494929626 DEBUG : Control : run udp experiment for rates 1
+1494929626 DEBUG : Control : run udp experiment for powers 1
+1494929626 INFO : tp4300-2 : List tx rate indices for station c4:93:00:00:b2:49 at device phy0
+1494929627 INFO : Control : **************************************************
+1494929627 INFO : Control : * Start experiment 1 of 1 with key 1-1-d10-10M-1 *
+1494929627 INFO : Control : **************************************************
+1494929627 INFO : Control : *** Prepare measurement ***
+1494929627 INFO : tp4300-2 : send mac for br-lan
+1494929627 INFO : tp4300-2 :  mac for br-lan: 90:f6:52:f6:04:c4
+1494929627 INFO : carambola2 : send mac for wlan0
+1494929627 INFO : carambola2 :  mac for wlan0: c4:93:00:00:b2:49
+1494929627 INFO : carambola2 : send mac for wlan0
+1494929627 INFO : carambola2 :  mac for wlan0: c4:93:00:00:b2:49
+1494929627 INFO : tp4300-2 : send mac for br-lan
+1494929627 INFO : tp4300-2 :  mac for br-lan: 90:f6:52:f6:04:c4
+1494929627 INFO : Control : *** Settle measurement ***
+1494929627 INFO : tp4300-2 : set channel and htmode of wlan0 to 13 HT20
+1494929627 DEBUG : carambola2 : restart wifi
+1494929627 INFO : carambola2 : restart wifi done: 
+1494929627 INFO : wait for stations becomes visible : 
+1494929627 INFO : tp4300-2 : Send stations for phy0: c4:93:00:00:b2:49
+1494929627 DEBUG : stations visible: c4:93:00:00:b2:49 : 
+1494929627 DEBUG :  check visibility of c4:93:00:00:b2:49 : 
+1494929628 DEBUG : Control : visible: true
+1494929628 INFO : carambola2 : Get linked ssid for device phy0
+1494929628 DEBUG : carambola2 : iw dev wlan0 link
+1494929628 INFO : carambola2 : send iw link for wlan0
+1494929629 INFO : carambola2 : Get linked ssid for device phy0
+1494929629 DEBUG : carambola2 : iw dev wlan0 link
+1494929629 INFO : carambola2 : send iw link for wlan0
+1494929630 INFO : carambola2 : Get linked ssid for device phy0
+1494929630 DEBUG : carambola2 : iw dev wlan0 link
+1494929630 INFO : carambola2 : send iw link for wlan0
+1494929631 INFO : carambola2 : Get linked ssid for device phy0
+1494929631 DEBUG : carambola2 : iw dev wlan0 link
+1494929631 INFO : carambola2 : send iw link for wlan0
+1494929633 INFO : carambola2 : Get linked ssid for device phy0
+1494929633 DEBUG : carambola2 : iw dev wlan0 link
+1494929633 INFO : carambola2 : send iw link for wlan0
+1494929633 INFO : carambola2 :  linked ssid: LEDE-tp4300-2
+1494929633 DEBUG : Control : linked: true
+1494929633 DEBUG : tp4300-2 : iw dev mon0 info
+1494929633 INFO : tp4300-2 : Adding monitor mon0 to phy0
+1494929633 DEBUG : tp4300-2 : iw phy phy0 interface add mon0 type monitor
+1494929633 INFO : tp4300-2 : enable monitor mon0
+1494929633 DEBUG : tp4300-2 : ifconfig mon0 up
+1494929633 DEBUG : carambola2 : iw dev mon0 info
+1494929633 INFO : carambola2 : Adding monitor mon0 to phy0
+1494929633 DEBUG : carambola2 : iw phy phy0 interface add mon0 type monitor
+1494929633 INFO : carambola2 : enable monitor mon0
+1494929633 DEBUG : carambola2 : ifconfig mon0 up
+1494929633 INFO : tp4300-2 : Set tx rate index for station c4:93:00:00:b2:49 at device phy0 to 1
+1494929633 INFO : tp4300-2 : Get tx rate index for station c4:93:00:00:b2:49 from device phy0
+1494929633 INFO : tp4300-2 :  tx rate index for station c4:93:00:00:b2:49 at device phy0 is 1
+1494929633 INFO : tp4300-2 : Set tx power level for station c4:93:00:00:b2:49 at device phy0 to 1
+1494929633 INFO : tp4300-2 : Get tx power level for station c4:93:00:00:b2:49 from device phy0
+1494929633 INFO : tp4300-2 :  tx power level for station c4:93:00:00:b2:49 at device phy0 is 1
+1494929633 INFO : tp4300-2 : List tx rate names for station c4:93:00:00:b2:49 at device phy0
+1494929633 DEBUG : Control : rate names: 1.0M, 2.0M, 5.5M, 11.0M, MCS0, MCS1, MCS2, MCS3, MCS4, MCS5, MCS6, 
+                             MCS7, MCS0, MCS1, MCS2, MCS3, MCS4, MCS5, MCS6, MCS7
+
+1494929633 INFO : tp4300-2 : List tx rate indices for station c4:93:00:00:b2:49 at device phy0
+1494929633 DEBUG : Control : rate indices: 120, 121, 122, 123, 0, 1, 2, 3, 4, 5, 6, 7, 30, 31, 32, 33, 34, 
+                             35, 36, 37
+
+1494929633 DEBUG : Control : power indices: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+                             19, 20, 21, 22, 23, 24, 25
+
+1494929633 INFO : tp4300-2 : send iw info for wlan0
+1494929633 INFO : Control : iw info: Interface wlan0
+                            	ifindex 12
+                            	wdev 0x2
+                            	addr 90:f6:52:f6:04:c5
+                            	ssid LEDE-tp4300-2
+                            	type AP
+                            	wiphy 0
+                            	channel 11 (2462 MHz), width: 20 MHz, center1: 2462 MHz
+                            	txpower 18.00 dBm
+                            
+
+1494929633 INFO : carambola2 : set channel and htmode of wlan0 to 13 HT20
+1494929633 DEBUG : carambola2 : iw dev wlan0 link
+1494929633 INFO : carambola2 : send iw link for wlan0
+1494929633 INFO : Control : iw link: Connected to 90:f6:52:f6:04:c5 (on wlan0)
+                            	SSID: LEDE-tp4300-2
+                            	freq: 2462
+                            	RX: 4357 bytes (45 packets)
+                            	TX: 895 bytes (8 packets)
+                            	signal: -55 dBm
+                            	tx bitrate: 6.5 MBit/s MCS 0
+                            
+                            	bss flags:	CTS-protection short-preamble short-slot-time
+                            	dtim period:	2
+                            	beacon int:	100
+                            
+
+1494929633 INFO : carambola2 : Get linked rate index for device phy0
+1494929633 DEBUG : carambola2 : iw dev wlan0 link
+1494929633 INFO : carambola2 : send iw link for wlan0
+1494929634 INFO : carambola2 :  linked rate index: MCS 0
+1494929634 DEBUG : Control :  rate_idx: 0
+1494929634 INFO : carambola2 : Get linked signal for device phy0
+1494929634 DEBUG : carambola2 : iw dev wlan0 link
+1494929634 INFO : carambola2 : send iw link for wlan0
+1494929634 INFO : carambola2 :  linked signal: -55
+1494929634 INFO : Control : Waiting one extra second for initialised debugfs
+1494929635 INFO : Control : *** Start Measurement ***
+1494929635 INFO : tp4300-2 : start collecting regmon stats for wlan0, phy0
+1494929635 INFO : tp4300-2 : start cpusage
+1494929635 INFO : tp4300-2 : start tcpdump for mon0 writing to /tmp/tp4300-2-1-1-d10-10M-1.pcap
+1494929635 DEBUG : tp4300-2 : /usr/sbin/tcpdump -i mon0 -s 256 -U -w /tmp/tp4300-2-1-1-d10-10M-1.pcap
+1494929635 INFO : tp4300-2 : start collecting rc_stats station c4:93:00:00:b2:49 on wlan0 (phy0)
+1494929635 INFO : tp4300-2 : rc stats for station c4:93:00:00:b2:49 started with pid: 1756
+1494929635 INFO : carambola2 : start collecting regmon stats for wlan0, phy0
+1494929635 INFO : carambola2 : start cpusage
+1494929635 INFO : carambola2 : start tcpdump for mon0 writing to /tmp/carambola2-1-1-d10-10M-1.pcap
+1494929635 DEBUG : carambola2 : /usr/sbin/tcpdump -i mon0 -s 256 -U -w /tmp/carambola2-1-1-d10-10M-1.pcap
+1494929635 INFO : carambola2 : start UDP iperf server at port 12000
+1494929635 DEBUG : carambola2 : /usr/bin/iperf -s -u -p 12000
+1494929635 INFO : Control : *** Start Experiment ***
+1494929635 INFO : tp4300-2 : run UDP iperf at port 12000 to addr 192.168.1.174 with rate 10M and duration 10
+1494929636 DEBUG : tp4300-2 : /usr/bin/iperf -u -c 192.168.1.174 -p 12000 -b 10M -t 10
+1494929636 INFO : Control : *** Wait Experiment ***
+1494929636 INFO : tp4300-2 : wait for TCP/UDP client iperf for address 192.168.1.174
+1494929646 INFO : tp4300-2 : ------------------------------------------------------------
+                             Client connecting to 192.168.1.174, UDP port 12000
+                             Sending 1470 byte datagrams, IPG target: 1176.00 us (kalman adjust)
+                             UDP buffer size:  160 KByte (default)
+                             ------------------------------------------------------------
+                             [  4] local 192.168.1.103 port 41355 connected with 192.168.1.174 port 12000
+                             [ ID] Interval       Transfer     Bandwidth
+                             [  4]  0.0-10.0 sec   610 KBytes   500 Kbits/sec
+                             [  4] Sent 425 datagrams
+                             [  4] Server Report:
+                             [  4]  0.0- 9.8 sec  7.76 MBytes  6.66 Mbits/sec   3.900 ms 2233/ 7769 (29%)
+                             
+
+1494929646 INFO : Control : *** Stop Measurement ***
+1494929646 INFO : carambola2 : stop iperf server with pid 2145
+1494929646 INFO : carambola2 : ------------------------------------------------------------
+                               Server listening on UDP port 12000
+                               Receiving 1470 byte datagrams
+                               UDP buffer size:  160 KByte (default)
+                               ------------------------------------------------------------
+                               [  3] local 192.168.1.174 port 12000 connected with 192.168.1.103 port 41355
+                               [ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+                               [  3]  0.0- 9.8 sec  7.76 MBytes  6.66 Mbits/sec   3.901 ms 2233/ 7769 (29%)
+                               
+
+1494929646 INFO : tp4300-2 : stop collecting regmon stats with pid 1752
+1494929646 INFO : tp4300-2 : stop cpusage with pid 1753
+1494929646 INFO : tp4300-2 : stop tcpdump with pid 1755
+1494929646 INFO : tp4300-2 : stop collecting rc stats with pid 1756
+1494929646 INFO : carambola2 : stop collecting regmon stats with pid 2139
+1494929646 INFO : carambola2 : stop cpusage with pid 2141
+1494929646 INFO : carambola2 : stop tcpdump with pid 2144
+1494929646 INFO : Control : *** Fetch Measurement ***
+1494929646 INFO : tp4300-2 : send regmon-stats
+1494929646 INFO : tp4300-2 : 1295 bytes from regmon
+1494929646 INFO : tp4300-2 : send cpusage
+1494929646 INFO : tp4300-2 : 1507 bytes from cpusage
+1494929646 INFO : tp4300-2 : send tcpdump offline for file /tmp/tp4300-2-1-1-d10-10M-1.pcap
+1494929646 INFO : tp4300-2 : remove tcpump pcap file /tmp/tp4300-2-1-1-d10-10M-1.pcap
+1494929646 INFO : tp4300-2 : send rc-stats for wlan0, station c4:93:00:00:b2:49
+1494929646 DEBUG : tp4300-2 : rc_stats process: 1756
+1494929646 INFO : tp4300-2 : 10867 bytes from rc_stats
+1494929646 INFO : tp4300-2 : Get kernel messages
+1494929647 INFO : carambola2 : send regmon-stats
+1494929647 INFO : carambola2 : 1295 bytes from regmon
+1494929647 INFO : carambola2 : send cpusage
+1494929647 INFO : carambola2 : 1507 bytes from cpusage
+1494929647 INFO : carambola2 : send tcpdump offline for file /tmp/carambola2-1-1-d10-10M-1.pcap
+1494929647 INFO : carambola2 : remove tcpump pcap file /tmp/carambola2-1-1-d10-10M-1.pcap
+1494929648 INFO : carambola2 : Get kernel messages
+1494929648 INFO : Control : *** Unsettle measurement ***
+1494929648 INFO : tp4300-2 : Removing monitor mon0 from phy0
+1494929648 DEBUG : tp4300-2 : iw dev mon0 del
+1494929648 INFO : carambola2 : Removing monitor mon0 from phy0
+1494929648 DEBUG : carambola2 : iw dev mon0 del
+1494929648 INFO : Control : query nodes
+1494929648 INFO : Control : *** Copy stats from nodes for tp4300-2. ***
+1494929648 INFO : Control : *** Copy stats from nodes for carambola2. ***
+1494929648 INFO : Control : stop node at 192.168.2.16 with pid 1699
+1494929648 DEBUG : Control : /usr/bin/lua /usr/bin/kill_remote 1699 --INT -i 2
+1494929648 DEBUG : Control : ssh, root@192.168.2.16, /usr/bin/lua /usr/bin/kill_remote 1699 --INT -i 2
+1494929650 INFO : Control : stop node at 192.168.2.17 with pid 1874
+1494929650 DEBUG : Control : /usr/bin/lua /usr/bin/kill_remote 1874 --INT -i 2
+1494929650 DEBUG : Control : ssh, root@192.168.2.17, /usr/bin/lua /usr/bin/kill_remote 1874 --INT -i 2
+1494929652 INFO : stop logger with pid 23403 : 

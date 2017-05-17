@@ -107,11 +107,11 @@ function merge_map ( from, to )
 end
 
 -- https://stackoverflow.com/questions/1426954/split-string-in-lua
-function split(s, delimiter)
+function split ( s, delimiter )
     local result = {};
     if ( s == nil or delimiter == nil ) then return result end
-    for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-        table.insert(result, match)
+    for match in ( s .. delimiter ):gmatch ( "(.-)" .. delimiter ) do
+        table.insert ( result, match )
     end
     return result;
 end
@@ -119,14 +119,14 @@ end
 
 -- https://stackoverflow.com/questions/5303174/how-to-get-list-of-directories-in-lua
 -- Lua implementation of PHP scandir function
-function scandir(directory)
+function scandir ( directory )
     local i, t, popen = 0, {}, io.popen
-    local pfile = popen('ls -a "'..directory..'"')
-    for filename in pfile:lines() do
+    local pfile = popen ( 'ls -a "' .. directory .. '"' )
+    for filename in pfile:lines () do
         i = i + 1
         t[i] = filename
     end
-    pfile:close()
+    pfile:close ()
     return t
 end
 
@@ -159,23 +159,23 @@ function isFile ( name )
 end
 
 
-function isFileOrDir(name)
-    if type(name)~="string" then return false end
-    return os.rename(name, name) and true or false
+function isFileOrDir ( name )
+    if type ( name ) ~= "string" then return false end
+    return os.rename ( name, name ) and true or false
 end
 
 
-function isDir(name)
-    if type(name)~="string" then return false end
-    local cd = lfs.currentdir()
-    local is = lfs.chdir(name) and true or false
-    lfs.chdir(cd)
+function isDir ( name )
+    if type ( name ) ~= "string" then return false end
+    local cd = lfs.currentdir ()
+    local is = lfs.chdir ( name ) and true or false
+    lfs.chdir ( cd )
     return is
 end
 
 -- https://stackoverflow.com/questions/2282444/how-to-check-if-a-table-contains-an-element-in-lua
-function table.contains(table, element)
-  for _, value in pairs(table) do
+function table.contains ( table, element )
+  for _, value in pairs ( table ) do
     if value == element then
       return true
     end
@@ -183,10 +183,10 @@ function table.contains(table, element)
   return false
 end
 
-function print_globals()
-    for k, v in pairs(_G) do 
-        if ( type (v) ~= "function" ) then
-            print(k  .. " " .. ": " .. type(v)) 
+function print_globals ()
+    for k, v in pairs ( _G ) do
+        if ( type ( v ) ~= "function" ) then
+            print ( k  .. " " .. ": " .. type ( v ) )
         end
     end
 end
@@ -278,7 +278,7 @@ end
 
 function Misc.execute_nonblock ( ms, sz, ... )
     local pid, stdin, stdout = lpc.run ( ... )
-    stdin:close()
+    stdin:close ()
     local content = nil
     if ( stdout ~= nil ) then
         content = Misc.read_nonblock ( stdout, ms, sz )

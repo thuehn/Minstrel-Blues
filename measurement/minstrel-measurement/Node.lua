@@ -8,6 +8,8 @@ local misc = require ('misc')
 local uci = require ('Uci')
 local net = require ('Net')
 local posix = require ('posix') -- sleep
+local stdio = require ('posix.stdio')
+local unistd = require ('posix.unistd')
 
 require ('lpc')
 
@@ -20,9 +22,9 @@ require ('parsers/iw_info')
 local lease_fname = "/tmp/dhcp.leases"
 local debugfs = "/sys/kernel/debug/ieee80211"
 
-Node = NodeBase:new()
+Node = NodeBase:new ()
 
-function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr )
+function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries )
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
     end
@@ -33,6 +35,8 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr )
                          , log_addr = log_addr
                          , log_port = log_port 
                          , wifis = {}
+                         , retries = retries
+                         , dmesg_file = nil
                          } )
 
     self:get_proc_version ()
@@ -618,8 +622,16 @@ end
 -- --------------------------
 
 function Node:get_dmesg ()
-    self:send_info ( "Get kernel messages" )
-    return misc.execute ( "dmesg" )
+    self:send_info ( "collecting kernel messages" )
+    local pid, stdin, stdout = misc.spawn ( "/bin/dmesg" )
+    local proc = { pid = pid, stdin = stdin, stdout = stdout }
+
+    local content = proc.stdout:read ( "*a" )
+    proc.stdin:close ()
+    proc.stdout:close ()
+
+    local exit_code = lpc.wait ( proc.pid )
+    return content
 end
 
 -- --------------------------

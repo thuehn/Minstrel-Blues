@@ -23,13 +23,14 @@ NodeBase = { name = nil
            , proc_version = nil
            , os_release = nil
            , log_ref = nil
+           , retries = nil
            }
 
 function NodeBase:new ( o )
     local o = o or {}
     setmetatable (o, self)
     self.__index = self
-    o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port )
+    o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port, o.retries )
     return o
 end
 

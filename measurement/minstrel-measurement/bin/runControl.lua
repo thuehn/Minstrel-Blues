@@ -13,6 +13,7 @@ parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("--log_file", "Logging file name", "minstrelm.log" )
 parser:option ("-L --log_port", "Logging port", "12347" )
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
+parser:option ("--retries", "number of retries for rpc and wifi connections", "10" )
 
 parser:option ("-O --output", "measurement / analyse data directory", "/tmp")
 
@@ -20,7 +21,7 @@ local args = parser:parse ()
 
 local net = NetIF:create ( args.ctrl_if )
 local node = ControlNode:create ( "Control", net, args.port, args.log_port, args.log_ip
-                                , args.output, args.enable_fixed )
+                                , args.output, args.retries )
 
 function __tostring ( ... ) return node:__tostring ( ... ) end
 
@@ -53,6 +54,7 @@ function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
 function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function get_stats ( ... ) return node:get_stats ( ... ) end
+function get_dmesg ( ... ) return node:get_dmesg ( ... ) end
 
 function set_date ( ... ) return node:set_date ( ... ) end
 function set_dates ( ... ) return node:set_dates ( ... ) end

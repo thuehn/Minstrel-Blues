@@ -5,7 +5,7 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, log_addr, log_port )
+function AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, log_addr, log_port, retries )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
@@ -18,6 +18,7 @@ function AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, lo
                                  , stations = {}
                                  , log_addr = log_addr
                                  , log_port = log_port
+                                 , retries = retries
                                  }
     return o
 end
@@ -75,8 +76,8 @@ end
 -- waits until all stations appears on ap
 -- not precise, sta maybe not really connected afterwards
 -- waits until station is reachable (not mandatory  connected)
-function AccessPointRef:wait_station ( runs )
-    local retrys = runs
+function AccessPointRef:wait_station ()
+    local retries = tonumber ( self.retries )
     repeat
         self.log_ref:send_info ( "wait for stations becomes visible" )
         local wifi_stations_cur = self.rpc.visible_stations ( self.wifi_cur )
@@ -89,10 +90,10 @@ function AccessPointRef:wait_station ( runs )
                 break
             end
         end
-        retrys = retrys - 1
+        retries = retries - 1
         posix.sleep (1)
-    until ( miss == false or retrys == 0 )
-    return retrys ~= 0
+    until ( miss == false or retries == 0 )
+    return retries ~= 0
 end
 
 function AccessPointRef:set_tx_power ( power )
@@ -148,10 +149,10 @@ function AccessPointRef:remove_monitor ()
     end
 end
 
-function AccessPointRef:wait_linked ( retrys )
+function AccessPointRef:wait_linked ()
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            local res = sta_ref:wait_linked ( retrys )
+            local res = sta_ref:wait_linked ()
             if ( res == false ) then
                 return false
             end

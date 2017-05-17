@@ -29,6 +29,7 @@ ControlNodeRef = { name = nil           -- hostname of the control node ( String
                  , connections = nil    -- list of APs and connections to STAs
                  , mesh_nodes_config = nil -- list of mesh nodes configs
                  , ctrl_pid = nil       -- PID of control node process
+                 , retries = nil        -- number of retries for rpc and wifi connections
                  }
 
 function ControlNodeRef:new (o)
@@ -46,7 +47,11 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                , mesh_args
                                , connections
                                , ap_setups, sta_setups, mesh_setups
-                               , command )
+                               , command
+                               , retries
+                               )
+    if ( retries == nil ) then error ( "retries" ) end
+    print ( "retries: " .. retries )
     -- access points
     local ap_names = {}
     for _, ap in ipairs ( ap_args ) do
@@ -140,10 +145,11 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                  , stas_config = stas_config
                                  , mesh_nodes_config
                                  , connections = connections
+                                 , retries = retries
                                  }
 
     if ( log_port ~= nil and log_fname ~= nil ) then
-        o.log_ref = LogNodeRef:create ( net_if.addr, log_port )
+        o.log_ref = LogNodeRef:create ( net_if.addr, log_port, retries )
         o.log_ref:start ( output_dir .. "/" .. log_fname, o.lua_bin )
         o:send_info ( "wait until logger is running" )
     end
@@ -334,8 +340,10 @@ function ControlNodeRef:init_nodes ( disable_autostart
         end
     end
 
-    print ( "Wait 3 seconds for nodes initialisation" )
-    posix.sleep (3)
+    local seconds = tonumber ( self.retries or 10 ) / 3
+    if ( seconds < 3 ) then seconds = 3 end
+    print ( "Wait " .. tostring ( seconds ) .. " seconds for nodes initialisation" )
+    posix.sleep ( seconds )
 
     -- and connect to nodes
     print ( "connect to nodes at port " .. self.ctrl_port )
@@ -470,7 +478,7 @@ end
 function ControlNodeRef:associate_stas ()
     for ap, stas in pairs ( self.connections ) do
         for _, sta in ipairs ( stas ) do
-            print ( " connect " .. ap .. " with " .. sta )
+            print ( " associate " .. ap .. " with " .. sta )
             self.rpc.add_station ( ap, sta )
         end
     end
@@ -479,7 +487,7 @@ end
 function ControlNodeRef:associate_mesh ()
     for node, stas in pairs ( self.connections ) do
         for _, sta in ipairs ( stas ) do
-            print ( " connect " .. node .. " with " .. sta )
+            print ( " associate " .. node .. " with " .. sta )
             self.rpc.add_station ( node, sta )
         end
     end
@@ -522,6 +530,8 @@ function ControlNodeRef:start ()
                 , self.ctrl_net_ref.iface
                 , "--output"
                 , self.output_dir
+                , "--retries"
+                , self.retries
                 }
     if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
         cmd [ #cmd + 1 ] = "--log_ip"
@@ -542,6 +552,7 @@ function ControlNodeRef:start_remote ()
                  .. " --port " .. self.ctrl_port 
                  .. " --ctrl_if " .. self.ctrl_net_ref.iface
                  .. " --output " .. self.output_dir
+                 .. " --retries " .. self.retries
 
     if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
         remote_cmd = remote_cmd .. " --log_ip " .. self.net_if.addr
@@ -556,7 +567,7 @@ end
 
 function ControlNodeRef:connect_control ()
     print ( "connect " .. self.ctrl_net_ref:__tostring() )
-    self.rpc = net.connect ( self.ctrl_net_ref.addr, self.ctrl_port, 10, self.name,
+    self.rpc = net.connect ( self.ctrl_net_ref.addr, self.ctrl_port, self.retries, self.name,
                                function ( msg ) print ( msg ) end )
     return ( self.rpc ~= nil )
 end
@@ -707,6 +718,12 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
     -- run expriments
     print ( "Run " .. min_len .. " experiments." )
 
+    local node_names = self:list_nodes ()
+
+    for _, ref_name in ipairs ( node_names ) do
+        self:get_dmesg ( ref_name, "init" )
+    end
+
     for _, key in ipairs ( keys_random ) do 
         local exp_header = "* Start experiment " .. counter .. " of " .. min_len
                             .. " with key " .. ( key or "none" ) .. " *"
@@ -720,7 +737,6 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
 
         print ("* Transfer Measurement Result *")
 
-        local node_names = self:list_nodes ()
         for _, ref_name in ipairs ( node_names ) do
             
             local stats = self.rpc.get_stats ( ref_name )
@@ -746,7 +762,6 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
             merge_map ( stats [ 'tcpdump_pcaps' ] , self.stats [ ref_name ].tcpdump_pcaps )
             merge_map ( stats [ 'iperf_s_outs' ] , self.stats [ ref_name ].iperf_s_outs )
             merge_map ( stats [ 'iperf_c_outs' ] , self.stats [ ref_name ].iperf_c_outs )
-            self.stats [ ref_name ].dmesg_out = stats [ 'dmesg_out' ]
 
             local status, err = self.stats [ ref_name ]:write ()
             if ( status == false ) then
@@ -756,13 +771,33 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
                 print ( self.stats [ ref_name ]:__tostring() )
             end
             self.stats [ ref_name ] = nil
+
+            self:get_dmesg ( ref_name, key )
         end
 
         counter = counter + 1
     end
 
     return ret, err
+end
 
+function ControlNodeRef:get_dmesg ( ref_name, key )
+    -- dmesg
+    local dmesg_out = self.rpc.get_dmesg ( ref_name )
+    if ( dmesg_out ~= nil ) then
+        if ( isDir ( self.output_dir .. "/" .. ref_name ) == false ) then
+            lfs.mkdir ( self.output_dir .. "/" .. ref_name )
+        end
+        local fname = self.output_dir .. "/" .. ref_name .. "/dmesg-" .. key .. ".txt"
+        if ( isFile ( fname ) == true ) then
+            fname = fname .. "." .. os.time ()
+        end
+        local file = io.open ( fname, "w" )
+        if ( file ~= nil ) then
+            file:write ( dmesg_out )
+            file:close ()
+        end
+    end
 end
 
 -- -------------------------

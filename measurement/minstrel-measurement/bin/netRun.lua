@@ -66,6 +66,7 @@ parser:option ("-C --ctrl_port", "Port for control RPC", "12346" )
 parser:flag ("--ctrl_only", "Just connect with control node", false )
 
 parser:option ("--net_if", "Used network interface", "eth0" )
+parser:option ("--retries", "number of retries for rpc and wifi connections", "10" )
 
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "measurement.log" )
@@ -294,6 +295,7 @@ local ctrl_ref = ControlNodeRef:create ( args.ctrl_port
                                        , connections
                                        , ap_setups, sta_setups, mesh_setups
                                        , args.command
+                                       , args.retries
                                        )
 
 if ( ctrl_ref == nil ) then

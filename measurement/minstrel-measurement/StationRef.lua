@@ -2,7 +2,7 @@ require ('NodeRef')
 
 StationRef = NodeRef:new()
 
-function StationRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, mac, log_addr, log_port )
+function StationRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, mac, log_addr, log_port, retries )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
 
     local o = StationRef:new { name = name
@@ -15,6 +15,7 @@ function StationRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, mac, l
                              , passive_mac = mac
                              , log_addr = log_addr
                              , log_port = log_port
+                             , retries = retries
                              }
     ctrl_net_ref:set_addr ( name )
 

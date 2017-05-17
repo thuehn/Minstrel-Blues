@@ -54,13 +54,13 @@ function Experiment:prepare_measurement ( ap_ref )
     ap_ref.stats:enable_rc_stats ( ap_ref.stations )
 end
 
-function Experiment:settle_measurement ( ap_ref, key, retrys )
+function Experiment:settle_measurement ( ap_ref, key )
     ap_ref:restart_wifi ()
-    local visible = ap_ref:wait_station ( retrys )
+    local visible = ap_ref:wait_station ()
     self.control:send_debug ( "visible: " .. tostring ( visible ) )
     local linked = false
     if ( visible == true ) then
-        linked = ap_ref:wait_linked ( retrys )
+        linked = ap_ref:wait_linked ()
     end
     self.control:send_debug ( "linked: " .. tostring ( linked ) )
     ap_ref:add_monitor ()

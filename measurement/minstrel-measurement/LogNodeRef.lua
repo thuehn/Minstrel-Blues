@@ -6,6 +6,7 @@ local misc = require ('misc')
 LogNodeRef = { addr = nil
              , port = nil
              , pid = nil
+             , retries = nil
              }
 
 function LogNodeRef:new (o)
@@ -15,9 +16,10 @@ function LogNodeRef:new (o)
     return o
 end
 
-function LogNodeRef:create ( addr, port )
+function LogNodeRef:create ( addr, port, retries )
     local o = LogNodeRef:new { addr = addr
                              , port = port
+                             , retries = retries
                              }
     return o
 end
@@ -32,7 +34,7 @@ function LogNodeRef:start ( log_file, lua_bin )
 end
 
 function LogNodeRef:connect ()
-    return net.connect ( self.addr, self.port, 10, "Logger", print )
+    return net.connect ( self.addr, self.port, self.retries, "Logger", print )
 end
 
 function LogNodeRef:disconnect ( logger )

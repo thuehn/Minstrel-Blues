@@ -35,7 +35,7 @@ end
 function EmptyExperiment:prepare_measurement ( ap_ref )
 end
 
-function EmptyExperiment:settle_measurement ( ap_ref, key, retrys )
+function EmptyExperiment:settle_measurement ( ap_ref, key )
     --fixme: router reboot when "/sbin/wifi" is executed on AP
     --ap_ref.rpc.restart_wifi()
     --posix.sleep ( 20 )

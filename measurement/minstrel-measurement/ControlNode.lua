@@ -21,9 +21,9 @@ require ('udpExperiment')
 require ('mcastExperiment')
 require ('EmptyExperiment')
 
-ControlNode = NodeBase:new()
+ControlNode = NodeBase:new ()
 
-function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir )
+function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, retries )
     local o = ControlNode:new ( { name = name
                                 , ctrl = ctrl
                                 , port = port
@@ -36,6 +36,7 @@ function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir )
                                 , pids = {}    -- maps node name to process id of lua node
                                 , exp = nil
                                 , keys = {}
+                                , retries = retries
                                 } )
 
     if ( o.ctrl.addr == nil ) then
@@ -79,7 +80,8 @@ end
 function ControlNode:add_ap ( name, lua_bin, ctrl_if, rsa_key )
     self:send_info ( " add access point " .. name )
     local ref = AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key
-                                      , self.output_dir, self.log_addr, self.log_port )
+                                      , self.output_dir, self.log_addr, self.log_port
+                                      , self.retries )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -87,7 +89,8 @@ end
 function ControlNode:add_sta ( name, lua_bin, ctrl_if, rsa_key, mac )
     self:send_info ( " add station " .. name )
     local ref = StationRef:create ( name, lua_bin, ctrl_if, rsa_key
-                                  , self.output_dir, mac, self.log_addr, self.log_port )
+                                  , self.output_dir, mac, self.log_addr, self.log_port
+                                  , self.retries )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
@@ -95,7 +98,8 @@ end
 function ControlNode:add_mesh_node ( name, lua_bin, ctrl_if, rsa_key, mac )
     self:send_info ( " add mesh_node " .. name )
     local ref = MeshNodeRef:create ( name, lua_bin, ctrl_if, rsa_key
-                                  , self.output_dir, mac, self.log_addr, self.log_port )
+                                  , self.output_dir, mac, self.log_addr, self.log_port
+                                  , self.retries )
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 -- randomize ap and station order
@@ -360,6 +364,7 @@ function ControlNode:start_nodes ( rsa_key, distance )
                     .. " --name " .. node_ref.name 
                     .. " --ctrl_if " .. node_ref.ctrl_net_ref.iface
                     .. " --port " .. self.port 
+                    .. " --retries " .. self.retries
 
         if ( log_addr ~= nil ) then
             remote_cmd = remote_cmd .. " --log_ip " .. log_addr 
@@ -393,13 +398,16 @@ end
 function ControlNode:connect_nodes ( ctrl_port )
     
     for _, node_ref in ipairs ( self.node_refs ) do
-        node_ref:connect ( ctrl_port, function ( msg ) self:send_error ( msg ) end )
+        if ( node_ref:connect ( ctrl_port, function ( msg ) self:send_error ( msg ) end ) == false ) then
+            return false
+        end
     end
 
     -- query lua pid before closing rpc connection
     -- maybe to kill nodes later
     for _, node_ref in ipairs ( self.node_refs ) do 
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            if ( node_ref.rpc == nil ) then return false end
             self.pids [ node_ref.name ] = node_ref.rpc.get_pid ()
         end
     end
@@ -502,8 +510,13 @@ function ControlNode:get_stats ( ref_name )
     out [ 'rc_stats' ] = copy_map ( node_ref.stats.rc_stats )
     out [ 'iperf_s_outs' ] = copy_map ( node_ref.stats.iperf_s_outs )
     out [ 'iperf_c_outs' ] = copy_map ( node_ref.stats.iperf_c_outs )
-    out [ 'dmesg_out'] = node_ref.stats.dmesg_out
     return out
+end
+
+function ControlNode:get_dmesg ( ref_name )
+    self:send_info ( "*** Copy stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local node_ref = self:find_node_ref ( ref_name )
+    return node_ref.rpc.get_dmesg ()
 end
 
 -- runs experiment 'exp' for all nodes 'ap_refs'
@@ -549,7 +562,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
         -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
         --     self:send_debug ( "station: " .. station )
         -- end
-        local status, err = self.exp:settle_measurement ( ap_ref, key, 10 )
+        local status, err = self.exp:settle_measurement ( ap_ref, key )
         if ( status == false ) then
             local msg = "experiment aborted, settledment failed."
             msg = msg .. " please check the wifi connnections of " .. ( ap_ref.name or "none" ) .. "."
@@ -635,13 +648,13 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ("*** Stop Measurement ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
-        self.exp:stop_measurement (ap_ref, key )
+        self.exp:stop_measurement ( ap_ref, key )
     end
 
     self:send_info ("*** Fetch Measurement ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
-        self.exp:fetch_measurement (ap_ref, key )
+        self.exp:fetch_measurement ( ap_ref, key )
     end
 
     self:send_info ("*** Unsettle measurement ***" )

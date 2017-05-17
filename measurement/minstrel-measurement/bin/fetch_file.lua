@@ -22,7 +22,7 @@ local fname = args.filename or ""
 --fname = string.gsub ( fname, ":", "\\:" )
 
 -- note: line reads can result in broken lines
-while (true) do
+while ( true ) do
     if ( isFile ( fname ) == false ) then 
         io.stderr:write ( "Error: Not a File: " .. fname .. "\n")
         os.exit ( 1 ) 

@@ -103,8 +103,9 @@ function Net.run ( port, name, log_f )
     return pcall ( run_rpc )
 end
 
-Net.connect = function ( addr, port, runs, name, log_f )
+Net.connect = function ( addr, port, max_retries, name, log_f )
 
+    local retries = tonumber ( max_retries )
     if rpc.mode ~= "tcpip" then
         print ( "Err: rpc mode tcp/ip is supported only" )
         return nil
@@ -118,15 +119,14 @@ Net.connect = function ( addr, port, runs, name, log_f )
     local status
     local slave
     local err
-    local retrys = runs
 
     repeat
         status, slave, err = pcall ( connect_rpc )
-        retrys = retrys - 1
+        retries = retries - 1
         if ( status == false ) then
             posix.sleep (1)
         end
-    until status == true or retrys == 0
+    until status == true or retries == 0
 
     if ( status == false ) then
         log_f ( "Err: Connection to " .. name .. " failed" )
