@@ -388,8 +388,8 @@ function WifiIF:start_tcpdump ( fname )
         return nil
     end
     --local snaplen = 0 -- 262144
-    --local snaplen = 150
-    local snaplen = 256
+    local snaplen = 150
+    --local snaplen = 256
     self.node:send_info ( "start tcpdump for " .. ( self.mon or "none" ) .. " writing to " .. ( fname or "none" ) )
     self.node:send_debug ( tcpdump_bin .. " -i " .. ( self.mon or "none" ) 
                            .. " -s " .. ( snaplen or "none" ) .. " -U -w " .. ( fname or "none" ) )
@@ -406,7 +406,7 @@ function WifiIF:get_tcpdump_offline ( fname )
         return nil 
     end
     local content = file:read ( "*a" )
-    file:close()
+    file:close ()
     self.node:send_info ( "remove tcpump pcap file " .. ( fname or "none" ) )
     os.remove ( fname )
     self.tcpdump_proc.stdin:close ()

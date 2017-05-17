@@ -477,7 +477,7 @@ function Measurement:fetch ( phy, key )
     self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy )
     -- tcpdump
     local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
-    self.tcpdump_pcaps[ key ] = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
+    self.tcpdump_pcaps [ key ] = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
     
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then

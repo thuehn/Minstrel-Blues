@@ -27,7 +27,6 @@ function NodeRef:new (o)
     local o = o or {}
     o.radios = {}
     o.macs = {}
-    o.stats = {}
     o.refs = {}
     setmetatable (o, self)
     self.__index = self

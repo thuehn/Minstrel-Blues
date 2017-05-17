@@ -95,6 +95,8 @@ parser:flag ("--disable_reachable", "Don't try to test the reachability of nodes
 parser:flag ("--disable_synchronize", "Don't synchronize time in network", false )
 parser:flag ("--disable_autostart", "Don't try to start nodes via ssh", false )
 
+parser:flag ("--dmesg", "collect kernel messages", false )
+
 parser:flag ("--dry_run", "Don't measure anything", false )
 
 parser:option ("--nameserver", "local nameserver" )
@@ -397,6 +399,7 @@ local status, err = ctrl_ref:run_experiments ( args.command
                                              , keys
                                              , args.channel
                                              , args.htmode
+                                             , args.dmesg
                                              )
 
 if ( status == false ) then

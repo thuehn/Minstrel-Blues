@@ -505,11 +505,17 @@ function ControlNode:get_stats ( ref_name )
     local node_ref = self:find_node_ref ( ref_name )
     local out = {}
     out [ 'regmon_stats' ] = copy_map ( node_ref.stats.regmon_stats )
+    node_ref.stats.regmon_stats = {}
     out [ 'tcpdump_pcaps' ] = copy_map ( node_ref.stats.tcpdump_pcaps )
+    node_ref.stats.tcpdump_pcaps = {}
     out [ 'cpusage_stats' ] = copy_map ( node_ref.stats.cpusage_stats )
+    node_ref.stats.cpusage_stats = {}
     out [ 'rc_stats' ] = copy_map ( node_ref.stats.rc_stats )
+    --node_ref.stats.rc_stats = {}
     out [ 'iperf_s_outs' ] = copy_map ( node_ref.stats.iperf_s_outs )
+    node_ref.stats.iperf_s_outs = {}
     out [ 'iperf_c_outs' ] = copy_map ( node_ref.stats.iperf_c_outs )
+    node_ref.stats.iperf_c_outs = {}
     return out
 end
 
@@ -654,7 +660,10 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ("*** Fetch Measurement ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
+        self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
         self.exp:fetch_measurement ( ap_ref, key )
+        collectgarbage ()
+        self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
     end
 
     self:send_info ("*** Unsettle measurement ***" )

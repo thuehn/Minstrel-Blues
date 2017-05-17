@@ -18,7 +18,6 @@ ControlNodeRef = { name = nil           -- hostname of the control node ( String
                  , ctrl_net_ref = nil   -- reference to control interface ( NetRef )
                  , rpc = nil            -- rpc client ( userdata )
                  , output_dir = nil     -- path to measurment result ( String )
-                 , stats = nil          -- maps node name to statistics ( Measurement )
                  , distance = nil       -- approx.distance between node just for the log file ( String )
                  , net_if = nil         -- local network interface ( NetIF )
                  , log_ref = nil        -- reference to logger ( LogNodeRef )
@@ -137,7 +136,6 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                  , ctrl_net_ref = ctrl_net_ref
                                  , ctrl_port = ctrl_port
                                  , output_dir = output_dir
-                                 , stats = {}
                                  , distance = distance
                                  , net_if = net_if
                                  , nameserver = nameserver
@@ -639,7 +637,7 @@ function ControlNodeRef:reachable ()
 end
 
 -- fixme: MESH
-function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, keys, channel, htmode )
+function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, keys, channel, htmode, dmesg )
 
     function check_mem ( mem, name )
         -- local warn_threshold = 40960
@@ -666,8 +664,6 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
     end
 
     self.rpc.randomize_nodes ()
-
-    self.stats = {}
 
     --[[
     for _, ap_ref in ipairs ( self.ap_refs ) do
@@ -720,8 +716,10 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
 
     local node_names = self:list_nodes ()
 
-    for _, ref_name in ipairs ( node_names ) do
-        self:get_dmesg ( ref_name, "init" )
+    if ( dmesg == true ) then
+        for _, ref_name in ipairs ( node_names ) do
+            self:get_dmesg ( ref_name, "init" )
+        end
     end
 
     for _, key in ipairs ( keys_random ) do 
@@ -741,38 +739,36 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
             
             local stats = self.rpc.get_stats ( ref_name )
 
-            if ( self.stats [ ref_name ] == nil ) then
-                local mac = self:get_mac ( ref_name )
-                local opposite_macs = self:get_opposite_macs ( ref_name )
+            local mac = self:get_mac ( ref_name )
+            local opposite_macs = self:get_opposite_macs ( ref_name )
 
-                local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir )
-                measurement.node_mac_br = self:get_mac_br ()
-                self.stats [ ref_name ] = measurement
+            local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir )
+            measurement.node_mac_br = self:get_mac_br ()
 
-                local stations = {}
-                for station, _ in pairs ( stats.rc_stats ) do
-                    stations [ #stations + 1 ] = station
-                end
-                measurement:enable_rc_stats ( stations ) -- resets rc_stats
+            local stations = {}
+            for station, _ in pairs ( stats.rc_stats ) do
+                stations [ #stations + 1 ] = station
             end
+            measurement:enable_rc_stats ( stations ) -- resets rc_stats
 
-            merge_map ( stats [ 'cpusage_stats' ] , self.stats [ ref_name ].cpusage_stats )
-            merge_map ( stats [ 'rc_stats' ] , self.stats [ ref_name ].rc_stats )
-            merge_map ( stats [ 'regmon_stats' ] , self.stats [ ref_name ].regmon_stats )
-            merge_map ( stats [ 'tcpdump_pcaps' ] , self.stats [ ref_name ].tcpdump_pcaps )
-            merge_map ( stats [ 'iperf_s_outs' ] , self.stats [ ref_name ].iperf_s_outs )
-            merge_map ( stats [ 'iperf_c_outs' ] , self.stats [ ref_name ].iperf_c_outs )
+            merge_map ( stats [ 'cpusage_stats' ] , measurement.cpusage_stats )
+            merge_map ( stats [ 'rc_stats' ] , measurement.rc_stats )
+            merge_map ( stats [ 'regmon_stats' ] , measurement.regmon_stats )
+            merge_map ( stats [ 'tcpdump_pcaps' ] , measurement.tcpdump_pcaps )
+            merge_map ( stats [ 'iperf_s_outs' ] , measurement.iperf_s_outs )
+            merge_map ( stats [ 'iperf_c_outs' ] , measurement.iperf_c_outs )
 
-            local status, err = self.stats [ ref_name ]:write ()
+            local status, err = measurement:write ()
             if ( status == false ) then
                 print ( "err: can't access directory '" ..  ( output_dir or "unset" )
                                 .. "': " .. ( err or "unknown error" ) )
             else
-                print ( self.stats [ ref_name ]:__tostring() )
+                print ( measurement:__tostring() )
             end
-            self.stats [ ref_name ] = nil
 
-            self:get_dmesg ( ref_name, key )
+            if ( dmesg == true ) then
+                self:get_dmesg ( ref_name, key )
+            end
         end
 
         counter = counter + 1
