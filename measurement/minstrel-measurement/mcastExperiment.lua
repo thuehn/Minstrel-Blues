@@ -85,9 +85,6 @@ function McastExperiment:settle_measurement ( ap_ref, key )
                                       .. " (set) but is " .. ( tx_power_new or "unset" ) .. " (actual)" )
         end
     end
-    --fixme: router reboot when "/sbin/wifi" is executed on AP
-    --ap_ref.rpc.restart_wifi()
-    --posix.sleep( 10 )
     ap_ref:restart_wifi ()
     self.control:send_info ("wifi restarted")
     self.control:send_info ("wait station")

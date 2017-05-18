@@ -550,6 +550,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ( exp_header )
     self:send_info ( hrule )
 
+    self:send_info ( "fetch online: " .. ( self.online or "none" )  )
     -- fixme: MESH
     self:send_info ("*** Prepare measurement ***")
     for _, ap_ref in ipairs ( self.ap_refs ) do

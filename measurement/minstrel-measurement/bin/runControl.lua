@@ -22,11 +22,9 @@ local args = parser:parse ()
 
 local net = NetIF:create ( args.ctrl_if )
 local node = ControlNode:create ( "Control", net, args.port, args.log_port, args.log_ip
-                                , args.output, args.retries )
+                                , args.output, args.retries, args.online )
 
 function __tostring ( ... ) return node:__tostring ( ... ) end
-
-function restart_wifi_debug ( ... ) return node:restart_wifi_debug() end
 
 function hosts_known ( ... ) return node:hosts_known ( ... ) end
 

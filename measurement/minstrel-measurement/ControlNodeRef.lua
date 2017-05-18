@@ -250,10 +250,6 @@ function ControlNodeRef:check_bridges ()
     return self.rpc.check_bridges ()
 end
 
-function ControlNodeRef:restart_wifi_debug ()
-    self.rpc.restart_wifi_debug()
-end
-
 function ControlNodeRef:set_ani ( enabled )
     for _, node_name in ipairs ( self:list_nodes () ) do
         self.rpc.set_ani ( node_name, enabled )

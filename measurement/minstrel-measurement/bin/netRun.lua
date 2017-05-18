@@ -26,7 +26,6 @@
 --  - foreign mac addresses
 --  - foreign ssids
 --  - snaplen that truncates packet data
--- try reload_config instead of /sbin/wifi
 -- discover mesh with iw dev MESH_IFACE {station,mpath} dump
 -- command line options for (proactive) mesh
 -- mesh_id
@@ -389,9 +388,6 @@ else
 end
 
 ctrl_ref:init_experiments ( args.command, data, ctrl_ref:list_aps(), args.enable_fixed )
-
---ctrl_ref:restart_wifi_debug ()
---posix.sleep (20)
 
 local status, err = ctrl_ref:run_experiments ( args.command
                                              , data
