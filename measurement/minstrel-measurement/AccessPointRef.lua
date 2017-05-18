@@ -108,12 +108,12 @@ function AccessPointRef:set_tx_rate ( rate_idx )
     end
 end
 
-function AccessPointRef:create_measurement ()
-    NodeRef.create_measurement( self )
+function AccessPointRef:create_measurement ( online )
+    NodeRef.create_measurement ( self, online )
     self.stats.enable_rc_stats ( self.stations )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            sta_ref:create_measurement ()
+            sta_ref:create_measurement ( online )
         end
     end
 end
@@ -188,13 +188,13 @@ function AccessPointRef:fetch_measurement ( key )
     end
 end
 
-function AccessPointRef:start_iperf_servers ( tcp )
+function AccessPointRef:start_iperf_servers ( tcp, key )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             if ( tcp == true ) then
-                sta_ref:start_tcp_iperf_s ()
+                sta_ref:start_tcp_iperf_s ( key )
             else
-                sta_ref:start_udp_iperf_s ()
+                sta_ref:start_udp_iperf_s ( key )
             end
         end
     end

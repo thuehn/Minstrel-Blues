@@ -34,7 +34,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
                 local snrs = {}
                 if ( isFile ( snrs_fname ) == false ) then
 
-                    local measurement = Measurement.parse ( name, args.input, key )
+                    local measurement = Measurement.parse ( name, args.input, key, false )
                     --print ( measurement:__tostring () )
 
                     --print ( "Analyse SNR" )

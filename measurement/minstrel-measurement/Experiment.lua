@@ -49,8 +49,8 @@ end
 function Experiment:keys ( ap_ref )
 end
 
-function Experiment:prepare_measurement ( ap_ref )
-    ap_ref:create_measurement()
+function Experiment:prepare_measurement ( ap_ref, online )
+    ap_ref:create_measurement ( online )
     ap_ref.stats:enable_rc_stats ( ap_ref.stations )
 end
 

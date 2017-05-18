@@ -93,7 +93,7 @@ end
 function UdpExperiment:start_measurement ( ap_ref, key )
     ap_ref:start_measurement ( key )
     local tcp = false
-    ap_ref:start_iperf_servers ( tcp )
+    ap_ref:start_iperf_servers ( tcp, key )
 end
 
 function UdpExperiment:stop_measurement ( ap_ref, key )

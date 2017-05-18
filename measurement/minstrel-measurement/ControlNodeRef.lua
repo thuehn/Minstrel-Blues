@@ -29,6 +29,7 @@ ControlNodeRef = { name = nil           -- hostname of the control node ( String
                  , mesh_nodes_config = nil -- list of mesh nodes configs
                  , ctrl_pid = nil       -- PID of control node process
                  , retries = nil        -- number of retries for rpc and wifi connections
+                 , online = nil         -- try to fetch data online
                  }
 
 function ControlNodeRef:new (o)
@@ -48,6 +49,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                , ap_setups, sta_setups, mesh_setups
                                , command
                                , retries
+                               , online
                                )
     if ( retries == nil ) then error ( "retries" ) end
     print ( "retries: " .. retries )
@@ -144,6 +146,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                  , mesh_nodes_config
                                  , connections = connections
                                  , retries = retries
+                                 , online = online
                                  }
 
     if ( log_port ~= nil and log_fname ~= nil ) then
@@ -531,6 +534,9 @@ function ControlNodeRef:start ()
                 , "--retries"
                 , self.retries
                 }
+    if ( self.online == true ) then
+        cmd [ #cmd + 1 ] = "--online"
+    end
     if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
         cmd [ #cmd + 1 ] = "--log_ip"
         cmd [ #cmd + 1 ] = self.net_if.addr
@@ -551,6 +557,9 @@ function ControlNodeRef:start_remote ()
                  .. " --ctrl_if " .. self.ctrl_net_ref.iface
                  .. " --output " .. self.output_dir
                  .. " --retries " .. self.retries
+    if ( self.online == true ) then
+        remote_cmd = remote_cmd .. " --online"
+    end
 
     if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
         remote_cmd = remote_cmd .. " --log_ip " .. self.net_if.addr
@@ -742,7 +751,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
             local mac = self:get_mac ( ref_name )
             local opposite_macs = self:get_opposite_macs ( ref_name )
 
-            local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir )
+            local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
             measurement.node_mac_br = self:get_mac_br ()
 
             local stations = {}

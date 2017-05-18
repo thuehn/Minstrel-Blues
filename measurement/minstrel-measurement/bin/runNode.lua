@@ -96,9 +96,11 @@ function get_regmon_stats(...) return node:get_regmon_stats(...) end
 function stop_regmon_stats(...) return node:stop_regmon_stats(...) end
 
 -- tcpdump
-function start_tcpdump(...) return node:start_tcpdump(...) end
-function get_tcpdump_offline(...) return node:get_tcpdump_offline(...) end
-function stop_tcpdump(...) return node:stop_tcpdump(...) end
+function start_tcpdump ( ... ) return node:start_tcpdump ( ... ) end
+function get_tcpdump_offline ( ... ) return node:get_tcpdump_offline ( ... ) end
+function get_tcpdump_online ( ... ) return node:get_tcpdump_online ( ... ) end
+function close_tcpdump_pipe ( ... ) return node:close_tcpdump_pipe ( ... ) end
+function stop_tcpdump ( ... ) return node:stop_tcpdump ( ... ) end
 
 -- tcp iperf
 function start_tcp_iperf_s (...) return node:start_tcp_iperf_s(...) end

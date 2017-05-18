@@ -391,9 +391,21 @@ function WifiIF:start_tcpdump ( fname )
     local snaplen = 150
     --local snaplen = 256
     self.node:send_info ( "start tcpdump for " .. ( self.mon or "none" ) .. " writing to " .. ( fname or "none" ) )
-    self.node:send_debug ( tcpdump_bin .. " -i " .. ( self.mon or "none" ) 
-                           .. " -s " .. ( snaplen or "none" ) .. " -U -w " .. ( fname or "none" ) )
-    local pid, stdin, stdout = misc.spawn ( tcpdump_bin, "-i", self.mon, "-s", snaplen, "-U", "-w", fname )
+
+    cmd = { tcpdump_bin
+          , "-i", self.mon or "none"
+          , "-s", snaplen or "none"
+          , "-U"
+          , "-w"
+          }
+    if ( fname ~= nil ) then
+        cmd [ #cmd + 1 ] = fname
+    else
+        cmd [ #cmd + 1 ] = "-"
+    end
+    self.node:send_debug ( table_tostring ( cmd, nil, ' ' ) )
+
+    local pid, stdin, stdout = misc.spawn ( unpack ( cmd ) )
     self.tcpdump_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
@@ -413,6 +425,19 @@ function WifiIF:get_tcpdump_offline ( fname )
     self.tcpdump_proc.stdout:close ()
     self.tcpdump_proc = nil
     return content
+end
+
+function WifiIF:get_tcpdump_online ( ms, sz )
+    if ( ms == nil ) then ms = 500 end
+    if ( sz == nil ) then sz = 1024 end
+    local content = misc.read_nonblock ( self.tcpdump_proc.stdout, ms, sz )
+    return content
+end
+
+function WifiIF:close_tcpdump_pipe ()
+    self.tcpdump_proc.stdin:close ()
+    self.tcpdump_proc.stdout:close ()
+    self.tcpdump_proc = nil
 end
 
 function WifiIF:stop_tcpdump ()

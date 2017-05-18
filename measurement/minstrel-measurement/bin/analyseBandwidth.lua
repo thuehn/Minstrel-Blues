@@ -32,7 +32,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
         local fname = "bandwidth-histogram-per_rate-power.csv"
         if ( keys ~= nil ) then
             for _, key in ipairs ( keys ) do
-                local measurement = Measurement.parse ( name, args.input, key )
+                local measurement = Measurement.parse ( name, args.input, key, false )
                 --print ( measurement:__tostring () )
                 if ( args.iperf == true ) then
                     local analyser = BandwidthAnalyser:create ( aps, stas )

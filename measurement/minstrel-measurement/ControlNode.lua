@@ -23,7 +23,7 @@ require ('EmptyExperiment')
 
 ControlNode = NodeBase:new ()
 
-function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, retries )
+function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, retries, online )
     local o = ControlNode:new ( { name = name
                                 , ctrl = ctrl
                                 , port = port
@@ -37,6 +37,7 @@ function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, 
                                 , exp = nil
                                 , keys = {}
                                 , retries = retries
+                                , online = online
                                 } )
 
     if ( o.ctrl.addr == nil ) then
@@ -541,7 +542,6 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
         return nil
     end
 
-
     local exp_header = "* Start experiment " .. number .. " of " .. count
                             .. " with key " .. ( key or "none" ) .. " *"
     local hrule = ""
@@ -553,7 +553,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     -- fixme: MESH
     self:send_info ("*** Prepare measurement ***")
     for _, ap_ref in ipairs ( self.ap_refs ) do
-        self.exp:prepare_measurement ( ap_ref )
+        self.exp:prepare_measurement ( ap_ref, self.online )
     end
 
     self:send_info ("*** Settle measurement ***")

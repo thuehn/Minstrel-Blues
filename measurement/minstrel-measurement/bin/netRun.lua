@@ -4,7 +4,6 @@
 -- since the radios are not yet locked in any kind you have to ensure not using them twice
 
 -- TODO:
--- - rpc: transfer tcpdump binary lines/packages and stats online to support large experiment with low ram
 -- implement experiments as list of closures
 -- erease debug table in production ( debug = nil )
 -- init scripts for nodes
@@ -67,6 +66,7 @@ parser:flag ("--ctrl_only", "Just connect with control node", false )
 
 parser:option ("--net_if", "Used network interface", "eth0" )
 parser:option ("--retries", "number of retries for rpc and wifi connections", "10" )
+parser:flag ("--online", "fetch data online when possible", false )
 
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "measurement.log" )
@@ -155,7 +155,7 @@ local output_dir = args.output
 if ( isDir ( output_dir ) == false ) then
     local status, err = lfs.mkdir ( output_dir )
 else
-    keys = Measurement.resume ( output_dir )
+    keys = Measurement.resume ( output_dir, args.online )
     if ( keys == nil ) then
         for _, fname in ipairs ( ( scandir ( output_dir ) ) ) do
             if ( fname ~= "." and fname ~= ".." ) then
@@ -298,6 +298,7 @@ local ctrl_ref = ControlNodeRef:create ( args.ctrl_port
                                        , ap_setups, sta_setups, mesh_setups
                                        , args.command
                                        , args.retries
+                                       , args.online
                                        )
 
 if ( ctrl_ref == nil ) then
