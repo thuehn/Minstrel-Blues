@@ -58,15 +58,6 @@
  	if (info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
  		mi->sample_packets += info->status.ampdu_len;
  
-@@ -777,7 +763,7 @@ minstrel_ht_tx_status(void *priv, struct
- 	}
- 
- 	if (time_after(jiffies, mi->last_stats_update +
--				(WIFI_COHERENCE_TIME * 2 * HZ) / 1000)) {
-+				(RATE_SAMPLING_INT * 2 * HZ) / 1000)) {
- 		update = true;
- 		minstrel_ht_update_stats(mp, mi);
- 	}
 @@ -981,96 +967,76 @@ minstrel_get_duration(int index)
  }
  

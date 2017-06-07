@@ -302,7 +302,7 @@
  
  	if (time_after(jiffies, mi->last_stats_update +
 -				(mp->update_interval / 2 * HZ) / 1000)) {
-+				(WIFI_COHERENCE_TIME * 2 * HZ) / 1000)) {
++				(RATE_SAMPLING_INT * 2 * HZ) / 1000)) {
  		update = true;
  		minstrel_ht_update_stats(mp, mi);
  	}
