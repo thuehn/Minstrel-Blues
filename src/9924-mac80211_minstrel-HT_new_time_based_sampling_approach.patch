@@ -58,7 +58,7 @@
  	if (info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
  		mi->sample_packets += info->status.ampdu_len;
  
-@@ -982,96 +968,76 @@ minstrel_get_duration(int index)
+@@ -982,96 +968,75 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -187,7 +187,6 @@
 +	int s_group, s_idx, s_prob, s_max_tp, s_skipped, s_dur, max_r, cur_tp;
 +	int i, random_skipp, cur_max_tp, cur_min_tp, tmp_group, tmp_idx, tmp_prob;
 +	unsigned int sample_rate;
-+	bool rate_sampling = false;
 +	bool mrr_capable = false;
  
 +	/* management/no-ack frames do not use rate control */
@@ -198,7 +197,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1089,10 +1055,9 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1089,10 +1054,9 @@ minstrel_ht_get_rate(void *priv, struct
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
  	if (mp->hw->max_rates == 1 &&
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
@@ -211,18 +210,19 @@
  	mi->total_packets++;
  
  	/* wraparound */
-@@ -1101,25 +1066,116 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1101,25 +1065,113 @@ minstrel_ht_get_rate(void *priv, struct
  		mi->sample_packets = 0;
  	}
  
 -	if (sample_idx < 0)
 -		return;
 +	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
-+	rate_sampling = minstrel_ht_requires_sampling(mi, mp, mrr_capable);
 +
-+	if (unlikely(rate_sampling)) {
++	if (unlikely(minstrel_ht_requires_sampling(mi, mp, mrr_capable))) {
++
 +		/* generate random packet skip interval */
 +		random_skipp = (u32)(((u64) prandom_u32() * RATE_SAMPLING_INT) >> 32);
++
 +		max_r = MCS_GROUP_RATES * ARRAY_SIZE(minstrel_mcs_groups) + 1;
 +		tmp_group = mi->max_tp_rate[0] / MCS_GROUP_RATES;
 +		tmp_idx = mi->max_tp_rate[0] % MCS_GROUP_RATES;
@@ -250,11 +250,11 @@
 +			if (mi->groups[s_group].rates[s_idx].att_hist < 3)
 +				break;
 +
-+			/* skipp current max_tp_rate for sampling */
++			/* skip current max_tp_rate for sampling */
 +			if (sample_rate == mi->max_tp_rate[0])
 +				continue;
 +
-+			/* sample fallback rates with respect to mrr stages */
++			/* sample fallback rates less with respect to mrr stages */
 +			if ((s_skipped < random_skipp / 2) &&
 +			    (((mp->hw->max_rates == 4) &&
 +			    ((sample_rate == mi->max_tp_rate[1]) ||
@@ -295,11 +295,9 @@
 +				continue;
 +			}
 +
-+			/* use choosen sample rate if not already perfect */
-+//			if (s_prob < MINSTREL_FRAC(95, 100)) {
-+				mi->groups[s_group].rates[s_idx].sample_skipped = 0;
-+				break;
-+//			}
++			/* use chosen sample rate  */
++			mi->groups[s_group].rates[s_idx].sample_skipped = 0;
++			break;
 +		}
 +
 +		/* if no sampling rate is found, skipp sampling attempt */
@@ -317,15 +315,13 @@
 +			sample_rate_group = &minstrel_mcs_groups[s_group];
 +			sampling_setup->idx = s_idx +
 +					(sample_rate_group->streams - 1) * 8;
-+			sampling_setup->flags =
-+					minstrel_mcs_groups[s_group].flags;
++			sampling_setup->flags =minstrel_mcs_groups[s_group].flags;
 +			return;
 +		} else if (minstrel_mcs_groups[s_group].flags
 +			   & IEEE80211_TX_RC_VHT_MCS) {
 +			ieee80211_rate_set_vht(sampling_setup, s_idx,
 +					  minstrel_mcs_groups[s_group].streams);
-+			sampling_setup->flags =
-+					minstrel_mcs_groups[s_group].flags;
++			sampling_setup->flags = minstrel_mcs_groups[s_group].flags;
 +			return;
 +		} else {
 +			int idx = sample_rate % ARRAY_SIZE(mp->cck_rates);
@@ -336,7 +332,7 @@
  	} else {
 -		rate->idx = sample_idx % MCS_GROUP_RATES +
 -			    (sample_group->streams - 1) * 8;
-+		 /* no sampling required */
++		 /* no rate sampling required */
 +		 return;
  	}
 -
@@ -344,7 +340,7 @@
  }
  
  static void
-@@ -1194,16 +1250,6 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1194,16 +1246,6 @@ minstrel_ht_update_caps(void *priv, stru
  
  	mi->avg_ampdu_len = MINSTREL_FRAC(1, 1);
  
@@ -361,7 +357,7 @@
  	if (!use_vht) {
  		stbc = (ht_cap & IEEE80211_HT_CAP_RX_STBC) >>
  			IEEE80211_HT_CAP_RX_STBC_SHIFT;
-@@ -1318,7 +1364,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1318,7 +1360,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {

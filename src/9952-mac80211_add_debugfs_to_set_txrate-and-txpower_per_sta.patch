@@ -148,7 +148,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, rates);
  }
  
-@@ -1055,8 +1078,12 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1054,8 +1077,12 @@ minstrel_ht_get_rate(void *priv, struct
  	info->flags |= mi->tx_flags;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS

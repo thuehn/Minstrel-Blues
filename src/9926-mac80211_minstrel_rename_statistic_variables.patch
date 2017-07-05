@@ -262,7 +262,7 @@
 +			if (mi->groups[s_group].rc_stats[s_idx].att_hist < 3)
  				break;
  
- 			/* skipp current max_tp_rate for sampling */
+ 			/* skip current max_tp_rate for sampling */
 @@ -1112,7 +1112,7 @@ minstrel_ht_get_rate(void *priv, struct
  			    (sample_rate == mi->max_tp_rate[2]))) ||
  			    ((mp->hw->max_rates == 2) &&
@@ -281,7 +281,7 @@
  				continue;
  			}
  
-@@ -1128,13 +1128,13 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1128,12 +1128,12 @@ minstrel_ht_get_rate(void *priv, struct
  			if ((s_skipped < random_skipp + 30) &&
  			    ((s_prob < MINSTREL_FRAC(10, 100)) ||
  			     (s_max_tp * 2 < cur_tp))) {
@@ -290,14 +290,13 @@
  				continue;
  			}
  
- 			/* use choosen sample rate if not already perfect */
- //			if (s_prob < MINSTREL_FRAC(95, 100)) {
--				mi->groups[s_group].rates[s_idx].sample_skipped = 0;
-+				mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
- 				break;
- //			}
+ 			/* use chosen sample rate  */
+-			mi->groups[s_group].rates[s_idx].sample_skipped = 0;
++			mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
+ 			break;
  		}
-@@ -1447,7 +1447,7 @@ static u32 minstrel_ht_get_expected_thro
+ 
+@@ -1443,7 +1443,7 @@ static u32 minstrel_ht_get_expected_thro
  
  	i = mi->max_tp_rate[0] / MCS_GROUP_RATES;
  	j = mi->max_tp_rate[0] % MCS_GROUP_RATES;
