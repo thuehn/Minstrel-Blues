@@ -55,7 +55,7 @@
  			/* extract fragment number from frame first */
 --- a/drivers/net/wireless/ralink/rt2x00/rt2x00queue.c
 +++ b/drivers/net/wireless/ralink/rt2x00/rt2x00queue.c
-@@ -335,7 +335,7 @@ static void rt2x00queue_create_tx_descri
+@@ -334,7 +334,7 @@ static void rt2x00queue_create_tx_descri
  	}
  
  	if (test_bit(CONFIG_HT_DISABLED, &rt2x00dev->flags)) {
@@ -65,8 +65,8 @@
  		else
  			txdesc->u.ht.txop = TXOP_BACKOFF;
 @@ -383,7 +383,7 @@ static void rt2x00queue_create_tx_descri
- 	if (ieee80211_is_mgmt(hdr->frame_control) &&
- 	    !ieee80211_is_beacon(hdr->frame_control))
+ 	     !ieee80211_is_beacon(hdr->frame_control)) ||
+ 	    (tx_info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE))
  		txdesc->u.ht.txop = TXOP_BACKOFF;
 -	else if (!(tx_info->flags & IEEE80211_TX_CTL_FIRST_FRAGMENT))
 +	else if (!(tx_info->control.flags & IEEE80211_TX_CTRL_FIRST_FRAGMENT))

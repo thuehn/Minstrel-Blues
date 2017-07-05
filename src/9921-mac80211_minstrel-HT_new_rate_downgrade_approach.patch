@@ -321,7 +321,7 @@
 +		mi->stream_errors = 0;
  	}
  
- 	if (time_after(jiffies, mi->last_stats_update +
+ 	if (mi->last_stats_update + (mp->update_interval / 2) >
 --- a/net/mac80211/rc80211_minstrel_ht.h
 +++ b/net/mac80211/rc80211_minstrel_ht.h
 @@ -52,10 +52,6 @@ struct minstrel_mcs_group_data {

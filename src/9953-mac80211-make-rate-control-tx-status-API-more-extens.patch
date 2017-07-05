@@ -174,7 +174,7 @@
  
  	/* This packet was aggregated but doesn't carry status info */
  	if ((info->flags & IEEE80211_TX_CTL_AMPDU) &&
-@@ -1493,7 +1493,7 @@ static u32 minstrel_ht_get_expected_thro
+@@ -1494,7 +1494,7 @@ static u32 minstrel_ht_get_expected_thro
  
  static const struct rate_control_ops mac80211_minstrel_ht = {
  	.name = "minstrel_ht",

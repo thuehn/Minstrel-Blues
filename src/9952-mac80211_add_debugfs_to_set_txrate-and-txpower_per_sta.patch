@@ -31,7 +31,7 @@
  	}
  #endif
  
-@@ -395,8 +407,12 @@ minstrel_get_rate(void *priv, struct iee
+@@ -396,8 +408,12 @@ minstrel_get_rate(void *priv, struct iee
  	}
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -47,7 +47,7 @@
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
-@@ -121,6 +121,10 @@ struct minstrel_sta_info {
+@@ -123,6 +123,10 @@ struct minstrel_sta_info {
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	struct dentry *dbg_stats;
  	struct dentry *dbg_stats_csv;
@@ -60,7 +60,7 @@
  
 --- a/net/mac80211/rc80211_minstrel_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_debugfs.c
-@@ -219,6 +219,12 @@ minstrel_add_sta_debugfs(void *priv, voi
+@@ -224,6 +224,12 @@ minstrel_add_sta_debugfs(void *priv, voi
  
  	mi->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO, dir,
  			mi, &minstrel_stat_csv_fops);
@@ -73,7 +73,7 @@
  }
  
  void
-@@ -227,6 +233,7 @@ minstrel_remove_sta_debugfs(void *priv,
+@@ -232,6 +238,7 @@ minstrel_remove_sta_debugfs(void *priv,
  	struct minstrel_sta_info *mi = priv_sta;
  
  	debugfs_remove(mi->dbg_stats);
@@ -121,7 +121,7 @@
  		return;
  #endif
  
-@@ -935,6 +945,9 @@ minstrel_ht_update_rates(struct minstrel
+@@ -936,6 +946,9 @@ minstrel_ht_update_rates(struct minstrel
  	struct sta_info *sta;
  	s8 txpower;
  	int i = 0;
@@ -131,7 +131,7 @@
  
  	sta = container_of(mi->sta, struct sta_info, sta);
  	txpower = sta->sdata->vif.bss_conf.txpower;
-@@ -963,6 +976,16 @@ minstrel_ht_update_rates(struct minstrel
+@@ -964,6 +977,16 @@ minstrel_ht_update_rates(struct minstrel
  
  	mi->sta->max_rc_amsdu_len = minstrel_ht_get_max_amsdu_len(mi);
  	rates->rate[i].idx = -1;
@@ -148,7 +148,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, rates);
  }
  
-@@ -1054,8 +1077,12 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1055,8 +1078,12 @@ minstrel_ht_get_rate(void *priv, struct
  	info->flags |= mi->tx_flags;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -177,7 +177,7 @@
  	void *sample_table;
 --- a/net/mac80211/rc80211_minstrel_ht_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_ht_debugfs.c
-@@ -307,6 +307,12 @@ minstrel_ht_add_sta_debugfs(void *priv,
+@@ -315,6 +315,12 @@ minstrel_ht_add_sta_debugfs(void *priv,
  			&minstrel_ht_stat_fops);
  	msp->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO,
  			     dir, msp, &minstrel_ht_stat_csv_fops);
@@ -190,7 +190,7 @@
  }
  
  void
-@@ -316,4 +322,6 @@ minstrel_ht_remove_sta_debugfs(void *pri
+@@ -324,4 +330,6 @@ minstrel_ht_remove_sta_debugfs(void *pri
  
  	debugfs_remove(msp->dbg_stats);
  	debugfs_remove(msp->dbg_stats_csv);

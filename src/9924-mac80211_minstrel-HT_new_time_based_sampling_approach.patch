@@ -58,7 +58,7 @@
  	if (info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
  		mi->sample_packets += info->status.ampdu_len;
  
-@@ -981,96 +967,76 @@ minstrel_get_duration(int index)
+@@ -982,96 +968,76 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -156,11 +156,11 @@
  
 -		if (mi->sample_slow++ > 2)
 -			return -1;
-+	if (mi->cur_intersample_spacing >= MIN_INTERSAMPLE_SPACING &&
-+	    (time_after(jiffies, mi->last_rate_update +
-+	    (rate_sampling_interval * HZ) / 1000))) {
++	if ((mi->cur_intersample_spacing >= MIN_INTERSAMPLE_SPACING) &&
++	    (mi->last_rate_sampling + rate_sampling_interval >
++	     jiffies_to_msecs(jiffies))) {
 +		mi->cur_intersample_spacing = 0;
-+		mi->last_rate_update = jiffies;
++		mi->last_rate_sampling = jiffies_to_msecs(jiffies);
 +		return true;
 +	} else {
 +		mi->cur_intersample_spacing++;
@@ -198,7 +198,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1088,10 +1054,9 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1089,10 +1055,9 @@ minstrel_ht_get_rate(void *priv, struct
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
  	if (mp->hw->max_rates == 1 &&
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
@@ -211,7 +211,7 @@
  	mi->total_packets++;
  
  	/* wraparound */
-@@ -1100,25 +1065,116 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1101,25 +1066,116 @@ minstrel_ht_get_rate(void *priv, struct
  		mi->sample_packets = 0;
  	}
  
@@ -344,7 +344,7 @@
  }
  
  static void
-@@ -1193,16 +1249,6 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1194,16 +1250,6 @@ minstrel_ht_update_caps(void *priv, stru
  
  	mi->avg_ampdu_len = MINSTREL_FRAC(1, 1);
  
@@ -361,14 +361,14 @@
  	if (!use_vht) {
  		stbc = (ht_cap & IEEE80211_HT_CAP_RX_STBC) >>
  			IEEE80211_HT_CAP_RX_STBC_SHIFT;
-@@ -1317,7 +1363,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1318,7 +1364,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
 +	struct minstrel_ht_sta_priv *msp = priv_sta;
 +
  	minstrel_ht_update_caps(priv, sband, chandef, sta, priv_sta);
-+	msp->ht.last_rate_update = jiffies;
++	msp->ht.last_rate_sampling = jiffies;
  }
  
  static void
@@ -376,10 +376,10 @@
 +++ b/net/mac80211/rc80211_minstrel_ht.h
 @@ -73,6 +73,12 @@ struct minstrel_ht_sta {
  	/* time of last status update */
- 	unsigned long last_stats_update;
+ 	unsigned int last_stats_update;
  
 +	/* time of last rate sampling update */
-+	unsigned long last_rate_update;
++	unsigned int last_rate_sampling;
 +
 +	/* min # of packets between sample attempts */
 +	u8 cur_intersample_spacing;
