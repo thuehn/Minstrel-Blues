@@ -1,0 +1,859 @@
+--- a/net/mac80211/Makefile
++++ b/net/mac80211/Makefile
+@@ -50,7 +50,9 @@ mac80211-$(CONFIG_PM) += pm.o
+ 
+ CFLAGS_trace.o := -I$(src)
+ 
+-rc80211_minstrel-y := rc80211_minstrel.o
++rc80211_minstrel-y := \
++	rc80211_minstrel.o \
++	tpc80211_blues.o
+ rc80211_minstrel-$(CPTCFG_MAC80211_DEBUGFS) += rc80211_minstrel_debugfs.o
+ 
+ rc80211_minstrel_ht-y := rc80211_minstrel_ht.o
+--- /dev/null
++++ b/net/mac80211/tpc80211_blues.c
+@@ -0,0 +1,515 @@
++/*
++ * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
++ * ________________________________________________________________________
++ * A decentralized joint power and rate controller that maximizes the weighted
++ * utility of achievable throughput and interference. Power and rate per link
++ * (per packet) are controlled to replace current static tx power usage. The
++ * goal is to increase overall WiFi network performance by increasing spatial
++ * reuse and hence allow more active links to communicate in parallel. Hence
++ * shared spectrum is used more efficiently by avoiding unnecessary
++ * interference through dynamic joint power and rate control.
++ *
++ * Copyright (C) 2016  Thomas Huehn <thomas@net.t-labs.tu-berlin.de>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ */
++
++#include "tpc80211_blues.h"
++#include "rc80211_minstrel.h"
++
++/* lookup table to transform dBm [-20...39] in uW [10 .. 7940000] */
++static const u16 dBm2uW[10] = {1000, 1259, 1585, 1995, 2512, 3162, 3981, 5012,
++			       6310, 7943};
++
++/* convert dBm into mirco Watt (uW) to antilog tx power values */
++static unsigned int
++convert_dBm_to_uW(s8 power_dBm)
++{
++	u32 power_uW;
++
++	WARN_ON_ONCE(power_dBm < -20 || power_dBm >= 40);
++
++	if ((power_dBm >= -20) && (power_dBm < - 10))
++		power_uW = dBm2uW[power_dBm + 20] % 100;
++	else if (power_dBm < 0)
++		power_uW = dBm2uW[power_dBm + 10] % 10;
++	else if (power_dBm < 10)
++		power_uW = dBm2uW[power_dBm];
++	else if (power_dBm < 20)
++		power_uW = dBm2uW[power_dBm - 10] * 10;
++	else if (power_dBm < 30)
++		power_uW = dBm2uW[power_dBm - 20] * 100;
++	else if (power_dBm < 40)
++		power_uW = dBm2uW[power_dBm - 30] * 1000;
++	else
++		power_uW = 1000;
++
++	return power_uW;
++}
++
++/* Calculate EWMA of success probabilities */
++static void
++blues_calc_ewma(struct minstrel_rate *mr, u32 flags)
++{
++	struct minstrel_tpc_stats *mts = &mr->tpc_stats;
++	u32 success_ratio;
++
++	/* update data power stats */
++	if (flags & EWMA_DATA_POWER) {
++		success_ratio = MINSTREL_FRAC(mts->data_success,
++					      mts->data_attempts);
++		mts->data_prob = minstrel_ewma(mts->data_prob,
++					       success_ratio,
++					       EWMA_LEVEL);
++		mts->data_success = 0;
++		mts->data_attempts = 0;
++	}
++
++	/* update sample power stats */
++	if (flags & EWMA_SAMPLE_POWER) {
++		success_ratio = MINSTREL_FRAC(mts->sample_success,
++					      mts->sample_attempts);
++		mts->sample_prob = minstrel_ewma(mts->sample_prob,
++						 success_ratio,
++						 EWMA_LEVEL);
++		mts->sample_success = 0;
++		mts->sample_attempts = 0;
++	}
++
++	/* update ref power stats */
++	if (flags & EWMA_REF_POWER) {
++		success_ratio = MINSTREL_FRAC(mts->reference_success,
++					      mts->reference_attempts);
++		mts->reference_prob = minstrel_ewma(mts->reference_prob,
++						    success_ratio,
++						    EWMA_LEVEL);
++		mts->reference_success = 0;
++		mts->reference_attempts = 0;
++	}
++}
++
++/* Reset all statistics */
++static void
++blues_reset_stats(struct minstrel_rate *mr)
++{
++	mr->tpc_stats.reference_prob = MINSTREL_FRAC(TPC_INIT_REF_PROB, 100);
++	mr->tpc_stats.reference_success = 0;
++	mr->tpc_stats.reference_attempts = 0;
++	mr->tpc_stats.data_prob = MINSTREL_FRAC(TPC_INIT_DATA_PROB, 100);
++	mr->tpc_stats.data_success = 0;
++	mr->tpc_stats.data_attempts = 0;
++	mr->tpc_stats.sample_prob = MINSTREL_FRAC(TPC_INIT_SAMPLE_PROB, 100);
++	mr->tpc_stats.sample_success = 0;
++	mr->tpc_stats.sample_attempts = 0;
++	/* reset stats aging counter */
++	mr->tpc_stats.stats_outdated = 10;
++}
++
++/* Initialize or reset all tpc power-levels */
++static void
++blues_reset_power(struct minstrel_priv *mp, struct minstrel_rate *mr)
++{
++	struct ieee80211_hw *hw = mp->hw;
++	s8 max_power_level = hw->conf.power_level;
++	s8 min_power_level = hw->min_txpower;
++
++	mr->tpc_stats.reference_power = max_power_level;
++	mr->tpc_stats.sample_power = max_power_level;
++	if (mr->tpc_stats.sample_power > min_power_level + TPC_SAMPLE_POWER_SPAN)
++		mr->tpc_stats.sample_power -= TPC_SAMPLE_POWER_SPAN;
++	else
++		mr->tpc_stats.sample_power = min_power_level;
++	// printk(KERN_ERR "blues_reset_power called for bitrate: %i.%i\n",
++	// mr->bitrate / 2, mr->bitrate % 2 ? 5 : 0);
++}
++
++/* trigger power level change of ack packets */
++static inline int
++blues_set_ack_power(struct ieee80211_hw *hw, s8 val)
++{
++	hw->conf.ack_txpower = val;
++	drv_config(hw_to_local(hw), IEEE80211_CONF_CHANGE_ACK_TXPOWER);
++	return 0;
++}
++
++/* ensure that tx power levels are between max & min power level borders */
++static void
++blues_validate_power_level(struct minstrel_priv *mp, struct minstrel_rate *mr)
++{
++	struct minstrel_tpc_stats *mts = &mr->tpc_stats;
++	struct ieee80211_hw *hw = mp->hw;
++	s8 max_power = hw->conf.power_level;
++	s8 min_power = hw->min_txpower;
++
++	/* validate ref power level */
++	if (mts->reference_power > max_power)
++		mts->reference_power = max_power;
++	if (mts->reference_power < min_power + TPC_SAMPLE_POWER_SPAN)
++		mts->reference_power = min_power + TPC_SAMPLE_POWER_SPAN;
++
++	/* validate sample power level */
++	if (mts->sample_power > mts->reference_power - TPC_SAMPLE_POWER_SPAN)
++		mts->sample_power = mts->reference_power - TPC_SAMPLE_POWER_SPAN;
++	else if (mts->sample_power < min_power)
++		mts->sample_power = min_power;
++}
++
++static void
++blues_adjust_power_levels(struct minstrel_rate *mr)
++{
++	struct minstrel_tpc_stats *mts = &mr->tpc_stats;
++	u16 tpc_decrease_prob, tpc_increase_prob;
++	u16 valid_ref_prob, invalid_ref_prob;
++
++	/* adjust sample power level */
++	tpc_decrease_prob = tpc_increase_prob = mts->sample_prob;
++	tpc_decrease_prob += MINSTREL_FRAC(TPC_DECREASE_PROB_THRESH, 100);
++	tpc_increase_prob += MINSTREL_FRAC(TPC_INCREASE_PROB_THRESH, 100);
++
++	if (tpc_decrease_prob >= mts->reference_prob)
++		mts->sample_power -= TPC_MIN_POWER_DECREMENT;
++	// TODO (what if data is not sampled ???):
++	//else if (mr->tpc_reference_prob > mr->tpc_data_prob + MINSTREL_FRAC(TPC_BOOST_POWER_THRESH, 100))
++	else if (tpc_increase_prob < mts->reference_prob)
++		mts->sample_power += TPC_MIN_POWER_INCREMENT;
++
++	/* adjust reference power level */
++	valid_ref_prob = MINSTREL_FRAC(100 - TPC_DECREASE_PROB_THRESH, 100);
++	invalid_ref_prob = MINSTREL_FRAC(100 - TPC_INCREASE_PROB_THRESH, 100);
++
++	if ((mts->reference_prob > valid_ref_prob ||
++	     mts->sample_prob > valid_ref_prob) &&
++	    (mts->reference_power >= mts->sample_power +
++					TPC_SAMPLE_POWER_SPAN +
++					TPC_MIN_POWER_DECREMENT * 2))
++		mts->reference_power -= TPC_MIN_POWER_DECREMENT;
++	else if (mts->reference_prob < invalid_ref_prob)
++		mts->reference_power += TPC_MIN_POWER_INCREMENT;
++}
++
++/*
++ * Find common power level out of all potential data rates for ACK packets.
++ */
++static void
++blues_find_common_ack_power (struct minstrel_sta_info *priv_sta,
++			     s8 *global_ack_power, s8 *max_power_level)
++{
++	bool valid_ack_power_found = false;
++	s8 sample_power;
++	int i;
++
++	for (i = priv_sta->n_rates; i > 0; i--) {
++		switch (priv_sta->r[i].bitrate) {
++		case 48: case 24: case 12: case 22: case 11: case 4: case 2:
++			sample_power = priv_sta->r[i].tpc_stats.sample_power;
++			if (sample_power + TPC_SAMPLE_POWER_SPAN >
++			    *global_ack_power) {
++				*global_ack_power = sample_power +
++							TPC_SAMPLE_POWER_SPAN;
++				valid_ack_power_found = true;
++				// printk(KERN_ERR "per STA ACK-POWER at %i.%i
++				// MBit = %i dBm\n", priv_sta->r[i]->bitrate / 2,
++				// priv_sta->r[i]->bitrate % 2 ? 5 : 0, global_ack_power);
++			}
++			break;
++		default:
++			break;
++		}
++	}
++	if (!valid_ack_power_found)
++		*global_ack_power = *max_power_level;
++}
++
++/*
++ * Adjust global ACK power level to the maximum common data power level among
++ * all active STAs. Compare power levels at whole set of potential ack rates.
++ *
++ * TODO: check carefully with multicast power !!! routing like OLSR uses it
++ */
++static void
++blues_adjust_ack_power(struct minstrel_priv *mp, struct minstrel_sta_info *mi)
++{
++	struct ieee80211_hw *hw = mp->hw;
++	struct ieee80211_local *local = hw_to_local(hw);
++	struct minstrel_sta_info *priv_sta;
++	struct sta_info *sta;
++	s8 max_power_level = hw->conf.power_level;
++	s8 min_power_level = hw->min_txpower;
++	s8 global_ack_power = min_power_level;
++
++	/* find common ACK power between all STAs */
++	rcu_read_lock();
++	list_for_each_entry_rcu(sta, &local->sta_list, list) {
++		priv_sta = sta->rate_ctrl_priv;
++		// printk(KERN_ERR "new STA found -> %p\n", sta->rate_ctrl_priv);
++		blues_find_common_ack_power(priv_sta,
++					    &global_ack_power,
++					    &max_power_level);
++	}
++	rcu_read_unlock();
++
++	/* validate ACK power value */
++	if (global_ack_power < min_power_level)
++		global_ack_power = min_power_level;
++	else if (global_ack_power > max_power_level)
++		global_ack_power = max_power_level;
++
++	blues_set_ack_power(hw, global_ack_power);
++	// printk(KERN_ERR "Searching STA neighbor list results in global
++	// ack_power = %i\n", i, hw->conf.ack_power);
++
++	/* annotate ack power in minstrel_sta_info to update statistics */
++	mi->tpc_ack_txpower = hw->conf.ack_txpower;
++}
++
++/* Update all TPC statistics if enough samples got collected */
++void
++blues_update_stats(struct minstrel_priv *mp, struct minstrel_sta_info *mi)
++{
++	struct ieee80211_hw *hw = mp->hw;
++	struct minstrel_rate *mr;
++	struct minstrel_tpc_stats *mts;
++	s8 max_power_level = hw->conf.power_level;
++	int i;
++
++	/* Start from highest rate to lowest in order */
++	// FIXME: this order just works for 802.11a ! not for 802.11b/g
++	for (i = (mi->n_rates - 1); i >= 0; i--) {
++		mr = &(mi->r[i]);
++		mts = &(mi->r[i].tpc_stats);
++
++		/* if enough samples collected update success probabilities */
++		/* TODO: TPC_UPDATE_THRESH_SAMPLE correct? */
++		if ((mts->reference_attempts > TPC_UPDATE_THRESH_SAMPLE) &&
++		    (mts->sample_attempts > TPC_UPDATE_THRESH_SAMPLE)) {
++			blues_calc_ewma(mr, EWMA_REF_POWER | EWMA_SAMPLE_POWER);
++			mr->tpc_stats.stats_outdated = 100;
++
++			/* check if emergency */
++			// FIXME: is this test right here ?
++			if (mts->reference_prob <
++			    MINSTREL_FRAC(TPC_EMERG_THRESH, 100)) {
++					blues_reset_power(mp, mr);
++					blues_reset_stats(mr);
++					continue;
++			}
++
++			/* trigger power level adjustments */
++			blues_adjust_power_levels(mr);
++		}
++
++		/* if stats are unsampled, adjust them according to others */
++		if (mr->tpc_stats.stats_outdated == 0) {
++			/* Unsampled higher rates are reset */
++			if ((i > mi->max_tp_rate[0]) &&
++			    (i > mi->max_tp_rate[1]) &&
++			    (i > mi->max_tp_rate[2])) {
++				blues_reset_power(mp, mr);
++				blues_reset_stats(mr);
++			}
++
++			/*
++			 * Unsampled lower rates are equal to next higher one
++			 * (assumed linear decreasing robustness of rates)
++			 * (FIXME: create sorted rate list for 802.11g)
++			 */
++			if (i < mi->max_tp_rate[0] && i < mi->max_tp_rate[1]) {
++				mts->reference_power =
++					mi->r[i + 1].tpc_stats.reference_power;
++				mts->sample_power =
++					mi->r[i + 1].tpc_stats.sample_power;
++				blues_reset_stats(mr);
++			}
++		}
++
++		/* validate power settings */
++		blues_validate_power_level(mp, mr);
++
++		//printk(KERN_ERR "tpc; rate= %i.%i tpc_sample_power= %i
++		// tpc_sample_attempts= %i\n", mr->bitrate / 2,
++		// mr->bitrate % 2 ? 5 : 0, mr->tpc_sample_power,
++		//mr->tpc_sample_attempts);
++	}
++
++	/*
++	 * Test utility & adjust power of ACK packets
++	 * utility dependend
++	 */
++	if (mp->has_ack_tpc) {
++		if (mp->dbg_thr_weight >= 100)
++			blues_set_ack_power(hw, max_power_level);
++		else
++			blues_adjust_ack_power(mp, mi);
++	}
++}
++
++void
++blues_count_tx_attempts(struct minstrel_rate *mr,
++			int count, s8 power)
++{
++	if (power == mr->tpc_stats.reference_power) {
++		mr->tpc_stats.reference_attempts += count;
++		mr->tpc_stats.ref_att_hist += count;
++	}
++
++	if (power == mr->tpc_stats.sample_power +
++	    TPC_SAMPLE_POWER_SPAN)
++		mr->tpc_stats.data_attempts += count;
++
++	if (power == mr->tpc_stats.sample_power) {
++		mr->tpc_stats.sample_attempts += count;
++		mr->tpc_stats.sample_att_hist += count;
++	}
++}
++
++void
++blues_count_tx_success(struct minstrel_rate *mr,
++		       int count, s8 power)
++{
++	if (power == mr->tpc_stats.reference_power) {
++		mr->tpc_stats.reference_success += count;
++		mr->tpc_stats.ref_succ_hist += count;
++	}
++
++	if (power == mr->tpc_stats.sample_power +
++	    TPC_SAMPLE_POWER_SPAN)
++		mr->tpc_stats.data_success += count;
++
++	if (power == mr->tpc_stats.sample_power) {
++		mr->tpc_stats.sample_success += count;
++		mr->tpc_stats.sample_succ_hist += count;
++	}
++	//FIXME: should we really account for it this way?
++	if (power < mr->tpc_stats.sample_power) {
++		mr->tpc_stats.sample_attempts += count;
++		mr->tpc_stats.sample_success += count;
++	}
++	/*
++	* TODO: what about higher/lower power-levels ->
++	* only count if not/true successful ?
++	*/
++}
++
++static inline unsigned int
++blues_get_curent_txpower(struct minstrel_sta_info *mi, int i)
++{
++	u32 cur_txpower;
++
++	cur_txpower = convert_dBm_to_uW(mi->r[mi->max_tp_rate[i]].tpc_stats.sample_power +
++				TPC_SAMPLE_POWER_SPAN);
++	return cur_txpower;
++}
++
++static int
++blues_calc_utility(int rel_thr, int rel_interference)
++{
++	u8 thr_weight;
++	int u;
++
++	/* Use default weighting factor as throughput over interference.
++	 * A factor of 100 represents an egoistic preference, that focuses
++	 * on maximizing throughput and not interference/txpower savings. */
++	thr_weight = BLUES_DEFAULT_THR_WEIGHT;
++
++#ifdef CONFIG_MAC80211_DEBUGFS
++	/* use custom throughput weighting factor if specified via debugfs */
++	if ((mp->dbg_thr_weight <= 100) && (mp->dbg_thr_weight >= 10))
++		thr_weight = mp->dbg_thr_weight;
++#endif
++
++	u = rel_thr * thr_weight - rel_interference * 10;
++
++	return u;
++}
++
++static int
++blues_get_next_sample(struct minstrel_sta_info *mi)
++{
++	unsigned int sample_ndx;
++
++	/* for TPC sampling alternate between all max_tp_rates */
++	if (mi->tpc_measuring_point == 0) {
++		sample_ndx = mi->max_tp_rate[0];
++		mi->tpc_measuring_point = 1;
++	} else if (mi->tpc_measuring_point == 1) {
++		sample_ndx = mi->max_tp_rate[1];
++		mi->tpc_measuring_point = 2;
++	} else {
++		if (mi->r[mi->max_tp_rate[2]].perfect_tx_time > mi->r[mi->max_tp_rate[0]].perfect_tx_time)
++			sample_ndx = mi->max_tp_rate[2];
++		else
++			sample_ndx = mi->max_prob_rate;
++
++		mi->tpc_measuring_point = 1;
++	}
++	return sample_ndx;
++}
++
++/* check whether rate sampling is required */
++bool
++blues_requires_sampling(struct minstrel_sta_info *mi,
++			     struct minstrel_priv *mp,
++			     bool mrr_capable)
++{
++	int blues_sampling_interval;
++
++	/* Check multi-rate-retry capabilities & adjust sampling interval */
++	if (mrr_capable)
++		blues_sampling_interval = RATE_SAMPLING_INT * 2;
++	else
++		blues_sampling_interval = RATE_SAMPLING_INT * 4;
++
++	if (mi->last_tpc_sampling + blues_sampling_interval >
++	    jiffies_to_msecs(jiffies)) {
++		mi->last_tpc_sampling = jiffies;
++		return true;
++	} else {
++		return false;
++	}
++}
++
++/*
++ * Minstrel-Blues core function:
++ * Calculate joint utility function of those (rate, txpower) pairs, where
++ * Minstrel determines the sorted best throughput rate set.
++ * For algorithmic details, please lookup the details at:
++ * http://opus4.kobv.de/opus4-tuberlin/frontdoor/index/index/docId/3939
++ */
++void minstrel_blues_update_rate_power_table(struct minstrel_priv *mp,
++					    struct minstrel_sta_info *mi)
++{
++	struct blues_utility set[MAX_THR_RATES];
++	int i;
++	u8 max_utility_index = 0;
++
++	/* Calculate joint utility */
++	//TODO: check if manual txpower[mrr] was set via debugfs
++	for(i = 0; i < MAX_THR_RATES; i++) {
++		struct minstrel_rate *mr = &mi->r[i];
++		struct minstrel_rate_stats *mrs = &mi->r[i].rc_stats;
++
++		set[i].cur_thr = minstrel_get_tp_avg(mr, mrs->prob_ewma);
++		set[i].cur_pwr = blues_get_curent_txpower(mi, i);
++
++		if (set[i].cur_thr) {
++			set[i].pwr_thr_ratio = MINSTREL_FRAC(set[i].cur_pwr,
++							     set[i].cur_thr);
++			set[i].rel_thr = MINSTREL_FRAC(set[i].cur_thr,
++						       set[0].cur_thr);
++			set[i].rel_intrf = MINSTREL_FRAC(set[i].pwr_thr_ratio,
++							set[0].pwr_thr_ratio);
++		} else {
++			set[i].rel_thr = 0;
++			set[i].rel_intrf = 0;
++		}
++
++		set[i].utility = blues_calc_utility(set[i].rel_thr,
++						    set[i].rel_intrf);
++
++		if ((i > 0 ) && (set[i].utility > set[i-1].utility))
++			max_utility_index = i;
++	}
++}
+--- /dev/null
++++ b/net/mac80211/tpc80211_blues.h
+@@ -0,0 +1,76 @@
++/*
++ * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
++ * ________________________________________________________________________
++ * A decentralized joint power and rate controller and hepcat that plays as
++ * loud as thourghput vs. interference is weighted. Power and rate per link
++ * (per packet) is under its control to replace static WiFi shouting with
++ * dynamic use and interplay. The big goal is to increase overall network
++ * performance by increasing spatial reuse, more active links in parallel.
++ *
++ * Copyright (C) 2016  Thomas Huehn <thomas@net.t-labs.tu-berlin.de>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ */
++
++#ifndef __TPC80211_BLUES_H
++#define __TPC80211_BLUES_H
++
++#include <net/mac80211.h>
++#include "rate.h"
++#include "rc80211_minstrel.h"
++
++#define TPC_SAMPLE_POWER_SPAN 2		/* min span of sample below ref.power */
++#define TPC_MIN_POWER_DECREMENT 1	/* step width of tx-power decrease */
++#define TPC_MIN_POWER_INCREMENT 2	/* step width of tx-power increase */
++#define TPC_PROBING_RATIO 10		/* packet ratio [%] of TPC sampling */
++#define TPC_UPDATE_THRESH_SAMPLE 35	/* sample packet thr. to update TPC */
++#define TPC_UPDATE_THRESH_DATA 12	/* data packet thr. to update TPC */
++#define TPC_UPDATE_INTERVAL 200		/* TPC update interval [ms] */
++#define TPC_DECREASE_PROB_THRESH 12	/* thresh.[%] -> 1 power level down */
++#define TPC_INCREASE_PROB_THRESH 22	/* thresh.[%] -> 1 power level up */
++#define TPC_EMERG_THRESH 30		/* emerg. thresh. [%] -> max power */
++#define TPC_INIT_REF_PROB 90		/* initial ewma ref prob. [%] */
++#define TPC_INIT_DATA_PROB 85		/* initial ewma data prob. [%] */
++#define TPC_INIT_SAMPLE_PROB 80		/* initial ewma sample prob. [%] */
++#define BLUES_DEFAULT_THR_WEIGHT 100	/* weighting factor in utility calc */
++
++enum blues_ewma_update_flags {
++	EWMA_REF_POWER		= BIT(0),
++	EWMA_SAMPLE_POWER	= BIT(1),
++	EWMA_DATA_POWER		= BIT(2),
++};
++
++struct blues_utility {
++	int cur_thr;
++	int cur_pwr;
++	int pwr_thr_ratio;
++	int rel_thr;
++	int rel_intrf;
++	int utility;
++	int max_utility_index;
++};
++
++
++void blues_update_stats(struct minstrel_priv *mp,
++			struct minstrel_sta_info *mi);
++
++void blues_count_tx_attempts(struct minstrel_rate *mr,
++			      int count,
++			      s8 power);
++
++void blues_count_tx_success(struct minstrel_rate *mr,
++			     int count,
++			     s8 power);
++
++void minstrel_blues_update_rate_power_table(struct minstrel_priv *mp,
++					    struct minstrel_sta_info *mi);
++
++bool blues_requires_sampling(struct minstrel_sta_info *mi,
++			     struct minstrel_priv *mp,
++			     bool mrr_capable);
++
++
++#endif
+--- a/net/mac80211/rc80211_minstrel.c
++++ b/net/mac80211/rc80211_minstrel.c
+@@ -705,6 +705,11 @@ minstrel_alloc(struct ieee80211_hw *hw,
+ 
+ 	mp->hw = hw;
+ 
++	/* check TPC capabilities of current WiFi hardware driver */
++	mp->has_tpc_per_packet = ieee80211_hw_check(hw, SUPPORTS_TPC_PER_PACKET);
++	mp->has_tpc_per_mrr = ieee80211_hw_check(hw, SUPPORTS_TPC_PER_MRR);
++	mp->has_ack_tpc = ieee80211_hw_check(hw, SUPPORTS_TPC_FOR_ACK_PACKETS);
++
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	mp->fixed_rate_idx = (u32) -1;
+ 	mp->dbg_fixed_rate = debugfs_create_u32("fixed_rate_idx",
+--- a/net/mac80211/rc80211_minstrel.h
++++ b/net/mac80211/rc80211_minstrel.h
+@@ -80,6 +80,18 @@ struct minstrel_rate_stats {
+ 	bool retry_updated;
+ };
+ 
++struct minstrel_tpc_stats {
++	/* per rate tpc values */
++	u16 reference_success, reference_attempts;
++	u16 data_success, data_attempts;
++	u16 sample_success, sample_attempts;
++	u16 reference_prob, data_prob, sample_prob;
++	u32 ref_succ_hist, ref_att_hist;
++	u32 sample_succ_hist, sample_att_hist;
++	s8 reference_power, sample_power, data_power;
++	u8 stats_outdated;
++};
++
+ struct minstrel_rate {
+ 	int bitrate;
+ 
+@@ -93,6 +105,7 @@ struct minstrel_rate {
+ 	int sample_limit;
+ 
+ 	struct minstrel_rate_stats rc_stats;
++	struct minstrel_tpc_stats tpc_stats;
+ };
+ 
+ struct minstrel_sta_info {
+@@ -100,6 +113,7 @@ struct minstrel_sta_info {
+ 
+ 	unsigned int last_stats_update;
+ 	unsigned int last_rate_sampling;
++	unsigned int last_tpc_sampling;
+ 	unsigned int sp_ack_dur;
+ 	unsigned int rate_avg;
+ 
+@@ -120,6 +134,11 @@ struct minstrel_sta_info {
+ 	/* sampling table */
+ 	u8 *sample_table;
+ 
++	/* tpc settings */
++	u8 tpc_sample_probe_counter;
++	u8 tpc_measuring_point;
++	s8 tpc_ack_txpower;
++
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	struct dentry *dbg_stats;
+ 	struct dentry *dbg_stats_csv;
+@@ -138,6 +157,11 @@ struct minstrel_priv {
+ 	unsigned int segment_size;
+ 	bool has_mrr;
+ 
++	/* hardware capabilities of tx power adjustments */
++	bool has_tpc_per_packet;
++	bool has_tpc_per_mrr;
++	bool has_ack_tpc;
++
+ 	u8 cck_rates[4];
+ 
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+@@ -149,6 +173,17 @@ struct minstrel_priv {
+ 	 */
+ 	u32 fixed_rate_idx;
+ 	struct dentry *dbg_fixed_rate;
++	/*
++	 * enable custom throughput weighting factor for the joint utility
++	 * decision of power-rate preferences
++	 * - high thr_factor means accepting lower throughput degradation per
++	 *   saved txpower (more egoistic)
++	 * - thr_factor of 1 leads to utility calculation based on throughput
++	 *   and jamming equaly (more altruistic)
++	 * - reasonable thr_factors are between 10 and 2 to value the throughput
++	 *   more than the jamming (default thr_weigt = 2)
++	 */
++	s8 dbg_thr_weight;
+ #endif
+ };
+ 
+--- a/net/mac80211/rc80211_minstrel_ht.h
++++ b/net/mac80211/rc80211_minstrel_ht.h
+@@ -54,6 +54,9 @@ struct minstrel_mcs_group_data {
+ 
+ 	/* MCS rate statistics */
+ 	struct minstrel_rate_stats rc_stats[MCS_GROUP_RATES];
++
++	/* MCS tpc statistics */
++	struct minstrel_tpc_stats tpc_stats[MCS_GROUP_RATES];
+ };
+ 
+ struct minstrel_ht_sta {
+@@ -77,7 +80,7 @@ struct minstrel_ht_sta {
+ 	unsigned int last_rate_sampling;
+ 
+ 	/* min # of packets between sample attempts */
+-	u8 cur_intersample_spacing;
++	u8 cur_rc_intersample_spacing;
+ 
+ 	/* overhead time in usec for each frame */
+ 	unsigned int overhead;
+--- a/net/mac80211/rc80211_minstrel_debugfs.c
++++ b/net/mac80211/rc80211_minstrel_debugfs.c
+@@ -75,7 +75,7 @@ minstrel_stats_open(struct inode *inode,
+ {
+ 	struct minstrel_sta_info *mi = inode->i_private;
+ 	struct minstrel_debugfs_info *ms;
+-	unsigned int i, tp_max, tp_avg, eprob;
++	unsigned int i, tp_max, tp_avg, eprob, ref_prob, data_prob, sample_prob;
+ 	char *p;
+ 	struct timeval tv;
+ 
+@@ -87,13 +87,16 @@ minstrel_stats_open(struct inode *inode,
+ 	p = ms->buf;
+ 	p += sprintf(p, "\n");
+ 	p += sprintf(p,
+-		     "best   __________rate_________    ________statistics________    ____last_____    ______sum-of________\n");
++		     "best   __________rate_________    ________statistics________    ____last_____    ______sum-of________    __________tpc-statistics_________\n");
+ 	p += sprintf(p,
+-		     "rate  [name idx airtime max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]\n");
++		     "rate  [name idx airtime max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]  [sample-power | reference-power | data-power]\n");
++	p += sprintf(p,
++		     "														success|attempts|prob|dBm | success|attempts|prob|dBm | success|attempts|prob|dBm\n");
+ 
+ 	for (i = 0; i < mi->n_rates; i++) {
+ 		struct minstrel_rate *mr = &mi->r[i];
+ 		struct minstrel_rate_stats *mrs = &mi->r[i].rc_stats;
++		struct minstrel_tpc_stats *mts = &mi->r[i].tpc_stats;
+ 		unsigned int prob_ewmsd;
+ 
+ 		*(p++) = (i == mi->max_tp_rate[0]) ? 'A' : ' ';
+@@ -111,10 +114,14 @@ minstrel_stats_open(struct inode *inode,
+ 		tp_avg = minstrel_get_tp_avg(mr, mrs->prob_ewma);
+ 		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
+ 		prob_ewmsd = minstrel_get_ewmsd10(mrs);
++		ref_prob = MINSTREL_TRUNC(mts->reference_prob * 1000);
++		data_prob = MINSTREL_TRUNC(mts->data_prob * 1000);
++		sample_prob = MINSTREL_TRUNC(mts->sample_prob * 1000);
+ 
+ 		p += sprintf(p, "%4u.%1u    %4u.%1u     %3u.%1u    %3u.%1u"
+-				"     %3u   %3u %-3u   "
+-				"%9u   %-9u\n",
++				"     %3u   %3u %-3u   %9u   %-9u            "
++				"%9u %-9u %4u.%1u %2u  |  %9u %-9u %4u.%1u %2u"
++				"  |  %9u %-9u %4u.%1u %2u\n",
+ 				tp_max / 10, tp_max % 10,
+ 				tp_avg / 10, tp_avg % 10,
+ 				eprob / 10, eprob % 10,
+@@ -123,13 +130,27 @@ minstrel_stats_open(struct inode *inode,
+ 				mrs->last_success,
+ 				mrs->last_attempts,
+ 				mrs->succ_hist,
+-				mrs->att_hist);
++				mrs->att_hist,
++				mts->sample_succ_hist,
++				mts->sample_att_hist,
++				sample_prob / 10, sample_prob % 10,
++				mts->sample_power,
++				mts->ref_succ_hist,
++				mts->ref_att_hist,
++				ref_prob / 10, ref_prob % 10,
++				mts->reference_power,
++				mts->data_success,
++				mts->data_attempts,
++				data_prob / 10, data_prob % 10,
++				mts->data_power);
+ 	}
+ 	do_gettimeofday(&tv);
+ 	p += sprintf(p, "\nTotal packet count::    ideal %d      "
+-			"lookaround %d,    timestamp: %ld.%.6ld\n\n",
++			"lookaround %d \nTimestamp: %ld.%.6ld\n"
++			"tx-power of ack packets [dBm]: %2u\n\n",
+ 			mi->total_packets - mi->sample_packets,
+-			mi->sample_packets, tv.tv_sec, tv.tv_usec);
++			mi->sample_packets, tv.tv_sec, tv.tv_usec,
++			mi->tpc_ack_txpower);
+ 	ms->len = p - ms->buf;
+ 
+ 	WARN_ON(ms->len + sizeof(*ms) > 2048);
+@@ -150,7 +171,7 @@ minstrel_stats_csv_open(struct inode *in
+ {
+ 	struct minstrel_sta_info *mi = inode->i_private;
+ 	struct minstrel_debugfs_info *ms;
+-	unsigned int i, tp_max, tp_avg, eprob;
++	unsigned int i, tp_max, tp_avg, eprob, ref_prob, data_prob, sample_prob;
+ 	char *p;
+ 	struct timeval tv;
+ 
+@@ -165,6 +186,7 @@ minstrel_stats_csv_open(struct inode *in
+ 	for (i = 0; i < mi->n_rates; i++) {
+ 		struct minstrel_rate *mr = &mi->r[i];
+ 		struct minstrel_rate_stats *mrs = &mi->r[i].rc_stats;
++		struct minstrel_tpc_stats *mts = &mi->r[i].tpc_stats;
+ 		unsigned int prob_ewmsd;
+ 
+ 		p += sprintf(p, "%ld.%.6ld,", tv.tv_sec, tv.tv_usec);
+@@ -183,9 +205,13 @@ minstrel_stats_csv_open(struct inode *in
+ 		tp_avg = minstrel_get_tp_avg(mr, mrs->prob_ewma);
+ 		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
+ 		prob_ewmsd = minstrel_get_ewmsd10(mrs);
+-
+-		p += sprintf(p, "%u.%u,%u.%u,%u.%u,%u.%u,%u,%u,%u,"
+-				"%u,%u,%d,%d\n",
++		ref_prob = MINSTREL_TRUNC(mts->reference_prob * 1000);
++		data_prob = MINSTREL_TRUNC(mts->data_prob * 1000);
++		sample_prob = MINSTREL_TRUNC(mts->sample_prob * 1000);
++
++		p += sprintf(p, "%u.%u,%u.%u,%u.%u,%u.%u,%u,%u,"
++				"%u,%u,%u,%d,%d,%u,%u,%u,%u,%u,"
++				"%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+ 				tp_max / 10, tp_max % 10,
+ 				tp_avg / 10, tp_avg % 10,
+ 				eprob / 10, eprob % 10,
+@@ -196,8 +222,20 @@ minstrel_stats_csv_open(struct inode *in
+ 				mrs->succ_hist,
+ 				mrs->att_hist,
+ 				mi->total_packets - mi->sample_packets,
+-				mi->sample_packets);
+-
++				mi->sample_packets,
++				mts->sample_succ_hist,
++				mts->sample_att_hist,
++				sample_prob / 10, sample_prob % 10,
++				mts->sample_power,
++				mts->ref_succ_hist,
++				mts->ref_att_hist,
++				ref_prob / 10, ref_prob % 10,
++				mts->reference_power,
++				mts->data_success,
++				mts->data_attempts,
++				data_prob / 10, data_prob % 10,
++				mts->data_power,
++				mi->tpc_ack_txpower);
+ 	}
+ 	ms->len = p - ms->buf;
+ 
