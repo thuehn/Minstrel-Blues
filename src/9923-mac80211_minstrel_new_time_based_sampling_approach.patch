@@ -27,7 +27,7 @@
  
  	u8 max_tp_rate[MAX_THR_RATES];
  	u8 max_prob_rate;
-+	u8 cur_intersample_spacing;
++	u8 cur_rc_intersample_spacing;
  	unsigned int total_packets;
  	unsigned int sample_packets;
 -	int sample_deferred;
@@ -77,14 +77,14 @@
 +	else
 +		rate_sampling_interval = RATE_SAMPLING_INT * 2;
 +
-+	if ((mi->cur_intersample_spacing >= MIN_INTERSAMPLE_SPACING) &&
-+	    (mi->last_rate_sampling + RATE_SAMPLING_INT >
++	if ((mi->cur_rc_intersample_spacing >= MIN_INTERSAMPLE_SPACING) &&
++	    (mi->last_rate_sampling + rate_sampling_interval >
 +	     jiffies_to_msecs(jiffies))) {
-+		mi->cur_intersample_spacing = 0;
++		mi->cur_rc_intersample_spacing = 0;
 +		mi->last_rate_sampling = jiffies;
 +		return true;
 +	} else {
-+		mi->cur_intersample_spacing++;
++		mi->cur_rc_intersample_spacing++;
 +		return false;
 +	}
 +}

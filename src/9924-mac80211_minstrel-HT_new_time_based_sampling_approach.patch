@@ -156,14 +156,14 @@
  
 -		if (mi->sample_slow++ > 2)
 -			return -1;
-+	if ((mi->cur_intersample_spacing >= MIN_INTERSAMPLE_SPACING) &&
++	if ((mi->cur_rc_intersample_spacing >= MIN_INTERSAMPLE_SPACING) &&
 +	    (mi->last_rate_sampling + rate_sampling_interval >
 +	     jiffies_to_msecs(jiffies))) {
-+		mi->cur_intersample_spacing = 0;
++		mi->cur_rc_intersample_spacing = 0;
 +		mi->last_rate_sampling = jiffies_to_msecs(jiffies);
 +		return true;
 +	} else {
-+		mi->cur_intersample_spacing++;
++		mi->cur_rc_intersample_spacing++;
 +		return false;
  	}
 -	mi->sample_tries--;
@@ -378,7 +378,7 @@
 +	unsigned int last_rate_sampling;
 +
 +	/* min # of packets between sample attempts */
-+	u8 cur_intersample_spacing;
++	u8 cur_rc_intersample_spacing;
 +
  	/* overhead time in usec for each frame */
  	unsigned int overhead;

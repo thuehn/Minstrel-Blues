@@ -713,15 +713,6 @@
  };
  
  struct minstrel_ht_sta {
-@@ -77,7 +80,7 @@ struct minstrel_ht_sta {
- 	unsigned int last_rate_sampling;
- 
- 	/* min # of packets between sample attempts */
--	u8 cur_intersample_spacing;
-+	u8 cur_rc_intersample_spacing;
- 
- 	/* overhead time in usec for each frame */
- 	unsigned int overhead;
 --- a/net/mac80211/rc80211_minstrel_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_debugfs.c
 @@ -75,7 +75,7 @@ minstrel_stats_open(struct inode *inode,
@@ -857,23 +848,3 @@
  	}
  	ms->len = p - ms->buf;
  
---- a/net/mac80211/rc80211_minstrel_ht.c
-+++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -1035,14 +1035,14 @@ minstrel_ht_requires_sampling(struct min
- 	else
- 		rate_sampling_interval = RATE_SAMPLING_INT * 2;
- 
--	if ((mi->cur_intersample_spacing >= MIN_INTERSAMPLE_SPACING) &&
-+	if ((mi->cur_rc_intersample_spacing >= MIN_INTERSAMPLE_SPACING) &&
- 	    (mi->last_rate_sampling + rate_sampling_interval >
- 	     jiffies_to_msecs(jiffies))) {
--		mi->cur_intersample_spacing = 0;
-+		mi->cur_rc_intersample_spacing = 0;
- 		mi->last_rate_sampling = jiffies_to_msecs(jiffies);
- 		return true;
- 	} else {
--		mi->cur_intersample_spacing++;
-+		mi->cur_rc_intersample_spacing++;
- 		return false;
- 	}
- }
