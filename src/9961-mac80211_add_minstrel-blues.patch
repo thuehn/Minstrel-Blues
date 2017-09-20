@@ -715,7 +715,7 @@
  struct minstrel_ht_sta {
 --- a/net/mac80211/rc80211_minstrel_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_debugfs.c
-@@ -75,11 +75,11 @@ minstrel_stats_open(struct inode *inode,
+@@ -75,25 +75,25 @@ minstrel_stats_open(struct inode *inode,
  {
  	struct minstrel_sta_info *mi = inode->i_private;
  	struct minstrel_debugfs_info *ms;
@@ -729,17 +729,16 @@
  	if (!ms)
  		return -ENOMEM;
  
-@@ -87,13 +87,16 @@ minstrel_stats_open(struct inode *inode,
+ 	file->private_data = ms;
  	p = ms->buf;
  	p += sprintf(p, "\n");
- 	p += sprintf(p,
+-	p += sprintf(p,
 -		     "best   __________rate_________    ________statistics________    ____last_____    ______sum-of________\n");
-+		     "best   __________rate_________    ________statistics________    ____last_____    ______sum-of________    __________tpc-statistics_________\n");
- 	p += sprintf(p,
+-	p += sprintf(p,
 -		     "rate  [name idx airtime max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]\n");
-+		     "rate  [name idx airtime max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]  [sample-power | reference-power | data-power]\n");
-+	p += sprintf(p,
-+		     "														success|attempts|prob|dBm | success|attempts|prob|dBm | success|attempts|prob|dBm\n");
++	p += sprintf(p,"best   __________rate_________    ______rc-statistics_______    ____last_____    ______sum-of________    _________________________tpc-statistics__________________________\n");
++	p += sprintf(p,"rate  [name idx airtime max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]  [     sample-power    |   reference-power   |      data-power     ]\n");
++	p += sprintf(p,"													[  suc|att   prob dBm |  suc|att   prob dBm |  suc|att   prob dBm ]\n");
  
  	for (i = 0; i < mi->n_rates; i++) {
  		struct minstrel_rate *mr = &mi->r[i];
@@ -748,7 +747,7 @@
  		unsigned int prob_ewmsd;
  
  		*(p++) = (i == mi->max_tp_rate[0]) ? 'A' : ' ';
-@@ -111,10 +114,14 @@ minstrel_stats_open(struct inode *inode,
+@@ -111,10 +111,14 @@ minstrel_stats_open(struct inode *inode,
  		tp_avg = minstrel_get_tp_avg(mr, mrs->prob_ewma);
  		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
  		prob_ewmsd = minstrel_get_ewmsd10(mrs);
@@ -759,13 +758,13 @@
  		p += sprintf(p, "%4u.%1u    %4u.%1u     %3u.%1u    %3u.%1u"
 -				"     %3u   %3u %-3u   "
 -				"%9u   %-9u\n",
-+				"     %3u   %3u %-3u   %9u   %-9u            "
-+				"%9u %-9u %4u.%1u %2u  |  %9u %-9u %4u.%1u %2u"
-+				"  |  %9u %-9u %4u.%1u %2u\n",
++				"     %3u   %3u %-3u   %9u   %-9u    "
++				"%5u %-5u%3u.%1u %3u  %5u %-5u%3u.%1u %3u"
++				"  %5u %-5u%3u.%1u %3u\n",
  				tp_max / 10, tp_max % 10,
  				tp_avg / 10, tp_avg % 10,
  				eprob / 10, eprob % 10,
-@@ -123,16 +130,30 @@ minstrel_stats_open(struct inode *inode,
+@@ -123,16 +127,30 @@ minstrel_stats_open(struct inode *inode,
  				mrs->last_success,
  				mrs->last_attempts,
  				mrs->succ_hist,
@@ -800,7 +799,7 @@
  
  	return 0;
  }
-@@ -150,11 +171,11 @@ minstrel_stats_csv_open(struct inode *in
+@@ -150,11 +168,11 @@ minstrel_stats_csv_open(struct inode *in
  {
  	struct minstrel_sta_info *mi = inode->i_private;
  	struct minstrel_debugfs_info *ms;
@@ -814,7 +813,7 @@
  	if (!ms)
  		return -ENOMEM;
  
-@@ -165,6 +186,7 @@ minstrel_stats_csv_open(struct inode *in
+@@ -165,6 +183,7 @@ minstrel_stats_csv_open(struct inode *in
  	for (i = 0; i < mi->n_rates; i++) {
  		struct minstrel_rate *mr = &mi->r[i];
  		struct minstrel_rate_stats *mrs = &mi->r[i].rc_stats;
@@ -822,7 +821,7 @@
  		unsigned int prob_ewmsd;
  
  		p += sprintf(p, "%ld.%.6ld,", tv.tv_sec, tv.tv_usec);
-@@ -183,9 +205,13 @@ minstrel_stats_csv_open(struct inode *in
+@@ -183,9 +202,13 @@ minstrel_stats_csv_open(struct inode *in
  		tp_avg = minstrel_get_tp_avg(mr, mrs->prob_ewma);
  		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
  		prob_ewmsd = minstrel_get_ewmsd10(mrs);
@@ -839,7 +838,7 @@
  				tp_max / 10, tp_max % 10,
  				tp_avg / 10, tp_avg % 10,
  				eprob / 10, eprob % 10,
-@@ -196,12 +222,24 @@ minstrel_stats_csv_open(struct inode *in
+@@ -196,12 +219,24 @@ minstrel_stats_csv_open(struct inode *in
  				mrs->succ_hist,
  				mrs->att_hist,
  				mi->total_packets - mi->sample_packets,
