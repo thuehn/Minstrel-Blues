@@ -31,7 +31,7 @@
  	}
  #endif
  
-@@ -396,8 +408,12 @@ minstrel_get_rate(void *priv, struct iee
+@@ -395,8 +407,12 @@ minstrel_get_rate(void *priv, struct iee
  	}
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -47,7 +47,7 @@
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
-@@ -123,6 +123,10 @@ struct minstrel_sta_info {
+@@ -121,6 +121,10 @@ struct minstrel_sta_info {
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	struct dentry *dbg_stats;
  	struct dentry *dbg_stats_csv;
@@ -121,7 +121,7 @@
  		return;
  #endif
  
-@@ -936,6 +946,9 @@ minstrel_ht_update_rates(struct minstrel
+@@ -935,6 +945,9 @@ minstrel_ht_update_rates(struct minstrel
  	struct sta_info *sta;
  	s8 txpower;
  	int i = 0;
@@ -131,7 +131,7 @@
  
  	sta = container_of(mi->sta, struct sta_info, sta);
  	txpower = sta->sdata->vif.bss_conf.txpower;
-@@ -964,6 +977,16 @@ minstrel_ht_update_rates(struct minstrel
+@@ -963,6 +976,16 @@ minstrel_ht_update_rates(struct minstrel
  
  	mi->sta->max_rc_amsdu_len = minstrel_ht_get_max_amsdu_len(mi);
  	rates->rate[i].idx = -1;
@@ -148,7 +148,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, rates);
  }
  
-@@ -1054,8 +1077,12 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1053,8 +1076,12 @@ minstrel_ht_get_rate(void *priv, struct
  	info->flags |= mi->tx_flags;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS

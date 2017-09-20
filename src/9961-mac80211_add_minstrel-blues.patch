@@ -624,7 +624,7 @@
  	mp->dbg_fixed_rate = debugfs_create_u32("fixed_rate_idx",
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
-@@ -80,6 +80,18 @@ struct minstrel_rate_stats {
+@@ -78,6 +78,18 @@ struct minstrel_rate_stats {
  	bool retry_updated;
  };
  
@@ -643,7 +643,7 @@
  struct minstrel_rate {
  	int bitrate;
  
-@@ -93,6 +105,7 @@ struct minstrel_rate {
+@@ -91,6 +103,7 @@ struct minstrel_rate {
  	int sample_limit;
  
  	struct minstrel_rate_stats rc_stats;
@@ -651,15 +651,15 @@
  };
  
  struct minstrel_sta_info {
-@@ -100,6 +113,7 @@ struct minstrel_sta_info {
+@@ -98,6 +111,7 @@ struct minstrel_sta_info {
  
- 	unsigned int last_stats_update;
- 	unsigned int last_rate_sampling;
-+	unsigned int last_tpc_sampling;
+ 	unsigned long last_stats_update;
+ 	unsigned long last_rate_update;
++	unsigned long last_tpc_sampling;
  	unsigned int sp_ack_dur;
  	unsigned int rate_avg;
  
-@@ -120,6 +134,11 @@ struct minstrel_sta_info {
+@@ -118,6 +132,11 @@ struct minstrel_sta_info {
  	/* sampling table */
  	u8 *sample_table;
  
@@ -671,7 +671,7 @@
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	struct dentry *dbg_stats;
  	struct dentry *dbg_stats_csv;
-@@ -138,6 +157,11 @@ struct minstrel_priv {
+@@ -136,6 +155,11 @@ struct minstrel_priv {
  	unsigned int segment_size;
  	bool has_mrr;
  
@@ -683,7 +683,7 @@
  	u8 cck_rates[4];
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
-@@ -149,6 +173,17 @@ struct minstrel_priv {
+@@ -147,6 +171,17 @@ struct minstrel_priv {
  	 */
  	u32 fixed_rate_idx;
  	struct dentry *dbg_fixed_rate;
