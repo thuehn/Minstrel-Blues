@@ -45,6 +45,18 @@
  #endif
  
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
+@@ -610,6 +626,11 @@ minstrel_alloc_sta(void *priv, struct ie
+ 	mi->last_stats_update = jiffies;
+ 	mi->last_rate_update = jiffies;
+ 
++#ifdef CPTCFG_MAC80211_DEBUGFS
++	mi->fixed_txpower = (u8) -1;
++	mi->fixed_txrate = (u32) -1;
++#endif
++
+ 	return mi;
+ 
+ error1:
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
 @@ -121,6 +121,10 @@ struct minstrel_sta_info {
@@ -60,20 +72,18 @@
  
 --- a/net/mac80211/rc80211_minstrel_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_debugfs.c
-@@ -224,6 +224,12 @@ minstrel_add_sta_debugfs(void *priv, voi
+@@ -224,6 +224,10 @@ minstrel_add_sta_debugfs(void *priv, voi
  
  	mi->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO, dir,
  			mi, &minstrel_stat_csv_fops);
-+	mi->fixed_txpower = (u8) -1;
 +	mi->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
 +			S_IRUGO | S_IWUGO, dir, &mi->fixed_txpower);
-+	mi->fixed_txrate = (u32) -1;
 +	mi->dbg_fixed_txrate = debugfs_create_u32("fixed_txrate",
 +			S_IRUGO | S_IWUGO, dir, &mi->fixed_txrate);
  }
  
  void
-@@ -232,6 +238,7 @@ minstrel_remove_sta_debugfs(void *priv,
+@@ -232,6 +236,7 @@ minstrel_remove_sta_debugfs(void *priv,
  	struct minstrel_sta_info *mi = priv_sta;
  
  	debugfs_remove(mi->dbg_stats);
@@ -162,6 +172,29 @@
  #endif
  
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
+@@ -1357,6 +1384,10 @@ use_legacy:
+ 	memset(&msp->legacy, 0, sizeof(msp->legacy));
+ 	msp->legacy.r = msp->ratelist;
+ 	msp->legacy.sample_table = msp->sample_table;
++#ifdef CPTCFG_MAC80211_DEBUGFS
++	msp->legacy.fixed_txpower = (u8) -1;
++	msp->legacy.fixed_txrate = (u32) -1;
++#endif
+ 	return mac80211_minstrel.rate_init(priv, sband, chandef, sta,
+ 					   &msp->legacy);
+ }
+@@ -1409,6 +1440,11 @@ minstrel_ht_alloc_sta(void *priv, struct
+ 	if (!msp->sample_table)
+ 		goto error1;
+ 
++#ifdef CPTCFG_MAC80211_DEBUGFS
++	msp->fixed_txpower = (u8) -1;
++	msp->fixed_txrate = (u32) -1;
++#endif
++
+ 	return msp;
+ 
+ error1:
 --- a/net/mac80211/rc80211_minstrel_ht.h
 +++ b/net/mac80211/rc80211_minstrel_ht.h
 @@ -111,6 +111,10 @@ struct minstrel_ht_sta_priv {
@@ -177,20 +210,18 @@
  	void *sample_table;
 --- a/net/mac80211/rc80211_minstrel_ht_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_ht_debugfs.c
-@@ -315,6 +315,12 @@ minstrel_ht_add_sta_debugfs(void *priv,
+@@ -315,6 +315,10 @@ minstrel_ht_add_sta_debugfs(void *priv,
  			&minstrel_ht_stat_fops);
  	msp->dbg_stats_csv = debugfs_create_file("rc_stats_csv", S_IRUGO,
  			     dir, msp, &minstrel_ht_stat_csv_fops);
-+	msp->fixed_txpower = (u8) -1;
 +	msp->dbg_fixed_txpower = debugfs_create_u8("fixed_txpower",
 +			S_IRUGO | S_IWUGO, dir, &msp->fixed_txpower);
-+	msp->fixed_txrate = (u32) -1;
 +	msp->dbg_fixed_txrate = debugfs_create_u32("fixed_txrate",
 +			S_IRUGO | S_IWUGO, dir, &msp->fixed_txrate);
  }
  
  void
-@@ -324,4 +330,6 @@ minstrel_ht_remove_sta_debugfs(void *pri
+@@ -324,4 +328,6 @@ minstrel_ht_remove_sta_debugfs(void *pri
  
  	debugfs_remove(msp->dbg_stats);
  	debugfs_remove(msp->dbg_stats_csv);
