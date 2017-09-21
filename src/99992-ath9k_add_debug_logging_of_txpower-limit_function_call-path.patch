@@ -13,7 +13,7 @@
  	ratetbl->rate[offset].idx = idx;
  	ratetbl->rate[offset].flags = flags;
 +
-+	printk(KERN_DEBUG "minstrel_ht_set_rate() @offset= %i with rate= %i and power= %i\n", offset, ratetbl->rate[offset].idx, ratetbl->rate[offset].txpower);
++	printk(KERN_DEBUG "minstrel_ht_set_rate() @offset= %i with rate= %i, power= %i, count= %i\n", offset, ratetbl->rate[offset].idx, ratetbl->rate[offset].txpower, ratetbl->rate[offset].count);
  }
  
  static inline int
@@ -30,7 +30,7 @@
 -	for (i = 0; i < ARRAY_SIZE(rates->rate); i++)
 +	for (i = 0; i < ARRAY_SIZE(rates->rate); i++) {
  		rates->rate[i].txpower = txpower;
-+		printk(KERN_DEBUG "minstrel_ht_update_rates() set rates->rate[%i].idx= %i .txpower = %i\n", i, rates->rate[i].idx, rates->rate[i].txpower);
++		printk(KERN_DEBUG "minstrel_ht_update_rates() set rates->rate[%i].idx= %i .txpower = %i .count = %i\n", i, rates->rate[i].idx, rates->rate[i].txpower, rates->rate[i].count);
 +	}
  	i = 0;
  
@@ -40,12 +40,12 @@
  		for (i = 0; i < ARRAY_SIZE(rates->rate); i++)
  			rates->rate[i].txpower = msp->fixed_txpower;
 +			printk(KERN_DEBUG "minstrel_ht: _update_rates() use "
-+				"fixed_txpower > rate[%i].idx=%i .txpower=%i\n",
-+				i, rates->rate[i].idx, rates->rate[i].txpower);
++				"fixed_txpower > rate[%i].idx=%i .txpower=%i .count=%i\n",
++				i, rates->rate[i].idx, rates->rate[i].txpower, rates->rate[i].count);
  	}
  #endif
  
-@@ -1079,8 +1088,13 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1078,8 +1087,13 @@ minstrel_ht_get_rate(void *priv, struct
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	if ((mp->fixed_rate_idx != -1) || (msp->fixed_txrate != -1)) {
  		/* use fixed txpower for rate sampling packets if set */
