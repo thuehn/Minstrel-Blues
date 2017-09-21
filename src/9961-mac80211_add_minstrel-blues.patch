@@ -610,7 +610,7 @@
 +#endif
 --- a/net/mac80211/rc80211_minstrel.c
 +++ b/net/mac80211/rc80211_minstrel.c
-@@ -705,6 +705,11 @@ minstrel_alloc(struct ieee80211_hw *hw,
+@@ -710,6 +710,11 @@ minstrel_alloc(struct ieee80211_hw *hw,
  
  	mp->hw = hw;
  
@@ -713,6 +713,18 @@
  };
  
  struct minstrel_ht_sta {
+@@ -101,6 +104,11 @@ struct minstrel_ht_sta {
+ 
+ 	/* MCS rate group info and statistics */
+ 	struct minstrel_mcs_group_data groups[MINSTREL_GROUPS_NB];
++
++	/* tpc settings */
++	u8 tpc_sample_probe_counter;
++	u8 tpc_measuring_point;
++	s8 tpc_ack_txpower;
+ };
+ 
+ struct minstrel_ht_sta_priv {
 --- a/net/mac80211/rc80211_minstrel_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_debugfs.c
 @@ -75,25 +75,25 @@ minstrel_stats_open(struct inode *inode,
@@ -866,3 +878,131 @@
  
  	return 0;
  }
+--- a/net/mac80211/rc80211_minstrel_ht_debugfs.c
++++ b/net/mac80211/rc80211_minstrel_ht_debugfs.c
+@@ -20,6 +20,7 @@ minstrel_ht_stats_dump(struct minstrel_h
+ {
+ 	const struct mcs_group *mg;
+ 	unsigned int j, tp_max, tp_avg, eprob, tx_time;
++	unsigned int ref_prob, data_prob, sample_prob;
+ 	char htmode = '2';
+ 	char gimode = 'L';
+ 	u32 gflags;
+@@ -39,6 +40,7 @@ minstrel_ht_stats_dump(struct minstrel_h
+ 
+ 	for (j = 0; j < MCS_GROUP_RATES; j++) {
+ 		struct minstrel_rate_stats *mrs = &mi->groups[i].rc_stats[j];
++		struct minstrel_tpc_stats *mts = &mi->groups[i].tpc_stats[j];
+ 		static const int bitrates[4] = { 10, 20, 55, 110 };
+ 		int idx = i * MCS_GROUP_RATES + j;
+ 		unsigned int prob_ewmsd;
+@@ -86,10 +88,15 @@ minstrel_ht_stats_dump(struct minstrel_h
+ 		tp_avg = minstrel_ht_get_tp_avg(mi, i, j, mrs->prob_ewma);
+ 		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
+ 		prob_ewmsd = minstrel_get_ewmsd10(mrs);
++		ref_prob = MINSTREL_TRUNC(mts->reference_prob * 1000);
++		data_prob = MINSTREL_TRUNC(mts->data_prob * 1000);
++		sample_prob = MINSTREL_TRUNC(mts->sample_prob * 1000);
+ 
+ 		p += sprintf(p, "%4u.%1u    %4u.%1u     %3u.%1u    %3u.%1u"
+ 				"     %3u   %3u %-3u   "
+-				"%9u   %-9u\n",
++				"%9u   %-9u    "
++				"%5u %-5u%3u.%1u %3u  %5u %-5u%3u.%1u %3u"
++				"  %5u %-5u%3u.%1u %3u\n",
+ 				tp_max / 10, tp_max % 10,
+ 				tp_avg / 10, tp_avg % 10,
+ 				eprob / 10, eprob % 10,
+@@ -98,7 +105,19 @@ minstrel_ht_stats_dump(struct minstrel_h
+ 				mrs->last_success,
+ 				mrs->last_attempts,
+ 				mrs->succ_hist,
+-				mrs->att_hist);
++				mrs->att_hist,
++				mts->sample_succ_hist,
++				mts->sample_att_hist,
++				sample_prob / 10, sample_prob % 10,
++				mts->sample_power,
++				mts->ref_succ_hist,
++				mts->ref_att_hist,
++				ref_prob / 10, ref_prob % 10,
++				mts->reference_power,
++				mts->data_success,
++				mts->data_attempts,
++				data_prob / 10, data_prob % 10,
++				mts->data_power);
+ 	}
+ 
+ 	return p;
+@@ -130,10 +149,9 @@ minstrel_ht_stats_open(struct inode *ino
+ 	p = ms->buf;
+ 
+ 	p += sprintf(p, "\n");
+-	p += sprintf(p,
+-		     "              best   ____________rate__________    ________statistics________    _____last____    ______sum-of________\n");
+-	p += sprintf(p,
+-		     "mode guard #  rate  [name   idx airtime  max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]\n");
++	p += sprintf(p,"              best   ____________rate__________    ________statistics________    _____last____    ______sum-of________    _________________________tpc-statistics__________________________\n");
++	p += sprintf(p,"mode guard #  rate  [name   idx airtime  max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]  [     sample-power    |   reference-power   |      data-power     ]\n");
++	p += sprintf(p,"															 [  suc|att   prob dBm |  suc|att   prob dBm |  suc|att   prob dBm ]\n");
+ 
+ 	p = minstrel_ht_stats_dump(mi, MINSTREL_CCK_GROUP, p);
+ 	for (i = 0; i < MINSTREL_CCK_GROUP; i++)
+@@ -150,6 +168,7 @@ minstrel_ht_stats_open(struct inode *ino
+ 		MINSTREL_TRUNC(mi->avg_ampdu_len * 10) % 10);
+ 	do_gettimeofday(&tv);
+ 	p += sprintf(p, "Timestamp: %ld.%.6ld\n", tv.tv_sec, tv.tv_usec);
++	p += sprintf(p, "tx-power of ack packets [dBm]: %2u\n\n", mi->tpc_ack_txpower);
+ 	ms->len = p - ms->buf;
+ 	WARN_ON(ms->len + sizeof(*ms) > 32768);
+ 
+@@ -170,6 +189,7 @@ minstrel_ht_stats_csv_dump(struct minstr
+ {
+ 	const struct mcs_group *mg;
+ 	unsigned int j, tp_max, tp_avg, eprob, tx_time;
++	unsigned int ref_prob, data_prob, sample_prob;
+ 	char htmode = '2';
+ 	char gimode = 'L';
+ 	u32 gflags;
+@@ -189,6 +209,7 @@ minstrel_ht_stats_csv_dump(struct minstr
+ 
+ 	for (j = 0; j < MCS_GROUP_RATES; j++) {
+ 		struct minstrel_rate_stats *mrs = &mi->groups[i].rc_stats[j];
++		struct minstrel_tpc_stats *mts = &mi->groups[i].tpc_stats[j];
+ 		static const int bitrates[4] = { 10, 20, 55, 110 };
+ 		int idx = i * MCS_GROUP_RATES + j;
+ 		unsigned int prob_ewmsd;
+@@ -235,9 +256,12 @@ minstrel_ht_stats_csv_dump(struct minstr
+ 		tp_avg = minstrel_ht_get_tp_avg(mi, i, j, mrs->prob_ewma);
+ 		eprob = MINSTREL_TRUNC(mrs->prob_ewma * 1000);
+ 		prob_ewmsd = minstrel_get_ewmsd10(mrs);
++		ref_prob = MINSTREL_TRUNC(mts->reference_prob * 1000);
++		data_prob = MINSTREL_TRUNC(mts->data_prob * 1000);
++		sample_prob = MINSTREL_TRUNC(mts->sample_prob * 1000);
+ 
+-		p += sprintf(p, "%u.%u,%u.%u,%u.%u,%u.%u,%u,%u,"
+-				"%u,%u,%u,",
++		p += sprintf(p, "%u.%u,%u.%u,%u.%u,%u.%u,%u,%u,%u,%u,%u,"
++				"%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,",
+ 				tp_max / 10, tp_max % 10,
+ 				tp_avg / 10, tp_avg % 10,
+ 				eprob / 10, eprob % 10,
+@@ -246,7 +270,17 @@ minstrel_ht_stats_csv_dump(struct minstr
+ 				mrs->last_success,
+ 				mrs->last_attempts,
+ 				mrs->succ_hist,
+-				mrs->att_hist);
++				mrs->att_hist,
++				sample_prob / 10, sample_prob % 10,
++				mts->sample_power,
++				mts->ref_succ_hist,
++				mts->ref_att_hist,
++				ref_prob / 10, ref_prob % 10,
++				mts->reference_power,
++				mts->data_success,
++				mts->data_attempts,
++				data_prob / 10, data_prob % 10,
++				mts->data_power);
+ 		p += sprintf(p, "%d,%d,%d.%d\n",
+ 				max(0, (int) mi->total_packets -
+ 				(int) mi->sample_packets),
