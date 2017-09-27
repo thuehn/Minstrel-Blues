@@ -142,15 +142,6 @@
  	IEEE80211_TX_CTL_SEND_AFTER_DTIM	= BIT(5),
  	IEEE80211_TX_CTL_AMPDU			= BIT(6),
  	IEEE80211_TX_CTL_INJECTED		= BIT(7),
-@@ -703,7 +701,7 @@ enum mac80211_tx_info_flags {
- 	IEEE80211_TX_STAT_NOACK_TRANSMITTED	= BIT(31),
- };
- 
--#define IEEE80211_TX_CTL_STBC_SHIFT		23
-+#define IEEE80211_TX_CTL_STBC_SHIFT		22
- 
- /**
-  * enum mac80211_tx_control_flags - flags to describe transmit control
 @@ -715,6 +713,7 @@ enum mac80211_tx_info_flags {
   * @IEEE80211_TX_CTRL_RATE_INJECT: This frame is injected with rate information
   * @IEEE80211_TX_CTRL_AMSDU: This frame is an A-MSDU frame
