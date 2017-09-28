@@ -230,73 +230,73 @@
  		return 1;
  
  	/* If the rate is slower than single-stream MCS1, make A-MSDU limit small */
-@@ -1072,13 +1072,13 @@ minstrel_ht_get_rate(void *priv, struct
- 		max_r = MCS_GROUP_RATES * ARRAY_SIZE(minstrel_mcs_groups) + 1;
- 		tmp_group = mi->max_tp_rate[0] / MCS_GROUP_RATES;
- 		tmp_idx = mi->max_tp_rate[0] % MCS_GROUP_RATES;
--		tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
-+		tmp_prob = mi->groups[tmp_group].rc_stats[tmp_idx].prob_ewma;
- 		cur_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx, tmp_prob);
- 		cur_max_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx,
- 						    MINSTREL_FRAC(100, 100));
- 		tmp_group = mi->max_tp_rate[1] / MCS_GROUP_RATES;
- 		tmp_idx = mi->max_tp_rate[1] % MCS_GROUP_RATES;
--		tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
-+		tmp_prob = mi->groups[tmp_group].rc_stats[tmp_idx].prob_ewma;
- 		cur_min_tp = minstrel_ht_get_tp_avg(mi, tmp_group,
- 						    tmp_idx, tmp_prob);
+@@ -1025,24 +1025,24 @@ minstrel_ht_find_sample_rate(struct mins
+ 	s_idx = sample_rate % MCS_GROUP_RATES;
+ 	s_group = sample_rate / MCS_GROUP_RATES;
+ 	s_dur = minstrel_get_duration(sample_rate); //duration or throughput ?
+-	s_skipped = mi->groups[s_group].rates[s_idx].sample_skipped;
+-	s_prob = mi->groups[s_group].rates[s_idx].prob_ewma;
++	s_skipped = mi->groups[s_group].rc_stats[s_idx].sample_skipped;
++	s_prob = mi->groups[s_group].rc_stats[s_idx].prob_ewma;
+ 	s_max_tp = minstrel_ht_get_tp_avg(mi, s_group, s_idx,
+ 					  MINSTREL_FRAC(100, 100));
  
-@@ -1087,13 +1087,13 @@ minstrel_ht_get_rate(void *priv, struct
- 			s_idx = sample_rate % MCS_GROUP_RATES;
- 			s_group = sample_rate / MCS_GROUP_RATES;
- 			s_dur = minstrel_get_duration(sample_rate); //duration or throughput ?
--			s_skipped = mi->groups[s_group].rates[s_idx].sample_skipped;
--			s_prob = mi->groups[s_group].rates[s_idx].prob_ewma;
-+			s_skipped = mi->groups[s_group].rc_stats[s_idx].sample_skipped;
-+			s_prob = mi->groups[s_group].rc_stats[s_idx].prob_ewma;
- 			s_max_tp = minstrel_ht_get_tp_avg(mi, s_group, s_idx,
- 							  MINSTREL_FRAC(100, 100));
+ 	tmp_group = mi->max_tp_rate[0] / MCS_GROUP_RATES;
+ 	tmp_idx = mi->max_tp_rate[0] % MCS_GROUP_RATES;
+-	tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
++	tmp_prob = mi->groups[tmp_group].rc_stats[tmp_idx].prob_ewma;
+ 	cur_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx, tmp_prob);
+ 	cur_max_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx,
+ 					    MINSTREL_FRAC(100, 100));
+ 	tmp_group = mi->max_tp_rate[1] / MCS_GROUP_RATES;
+ 	tmp_idx = mi->max_tp_rate[1] % MCS_GROUP_RATES;
+-	tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
++	tmp_prob = mi->groups[tmp_group].rc_stats[tmp_idx].prob_ewma;
+ 	cur_min_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx, tmp_prob);
  
- 			/* if no sample attempts happened, do initial sampling */
--			if (mi->groups[s_group].rates[s_idx].att_hist < 3)
-+			if (mi->groups[s_group].rc_stats[s_idx].att_hist < 3)
- 				break;
+ 	/* if no sample attempts happened, do initial sampling */
+-	if (mi->groups[s_group].rates[s_idx].att_hist < 3)
++	if (mi->groups[s_group].rc_stats[s_idx].att_hist < 3)
+ 		return sample_rate;
  
- 			/* skip current max_tp_rate for sampling */
-@@ -1111,7 +1111,7 @@ minstrel_ht_get_rate(void *priv, struct
- 			    (sample_rate == mi->max_tp_rate[2]))) ||
- 			    ((mp->hw->max_rates == 2) &&
- 			    (sample_rate == mi->max_tp_rate[1])))) {
--				mi->groups[s_group].rates[s_idx].sample_skipped++;
-+				mi->groups[s_group].rc_stats[s_idx].sample_skipped++;
- 				continue;
- 			}
+ 	/* skip current max_tp_rate for sampling */
+@@ -1060,7 +1060,7 @@ minstrel_ht_find_sample_rate(struct mins
+ 	    (sample_rate == mi->max_tp_rate[2]))) ||
+ 	    ((mp->hw->max_rates == 2) &&
+ 	    (sample_rate == mi->max_tp_rate[1])))) {
+-		mi->groups[s_group].rates[s_idx].sample_skipped++;
++		mi->groups[s_group].rc_stats[s_idx].sample_skipped++;
+ 		return -1;
+ 	}
  
-@@ -1119,7 +1119,7 @@ minstrel_ht_get_rate(void *priv, struct
- 			if ((s_skipped < random_skipp) &&
- 			    ((s_max_tp * 10 > 15 * cur_max_tp) ||
- 			     (s_max_tp * 15 < 10 * cur_min_tp))) {
--				mi->groups[s_group].rates[s_idx].sample_skipped++;
-+				mi->groups[s_group].rc_stats[s_idx].sample_skipped++;
- 				continue;
- 			}
+@@ -1068,7 +1068,7 @@ minstrel_ht_find_sample_rate(struct mins
+ 	if ((s_skipped < random_skipp) &&
+ 	    ((s_max_tp * 10 > 15 * cur_max_tp) ||
+ 	     (s_max_tp * 15 < 10 * cur_min_tp))) {
+-		mi->groups[s_group].rates[s_idx].sample_skipped++;
++		mi->groups[s_group].rc_stats[s_idx].sample_skipped++;
+ 		return -1;
+ 	}
  
-@@ -1127,12 +1127,12 @@ minstrel_ht_get_rate(void *priv, struct
- 			if ((s_skipped < random_skipp + 30) &&
- 			    ((s_prob < MINSTREL_FRAC(10, 100)) ||
- 			     (s_max_tp * 2 < cur_tp))) {
--				mi->groups[s_group].rates[s_idx].sample_skipped++;
-+				mi->groups[s_group].rc_stats[s_idx].sample_skipped++;
- 				continue;
- 			}
+@@ -1076,7 +1076,7 @@ minstrel_ht_find_sample_rate(struct mins
+ 	if ((s_skipped < random_skipp + 30) &&
+ 	    ((s_prob < MINSTREL_FRAC(10, 100)) ||
+ 	     (s_max_tp * 2 < cur_tp))) {
+-		mi->groups[s_group].rates[s_idx].sample_skipped++;
++		mi->groups[s_group].rc_stats[s_idx].sample_skipped++;
+ 		return -1;
+ 	}
  
- 			/* use chosen sample rate  */
--			mi->groups[s_group].rates[s_idx].sample_skipped = 0;
-+			mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
- 			break;
- 		}
- 
-@@ -1442,7 +1442,7 @@ static u32 minstrel_ht_get_expected_thro
+@@ -1155,7 +1155,7 @@ minstrel_ht_get_rate(void *priv, struct
+ 		/* annotate rate sampling with selected rate */
+ 		s_idx = sample_rate % MCS_GROUP_RATES;
+ 		s_group = sample_rate / MCS_GROUP_RATES;
+-		mi->groups[s_group].rates[s_idx].sample_skipped = 0;
++		mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
+ 		sampling_setup = &info->control.rates[0];
+ 		mi->sample_packets++;
+ 		info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
+@@ -1457,7 +1457,7 @@ static u32 minstrel_ht_get_expected_thro
  
  	i = mi->max_tp_rate[0] / MCS_GROUP_RATES;
  	j = mi->max_tp_rate[0] % MCS_GROUP_RATES;

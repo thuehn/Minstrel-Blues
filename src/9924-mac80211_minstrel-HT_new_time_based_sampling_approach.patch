@@ -58,7 +58,7 @@
  	if (info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
  		mi->sample_packets += info->status.ampdu_len;
  
-@@ -981,96 +967,75 @@ minstrel_get_duration(int index)
+@@ -981,96 +967,143 @@ minstrel_get_duration(int index)
  }
  
  static int
@@ -89,57 +89,19 @@
  
 -	if (!(mi->supported[sample_group] & BIT(sample_idx)))
 -		return -1;
--
--	mrs = &mg->rates[sample_idx];
--	sample_idx += sample_group * MCS_GROUP_RATES;
--
--	/* Set tp_rate1, tp_rate2 to the highest / second highest max_tp_rate */
--	if (minstrel_get_duration(mi->max_tp_rate[0]) >
--	    minstrel_get_duration(mi->max_tp_rate[1])) {
--		tp_rate1 = mi->max_tp_rate[1];
--		tp_rate2 = mi->max_tp_rate[0];
--	} else {
--		tp_rate1 = mi->max_tp_rate[0];
--		tp_rate2 = mi->max_tp_rate[1];
 +	while (!(mi->supported[sample_group] & BIT(sample_idx))) {
 +		sample_group = mi->sample_group;
 +		mg = &mi->groups[sample_group];
 +		sample_idx = sample_table[mg->column][mg->index];
 +		minstrel_set_next_sample_idx(mi);
- 	}
- 
--	/*
--	 * Sampling might add some overhead (RTS, no aggregation)
--	 * to the frame. Hence, don't use sampling for the highest currently
--	 * used highest throughput or probability rate.
--	 */
--	if (sample_idx == mi->max_tp_rate[0] || sample_idx == mi->max_prob_rate)
--		return -1;
--
--	/*
--	 * Do not sample if the probability is already higher than 95%
--	 * to avoid wasting airtime.
--	 */
--	if (mrs->prob_ewma > MINSTREL_FRAC(95, 100))
--		return -1;
--
--	/*
--	 * Make sure that lower rates get sampled only occasionally,
--	 * if the link is working perfectly.
--	 */
++	}
++
 +	sample_rate = sample_group * MCS_GROUP_RATES + sample_idx;
 +	return sample_rate;
 +}
  
--	cur_max_tp_streams = minstrel_mcs_groups[tp_rate1 /
--		MCS_GROUP_RATES].streams;
--	sample_dur = minstrel_get_duration(sample_idx);
--	if (sample_dur >= minstrel_get_duration(tp_rate2) &&
--	    (cur_max_tp_streams - 1 <
--	     minstrel_mcs_groups[sample_group].streams ||
--	     sample_dur >= minstrel_get_duration(mi->max_prob_rate))) {
--		if (mrs->sample_skipped < 20)
--			return -1;
+-	mrs = &mg->rates[sample_idx];
+-	sample_idx += sample_group * MCS_GROUP_RATES;
 +/* Check whether rate sampling is required */
 +static inline bool
 +minstrel_ht_requires_sampling(struct minstrel_ht_sta *mi,
@@ -154,21 +116,121 @@
 +	else
 +		rate_sampling_interval = RATE_SAMPLING_INT * 2;
  
--		if (mi->sample_slow++ > 2)
--			return -1;
+-	/* Set tp_rate1, tp_rate2 to the highest / second highest max_tp_rate */
+-	if (minstrel_get_duration(mi->max_tp_rate[0]) >
+-	    minstrel_get_duration(mi->max_tp_rate[1])) {
+-		tp_rate1 = mi->max_tp_rate[1];
+-		tp_rate2 = mi->max_tp_rate[0];
 +	if (mi->cur_rc_intersample_spacing >= MIN_INTERSAMPLE_SPACING &&
 +	    (time_after(jiffies, mi->last_rate_update +
 +	    (rate_sampling_interval * HZ) / 1000))) {
 +		mi->cur_rc_intersample_spacing = 0;
 +		mi->last_rate_update = jiffies;
 +		return true;
-+	} else {
+ 	} else {
+-		tp_rate1 = mi->max_tp_rate[0];
+-		tp_rate2 = mi->max_tp_rate[1];
 +		mi->cur_rc_intersample_spacing++;
 +		return false;
  	}
++}
+ 
+-	/*
+-	 * Sampling might add some overhead (RTS, no aggregation)
+-	 * to the frame. Hence, don't use sampling for the highest currently
+-	 * used highest throughput or probability rate.
+-	 */
+-	if (sample_idx == mi->max_tp_rate[0] || sample_idx == mi->max_prob_rate)
+-		return -1;
++static inline int
++minstrel_ht_find_sample_rate(struct minstrel_ht_sta *mi,
++			     struct minstrel_priv *mp, int i, int random_skipp)
++{
++	int sample_rate, s_idx, s_group, s_dur, s_skipped, s_prob, s_max_tp;
++	int tmp_group, tmp_idx, tmp_prob, cur_min_tp, cur_max_tp, cur_tp;
+ 
+-	/*
+-	 * Do not sample if the probability is already higher than 95%
+-	 * to avoid wasting airtime.
+-	 */
+-	if (mrs->prob_ewma > MINSTREL_FRAC(95, 100))
++	sample_rate = minstrel_ht_get_next_sample(mi);
++	s_idx = sample_rate % MCS_GROUP_RATES;
++	s_group = sample_rate / MCS_GROUP_RATES;
++	s_dur = minstrel_get_duration(sample_rate); //duration or throughput ?
++	s_skipped = mi->groups[s_group].rates[s_idx].sample_skipped;
++	s_prob = mi->groups[s_group].rates[s_idx].prob_ewma;
++	s_max_tp = minstrel_ht_get_tp_avg(mi, s_group, s_idx,
++					  MINSTREL_FRAC(100, 100));
++
++	tmp_group = mi->max_tp_rate[0] / MCS_GROUP_RATES;
++	tmp_idx = mi->max_tp_rate[0] % MCS_GROUP_RATES;
++	tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
++	cur_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx, tmp_prob);
++	cur_max_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx,
++					    MINSTREL_FRAC(100, 100));
++	tmp_group = mi->max_tp_rate[1] / MCS_GROUP_RATES;
++	tmp_idx = mi->max_tp_rate[1] % MCS_GROUP_RATES;
++	tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
++	cur_min_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx, tmp_prob);
++
++	/* if no sample attempts happened, do initial sampling */
++	if (mi->groups[s_group].rates[s_idx].att_hist < 3)
++		return sample_rate;
++
++	/* skip current max_tp_rate for sampling */
++	if (sample_rate == mi->max_tp_rate[0])
+ 		return -1;
+ 
+-	/*
+-	 * Make sure that lower rates get sampled only occasionally,
+-	 * if the link is working perfectly.
+-	 */
++	/* sample fallback rates less with respect to mrr stages */
++	if ((s_skipped < random_skipp / 2) &&
++	    (((mp->hw->max_rates == 4) &&
++	    ((sample_rate == mi->max_tp_rate[1]) ||
++	    (sample_rate == mi->max_tp_rate[2]) ||
++	    (sample_rate == mi->max_tp_rate[3]))) ||
++	    ((mp->hw->max_rates == 3) &&
++	    ((sample_rate == mi->max_tp_rate[1]) ||
++	    (sample_rate == mi->max_tp_rate[2]))) ||
++	    ((mp->hw->max_rates == 2) &&
++	    (sample_rate == mi->max_tp_rate[1])))) {
++		mi->groups[s_group].rates[s_idx].sample_skipped++;
++		return -1;
++	}
+ 
+-	cur_max_tp_streams = minstrel_mcs_groups[tp_rate1 /
+-		MCS_GROUP_RATES].streams;
+-	sample_dur = minstrel_get_duration(sample_idx);
+-	if (sample_dur >= minstrel_get_duration(tp_rate2) &&
+-	    (cur_max_tp_streams - 1 <
+-	     minstrel_mcs_groups[sample_group].streams ||
+-	     sample_dur >= minstrel_get_duration(mi->max_prob_rate))) {
+-		if (mrs->sample_skipped < 20)
+-			return -1;
++	/* Reduce sampling of rates 1.5x faster or slower */
++	if ((s_skipped < random_skipp) &&
++	    ((s_max_tp * 10 > 15 * cur_max_tp) ||
++	     (s_max_tp * 15 < 10 * cur_min_tp))) {
++		mi->groups[s_group].rates[s_idx].sample_skipped++;
++		return -1;
++	}
+ 
+-		if (mi->sample_slow++ > 2)
+-			return -1;
++	/* Reduce sampling of rates that do not perform or are too fast */
++	if ((s_skipped < random_skipp + 30) &&
++	    ((s_prob < MINSTREL_FRAC(10, 100)) ||
++	     (s_max_tp * 2 < cur_tp))) {
++		mi->groups[s_group].rates[s_idx].sample_skipped++;
++		return -1;
+ 	}
 -	mi->sample_tries--;
--
+ 
 -	return sample_idx;
++	return sample_rate;
  }
  
  static void
@@ -184,9 +246,8 @@
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct minstrel_priv *mp = priv;
 -	int sample_idx;
-+	int s_group, s_idx, s_prob, s_max_tp, s_skipped, s_dur, max_r, cur_tp;
-+	int i, random_skipp, cur_max_tp, cur_min_tp, tmp_group, tmp_idx, tmp_prob;
-+	unsigned int sample_rate;
++	int max_r, s_group, s_idx, i, random_skipp;
++	int sample_rate = -1;
 +	bool mrr_capable = false;
  
 +	/* management/no-ack frames do not use rate control */
@@ -197,7 +258,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1088,10 +1053,9 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1088,10 +1121,9 @@ minstrel_ht_get_rate(void *priv, struct
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
  	if (mp->hw->max_rates == 1 &&
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
@@ -210,72 +271,13 @@
  	mi->total_packets++;
  
  	/* wraparound */
-@@ -1100,25 +1064,113 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1100,25 +1132,60 @@ minstrel_ht_get_rate(void *priv, struct
  		mi->sample_packets = 0;
  	}
  
 -	if (sample_idx < 0)
 -		return;
 +	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
-+
-+	if (unlikely(minstrel_ht_requires_sampling(mi, mp, mrr_capable))) {
-+
-+		/* generate random packet skip interval */
-+		random_skipp = (u32)(((u64) prandom_u32() * RATE_SAMPLING_INT) >> 32);
-+
-+		max_r = MCS_GROUP_RATES * ARRAY_SIZE(minstrel_mcs_groups) + 1;
-+		tmp_group = mi->max_tp_rate[0] / MCS_GROUP_RATES;
-+		tmp_idx = mi->max_tp_rate[0] % MCS_GROUP_RATES;
-+		tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
-+		cur_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx, tmp_prob);
-+		cur_max_tp = minstrel_ht_get_tp_avg(mi, tmp_group, tmp_idx,
-+						    MINSTREL_FRAC(100, 100));
-+		tmp_group = mi->max_tp_rate[1] / MCS_GROUP_RATES;
-+		tmp_idx = mi->max_tp_rate[1] % MCS_GROUP_RATES;
-+		tmp_prob = mi->groups[tmp_group].rates[tmp_idx].prob_ewma;
-+		cur_min_tp = minstrel_ht_get_tp_avg(mi, tmp_group,
-+						    tmp_idx, tmp_prob);
-+
-+		for (i = max_r; i != 0; i--) {
-+			sample_rate = minstrel_ht_get_next_sample(mi);
-+			s_idx = sample_rate % MCS_GROUP_RATES;
-+			s_group = sample_rate / MCS_GROUP_RATES;
-+			s_dur = minstrel_get_duration(sample_rate); //duration or throughput ?
-+			s_skipped = mi->groups[s_group].rates[s_idx].sample_skipped;
-+			s_prob = mi->groups[s_group].rates[s_idx].prob_ewma;
-+			s_max_tp = minstrel_ht_get_tp_avg(mi, s_group, s_idx,
-+							  MINSTREL_FRAC(100, 100));
-+
-+			/* if no sample attempts happened, do initial sampling */
-+			if (mi->groups[s_group].rates[s_idx].att_hist < 3)
-+				break;
-+
-+			/* skip current max_tp_rate for sampling */
-+			if (sample_rate == mi->max_tp_rate[0])
-+				continue;
-+
-+			/* sample fallback rates less with respect to mrr stages */
-+			if ((s_skipped < random_skipp / 2) &&
-+			    (((mp->hw->max_rates == 4) &&
-+			    ((sample_rate == mi->max_tp_rate[1]) ||
-+			    (sample_rate == mi->max_tp_rate[2]) ||
-+			    (sample_rate == mi->max_tp_rate[3]))) ||
-+			    ((mp->hw->max_rates == 3) &&
-+			    ((sample_rate == mi->max_tp_rate[1]) ||
-+			    (sample_rate == mi->max_tp_rate[2]))) ||
-+			    ((mp->hw->max_rates == 2) &&
-+			    (sample_rate == mi->max_tp_rate[1])))) {
-+				mi->groups[s_group].rates[s_idx].sample_skipped++;
-+				continue;
-+			}
-+
-+			/* Reduce sampling of rates 1.5x faster or slower */
-+			if ((s_skipped < random_skipp) &&
-+			    ((s_max_tp * 10 > 15 * cur_max_tp) ||
-+			     (s_max_tp * 15 < 10 * cur_min_tp))) {
-+				mi->groups[s_group].rates[s_idx].sample_skipped++;
-+				continue;
-+			}
  
 -	sample_group = &minstrel_mcs_groups[sample_idx / MCS_GROUP_RATES];
 -	info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
@@ -287,29 +289,35 @@
 -	} else if (sample_group->flags & IEEE80211_TX_RC_VHT_MCS) {
 -		ieee80211_rate_set_vht(rate, sample_idx % MCS_GROUP_RATES,
 -				       sample_group->streams);
-+			/* Reduce sampling of rates that do not perform or are too fast */
-+			if ((s_skipped < random_skipp + 30) &&
-+			    ((s_prob < MINSTREL_FRAC(10, 100)) ||
-+			     (s_max_tp * 2 < cur_tp))) {
-+				mi->groups[s_group].rates[s_idx].sample_skipped++;
-+				continue;
-+			}
++	if (unlikely(minstrel_ht_requires_sampling(mi, mp, mrr_capable))) {
 +
-+			/* use chosen sample rate  */
-+			mi->groups[s_group].rates[s_idx].sample_skipped = 0;
-+			break;
++		/* generate random packet skip interval */
++		random_skipp = (u32)(((u64) prandom_u32() * RATE_SAMPLING_INT) >> 32);
++
++		/* find rate that is worth sampling */
++		max_r = MCS_GROUP_RATES * ARRAY_SIZE(minstrel_mcs_groups) + 1;
++		for (i = max_r; i != 0; i--) {
++			sample_rate = minstrel_ht_find_sample_rate(mi, mp, i,
++								   random_skipp);
++			if (sample_rate < 0)
++				continue;
++			else
++				break;
 +		}
 +
-+		/* if no sampling rate is found, skipp sampling attempt */
++		/* if no sampling rate is found, skip sampling attempt */
 +		if (i == 0)
 +			return;
 +
-+		/* Annotate rate sampling */
++		/* annotate rate sampling with selected rate */
++		s_idx = sample_rate % MCS_GROUP_RATES;
++		s_group = sample_rate / MCS_GROUP_RATES;
++		mi->groups[s_group].rates[s_idx].sample_skipped = 0;
 +		sampling_setup = &info->control.rates[0];
 +		mi->sample_packets++;
 +		info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
 +
-+		/* Assign proper sampling parameters */
++		/* assign proper sampling parameters */
 +		sampling_setup->count = 1;
 +		if (minstrel_mcs_groups[s_group].flags & IEEE80211_TX_RC_MCS) {
 +			sample_rate_group = &minstrel_mcs_groups[s_group];
@@ -340,7 +348,7 @@
  }
  
  static void
-@@ -1193,16 +1245,6 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1193,16 +1260,6 @@ minstrel_ht_update_caps(void *priv, stru
  
  	mi->avg_ampdu_len = MINSTREL_FRAC(1, 1);
  
@@ -357,7 +365,7 @@
  	if (!use_vht) {
  		stbc = (ht_cap & IEEE80211_HT_CAP_RX_STBC) >>
  			IEEE80211_HT_CAP_RX_STBC_SHIFT;
-@@ -1317,7 +1359,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1317,7 +1374,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
