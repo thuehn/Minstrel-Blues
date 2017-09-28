@@ -49,9 +49,9 @@
 +	WARN_ON_ONCE(power_dBm < -20 || power_dBm >= 40);
 +
 +	if ((power_dBm >= -20) && (power_dBm < - 10))
-+		power_uW = dBm2uW[power_dBm + 20] % 100;
++		power_uW = dBm2uW[power_dBm + 20] / 100;
 +	else if (power_dBm < 0)
-+		power_uW = dBm2uW[power_dBm + 10] % 10;
++		power_uW = dBm2uW[power_dBm + 10] / 10;
 +	else if (power_dBm < 10)
 +		power_uW = dBm2uW[power_dBm];
 +	else if (power_dBm < 20)
