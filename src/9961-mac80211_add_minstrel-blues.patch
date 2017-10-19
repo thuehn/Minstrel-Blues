@@ -499,8 +499,8 @@
 +/* check whether rate sampling is required */
 +bool
 +blues_requires_sampling(struct minstrel_sta_info *mi,
-+			     struct minstrel_priv *mp,
-+			     bool mrr_capable)
++			struct minstrel_priv *mp,
++			bool mrr_capable)
 +{
 +	int blues_sampling_interval;
 +
@@ -510,9 +510,9 @@
 +	else
 +		blues_sampling_interval = RATE_SAMPLING_INT * 4;
 +
-+	if (mi->last_tpc_sampling + blues_sampling_interval >
-+	    jiffies_to_msecs(jiffies)) {
-+		mi->last_tpc_sampling = jiffies;
++	if (time_after(jiffies, mi->last_tpc_update +
++	    (blues_sampling_interval * HZ) / 1000)) {
++		mi->last_tpc_update = jiffies;
 +		return true;
 +	} else {
 +		return false;
@@ -522,8 +522,8 @@
 +/* check whether rate sampling is required */
 +bool
 +blues_ht_requires_sampling(struct minstrel_ht_sta *mi,
-+			     struct minstrel_priv *mp,
-+			     bool mrr_capable)
++			   struct minstrel_priv *mp,
++			   bool mrr_capable)
 +{
 +	int blues_sampling_interval;
 +
@@ -533,9 +533,9 @@
 +	else
 +		blues_sampling_interval = RATE_SAMPLING_INT * 4;
 +
-+	if (mi->last_tpc_sampling + blues_sampling_interval >
-+	    jiffies_to_msecs(jiffies)) {
-+		mi->last_tpc_sampling = jiffies;
++	if (time_after(jiffies, mi->last_tpc_update +
++	    (blues_sampling_interval * HZ) / 1000)) {
++		mi->last_tpc_update = jiffies;
 +		return true;
 +	} else {
 +		return false;
@@ -717,7 +717,7 @@
  
  	unsigned long last_stats_update;
  	unsigned long last_rate_update;
-+	unsigned long last_tpc_sampling;
++	unsigned long last_tpc_update;
  	unsigned int sp_ack_dur;
  	unsigned int rate_avg;
  
@@ -779,7 +779,7 @@
  	unsigned long last_rate_update;
  
 +	/* time of last tpc sampling update */
-+	unsigned long last_tpc_sampling;
++	unsigned long last_tpc_update;
 +
  	/* min # of packets between sample attempts */
  	u8 cur_rc_intersample_spacing;
@@ -1087,19 +1087,27 @@
  
  #define AVG_AMPDU_SIZE	16
  #define AVG_PKT_SIZE	1200
-@@ -1188,38 +1189,53 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1125,6 +1126,7 @@ minstrel_ht_get_rate(void *priv, struct
+ 	struct minstrel_ht_sta_priv *msp = priv_sta;
+ 	struct minstrel_ht_sta *mi = &msp->ht;
+ 	struct minstrel_priv *mp = priv;
++	struct minstrel_tpc_stats *s_stats;
+ 	int max_r, s_group, s_idx, i, random_skipp;
+ 	int sample_rate = -1;
+ 	bool mrr_capable = false;
+@@ -1187,39 +1189,49 @@ minstrel_ht_get_rate(void *priv, struct
+ 		/* if no sampling rate is found, skip sampling attempt */
  		if (i == 0)
  			return;
- 
+-
 -		/* annotate rate sampling with selected rate */
-+		/* change sample counter accordingly */
- 		s_idx = sample_rate % MCS_GROUP_RATES;
- 		s_group = sample_rate / MCS_GROUP_RATES;
- 		mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
+-		s_idx = sample_rate % MCS_GROUP_RATES;
+-		s_group = sample_rate / MCS_GROUP_RATES;
+-		mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
 -		sampling_setup = &info->control.rates[0];
- 		mi->sample_packets++;
+-		mi->sample_packets++;
 -		info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
- 
+-
 -		/* assign proper sampling parameters */
 -		sampling_setup->count = 1;
 -		if (minstrel_mcs_groups[s_group].flags & IEEE80211_TX_RC_MCS) {
@@ -1115,7 +1123,6 @@
 -			sampling_setup->flags = minstrel_mcs_groups[s_group].flags;
 -			return;
 +	} else if (unlikely(blues_ht_requires_sampling(mi, mp, mrr_capable))){
-+		struct minstrel_tpc_stats *s_stats;
 +		/* Blues sampling for TPC */
 +		sample_rate = blues_ht_get_next_sample_rate(mi);
 +
@@ -1133,13 +1140,16 @@
 +			info->control.txpower = s_stats->reference_power;
 +			printk(KERN_ERR "tpc_reference sampling!\n");
  		}
-+
  	} else {
  		 /* no rate sampling required */
  		 return;
  	}
 +
 +	/* assign proper sampling parameters */
++	s_idx = sample_rate % MCS_GROUP_RATES;
++	s_group = sample_rate / MCS_GROUP_RATES;
++	mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
++	mi->sample_packets++;
 +	info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
 +	sampling_setup = &info->control.rates[0];
 +	sampling_setup->count = 1;
@@ -1159,6 +1169,14 @@
 +		sampling_setup->flags = 0;
 +		return;
 +	}
+ }
+ 
+ static void
+@@ -1416,6 +1428,7 @@ minstrel_ht_rate_init(void *priv, struct
+ 
+ 	minstrel_ht_update_caps(priv, sband, chandef, sta, priv_sta);
+ 	msp->ht.last_rate_update = jiffies;
++	msp->ht.last_tpc_update = jiffies;
  }
  
  static void
