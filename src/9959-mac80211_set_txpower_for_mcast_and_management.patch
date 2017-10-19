@@ -1,6 +1,6 @@
 --- a/net/mac80211/rate.c
 +++ b/net/mac80211/rate.c
-@@ -372,6 +372,9 @@ bool rate_control_send_low(struct ieee80
+@@ -401,6 +401,9 @@ bool rate_control_send_low(struct ieee80
  					      txrc->bss_conf->basic_rates,
  					      sband);
  

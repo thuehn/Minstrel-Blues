@@ -20,7 +20,7 @@
  
  	hw->wiphy->interface_modes =
  		BIT(NL80211_IFTYPE_AP) |
-@@ -2629,6 +2631,9 @@ ath5k_init_ah(struct ath5k_hw *ah, const
+@@ -2631,6 +2633,9 @@ ath5k_init_ah(struct ath5k_hw *ah, const
  					 AR5K_INIT_RETRY_LONG);
  	}
  

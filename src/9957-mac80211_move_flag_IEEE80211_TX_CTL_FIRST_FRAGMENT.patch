@@ -1,6 +1,6 @@
 --- a/drivers/net/wireless/ath/ath10k/mac.h
 +++ b/drivers/net/wireless/ath/ath10k/mac.h
-@@ -99,7 +99,7 @@ static inline void ath10k_tx_h_seq_no(st
+@@ -94,7 +94,7 @@ static inline void ath10k_tx_h_seq_no(st
  		if (arvif->tx_seq_no == 0)
  			arvif->tx_seq_no = 0x1000;
  
@@ -117,7 +117,7 @@
  	/* No ACK expected (multicast, etc.) */
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -578,7 +578,7 @@ struct ieee80211_bss_conf {
+@@ -596,7 +596,7 @@ struct ieee80211_bss_conf {
   * @IEEE80211_TX_CTL_ASSIGN_SEQ: The driver has to assign a sequence
   *	number to this frame, taking care of not overwriting the fragment
   *	number and increasing the sequence number only when the
@@ -126,7 +126,7 @@
   *	assign sequence numbers to QoS-data frames but cannot do so correctly
   *	for non-QoS-data and management frames because beacons need them from
   *	that counter as well and mac80211 cannot guarantee proper sequencing.
-@@ -589,7 +589,6 @@ struct ieee80211_bss_conf {
+@@ -607,7 +607,6 @@ struct ieee80211_bss_conf {
   * @IEEE80211_TX_CTL_NO_ACK: tell the low level not to wait for an ack
   * @IEEE80211_TX_CTL_CLEAR_PS_FILT: clear powersave filter for destination
   *	station
@@ -134,7 +134,7 @@
   * @IEEE80211_TX_CTL_SEND_AFTER_DTIM: send this frame after DTIM beacon
   * @IEEE80211_TX_CTL_AMPDU: this frame should be sent as part of an A-MPDU
   * @IEEE80211_TX_CTL_INJECTED: Frame was injected, internal to mac80211.
-@@ -674,7 +673,6 @@ enum mac80211_tx_info_flags {
+@@ -692,7 +691,6 @@ enum mac80211_tx_info_flags {
  	IEEE80211_TX_CTL_ASSIGN_SEQ		= BIT(1),
  	IEEE80211_TX_CTL_NO_ACK			= BIT(2),
  	IEEE80211_TX_CTL_CLEAR_PS_FILT		= BIT(3),
@@ -142,7 +142,7 @@
  	IEEE80211_TX_CTL_SEND_AFTER_DTIM	= BIT(5),
  	IEEE80211_TX_CTL_AMPDU			= BIT(6),
  	IEEE80211_TX_CTL_INJECTED		= BIT(7),
-@@ -715,6 +713,7 @@ enum mac80211_tx_info_flags {
+@@ -733,6 +731,7 @@ enum mac80211_tx_info_flags {
   * @IEEE80211_TX_CTRL_RATE_INJECT: This frame is injected with rate information
   * @IEEE80211_TX_CTRL_AMSDU: This frame is an A-MSDU frame
   * @IEEE80211_TX_CTRL_FAST_XMIT: This frame is going through the fast_xmit path
@@ -150,7 +150,7 @@
   *
   * These flags are used in tx_info->control.flags.
   */
-@@ -724,6 +723,7 @@ enum mac80211_tx_control_flags {
+@@ -742,6 +741,7 @@ enum mac80211_tx_control_flags {
  	IEEE80211_TX_CTRL_RATE_INJECT		= BIT(2),
  	IEEE80211_TX_CTRL_AMSDU			= BIT(3),
  	IEEE80211_TX_CTRL_FAST_XMIT		= BIT(4),
@@ -158,7 +158,7 @@
  };
  
  /*
-@@ -731,13 +731,13 @@ enum mac80211_tx_control_flags {
+@@ -749,13 +749,13 @@ enum mac80211_tx_control_flags {
   * set by the tx handlers for each transmission attempt by the mac80211 stack.
   */
  #define IEEE80211_TX_TEMPORARY_FLAGS (IEEE80211_TX_CTL_NO_ACK |		      \
@@ -176,7 +176,7 @@
   * enum mac80211_rate_control_flags - per-rate flags set by the
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -896,8 +896,8 @@ static int ieee80211_fragment(struct iee
+@@ -892,8 +892,8 @@ static int ieee80211_fragment(struct iee
  		memcpy(tmp->cb, skb->cb, sizeof(tmp->cb));
  
  		info = IEEE80211_SKB_CB(tmp);
@@ -187,7 +187,7 @@
  
  		if (rem)
  			info->flags |= IEEE80211_TX_CTL_MORE_FRAMES;
-@@ -1236,7 +1236,7 @@ ieee80211_tx_prepare(struct ieee80211_su
+@@ -1232,7 +1232,7 @@ ieee80211_tx_prepare(struct ieee80211_su
  		ieee80211_check_fast_xmit(tx->sta);
  	}
  
@@ -196,7 +196,7 @@
  
  	return TX_CONTINUE;
  }
-@@ -3362,10 +3362,10 @@ static bool ieee80211_xmit_fast(struct i
+@@ -3360,10 +3360,10 @@ static bool ieee80211_xmit_fast(struct i
  	memset(info, 0, sizeof(*info));
  	info->band = fast_tx->band;
  	info->control.vif = &sdata->vif;
@@ -210,7 +210,7 @@
  
  	if (hdr->frame_control & cpu_to_le16(IEEE80211_STYPE_QOS_DATA)) {
  		tid = skb->priority & IEEE80211_QOS_CTL_TAG1D_MASK;
-@@ -4270,8 +4270,8 @@ __ieee80211_beacon_get(struct ieee80211_
+@@ -4287,8 +4287,8 @@ __ieee80211_beacon_get(struct ieee80211_
  	info->control.vif = vif;
  
  	info->flags |= IEEE80211_TX_CTL_CLEAR_PS_FILT |

@@ -158,7 +158,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, rates);
  }
  
-@@ -1053,8 +1076,12 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1121,8 +1144,12 @@ minstrel_ht_get_rate(void *priv, struct
  	info->flags |= mi->tx_flags;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -172,7 +172,7 @@
  #endif
  
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
-@@ -1357,6 +1384,10 @@ use_legacy:
+@@ -1372,6 +1399,10 @@ use_legacy:
  	memset(&msp->legacy, 0, sizeof(msp->legacy));
  	msp->legacy.r = msp->ratelist;
  	msp->legacy.sample_table = msp->sample_table;
@@ -183,7 +183,7 @@
  	return mac80211_minstrel.rate_init(priv, sband, chandef, sta,
  					   &msp->legacy);
  }
-@@ -1409,6 +1440,11 @@ minstrel_ht_alloc_sta(void *priv, struct
+@@ -1424,6 +1455,11 @@ minstrel_ht_alloc_sta(void *priv, struct
  	if (!msp->sample_table)
  		goto error1;
  

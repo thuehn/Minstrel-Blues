@@ -13,7 +13,7 @@
  rc80211_minstrel_ht-y := rc80211_minstrel_ht.o
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -0,0 +1,515 @@
+@@ -0,0 +1,570 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -441,32 +441,87 @@
 +	return u;
 +}
 +
-+static int
-+blues_get_next_sample(struct minstrel_sta_info *mi)
++int
++blues_get_next_sample_rate(struct minstrel_sta_info *mi)
 +{
-+	unsigned int sample_ndx;
++	unsigned int sample_rate;
 +
 +	/* for TPC sampling alternate between all max_tp_rates */
 +	if (mi->tpc_measuring_point == 0) {
-+		sample_ndx = mi->max_tp_rate[0];
++		sample_rate = mi->max_tp_rate[0];
 +		mi->tpc_measuring_point = 1;
 +	} else if (mi->tpc_measuring_point == 1) {
-+		sample_ndx = mi->max_tp_rate[1];
++		sample_rate = mi->max_tp_rate[1];
 +		mi->tpc_measuring_point = 2;
 +	} else {
-+		if (mi->r[mi->max_tp_rate[2]].perfect_tx_time > mi->r[mi->max_tp_rate[0]].perfect_tx_time)
-+			sample_ndx = mi->max_tp_rate[2];
++		if (mi->r[mi->max_tp_rate[2]].perfect_tx_time >
++		    mi->r[mi->max_tp_rate[0]].perfect_tx_time)
++			sample_rate = mi->max_tp_rate[2];
 +		else
-+			sample_ndx = mi->max_prob_rate;
++			sample_rate = mi->max_prob_rate;
 +
 +		mi->tpc_measuring_point = 1;
 +	}
-+	return sample_ndx;
++	return sample_rate;
++}
++
++int
++blues_ht_get_next_sample_rate(struct minstrel_ht_sta *mi)
++{
++	unsigned int sample_rate;
++	int tmp_idx, tmp_group, dur_rate0, dur_rate2;
++
++	/* for TPC sampling alternate between all max_tp_rates */
++	if (mi->tpc_measuring_point == 0) {
++		sample_rate = mi->max_tp_rate[0];
++		mi->tpc_measuring_point = 1;
++	} else if (mi->tpc_measuring_point == 1) {
++		sample_rate = mi->max_tp_rate[1];
++		mi->tpc_measuring_point = 2;
++	} else {
++		tmp_idx = mi->max_tp_rate[0] % MCS_GROUP_RATES;
++		tmp_group = mi->max_tp_rate[0] / MCS_GROUP_RATES;
++		dur_rate0 = minstrel_mcs_groups[tmp_group].duration[tmp_idx];
++		tmp_idx = mi->max_tp_rate[2] % MCS_GROUP_RATES;
++		tmp_group = mi->max_tp_rate[2] / MCS_GROUP_RATES;
++		dur_rate2 = minstrel_mcs_groups[tmp_group].duration[tmp_idx];
++
++		if (dur_rate2 > dur_rate0)
++			sample_rate = mi->max_tp_rate[2];
++		else
++			sample_rate = mi->max_prob_rate;
++
++		mi->tpc_measuring_point = 1;
++	}
++	return sample_rate;
 +}
 +
 +/* check whether rate sampling is required */
 +bool
 +blues_requires_sampling(struct minstrel_sta_info *mi,
++			     struct minstrel_priv *mp,
++			     bool mrr_capable)
++{
++	int blues_sampling_interval;
++
++	/* Check multi-rate-retry capabilities & adjust sampling interval */
++	if (mrr_capable)
++		blues_sampling_interval = RATE_SAMPLING_INT * 2;
++	else
++		blues_sampling_interval = RATE_SAMPLING_INT * 4;
++
++	if (mi->last_tpc_sampling + blues_sampling_interval >
++	    jiffies_to_msecs(jiffies)) {
++		mi->last_tpc_sampling = jiffies;
++		return true;
++	} else {
++		return false;
++	}
++}
++
++/* check whether rate sampling is required */
++bool
++blues_ht_requires_sampling(struct minstrel_ht_sta *mi,
 +			     struct minstrel_priv *mp,
 +			     bool mrr_capable)
 +{
@@ -531,7 +586,7 @@
 +}
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.h
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,83 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -555,6 +610,7 @@
 +#include <net/mac80211.h>
 +#include "rate.h"
 +#include "rc80211_minstrel.h"
++#include "rc80211_minstrel_ht.h"
 +
 +#define TPC_SAMPLE_POWER_SPAN 2		/* min span of sample below ref.power */
 +#define TPC_MIN_POWER_DECREMENT 1	/* step width of tx-power decrease */
@@ -606,7 +662,13 @@
 +			     struct minstrel_priv *mp,
 +			     bool mrr_capable);
 +
++bool blues_ht_requires_sampling(struct minstrel_ht_sta *mi,
++				struct minstrel_priv *mp,
++				bool mrr_capable);
 +
++int blues_get_next_sample_rate(struct minstrel_sta_info *mi);
++
++int blues_ht_get_next_sample_rate(struct minstrel_ht_sta *mi);
 +#endif
 --- a/net/mac80211/rc80211_minstrel.c
 +++ b/net/mac80211/rc80211_minstrel.c
@@ -659,11 +721,10 @@
  	unsigned int sp_ack_dur;
  	unsigned int rate_avg;
  
-@@ -118,6 +132,11 @@ struct minstrel_sta_info {
+@@ -118,6 +132,10 @@ struct minstrel_sta_info {
  	/* sampling table */
  	u8 *sample_table;
  
-+	/* tpc settings */
 +	u8 tpc_sample_probe_counter;
 +	u8 tpc_measuring_point;
 +	s8 tpc_ack_txpower;
@@ -671,7 +732,7 @@
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	struct dentry *dbg_stats;
  	struct dentry *dbg_stats_csv;
-@@ -136,6 +155,11 @@ struct minstrel_priv {
+@@ -136,6 +154,11 @@ struct minstrel_priv {
  	unsigned int segment_size;
  	bool has_mrr;
  
@@ -683,7 +744,7 @@
  	u8 cck_rates[4];
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
-@@ -147,6 +171,17 @@ struct minstrel_priv {
+@@ -147,6 +170,17 @@ struct minstrel_priv {
  	 */
  	u32 fixed_rate_idx;
  	struct dentry *dbg_fixed_rate;
@@ -713,12 +774,21 @@
  };
  
  struct minstrel_ht_sta {
-@@ -101,6 +104,11 @@ struct minstrel_ht_sta {
+@@ -76,6 +79,9 @@ struct minstrel_ht_sta {
+ 	/* time of last rate sampling update */
+ 	unsigned long last_rate_update;
+ 
++	/* time of last tpc sampling update */
++	unsigned long last_tpc_sampling;
++
+ 	/* min # of packets between sample attempts */
+ 	u8 cur_rc_intersample_spacing;
+ 
+@@ -101,6 +107,10 @@ struct minstrel_ht_sta {
  
  	/* MCS rate group info and statistics */
  	struct minstrel_mcs_group_data groups[MINSTREL_GROUPS_NB];
 +
-+	/* tpc settings */
 +	u8 tpc_sample_probe_counter;
 +	u8 tpc_measuring_point;
 +	s8 tpc_ack_txpower;
@@ -1007,3 +1077,88 @@
  		p += sprintf(p, "%d,%d,%d.%d\n",
  				max(0, (int) mi->total_packets -
  				(int) mi->sample_packets),
+--- a/net/mac80211/rc80211_minstrel_ht.c
++++ b/net/mac80211/rc80211_minstrel_ht.c
+@@ -17,6 +17,7 @@
+ #include "sta_info.h"
+ #include "rc80211_minstrel.h"
+ #include "rc80211_minstrel_ht.h"
++#include "tpc80211_blues.h"
+ 
+ #define AVG_AMPDU_SIZE	16
+ #define AVG_PKT_SIZE	1200
+@@ -1188,38 +1189,53 @@ minstrel_ht_get_rate(void *priv, struct
+ 		if (i == 0)
+ 			return;
+ 
+-		/* annotate rate sampling with selected rate */
++		/* change sample counter accordingly */
+ 		s_idx = sample_rate % MCS_GROUP_RATES;
+ 		s_group = sample_rate / MCS_GROUP_RATES;
+ 		mi->groups[s_group].rc_stats[s_idx].sample_skipped = 0;
+-		sampling_setup = &info->control.rates[0];
+ 		mi->sample_packets++;
+-		info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
+ 
+-		/* assign proper sampling parameters */
+-		sampling_setup->count = 1;
+-		if (minstrel_mcs_groups[s_group].flags & IEEE80211_TX_RC_MCS) {
+-			sample_rate_group = &minstrel_mcs_groups[s_group];
+-			sampling_setup->idx = s_idx +
+-					(sample_rate_group->streams - 1) * 8;
+-			sampling_setup->flags =minstrel_mcs_groups[s_group].flags;
+-			return;
+-		} else if (minstrel_mcs_groups[s_group].flags
+-			   & IEEE80211_TX_RC_VHT_MCS) {
+-			ieee80211_rate_set_vht(sampling_setup, s_idx,
+-					  minstrel_mcs_groups[s_group].streams);
+-			sampling_setup->flags = minstrel_mcs_groups[s_group].flags;
+-			return;
++	} else if (unlikely(blues_ht_requires_sampling(mi, mp, mrr_capable))){
++		struct minstrel_tpc_stats *s_stats;
++		/* Blues sampling for TPC */
++		sample_rate = blues_ht_get_next_sample_rate(mi);
++
++		/* keep a balanced sampling between tpc_ref and tpc_sample */
++		s_stats = &mi->groups[sample_rate / MCS_GROUP_RATES].
++				tpc_stats[sample_rate % MCS_GROUP_RATES];
++		if (s_stats->reference_attempts > s_stats->sample_attempts) {
++			info->control.txpower = s_stats->sample_power;
++			printk(KERN_ERR "tpc_sample sampling!\n");
+ 		} else {
+-			int idx = sample_rate % ARRAY_SIZE(mp->cck_rates);
+-			sampling_setup->idx = mp->cck_rates[idx];
+-			sampling_setup->flags = 0;
+-			return;
++			info->control.txpower = s_stats->reference_power;
++			printk(KERN_ERR "tpc_reference sampling!\n");
+ 		}
++
+ 	} else {
+ 		 /* no rate sampling required */
+ 		 return;
+ 	}
++
++	/* assign proper sampling parameters */
++	info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
++	sampling_setup = &info->control.rates[0];
++	sampling_setup->count = 1;
++	if (minstrel_mcs_groups[s_group].flags & IEEE80211_TX_RC_MCS) {
++		sample_rate_group = &minstrel_mcs_groups[s_group];
++		sampling_setup->idx = s_idx + (sample_rate_group->streams - 1) * 8;
++		sampling_setup->flags =minstrel_mcs_groups[s_group].flags;
++		return;
++	} else if (minstrel_mcs_groups[s_group].flags & IEEE80211_TX_RC_VHT_MCS) {
++		ieee80211_rate_set_vht(sampling_setup, s_idx,
++				       minstrel_mcs_groups[s_group].streams);
++		sampling_setup->flags = minstrel_mcs_groups[s_group].flags;
++		return;
++	} else {
++		int idx = sample_rate % ARRAY_SIZE(mp->cck_rates);
++		sampling_setup->idx = mp->cck_rates[idx];
++		sampling_setup->flags = 0;
++		return;
++	}
+ }
+ 
+ static void

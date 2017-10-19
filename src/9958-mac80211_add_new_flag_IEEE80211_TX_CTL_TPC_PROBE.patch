@@ -1,6 +1,6 @@
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -589,6 +589,8 @@ struct ieee80211_bss_conf {
+@@ -607,6 +607,8 @@ struct ieee80211_bss_conf {
   * @IEEE80211_TX_CTL_NO_ACK: tell the low level not to wait for an ack
   * @IEEE80211_TX_CTL_CLEAR_PS_FILT: clear powersave filter for destination
   *	station
@@ -9,7 +9,7 @@
   * @IEEE80211_TX_CTL_SEND_AFTER_DTIM: send this frame after DTIM beacon
   * @IEEE80211_TX_CTL_AMPDU: this frame should be sent as part of an A-MPDU
   * @IEEE80211_TX_CTL_INJECTED: Frame was injected, internal to mac80211.
-@@ -673,6 +675,7 @@ enum mac80211_tx_info_flags {
+@@ -691,6 +693,7 @@ enum mac80211_tx_info_flags {
  	IEEE80211_TX_CTL_ASSIGN_SEQ		= BIT(1),
  	IEEE80211_TX_CTL_NO_ACK			= BIT(2),
  	IEEE80211_TX_CTL_CLEAR_PS_FILT		= BIT(3),
@@ -17,7 +17,7 @@
  	IEEE80211_TX_CTL_SEND_AFTER_DTIM	= BIT(5),
  	IEEE80211_TX_CTL_AMPDU			= BIT(6),
  	IEEE80211_TX_CTL_INJECTED		= BIT(7),
-@@ -737,7 +740,7 @@ enum mac80211_tx_control_flags {
+@@ -755,7 +758,7 @@ enum mac80211_tx_control_flags {
  	IEEE80211_TX_STAT_AMPDU | IEEE80211_TX_STAT_AMPDU_NO_BACK |	      \
  	IEEE80211_TX_CTL_RATE_CTRL_PROBE | IEEE80211_TX_CTL_NO_PS_BUFFER |    \
  	IEEE80211_TX_CTL_MORE_FRAMES | IEEE80211_TX_CTL_LDPC |		      \

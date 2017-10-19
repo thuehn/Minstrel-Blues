@@ -1,6 +1,6 @@
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -895,7 +895,12 @@ struct ieee80211_tx_info {
+@@ -913,7 +913,12 @@ struct ieee80211_tx_info {
  					u8 use_cts_prot:1;
  					u8 short_preamble:1;
  					u8 skip_table:1;
@@ -14,7 +14,7 @@
  				};
  				/* only needed before rate control */
  				unsigned long jiffies;
-@@ -1277,6 +1282,7 @@ enum ieee80211_conf_flags {
+@@ -1290,6 +1295,7 @@ enum ieee80211_conf_flags {
   * @IEEE80211_CONF_CHANGE_SMPS: Spatial multiplexing powersave mode changed
   *	Note that this is only valid if channel contexts are not used,
   *	otherwise each channel context has the number of chains listed.
@@ -22,7 +22,7 @@
   */
  enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_SMPS		= BIT(1),
-@@ -1287,6 +1293,7 @@ enum ieee80211_conf_changed {
+@@ -1300,6 +1306,7 @@ enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_CHANNEL		= BIT(6),
  	IEEE80211_CONF_CHANGE_RETRY_LIMITS	= BIT(7),
  	IEEE80211_CONF_CHANGE_IDLE		= BIT(8),
@@ -30,7 +30,7 @@
  };
  
  /**
-@@ -1342,6 +1349,11 @@ enum ieee80211_smps_mode {
+@@ -1355,6 +1362,11 @@ enum ieee80211_smps_mode {
   *	configured for an HT channel.
   *	Note that this is only valid if channel contexts are not used,
   *	otherwise each channel context has the number of chains listed.
@@ -42,7 +42,7 @@
   */
  struct ieee80211_conf {
  	u32 flags;
-@@ -1356,6 +1368,8 @@ struct ieee80211_conf {
+@@ -1369,6 +1381,8 @@ struct ieee80211_conf {
  	struct cfg80211_chan_def chandef;
  	bool radar_enabled;
  	enum ieee80211_smps_mode smps_mode;
@@ -51,7 +51,7 @@
  };
  
  /**
-@@ -1716,13 +1730,14 @@ enum ieee80211_sta_rx_bandwidth {
+@@ -1729,13 +1743,14 @@ enum ieee80211_sta_rx_bandwidth {
   * struct ieee80211_sta_rates - station rate selection table
   *
   * @rcu_head: RCU head used for freeing the table on update
@@ -67,7 +67,7 @@
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
-@@ -2048,6 +2063,16 @@ struct ieee80211_txq {
+@@ -2061,6 +2076,16 @@ struct ieee80211_txq {
   * @IEEE80211_HW_NEEDS_ALIGNED4_SKBS: Driver need aligned skbs to four-byte.
   *	Padding will be added after ieee80211_hdr, before IV/LLC.
   *
@@ -84,7 +84,7 @@
   * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
   */
  enum ieee80211_hw_flags {
-@@ -2091,6 +2116,9 @@ enum ieee80211_hw_flags {
+@@ -2104,6 +2129,9 @@ enum ieee80211_hw_flags {
  	IEEE80211_HW_REPORTS_LOW_ACK,
  	IEEE80211_HW_SUPPORTS_TX_FRAG,
  	IEEE80211_HW_NEEDS_ALIGNED4_SKBS,
@@ -94,7 +94,7 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2206,6 +2234,9 @@ enum ieee80211_hw_flags {
+@@ -2219,6 +2247,9 @@ enum ieee80211_hw_flags {
   *	supported by HW.
   * @max_nan_de_entries: maximum number of NAN DE functions supported by the
   *	device.
@@ -104,7 +104,7 @@
   */
  struct ieee80211_hw {
  	struct ieee80211_conf conf;
-@@ -2241,6 +2272,7 @@ struct ieee80211_hw {
+@@ -2254,6 +2285,7 @@ struct ieee80211_hw {
  	u8 n_cipher_schemes;
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	u8 max_nan_de_entries;
@@ -114,7 +114,7 @@
  static inline bool _ieee80211_hw_check(struct ieee80211_hw *hw,
 --- a/net/mac80211/rate.c
 +++ b/net/mac80211/rate.c
-@@ -848,6 +848,8 @@ void rate_control_get_rate(struct ieee80
+@@ -899,6 +899,8 @@ void rate_control_get_rate(struct ieee80
  		info->control.rates[i].count = 0;
  	}
  
@@ -201,7 +201,7 @@
  	}
  
  	return changed;
-@@ -1080,6 +1081,12 @@ int ieee80211_register_hw(struct ieee802
+@@ -1084,6 +1085,12 @@ int ieee80211_register_hw(struct ieee802
  
  	local->dynamic_ps_forced_timeout = -1;
  
