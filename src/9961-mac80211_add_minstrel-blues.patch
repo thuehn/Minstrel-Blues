@@ -19,7 +19,7 @@
  mac80211-$(CPTCFG_MAC80211_RC_MINSTREL) += $(rc80211_minstrel-y)
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -0,0 +1,656 @@
+@@ -0,0 +1,661 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -170,8 +170,13 @@
 +blues_ht_reset_power(struct minstrel_ht_sta *mi, struct ieee80211_hw *hw,
 +		     int group, int rate)
 +{
-+	s8 max_power = hw->conf.power_level;
++	struct sta_info *sta;
++	s8 max_power;
 +	s8 min_power = hw->min_txpower;
++
++	/* set max_power according to user's vif configuration */
++	sta = container_of(mi->sta, struct sta_info, sta);
++	max_power = sta->sdata->vif.bss_conf.txpower;
 +
 +	mi->groups[group].tpc_stats[rate].reference_power = max_power;
 +	mi->groups[group].tpc_stats[rate].sample_power = max_power;
