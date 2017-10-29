@@ -1,19 +1,25 @@
 --- a/net/mac80211/Makefile
 +++ b/net/mac80211/Makefile
-@@ -50,7 +50,9 @@ mac80211-$(CONFIG_PM) += pm.o
+@@ -50,10 +50,14 @@ mac80211-$(CONFIG_PM) += pm.o
  
  CFLAGS_trace.o := -I$(src)
  
 -rc80211_minstrel-y := rc80211_minstrel.o
 +rc80211_minstrel-y := \
 +	rc80211_minstrel.o \
-+	tpc80211_blues.o
++	tpc80211_blues.o \
++	common.o
  rc80211_minstrel-$(CPTCFG_MAC80211_DEBUGFS) += rc80211_minstrel_debugfs.o
  
- rc80211_minstrel_ht-y := rc80211_minstrel_ht.o
+-rc80211_minstrel_ht-y := rc80211_minstrel_ht.o
++rc80211_minstrel_ht-y := rc80211_minstrel_ht.o \
++		common.o
+ rc80211_minstrel_ht-$(CPTCFG_MAC80211_DEBUGFS) += rc80211_minstrel_ht_debugfs.o
+ 
+ mac80211-$(CPTCFG_MAC80211_RC_MINSTREL) += $(rc80211_minstrel-y)
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -0,0 +1,631 @@
+@@ -0,0 +1,596 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -35,21 +41,6 @@
 +
 +#include "tpc80211_blues.h"
 +#include "rc80211_minstrel.h"
-+
-+/*
-+ * Define group sort order: HT40 -> SGI -> #streams
-+ */
-+#define GROUP_IDX(_streams, _sgi, _ht40)        \
-+	MINSTREL_HT_GROUP_0 +                   \
-+	MINSTREL_MAX_STREAMS * 2 * _ht40 +      \
-+	MINSTREL_MAX_STREAMS * _sgi +   \
-+	_streams - 1
-+
-+#define VHT_GROUP_IDX(_streams, _sgi, _bw)	\
-+	(MINSTREL_VHT_GROUP_0 +			\
-+	MINSTREL_MAX_STREAMS * 2 * (_bw) +	\
-+	MINSTREL_MAX_STREAMS * (_sgi) +		\
-+	(_streams) - 1)
 +
 +/* lookup table to transform dBm [-20...39] in uW [10 .. 7940000] */
 +static const u16 dBm2uW[10] = {1000, 1259, 1585, 1995, 2512, 3162, 3981, 5012,
@@ -186,26 +177,6 @@
 +		mts->sample_power = mts->reference_power - TPC_SAMPLE_POWER_SPAN;
 +	else if (mts->sample_power < min_power)
 +		mts->sample_power = min_power;
-+}
-+
-+/*
-+ * Look up an MCS group index based on mac80211 rate information
-+ */
-+static int
-+blues_ht_get_group_idx(struct ieee80211_tx_rate *rate)
-+{
-+	return GROUP_IDX((rate->idx / 8) + 1,
-+			 !!(rate->flags & IEEE80211_TX_RC_SHORT_GI),
-+			 !!(rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH));
-+}
-+
-+static int
-+blues_vht_get_group_idx(struct ieee80211_tx_rate *rate)
-+{
-+	return VHT_GROUP_IDX(ieee80211_rate_get_vht_nss(rate),
-+			     !!(rate->flags & IEEE80211_TX_RC_SHORT_GI),
-+			     !!(rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH) +
-+			     2*!!(rate->flags & IEEE80211_TX_RC_80_MHZ_WIDTH));
 +}
 +
 +static void
@@ -647,7 +618,7 @@
 +}
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.h
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,88 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -670,6 +641,7 @@
 +
 +#include <net/mac80211.h>
 +#include "rate.h"
++#include "common.h"
 +#include "rc80211_minstrel.h"
 +#include "rc80211_minstrel_ht.h"
 +
@@ -751,26 +723,45 @@
  	mp->dbg_fixed_rate = debugfs_create_u32("fixed_rate_idx",
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
-@@ -78,6 +78,18 @@ struct minstrel_rate_stats {
- 	bool retry_updated;
- };
+@@ -9,6 +9,8 @@
+ #ifndef __RC_MINSTREL_H
+ #define __RC_MINSTREL_H
  
-+struct blues_tpc_stats {
-+	/* per rate tpc values */
-+	u16 reference_success, reference_attempts;
-+	u16 data_success, data_attempts;
-+	u16 sample_success, sample_attempts;
-+	u16 reference_prob, data_prob, sample_prob;
-+	u32 ref_succ_hist, ref_att_hist;
-+	u32 sample_succ_hist, sample_att_hist;
-+	s8 reference_power, sample_power;
-+	u8 stats_outdated;
-+};
++#include "common.h"
 +
+ #define EWMA_LEVEL	96	/* ewma weighting factor [/EWMA_DIV] */
+ #define EWMV_LEVEL	121
+ #define EWMA_DIV	128
+@@ -56,28 +58,6 @@ minstrel_ewmv(int old_ewmv, int cur_prob
+ 	return weight * (old_ewmv + MINSTREL_TRUNC(diff * incr)) / EWMA_DIV;
+ }
+ 
+-struct minstrel_rate_stats {
+-	/* current / last sampling period attempts/success counters */
+-	u16 attempts, last_attempts;
+-	u16 success, last_success;
+-
+-	/* total attempts/success counters */
+-	u32 att_hist, succ_hist;
+-
+-	/* statistis of packet delivery probability
+-	 *  prob_ewma - exponential weighted moving average of prob
+-	 *  prob_ewmsd - exp. weighted moving standard deviation of prob */
+-	u16 prob_ewma;
+-	u16 prob_ewmv;
+-
+-	/* maximum retry counts */
+-	u8 retry_count;
+-	u8 retry_count_rtscts;
+-
+-	u8 sample_skipped;
+-	bool retry_updated;
+-};
+-
  struct minstrel_rate {
  	int bitrate;
  
-@@ -91,6 +103,7 @@ struct minstrel_rate {
+@@ -91,6 +71,7 @@ struct minstrel_rate {
  	int sample_limit;
  
  	struct minstrel_rate_stats rc_stats;
@@ -778,7 +769,7 @@
  };
  
  struct minstrel_sta_info {
-@@ -98,6 +111,7 @@ struct minstrel_sta_info {
+@@ -98,6 +79,7 @@ struct minstrel_sta_info {
  
  	unsigned long last_stats_update;
  	unsigned long last_rate_update;
@@ -786,7 +777,7 @@
  	unsigned int sp_ack_dur;
  	unsigned int rate_avg;
  
-@@ -118,6 +132,10 @@ struct minstrel_sta_info {
+@@ -118,6 +100,10 @@ struct minstrel_sta_info {
  	/* sampling table */
  	u8 *sample_table;
  
@@ -797,7 +788,7 @@
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	struct dentry *dbg_stats;
  	struct dentry *dbg_stats_csv;
-@@ -136,6 +154,11 @@ struct minstrel_priv {
+@@ -136,6 +122,11 @@ struct minstrel_priv {
  	unsigned int segment_size;
  	bool has_mrr;
  
@@ -809,7 +800,7 @@
  	u8 cck_rates[4];
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
-@@ -147,6 +170,17 @@ struct minstrel_priv {
+@@ -147,6 +138,17 @@ struct minstrel_priv {
  	 */
  	u32 fixed_rate_idx;
  	struct dentry *dbg_fixed_rate;
@@ -829,7 +820,45 @@
  
 --- a/net/mac80211/rc80211_minstrel_ht.h
 +++ b/net/mac80211/rc80211_minstrel_ht.h
-@@ -54,6 +54,9 @@ struct minstrel_mcs_group_data {
+@@ -9,36 +9,7 @@
+ #ifndef __RC_MINSTREL_HT_H
+ #define __RC_MINSTREL_HT_H
+ 
+-/*
+- * The number of streams can be changed to 2 to reduce code
+- * size and memory footprint.
+- */
+-#define MINSTREL_MAX_STREAMS		3
+-#define MINSTREL_HT_STREAM_GROUPS	4 /* BW(=2) * SGI(=2) */
+-#ifdef CPTCFG_MAC80211_RC_MINSTREL_VHT
+-#define MINSTREL_VHT_STREAM_GROUPS	6 /* BW(=3) * SGI(=2) */
+-#else
+-#define MINSTREL_VHT_STREAM_GROUPS	0
+-#endif
+-
+-#define MINSTREL_HT_GROUPS_NB	(MINSTREL_MAX_STREAMS *		\
+-				 MINSTREL_HT_STREAM_GROUPS)
+-#define MINSTREL_VHT_GROUPS_NB	(MINSTREL_MAX_STREAMS *		\
+-				 MINSTREL_VHT_STREAM_GROUPS)
+-#define MINSTREL_CCK_GROUPS_NB	1
+-#define MINSTREL_GROUPS_NB	(MINSTREL_HT_GROUPS_NB +	\
+-				 MINSTREL_VHT_GROUPS_NB +	\
+-				 MINSTREL_CCK_GROUPS_NB)
+-
+-#define MINSTREL_HT_GROUP_0	0
+-#define MINSTREL_CCK_GROUP	(MINSTREL_HT_GROUP_0 + MINSTREL_HT_GROUPS_NB)
+-#define MINSTREL_VHT_GROUP_0	(MINSTREL_CCK_GROUP + 1)
+-
+-#ifdef CPTCFG_MAC80211_RC_MINSTREL_VHT
+-#define MCS_GROUP_RATES		10
+-#else
+-#define MCS_GROUP_RATES		8
+-#endif
++#include "common.h"
+ 
+ struct mcs_group {
+ 	u32 flags;
+@@ -54,6 +25,9 @@ struct minstrel_mcs_group_data {
  
  	/* MCS rate statistics */
  	struct minstrel_rate_stats rc_stats[MCS_GROUP_RATES];
@@ -839,7 +868,7 @@
  };
  
  struct minstrel_ht_sta {
-@@ -76,6 +79,9 @@ struct minstrel_ht_sta {
+@@ -76,6 +50,9 @@ struct minstrel_ht_sta {
  	/* time of last rate sampling update */
  	unsigned long last_rate_update;
  
@@ -849,7 +878,7 @@
  	/* min # of packets between sample attempts */
  	u8 cur_rc_intersample_spacing;
  
-@@ -101,6 +107,10 @@ struct minstrel_ht_sta {
+@@ -101,6 +78,10 @@ struct minstrel_ht_sta {
  
  	/* MCS rate group info and statistics */
  	struct minstrel_mcs_group_data groups[MINSTREL_GROUPS_NB];
@@ -1167,7 +1196,76 @@
  
  #define AVG_AMPDU_SIZE	16
  #define AVG_PKT_SIZE	1200
-@@ -714,7 +715,12 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -45,15 +46,6 @@
+ #define BW_40			1
+ #define BW_80			2
+ 
+-/*
+- * Define group sort order: HT40 -> SGI -> #streams
+- */
+-#define GROUP_IDX(_streams, _sgi, _ht40)	\
+-	MINSTREL_HT_GROUP_0 +			\
+-	MINSTREL_MAX_STREAMS * 2 * _ht40 +	\
+-	MINSTREL_MAX_STREAMS * _sgi +	\
+-	_streams - 1
+-
+ /* MCS rate information for an MCS group */
+ #define MCS_GROUP(_streams, _sgi, _ht40)				\
+ 	[GROUP_IDX(_streams, _sgi, _ht40)] = {				\
+@@ -74,12 +66,6 @@
+ 	}								\
+ }
+ 
+-#define VHT_GROUP_IDX(_streams, _sgi, _bw)				\
+-	(MINSTREL_VHT_GROUP_0 +						\
+-	 MINSTREL_MAX_STREAMS * 2 * (_bw) +				\
+-	 MINSTREL_MAX_STREAMS * (_sgi) +				\
+-	 (_streams) - 1)
+-
+ #define BW2VBPS(_bw, r3, r2, r1)					\
+ 	(_bw == BW_80 ? r3 : _bw == BW_40 ? r2 : r1)
+ 
+@@ -245,26 +231,6 @@ minstrel_get_valid_vht_rates(int bw, int
+ 	return 0x3ff & ~mask;
+ }
+ 
+-/*
+- * Look up an MCS group index based on mac80211 rate information
+- */
+-static int
+-minstrel_ht_get_group_idx(struct ieee80211_tx_rate *rate)
+-{
+-	return GROUP_IDX((rate->idx / 8) + 1,
+-			 !!(rate->flags & IEEE80211_TX_RC_SHORT_GI),
+-			 !!(rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH));
+-}
+-
+-static int
+-minstrel_vht_get_group_idx(struct ieee80211_tx_rate *rate)
+-{
+-	return VHT_GROUP_IDX(ieee80211_rate_get_vht_nss(rate),
+-			     !!(rate->flags & IEEE80211_TX_RC_SHORT_GI),
+-			     !!(rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH) +
+-			     2*!!(rate->flags & IEEE80211_TX_RC_80_MHZ_WIDTH));
+-}
+-
+ static struct minstrel_rate_stats *
+ minstrel_ht_get_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi,
+ 		      struct ieee80211_tx_rate *rate)
+@@ -272,10 +238,10 @@ minstrel_ht_get_stats(struct minstrel_pr
+ 	int group, idx;
+ 
+ 	if (rate->flags & IEEE80211_TX_RC_MCS) {
+-		group = minstrel_ht_get_group_idx(rate);
++		group = blues_ht_get_group_idx(rate);
+ 		idx = rate->idx % 8;
+ 	} else if (rate->flags & IEEE80211_TX_RC_VHT_MCS) {
+-		group = minstrel_vht_get_group_idx(rate);
++		group = blues_vht_get_group_idx(rate);
+ 		idx = ieee80211_rate_get_vht_mcs(rate);
+ 	} else {
+ 		group = MINSTREL_CCK_GROUP;
+@@ -714,7 +680,12 @@ minstrel_ht_tx_status(void *priv, struct
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct ieee80211_tx_rate *ar = info->status.rates;
  	struct minstrel_rate_stats *rate;
@@ -1180,7 +1278,7 @@
  	bool last, update = false;
  	int i;
  
-@@ -736,20 +742,44 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -736,20 +707,44 @@ minstrel_ht_tx_status(void *priv, struct
  	mi->ampdu_packets++;
  	mi->ampdu_len += info->status.ampdu_len;
  
@@ -1231,7 +1329,7 @@
  	}
  
  	/*
-@@ -1125,6 +1155,7 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1125,6 +1120,7 @@ minstrel_ht_get_rate(void *priv, struct
  	struct minstrel_ht_sta_priv *msp = priv_sta;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct minstrel_priv *mp = priv;
@@ -1239,7 +1337,7 @@
  	int max_r, s_group, s_idx, i, random_skipp;
  	int sample_rate = -1;
  	bool mrr_capable = false;
-@@ -1161,7 +1192,7 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1161,7 +1157,7 @@ minstrel_ht_get_rate(void *priv, struct
  	mi->total_packets++;
  
  	/* wraparound */
@@ -1248,7 +1346,7 @@
  		mi->total_packets = 0;
  		mi->sample_packets = 0;
  	}
-@@ -1169,9 +1200,9 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1169,9 +1165,9 @@ minstrel_ht_get_rate(void *priv, struct
  	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
  
  	if (unlikely(minstrel_ht_requires_sampling(mi, mp, mrr_capable))) {
@@ -1260,7 +1358,7 @@
  
  		/* find rate that is worth sampling */
  		max_r = MCS_GROUP_RATES * ARRAY_SIZE(minstrel_mcs_groups) + 1;
-@@ -1183,43 +1214,64 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1183,43 +1179,64 @@ minstrel_ht_get_rate(void *priv, struct
  			else
  				break;
  		}
@@ -1352,7 +1450,7 @@
  }
  
  static void
-@@ -1416,6 +1468,7 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1416,6 +1433,7 @@ minstrel_ht_rate_init(void *priv, struct
  
  	minstrel_ht_update_caps(priv, sband, chandef, sta, priv_sta);
  	msp->ht.last_rate_update = jiffies;
@@ -1360,3 +1458,161 @@
  }
  
  static void
+--- /dev/null
++++ b/net/mac80211/common.c
+@@ -0,0 +1,22 @@
++/*
++ * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
++ * ________________________________________________________________________
++ * A decentralized joint power and rate controller that maximizes the weighted
++ * utility of achievable throughput and interference. Power and rate per link
++ * (per packet) are controlled to replace current static tx power usage. The
++ * goal is to increase overall WiFi network performance by increasing spatial
++ * reuse and hence allow more active links to communicate in parallel. Hence
++ * shared spectrum is used more efficiently by avoiding unnecessary
++ * interference through dynamic joint power and rate control.
++ *
++ * Copyright (C) 2016  Thomas Huehn <thomas@net.t-labs.tu-berlin.de>
++ *                     Denis Roeper <denis.roeper@posteo.de>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ */
++
++#include "common.h"
++
+--- /dev/null
++++ b/net/mac80211/common.h
+@@ -0,0 +1,130 @@
++/*
++ * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
++ * ________________________________________________________________________
++ * A decentralized joint power and rate controller and hepcat that plays as
++ * loud as thourghput vs. interference is weighted. Power and rate per link
++ * (per packet) is under its control to replace static WiFi shouting with
++ * dynamic use and interplay. The big goal is to increase overall network
++ * performance by increasing spatial reuse, more active links in parallel.
++ *
++ * Copyright (C) 2017  Thomas Huehn <thomas@net.t-labs.tu-berlin.de>
++ *                     Denis Roeper <denis.roeper@posteo.de>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ */
++
++#ifndef __MINSTREL_BLUES_COMMON_H
++#define __MINSTREL_BLUES_COMMON_H
++
++#include <net/mac80211.h>
++
++/*
++ * The number of streams can be changed to 2 to reduce code
++ * size and memory footprint.
++ */
++#define MINSTREL_MAX_STREAMS		3
++#define MINSTREL_HT_STREAM_GROUPS	4 /* BW(=2) * SGI(=2) */
++#ifdef CPTCFG_MAC80211_RC_MINSTREL_VHT
++#define MINSTREL_VHT_STREAM_GROUPS	6 /* BW(=3) * SGI(=2) */
++#else
++#define MINSTREL_VHT_STREAM_GROUPS	0
++#endif
++
++#define MINSTREL_HT_GROUPS_NB	(MINSTREL_MAX_STREAMS *		\
++				 MINSTREL_HT_STREAM_GROUPS)
++#define MINSTREL_VHT_GROUPS_NB	(MINSTREL_MAX_STREAMS *		\
++				 MINSTREL_VHT_STREAM_GROUPS)
++#define MINSTREL_CCK_GROUPS_NB	1
++#define MINSTREL_GROUPS_NB	(MINSTREL_HT_GROUPS_NB +	\
++				 MINSTREL_VHT_GROUPS_NB +	\
++				 MINSTREL_CCK_GROUPS_NB)
++
++#define MINSTREL_HT_GROUP_0	0
++#define MINSTREL_CCK_GROUP	(MINSTREL_HT_GROUP_0 + MINSTREL_HT_GROUPS_NB)
++#define MINSTREL_VHT_GROUP_0	(MINSTREL_CCK_GROUP + 1)
++
++#ifdef CPTCFG_MAC80211_RC_MINSTREL_VHT
++#define MCS_GROUP_RATES		10
++#else
++#define MCS_GROUP_RATES		8
++#endif
++
++/*
++ * Define group sort order: HT40 -> SGI -> #streams
++ */
++#define GROUP_IDX(_streams, _sgi, _ht40)        \
++	MINSTREL_HT_GROUP_0 +                   \
++	MINSTREL_MAX_STREAMS * 2 * _ht40 +      \
++	MINSTREL_MAX_STREAMS * _sgi +   \
++	_streams - 1
++
++#define VHT_GROUP_IDX(_streams, _sgi, _bw)	\
++	(MINSTREL_VHT_GROUP_0 +			\
++	MINSTREL_MAX_STREAMS * 2 * (_bw) +	\
++	MINSTREL_MAX_STREAMS * (_sgi) +		\
++	(_streams) - 1)
++
++struct minstrel_rate_stats {
++	/* current / last sampling period attempts/success counters */
++	u16 attempts, last_attempts;
++	u16 success, last_success;
++
++	/* total attempts/success counters */
++	u32 att_hist, succ_hist;
++
++	/* statistis of packet delivery probability
++	 *  prob_ewma - exponential weighted moving average of prob
++	 *  prob_ewmsd - exp. weighted moving standard deviation of prob */
++	u16 prob_ewma;
++	u16 prob_ewmv;
++
++	/* maximum retry counts */
++	u8 retry_count;
++	u8 retry_count_rtscts;
++
++	u8 sample_skipped;
++	bool retry_updated;
++};
++
++struct blues_tpc_stats {
++	/* per rate tpc values */
++	u16 reference_success, reference_attempts;
++	u16 data_success, data_attempts;
++	u16 sample_success, sample_attempts;
++	u16 reference_prob, data_prob, sample_prob;
++	u32 ref_succ_hist, ref_att_hist;
++	u32 sample_succ_hist, sample_att_hist;
++	s8 reference_power, sample_power;
++	u8 stats_outdated;
++};
++
++
++//static int
++//blues_ht_get_group_idx(struct ieee80211_tx_rate *rate);
++
++//static int
++//blues_vht_get_group_idx(struct ieee80211_tx_rate *rate);
++
++/*
++ * Look up an MCS group index based on mac80211 rate information
++ */
++static int
++blues_ht_get_group_idx(struct ieee80211_tx_rate *rate)
++{
++	return GROUP_IDX((rate->idx / 8) + 1,
++			 !!(rate->flags & IEEE80211_TX_RC_SHORT_GI),
++			 !!(rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH));
++}
++
++static int
++blues_vht_get_group_idx(struct ieee80211_tx_rate *rate)
++{
++	return VHT_GROUP_IDX(ieee80211_rate_get_vht_nss(rate),
++			     !!(rate->flags & IEEE80211_TX_RC_SHORT_GI),
++			     !!(rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH) +
++			     2*!!(rate->flags & IEEE80211_TX_RC_80_MHZ_WIDTH));
++}
++#endif
