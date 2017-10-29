@@ -209,7 +209,7 @@
 +}
 +
 +/* trigger power level change of ack packets */
-+static inline int
++int
 +blues_set_ack_power(struct ieee80211_hw *hw, s8 val)
 +{
 +	hw->conf.ack_txpower = val;
@@ -678,7 +678,7 @@
 +}
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.h
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,101 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -736,6 +736,7 @@
 +	int max_utility_index;
 +};
 +
++int blues_set_ack_power(struct ieee80211_hw *hw, s8 val);
 +
 +void blues_update_stats(struct minstrel_priv *mp,
 +			struct minstrel_sta_info *mi);
@@ -1551,6 +1552,26 @@
  }
  
  static void
+@@ -1434,6 +1471,7 @@ minstrel_ht_alloc_sta(void *priv, struct
+ 	struct minstrel_ht_sta_priv *msp;
+ 	struct minstrel_priv *mp = priv;
+ 	struct ieee80211_hw *hw = mp->hw;
++	s8 max_power_level = hw->conf.power_level;
+ 	int max_rates = 0;
+ 	int i;
+ 
+@@ -1455,6 +1493,11 @@ minstrel_ht_alloc_sta(void *priv, struct
+ 	if (!msp->sample_table)
+ 		goto error1;
+ 
++	/* Initialize Blues txpower for ACK packets */
++	blues_set_ack_power(hw, max_power_level);
++	printk(KERN_ERR "Ack_power initialized to = %i dBm\n",
++						hw->conf.ack_txpower);
++
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	msp->fixed_txpower = (u8) -1;
+ 	msp->fixed_txrate = (u32) -1;
 --- /dev/null
 +++ b/net/mac80211/common.c
 @@ -0,0 +1,22 @@
