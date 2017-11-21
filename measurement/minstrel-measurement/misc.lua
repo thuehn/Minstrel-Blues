@@ -316,4 +316,15 @@ function Misc.round ( num, numDecimalPlaces )
     return math.floor ( num * mult + 0.5 ) / mult
 end
 
+
+function Misc.all_true ( table )
+    if ( table_size ( table ) == 0 ) then return false end
+    local result = true
+    for _, value in ipairs ( table ) do
+        result = result and value
+    end
+    return result
+end
+
+
 return Misc

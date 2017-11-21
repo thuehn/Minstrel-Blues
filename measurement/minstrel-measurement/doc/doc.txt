@@ -38,6 +38,8 @@ lpc: run process with pid, stdin, stdout and wait with exit_code support
 #    - https://github.com/stepelu/lua-xsys
 #    - https://github.com/stepelu/lua-rclient
 
+ratechecker: https://bitbucket.org/comnets/ratechecker/commits/all
+
 not used but helpful
 --------------------
 nixio supports:

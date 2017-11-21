@@ -489,6 +489,9 @@ function Measurement:fetch_online ( phy, key )
     if ( content ~= nil ) then
         self.tcpdump_pcaps [ key ] = self.tcpdump_pcaps [ key ]
                                         .. content
+        return true
+    else
+        return false
     end
 end
 
@@ -498,11 +501,12 @@ function Measurement:fetch ( phy, key )
     -- cpusage
     self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy )
     -- tcpdump
+    local running = false
     if ( self.online == false ) then
         local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
         self.tcpdump_pcaps [ key ] = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
     else
-        self:fetch_online ( phy, key )
+        running = self:fetch_online ( phy, key )
         self.rpc_node.close_tcpdump_pipe ( phy )
     end
     
@@ -513,6 +517,8 @@ function Measurement:fetch ( phy, key )
             self.rc_stats [ station ] [ key ] = stats
         end
     end
+    
+    return running
 
     -- iperf server out
     -- iperf client out

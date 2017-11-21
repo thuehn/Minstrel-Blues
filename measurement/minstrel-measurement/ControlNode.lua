@@ -644,6 +644,25 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
          self.exp:start_experiment ( ap_ref, key )
     end
     
+    if ( self.online == true ) then
+        local experiments_running = {}
+        while ( Misc.all_true ( experiments_running ) ) do
+            self:send_info ("*** Fetch Measurement ***" )
+            -- fixme: MESH
+            for i, ap_ref in ipairs ( self.ap_refs ) do
+                --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+                experiments_running [i] = self.exp:fetch_measurement ( ap_ref, key )
+                --experiments_running [i] = self.exp:is_running ( ap_ref, key )
+                --if ( experiments_running [i] == true ) then
+                --    self.exp:fetch_measurement ( ap_ref, key )
+                --end
+                --collectgarbage ()
+                --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+            end
+            posix.sleep (1)
+        end
+    end
+
     self:send_info ("*** Wait Experiment ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
@@ -661,10 +680,10 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ("*** Fetch Measurement ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
-        self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+        --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
         self.exp:fetch_measurement ( ap_ref, key )
-        collectgarbage ()
-        self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+        --collectgarbage ()
+        --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
     end
 
     self:send_info ("*** Unsettle measurement ***" )

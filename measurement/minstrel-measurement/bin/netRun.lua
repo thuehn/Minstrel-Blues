@@ -29,6 +29,7 @@
 -- discover mesh with iw dev MESH_IFACE {station,mpath} dump
 -- command line options for (proactive) mesh
 -- mesh_id
+-- netcat, socat for file transfer
 
 local pprint = require ('pprint')
 

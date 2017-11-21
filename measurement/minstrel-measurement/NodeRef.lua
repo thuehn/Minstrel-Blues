@@ -168,35 +168,30 @@ end
 -- collect traces
 function NodeRef:fetch_measurement ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
-      self.stats:fetch ( self.wifi_cur, key )
+      return self.stats:fetch ( self.wifi_cur, key )
     end
+    return false
 end
 
 function NodeRef:start_tcp_iperf_s ( key )
-    self.stats:fetch_online ( self.wifi_cur, key )
     if ( self.is_passive == nil or self.is_passive == false ) then
         local phy_num = tonumber ( string.sub ( self.wifi_cur, 4 ) )
         local proc = self.rpc.start_tcp_iperf_s ( self.wifi_cur, 12000 + phy_num)
     end
-    self.stats:fetch_online ( self.wifi_cur, key )
 end
 
 function NodeRef:start_udp_iperf_s ( key )
-    self.stats:fetch_online ( self.wifi_cur, key )
     if ( self.is_passive == nil or self.is_passive == false ) then
         local phy_num = tonumber ( string.sub ( self.wifi_cur, 4 ) )
         local proc = self.rpc.start_udp_iperf_s ( self.wifi_cur, 12000 + phy_num )
     end
-    self.stats:fetch_online ( self.wifi_cur, key )
 end
 
 function NodeRef:stop_iperf_server ( key )
-    self.stats:fetch_online ( self.wifi_cur, key )
     if ( self.is_passive == nil or self.is_passive == false ) then
         local _, out = self.rpc.stop_iperf_server ( self.wifi_cur )
         self.stats.iperf_s_outs [ key ] = out
     end
-    self.stats:fetch_online ( self.wifi_cur, key )
 end
 
 function NodeRef:get_board ()

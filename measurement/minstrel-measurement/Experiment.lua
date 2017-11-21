@@ -94,7 +94,7 @@ function Experiment:stop_measurement ( ap_ref, key )
 end
 
 function Experiment:fetch_measurement ( ap_ref, key )
-    ap_ref:fetch_measurement ( key )
+    return ap_ref:fetch_measurement ( key )
 end
 
 function Experiment:unsettle_measurement ( ap_ref, key )
