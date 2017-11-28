@@ -39,7 +39,6 @@ function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, 
                                 , retries = retries
                                 , online = online
                                 } )
-
     if ( o.ctrl.addr == nil ) then
         o.ctrl:get_addr ()
     end
@@ -550,7 +549,9 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     self:send_info ( exp_header )
     self:send_info ( hrule )
 
-    self:send_info ( "fetch online: " .. ( self.online or "none" )  )
+    if ( self.online ~= nil ) then
+        self:send_info ( "fetch online: " .. tostring ( self.online )  )
+    end
     -- fixme: MESH
     self:send_info ("*** Prepare measurement ***")
     for _, ap_ref in ipairs ( self.ap_refs ) do
@@ -646,6 +647,15 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     
     if ( self.online == true ) then
         local experiments_running = {}
+        -- fixme: experiments_running and fetching should be done in the xperiments
+        -- since they have pid of iperf process
+        -- wait_experiments should check whether iperf is still running
+        --, 3rd field seperated by ' ' is 'Z','R','S'and return output lines or if iperf stopped wait and return output
+        -- use "cat /proc/".. tostring ( PID ) .. "/stat", 3rd field seperated by ' ' is 'Z','R','S'
+        -- there have to be one finite process in each experiment, i.e. "sleep 100"
+        for i, ap_ref in ipairs ( self.ap_refs ) do
+            experiments_running [i] = self.exp:is_running () 
+        end
         while ( Misc.all_true ( experiments_running ) ) do
             self:send_info ("*** Fetch Measurement ***" )
             -- fixme: MESH

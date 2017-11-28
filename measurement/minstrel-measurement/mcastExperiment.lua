@@ -119,7 +119,7 @@ function McastExperiment:start_experiment ( ap_ref, key )
                                .. ( addr or "unset" )
                                .. " local addr " .. ( wifi_addr or "unset" ) )
 
-    ap_ref.rpc.run_multicast ( ap_ref.wifi_cur, iperf_port, wifi_addr, addr, ttl, size, self.udp_interval, wait )
+    self.pid, _, _ = ap_ref.rpc.run_multicast ( ap_ref.wifi_cur, iperf_port, wifi_addr, addr, ttl, size, self.udp_interval, wait )
 end
 
 function McastExperiment:wait_experiment ( ap_ref, key )

@@ -1,3 +1,0 @@
-channel = 13
-htmode = HT20
-distance = near

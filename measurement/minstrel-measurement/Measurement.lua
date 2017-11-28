@@ -447,11 +447,11 @@ function Measurement:start ( phy, key )
     local cpusage_pid = self.rpc_node.start_cpusage ( phy )
     -- tcpdump
     self.tcpdump_pcaps [ key ] = ""
+    local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
     if ( self.online == false ) then
-        local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
         local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, tcpdump_fname )
     else
-        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy )
+        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, tcpdump_fname )
     end
     -- rc stats
     if ( self.rc_stats_enabled == true ) then
@@ -460,14 +460,15 @@ function Measurement:start ( phy, key )
         end
     end
     if ( self.online ) then
-        self:fetch_online ( phy, key )
+        self:fetch_online ( phy, key, tcpdump_fname )
     end
     return true
 end
 
 function Measurement:stop ( phy, key )
+    local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
     if ( self.online ) then
-        self:fetch_online ( phy, key )
+        self:fetch_online ( phy, key, tcpdump_fname )
     end
     -- regmon 
     local exit_code = self.rpc_node.stop_regmon_stats ( phy )
@@ -475,6 +476,7 @@ function Measurement:stop ( phy, key )
     local exit_code = self.rpc_node.stop_cpusage ( phy )
     -- tcpdump
     local exit_code = self.rpc_node.stop_tcpdump ( phy )
+-- fixme: run after experiments   self.rpc_node.close_tcpdump_pipe ( phy )
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
@@ -483,9 +485,9 @@ function Measurement:stop ( phy, key )
     end
 end
 
-function Measurement:fetch_online ( phy, key )
+function Measurement:fetch_online ( phy, key, fname )
     -- always read tcpdump to reduce memory consumption
-    local content = self.rpc_node.get_tcpdump_online ( phy )
+    local content = self.rpc_node.get_tcpdump_online ( phy, fname )
     if ( content ~= nil ) then
         self.tcpdump_pcaps [ key ] = self.tcpdump_pcaps [ key ]
                                         .. content
@@ -502,12 +504,11 @@ function Measurement:fetch ( phy, key )
     self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy )
     -- tcpdump
     local running = false
+    local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
     if ( self.online == false ) then
-        local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
         self.tcpdump_pcaps [ key ] = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
     else
-        running = self:fetch_online ( phy, key )
-        self.rpc_node.close_tcpdump_pipe ( phy )
+        running = self:fetch_online ( phy, key, tcpdump_fname )
     end
     
     -- rc_stats
@@ -517,7 +518,7 @@ function Measurement:fetch ( phy, key )
             self.rc_stats [ station ] [ key ] = stats
         end
     end
-    
+
     return running
 
     -- iperf server out

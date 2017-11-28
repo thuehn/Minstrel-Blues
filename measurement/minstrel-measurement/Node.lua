@@ -741,10 +741,10 @@ function Node:get_tcpdump_offline ( phy, fname )
     return nil
 end
 
-function Node:get_tcpdump_online ( phy, ms, sz )
+function Node:get_tcpdump_online ( phy, fname, ms, sz )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:get_tcpdump_online ( ms, sz )
+        return dev:get_tcpdump_online ( fname, ms, sz )
     end
     return nil
 end

@@ -1,12 +1,16 @@
 -- Base class for experiments
 -- and no operation experiment
 
+require ('parsers/proc_pid_stat')
+
 Experiment = { control = nil
              , runs = nil
              , tx_powers = nil
              , tx_rates = nil
              , tcpdata = nil
-             , is_fixed = nil }
+             , is_fixed = nil
+             , pid = nil
+             }
 
 
 function Experiment:new (o)
@@ -14,6 +18,28 @@ function Experiment:new (o)
     setmetatable(o, self)
     self.__index = self
     return o
+end
+
+function Experiment:is_running ()
+    if ( self.pid ~= nil ) then
+        local file = io:open ("/proc/" .. tostring ( self.pid ) .. "/stat" )
+        if ( file ~= nil ) then
+            local contents = file:read ( "*a" )
+            if ( contents ~= nil ) then
+                local exp_stat = parse_proc_pid_stat ( content )
+                if ( exp_stat ~= nil ) then
+                    return exp_stat.state == "S" or exp_stat.state == "R"
+                    -- state ~= "Z"
+                else
+                    return false
+                end
+            end
+        else
+            return false
+        end
+    else
+        return false
+    end
 end
 
 function Experiment:keys ( ap_ref )
@@ -86,7 +112,6 @@ function Experiment:settle_measurement ( ap_ref, key )
 end
 
 function Experiment:start_measurement ( ap_ref, key )
-    ap_ref:start_measurement ( key )
 end
 
 function Experiment:stop_measurement ( ap_ref, key )

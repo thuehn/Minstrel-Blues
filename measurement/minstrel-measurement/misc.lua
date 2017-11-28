@@ -252,18 +252,24 @@ function Misc.spawn ( ... )
     return lpc.run ( ... )
 end
 
-function Misc.read_nonblock ( fh, ms, sz )
+function Misc.read_nonblock ( fh, ms, sz, debug_node )
     if ( fh == nil ) then return nil end
-    if ( ms == nil ) then ms = 500 end
+    if ( ms == nil ) then ms = 100 end
     if ( sz == nil ) then sz = 1024 end
     local lines = ""
     local fd = stdio.fileno ( fh )
     repeat
         local r = poll.rpoll ( fd, ms )
+        if ( debug_node ~= nil ) then
+            debug_node:send_debug ( "misc.read_nonblock repeat rpoll: " .. tostring ( r ) )
+        end
         if ( r == 1 ) then
             local res = unistd.read ( fd, sz )
             if ( res ~= nil and res ~= "" ) then
                 lines = lines .. res
+                if ( string.len ( lines ) > sz ) then
+                    break
+                end
             else
                 break
             end

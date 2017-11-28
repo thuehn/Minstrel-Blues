@@ -114,9 +114,9 @@ function UdpExperiment:start_experiment ( ap_ref, key )
             local phy_num = tonumber ( string.sub ( ap_ref.wifi_cur, 4 ) )
             local iperf_port = 12000 + phy_num
             if ( director == "d" ) then
-                ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, dur_or_amount, nil, wait )
+                self.pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, dur_or_amount, nil, wait )
             else
-                ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, nil, dur_or_amount, wait )
+                self.pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, nil, dur_or_amount, wait )
             end
         end
     end
