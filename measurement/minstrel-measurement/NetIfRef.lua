@@ -34,17 +34,22 @@ function NetIfRef:__tostring()
 end
 
 function NetIfRef:set_addr ( addr_or_name )
-    local ctrl_ip, rest = parse_ipv4 ( addr_or_name )
-    self.addr = ctrl_ip
-    if ( self.addr == nil ) then
-        -- name is a host name (and bo ip address)
+    local addr, rest = parse_ipv4 ( addr_or_name )
+    if ( addr == nil ) then
+        -- name is a host name (or ip address)
         local dig, _ = net.lookup ( addr_or_name )
         if ( dig ~= nil and dig.addr ~= nil ) then
-            self.addr = dig.addr
-            self.name = addr_or_name
+            for _, addr in ipairs ( dig.addr ) do
+                if ( net.ip_reachable ( addr ) ) then
+                    self.addr = addr
+                end
+            end
+            -- self.name = addr_or_name
         else
             self.addr = nil
-            self.name = addr_or_name
+            -- self.name = addr_or_name
         end 
+    else
+        self.addr = addr
     end
 end

@@ -313,32 +313,33 @@ function ControlNode:check_bridges ()
 end
 
 function ControlNode:reachable ()
-    function node_reachable ( ip )
-        local ping, exit_code = misc.execute ( "ping", "-c1", ip)
-        return exit_code == 0
-    end
-
     local reached = {}
     self:send_debug ( "reachable " .. #self.node_refs .. " nodes" )
     for _, node_ref in ipairs ( self.node_refs ) do
         self:send_debug ( node_ref:__tostring() )
         if ( node_ref.is_passive == nil or node_ref.is_passive == false ) then
+            local addrs = {}
             local addr, rest = parse_ipv4 ( node_ref.name )
             if ( addr == nil ) then
                 -- name is a hostname and no ip addr
                 dig, _ = net.lookup ( node_ref.name )
-                if ( dig ~= nil and dig.addr ~= nil ) then
-                    addr = dig.addr
+                if ( dig ~= nil and dig.addr ~= nil and table_size ( dig.addr ) > 0 ) then
+                    addrs = dig.addr
                 end
+            else
+                addrs = { addr }
             end
-            if ( addr == nil ) then
+            if ( table_size ( addrs ) == 0 ) then
                 break
             end
-            node_ref.ctrl_net_ref.addr = addr
-            if ( node_reachable ( addr ) ) then
-                reached [ node_ref.name ] = true
-            else
-                reached [ node_ref.name ] = false
+            for _, addr in ipairs ( addrs ) do
+                node_ref.ctrl_net_ref.addr = addr
+                if ( net.ip_reachable ( addr ) ) then
+                    reached [ node_ref.name ] = true
+                    break
+                else
+                    reached [ node_ref.name ] = false
+                end
             end
         end
     end

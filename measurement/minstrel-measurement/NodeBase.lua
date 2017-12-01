@@ -75,9 +75,15 @@ function NodeBase:host_known ( host )
         if ( file ~= nil ) then
             local content = file:read ( "*a" )
             for _, line in ipairs ( split ( content, "\n" ) ) do
-                if ( string.sub ( line, 1, string.len ( host ) ) == host
-                    or ( dig ~= nil and ( ( dig.addr ~= nil and string.sub ( line, 1, string.len ( dig.addr ) ) == dig.addr ) ) ) ) then
+                if ( string.sub ( line, 1, string.len ( host ) ) == host ) then
                     return true
+                end
+                if ( dig ~= nil and table_size ( dig.addr ) > 0 ) then
+                    for _, addr in ipairs ( dig.addr ) do
+                        if ( string.sub ( line, 1, string.len ( addr ) ) == addr ) then
+                            return true
+                        end
+                    end
                 end
             end
         end

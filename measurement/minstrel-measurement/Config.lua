@@ -19,8 +19,12 @@ Config.find_node = function ( name, nodes )
             local addr, rest = parse_ipv4 ( name )
             if ( addr ~= nil ) then
                 local dig, _ = net.lookup ( node.name )
-                if ( dig ~= nil and dig.addr == addr ) then
-                    return node
+                if ( dig ~= nil and dig.addr ~= nil ) then
+                    for _, addr2 in ipairs ( addr ) do
+                        if ( addr2 == addr ) then
+                            return node
+                        end
+                    end
                 end
             end
         end 

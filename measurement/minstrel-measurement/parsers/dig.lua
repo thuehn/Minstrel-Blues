@@ -1,4 +1,5 @@
 require ('parsers/parsers')
+local misc = require ('misc')
 
 -- single line comment starts with ';'
 -- resolved address for 'apfel' starts with 'apfel.'
@@ -55,6 +56,7 @@ function parse_dig ( lines )
     end
 
     local dig = Dig:create()
+    dig.addr = {}
     repeat
         local c = shead ( rest )
         if ( c == ";" ) then
@@ -65,10 +67,8 @@ function parse_dig ( lines )
             rest = stail ( rest )
         else
             name, addr, rest = parse_dig_line ( rest )
-            local dig = Dig:create()
             dig.name = name
-            dig.addr = addr
-            return dig
+            dig.addr [ #dig.addr + 1 ] = addr
         end
     until rest == nil or rest == ""
     

@@ -48,6 +48,11 @@ Net.lookup = function ( name )
     end
 end
 
+function Net.ip_reachable ( ip )
+    local ping, exit_code = misc.execute ( "ping", "-c1", ip)
+    return exit_code == 0
+end
+
 -- tests only
 -- net-tools-hostname needs netinet6/ipv6_route.h to compile
 -- opkg install kmod-ipv6 radvd ip kmod-ip6tables ip6tables
