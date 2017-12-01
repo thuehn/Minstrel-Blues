@@ -530,6 +530,7 @@ function ControlNodeRef:start ()
                 , "--retries"
                 , self.retries
                 }
+
     if ( self.online == true ) then
         cmd [ #cmd + 1 ] = "--online"
     end

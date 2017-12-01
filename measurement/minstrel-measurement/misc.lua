@@ -255,7 +255,8 @@ end
 function Misc.read_nonblock ( fh, ms, sz, debug_node )
     if ( fh == nil ) then return nil end
     if ( ms == nil ) then ms = 100 end
-    if ( sz == nil ) then sz = 1024 end
+    if ( sz == nil ) then sz = 4096 end
+    --if ( sz == nil ) then sz = 1024 end
     local lines = ""
     local fd = stdio.fileno ( fh )
     repeat
@@ -276,6 +277,9 @@ function Misc.read_nonblock ( fh, ms, sz, debug_node )
         end
     until ( r == 0 )
     if ( lines ~= "" ) then
+        if ( debug_node ~= nil ) then
+            debug_node:send_debug ( "misc.read_nonblock bytes: " .. tostring ( string.len ( lines ) ) )
+        end
         return lines
     else
         return nil

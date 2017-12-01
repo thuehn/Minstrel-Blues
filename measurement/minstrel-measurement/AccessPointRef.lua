@@ -209,3 +209,12 @@ function AccessPointRef:stop_iperf_servers ( key )
         end
     end
 end
+
+function AccessPointRef:is_exp_running ( )
+    local running = false
+    for i, sta_ref in ipairs ( self.refs ) do
+        running = running or sta_ref:is_exp_running ()
+    end
+    running = running or NodeRef.is_exp_running ( self )
+    return running
+end

@@ -110,7 +110,10 @@ end
 
 Net.connect = function ( addr, port, max_retries, name, log_f )
 
-    local retries = tonumber ( max_retries )
+    local retries = 1
+    if ( max_retries ~= nil ) then
+        retries = tonumber ( max_retries )
+    end
     if rpc.mode ~= "tcpip" then
         print ( "Err: rpc mode tcp/ip is supported only" )
         return nil

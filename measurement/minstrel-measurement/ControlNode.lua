@@ -42,7 +42,6 @@ function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, 
     if ( o.ctrl.addr == nil ) then
         o.ctrl:get_addr ()
     end
-
     return o
 end
 
@@ -647,27 +646,17 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     end
     
     if ( self.online == true ) then
-        local experiments_running = {}
-        -- fixme: experiments_running and fetching should be done in the xperiments
-        -- since they have pid of iperf process
-        -- wait_experiments should check whether iperf is still running
-        --, 3rd field seperated by ' ' is 'Z','R','S'and return output lines or if iperf stopped wait and return output
-        -- use "cat /proc/".. tostring ( PID ) .. "/stat", 3rd field seperated by ' ' is 'Z','R','S'
-        -- there have to be one finite process in each experiment, i.e. "sleep 100"
-        for i, ap_ref in ipairs ( self.ap_refs ) do
-            experiments_running [i] = self.exp:is_running () 
-        end
-        while ( Misc.all_true ( experiments_running ) ) do
+        local running = true
+        while ( running ) do
+            running = false
             self:send_info ("*** Fetch Measurement ***" )
             -- fixme: MESH
             for i, ap_ref in ipairs ( self.ap_refs ) do
                 --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
                 local has_content = self.exp:fetch_measurement ( ap_ref, key )
-                experiments_running [ i ] = self.exp:is_running ()
-                --experiments_running [i] = self.exp:is_running ( ap_ref, key )
-                --if ( experiments_running [i] == true ) then
-                --    self.exp:fetch_measurement ( ap_ref, key )
-                --end
+                self:send_debug ( "experiments has_content: " .. tostring ( has_content ) )
+                running = running or ap_ref:is_exp_running ()
+                self:send_debug ( "experiments running: " .. tostring ( running ) )
                 --collectgarbage ()
                 --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
             end
@@ -694,6 +683,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     for _, ap_ref in ipairs ( self.ap_refs ) do
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
         local has_content = self.exp:fetch_measurement ( ap_ref, key )
+        self:send_debug ( "experiments has_content: " .. tostring ( has_content ) )
         --collectgarbage ()
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
     end

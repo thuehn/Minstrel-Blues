@@ -21,6 +21,7 @@ NodeRef = { name = nil
           , log_port = nil
           , log_ref = nil
           , retries = nil
+          , pids = nil
           }
 
 function NodeRef:new (o)
@@ -31,6 +32,7 @@ function NodeRef:new (o)
     setmetatable (o, self)
     self.__index = self
     o.log_ref = LogNodeRef:create ( o.log_addr, o.log_port, o.retries )
+    o.pids = {}
     return o
 end
 
@@ -104,6 +106,15 @@ function NodeRef:__tostring ()
         out = out .. "passive"
     end
     return out
+end
+
+function NodeRef:is_exp_running ()
+    local running = false
+    for i, pid in ipairs ( self.pids ) do
+        running = running or self.rpc.is_pid_running ( pid )
+    end
+    self:send_debug ( "NodeRef::is_exp_running : " .. tostring ( running ) )
+    return running
 end
 
 -- wait for station is linked to ssid

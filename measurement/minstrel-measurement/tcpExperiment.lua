@@ -2,14 +2,6 @@ require ('Experiment')
 
 TcpExperiment = Experiment:new()
 
-function TcpExperiment:new (o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    return o
-end
-
-
 function TcpExperiment:create ( control, data, is_fixed )
     local o = TcpExperiment:new( { control = control, runs = data[1]
                                  , tx_powers = data[2], tx_rates = data[3]
@@ -84,7 +76,7 @@ function TcpExperiment:start_experiment ( ap_ref, key )
             local phy_num = tonumber ( string.sub ( ap_ref.wifi_cur, 4 ) )
             local iperf_port = 12000 + phy_num
             local pid, exit_code = ap_ref.rpc.run_tcp_iperf ( ap_ref.wifi_cur, iperf_port, addr, self.tcpdata, wait )
-            self.pids [ # self.pids + 1 ] = pid
+            sta_ref.pids [ # sta_ref.pids + 1 ] = pid
         end
     end
 end

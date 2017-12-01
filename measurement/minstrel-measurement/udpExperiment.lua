@@ -5,14 +5,6 @@ local pprint = require ('pprint')
 
 UdpExperiment = Experiment:new()
 
-function UdpExperiment:new (o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    return o
-end
-
-
 function UdpExperiment:create ( control, data, is_fixed )
     local o = UdpExperiment:new( { control = control
                                  , runs = data [1]
@@ -116,10 +108,11 @@ function UdpExperiment:start_experiment ( ap_ref, key )
             local pid
             if ( director == "d" ) then
                 pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, dur_or_amount, nil, wait )
+                ap_ref.pids [ # ap_ref.pids + 1 ] = pid
             else
                 pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, nil, dur_or_amount, wait )
+                ap_ref.pids [ # ap_ref.pids + 1 ] = pid
             end
-            self.pids [ #self.pids + 1 ] = pid
         end
     end
     return true

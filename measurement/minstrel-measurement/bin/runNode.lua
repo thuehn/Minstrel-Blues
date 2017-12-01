@@ -115,6 +115,7 @@ function wait_iperf_c(...) return node:wait_iperf_c(...) end
 -- udp / tcp iperf
 function stop_iperf_server(...) return node:stop_iperf_server(...) end
 
+function is_pid_running ( ... ) return node:is_pid_running ( ... ) end
 function get_pid(...) return node:get_pid(...) end
 function get_free_mem ( ... ) return node:get_free_mem ( ... ) end
 function set_timezone ( ... ) return node:set_timezone ( ... ) end

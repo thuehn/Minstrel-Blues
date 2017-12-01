@@ -473,7 +473,9 @@ end
 function WifiIF:get_tcpdump_online ( fname, ms, sz )
     self.node:send_info ( "send tcpdump online for file " .. ( fname or "none" ) )
     if ( ms == nil ) then ms = 100 end
-    if ( sz == nil ) then sz = 1024 end
+    --if ( sz == nil ) then sz = 1024 end
+    --if ( sz == nil ) then sz = 4096 end
+    if ( sz == nil ) then sz = 1024*4096 end
     local file = nil
     local offline = false
     if ( offline ) then
@@ -601,6 +603,9 @@ function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
         self.node:send_error (" Iperf client (udp) not started for address " .. addr .. ". Already running." )
         return nil
     end
+    local pid
+    local stdout
+    local stdin
     if ( duration ~= nil ) then
         self.node:send_info ( "run UDP iperf at port " .. ( iperf_port or "none" )
                                     .. " to addr " .. ( addr or "none" )
@@ -608,7 +613,7 @@ function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
         self.node:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. ( iperf_port or "none" )
                             .. " -b " .. rate .. " -t " .. duration )
 
-        local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port,
+        pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port,
                                                 "-b", rate, "-t", duration )
         self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     elseif ( amount ~= nil ) then
@@ -618,7 +623,7 @@ function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
         self.node:send_debug ( iperf_bin .. " -u" .. " -c " .. addr .. " -p " .. ( iperf_port or "none" )
                             .. " -b " .. rate .. " -n " .. amount )
 
-        local pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port,
+        pid, stdin, stdout = misc.spawn ( iperf_bin, "-u", "-c", addr, "-p", iperf_port,
                                                 "-b", rate, "-n", amount )
         self.iperf_client_procs [ addr ] = { pid = pid, stdin = stdin, stdout = stdout }
     else
@@ -629,12 +634,12 @@ function WifiIF:run_udp_iperf ( iperf_port, addr, rate, duration, amount, wait )
     local out
     if ( wait == true ) then
         exit_code = lpc.wait ( pid )
-        out = misc.read_nonblock ( self.iperf_client_procs [ addr ].stdout, 500, 1024 )
+        out = misc.read_nonblock ( stdout, 500, 1024 )
         if ( out ~= nil ) then
             self.node:send_info ( out )
         end
-        self.iperf_client_procs [ addr ].stdin:close ()
-        self.iperf_client_procs [ addr ].stdout:close ()
+        stdin:close ()
+        stdout:close ()
         self.iperf_client_procs [ addr ] = nil
     end
     return pid, exit_code, out

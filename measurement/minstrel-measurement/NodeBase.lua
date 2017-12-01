@@ -10,6 +10,8 @@ local pprint = require ('pprint')
 
 require ('parsers/proc_version')
 require ('parsers/free')
+require ('parsers/proc_pid_stat')
+
 local json = require ('cjson')
 
 require ('LogNodeRef')
@@ -170,6 +172,24 @@ end
 -- -------------------------
 -- posix
 -- -------------------------
+
+function NodeBase:is_pid_running ( pid )
+    local fname = "/proc/" .. tostring ( pid ) .. "/stat"
+    if ( isFile ( fname ) == true ) then
+        local file = io.open ( fname, "r" )
+        if ( file ~= nil ) then
+            local contents = file:read ( "*a" )
+            if ( contents ~= nil ) then
+                local exp_stat = parse_proc_pid_stat ( contents )
+                if ( exp_stat ~= nil ) then
+                    return ( exp_stat.state == "S" or exp_stat.state == "R" )
+                    -- state ~= "Z"
+                end
+            end
+        end
+    end
+    return false
+end
 
 function NodeBase.parent_pid ( pid )
     local file = io.open ( "/proc/" .. pid .. "/status" )

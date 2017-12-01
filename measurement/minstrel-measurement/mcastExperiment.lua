@@ -5,13 +5,6 @@ local posix = require ('posix') -- sleep
 -- runs an multicast experiment with fixed rate and fixed power setting
 McastExperiment = Experiment:new()
 
-function McastExperiment:new (o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    return o
-end
-
 function McastExperiment:create ( control, data, is_fixed )
     local o = McastExperiment:new( { control = control
                                    , runs = data[1]
@@ -119,9 +112,8 @@ function McastExperiment:start_experiment ( ap_ref, key )
                                .. ( addr or "unset" )
                                .. " local addr " .. ( wifi_addr or "unset" ) )
 
-    local pid
-    pid, _, _ = ap_ref.rpc.run_multicast ( ap_ref.wifi_cur, iperf_port, wifi_addr, addr, ttl, size, self.udp_interval, wait )
-    self.pids = { pid }
+    local pid, _, _ = ap_ref.rpc.run_multicast ( ap_ref.wifi_cur, iperf_port, wifi_addr, addr, ttl, size, self.udp_interval, wait )
+    ap_ref.pids = { pid }
 end
 
 function McastExperiment:wait_experiment ( ap_ref, key )
