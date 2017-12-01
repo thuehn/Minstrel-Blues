@@ -113,11 +113,13 @@ function UdpExperiment:start_experiment ( ap_ref, key )
             local addr = sta_ref:get_addr ()
             local phy_num = tonumber ( string.sub ( ap_ref.wifi_cur, 4 ) )
             local iperf_port = 12000 + phy_num
+            local pid
             if ( director == "d" ) then
-                self.pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, dur_or_amount, nil, wait )
+                pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, dur_or_amount, nil, wait )
             else
-                self.pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, nil, dur_or_amount, wait )
+                pid, _, _ = ap_ref.rpc.run_udp_iperf ( ap_ref.wifi_cur, iperf_port, addr, rate, nil, dur_or_amount, wait )
             end
+            self.pids [ #self.pids + 1 ] = pid
         end
     end
     return true

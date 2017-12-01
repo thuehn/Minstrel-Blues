@@ -451,7 +451,7 @@ function Measurement:start ( phy, key )
     if ( self.online == false ) then
         local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, tcpdump_fname )
     else
-        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, tcpdump_fname )
+        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy )
     end
     -- rc stats
     if ( self.rc_stats_enabled == true ) then

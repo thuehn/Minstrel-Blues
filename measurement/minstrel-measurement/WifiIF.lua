@@ -426,7 +426,14 @@ function WifiIF:start_tcpdump ( fname )
     --local snaplen = 0 -- 262144
     local snaplen = 150
     --local snaplen = 256
-    self.node:send_info ( "start tcpdump for " .. ( self.mon or "none" ) .. " writing to " .. ( fname or "none" ) )
+    local msg = "start tcpdump "
+    if ( fname == nil ) then
+        msg = msg .. "online "
+    else
+        msg = msg .. "offline "
+    end
+    msg = msg .. " for " .. ( self.mon or "none" ) .. " writing to " .. ( fname or "none" )
+    self.node:send_info ( msg )
 
     cmd = { tcpdump_bin
           , "-i", self.mon or "none"
@@ -467,13 +474,21 @@ function WifiIF:get_tcpdump_online ( fname, ms, sz )
     self.node:send_info ( "send tcpdump online for file " .. ( fname or "none" ) )
     if ( ms == nil ) then ms = 100 end
     if ( sz == nil ) then sz = 1024 end
-    local file = io.open ( fname, "rb" )
-    if ( file == nil ) then 
-        self.node:send_error ( "no tcpdump file found" )
-        return nil 
+    local file = nil
+    local offline = false
+    if ( offline ) then
+        file = io.open ( fname, "rb" )
+        if ( file == nil ) then 
+            self.node:send_error ( "no tcpdump file found" )
+            return nil 
+        end
+    else
+        file = self.tcpdump_proc.stdout
     end
     local content = misc.read_nonblock ( file, ms, sz, self.node )
-    file:close ()
+    if ( offline ) then
+        file:close ()
+    end
     --self.node:send_info ( "remove tcpump pcap file " .. ( fname or "none" ) )
     --os.remove ( fname )
     --self.tcpdump_proc.stdin:close ()

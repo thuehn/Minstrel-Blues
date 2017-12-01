@@ -84,7 +84,7 @@ function TcpExperiment:start_experiment ( ap_ref, key )
             local phy_num = tonumber ( string.sub ( ap_ref.wifi_cur, 4 ) )
             local iperf_port = 12000 + phy_num
             local pid, exit_code = ap_ref.rpc.run_tcp_iperf ( ap_ref.wifi_cur, iperf_port, addr, self.tcpdata, wait )
-            self.pid = pid
+            self.pids [ # self.pids + 1 ] = pid
         end
     end
 end

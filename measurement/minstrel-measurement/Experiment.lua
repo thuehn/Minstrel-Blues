@@ -9,7 +9,7 @@ Experiment = { control = nil
              , tx_rates = nil
              , tcpdata = nil
              , is_fixed = nil
-             , pid = nil
+             , pids = nil
              }
 
 
@@ -17,26 +17,36 @@ function Experiment:new (o)
     local o = o or {}
     setmetatable(o, self)
     self.__index = self
+    o.pids = {}
     return o
 end
 
+-- returns whether all registered pids are still running
 function Experiment:is_running ()
-    if ( self.pid ~= nil ) then
-        local file = io:open ("/proc/" .. tostring ( self.pid ) .. "/stat" )
-        if ( file ~= nil ) then
-            local contents = file:read ( "*a" )
-            if ( contents ~= nil ) then
-                local exp_stat = parse_proc_pid_stat ( content )
-                if ( exp_stat ~= nil ) then
-                    return exp_stat.state == "S" or exp_stat.state == "R"
-                    -- state ~= "Z"
-                else
-                    return false
-                end
-            end
-        else
-            return false
+    -- note: for all exited use running |= value
+    if ( self.pids ~= nil ) then
+        local running = {}
+        for i, pid in ipairs ( self.pids ) do
+            running [ i ] = false
         end
+        for i, pid in ipairs ( self.pids ) do
+            local file = io:open ("/proc/" .. tostring ( self.pid ) .. "/stat" )
+            if ( file ~= nil ) then
+                local contents = file:read ( "*a" )
+                if ( contents ~= nil ) then
+                    local exp_stat = parse_proc_pid_stat ( content )
+                    if ( exp_stat ~= nil ) then
+                        running [ i ] = exp_stat.state == "S" or exp_stat.state == "R"
+                        -- state ~= "Z"
+                    else
+                        running [ i ] = false
+                    end
+                end
+            else
+                running [ i ] = false
+            end
+        end
+        return Misc.all_true ( running )
     else
         return false
     end

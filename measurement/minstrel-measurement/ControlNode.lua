@@ -662,7 +662,8 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
             -- fixme: MESH
             for i, ap_ref in ipairs ( self.ap_refs ) do
                 --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-                experiments_running [i] = self.exp:fetch_measurement ( ap_ref, key )
+                local has_content = self.exp:fetch_measurement ( ap_ref, key )
+                experiments_running [ i ] = self.exp:is_running ()
                 --experiments_running [i] = self.exp:is_running ( ap_ref, key )
                 --if ( experiments_running [i] == true ) then
                 --    self.exp:fetch_measurement ( ap_ref, key )
@@ -692,7 +693,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-        self.exp:fetch_measurement ( ap_ref, key )
+        local has_content = self.exp:fetch_measurement ( ap_ref, key )
         --collectgarbage ()
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
     end
