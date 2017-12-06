@@ -8,6 +8,19 @@ local pprint = require ('pprint')
 
 pprint = require('pprint')
 
+
+-- String name, String typ, String value
+-- "expermiment_order", "List", "{1}"
+-- "mac", "mac", "AA:22:BB:33:CC:44"
+-- "mac_br", "mac", "AA:22:BB:33:CC:44"
+-- "opposite_macs","List","{...}"
+-- "opposite_macs_br","List","{...}"
+-- "stations","List","{tp4300}"
+MeasurementOption = { name = nil
+                    , typ = nil
+                    , value = nil
+                    }
+
 Measurement = { rpc_node = nil
               , node_name = nil
               , node_mac = nil
@@ -24,6 +37,10 @@ Measurement = { rpc_node = nil
               , stations = nil
               , output_dir = nil
               , online = nil
+              , regmon_file = nil
+              , tcpdump_pcap_file = nil
+              , cpusage_file = nil
+              , rc_stats_files = nil
               }
 
 function Measurement:new (o)
@@ -49,6 +66,7 @@ function Measurement:create ( name, mac, opposite_macs, rpc, output_dir, online 
                                 , iperf_c_outs = {}
                                 , output_dir = output_dir
                                 , online = online
+                                , rc_stats_files = {}
                                 } )
     return o
 end
@@ -260,116 +278,189 @@ function Measurement:read ()
     return true, nil
 end
 
-function Measurement:write ()
+function Measurement:is_open ()
+    return self.regmon_file ~= nil and self.tcdump_pcap_file ~= nil
+end
+
+
+function Measurement:write ( finish, key )
+    local online = true
+    if ( key == nil ) then online = false end
+    if ( finish == nil ) then finish = true end
     if ( self.output_dir == nil ) then
         return false, "output dir unset"
     end
 
     local base_dir = self.output_dir .. "/" .. self.node_name
 
-    local status, err = lfs.mkdir ( base_dir )
-    if ( status == false ) then 
-        return false, err
-    end
-
-    -- mac 
-    if ( self.node_mac ~= nil ) then
-        local fname = base_dir .. "/mac.txt"
-        local file = io.open ( fname, "w" )
-        if ( file ~= nil ) then
-            file:write ( self.node_mac .. '\n' )
-            file:close ()
-        end
-    end
-    if ( self.node_mac_br ~= nil ) then
-        local fname = base_dir .. "/mac_br.txt"
-        local file = io.open ( fname, "w" )
-        if ( file ~= nil ) then
-            file:write ( self.node_mac_br .. '\n' )
-            file:close ()
+    if ( self:is_open() == false and isDir ( base_dir ) == false ) then
+        local status, err = lfs.mkdir ( base_dir )
+        if ( status == false ) then 
+            return false, err
         end
     end
 
-    -- opposite macs
-    if ( self.opposite_macs ~= nil ) then
-        local fname = base_dir .. "/opposite_macs.txt"
-        local file = io.open ( fname, "w" )
-        if ( file ~= nil ) then
-            for _, mac in ipairs ( self.opposite_macs ) do
-                file:write ( mac .. '\n' )
+    if ( self:is_open() == false ) then
+        -- mac
+        if ( self.node_mac ~= nil ) then
+            local fname = base_dir .. "/mac.txt"
+            local file = io.open ( fname, "w" )
+            if ( file ~= nil ) then
+                file:write ( self.node_mac .. '\n' )
+                file:close ()
             end
-            file:close ()
         end
-    end
-    if ( self.opposite_macs_br ~= nil ) then
-        local fname = base_dir .. "/opposite_macs_br.txt"
-        local file = io.open ( fname, "w" )
-        if ( file ~= nil ) then
-            for _, mac in ipairs ( self.opposite_macs_br ) do
-                file:write ( mac .. '\n' )
+        if ( self.node_mac_br ~= nil ) then
+            local fname = base_dir .. "/mac_br.txt"
+            local file = io.open ( fname, "w" )
+            if ( file ~= nil ) then
+                file:write ( self.node_mac_br .. '\n' )
+                file:close ()
             end
-            file:close ()
         end
-    end
 
-    -- regmon stats
-    for key, stats in pairs ( self.regmon_stats ) do
-        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
-        local file = io.open ( fname, "w" )
-        file:write ( stats )
-        file:close ()
-    end
-
-    -- cpusage stats
-    for key, stats in pairs ( self.cpusage_stats ) do
-        local fname = base_dir .. "/" .. self.node_name .. "-" .. key  .. "-cpusage_stats.txt"
-        local file = io.open ( fname, "w" )
-        file:write ( stats )
-        file:close ()
-    end
-    
-    -- tcpdump pcap
-    for key, stats in pairs ( self.tcpdump_pcaps ) do
-        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
-        local file = io.open ( fname, "w")
-        if ( file ~= nil )  then
-            file:write ( stats )
-            file:close ()
+        -- opposite macs
+        if ( self.opposite_macs ~= nil ) then
+            local fname = base_dir .. "/opposite_macs.txt"
+            local file = io.open ( fname, "w" )
+            if ( file ~= nil ) then
+                for _, mac in ipairs ( self.opposite_macs ) do
+                    file:write ( mac .. '\n' )
+                end
+                file:close ()
+            end
         end
-    end
-    
-    -- rc_stats
-    if ( self.rc_stats_enabled == true ) then
-        for _, station in ipairs ( self.stations ) do
-            if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
-                for key, stats in pairs ( self.rc_stats [ station ] ) do
-                    local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
-                            .. station .. ".txt"
-                    local file = io.open ( fname, "w" )
-                    file:write ( stats )
-                    file:close ()
+        if ( self.opposite_macs_br ~= nil ) then
+            local fname = base_dir .. "/opposite_macs_br.txt"
+            local file = io.open ( fname, "w" )
+            if ( file ~= nil ) then
+                for _, mac in ipairs ( self.opposite_macs_br ) do
+                    file:write ( mac .. '\n' )
+                end
+                file:close ()
+            end
+        end
+
+        -- regmon stats
+        if ( online == true ) then
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
+            self.regmon_file = io.open ( fname, "w" )
+        end
+
+        -- cpusage stats
+        if ( online == true ) then
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key  .. "-cpusage_stats.txt"
+            self.cpusage_file = io.open ( fname, "w" )
+        end
+
+        -- tcpdump pcap
+        if ( online == true ) then
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
+            self.tcpdump_pcap_file = io.open ( fname, "w")
+        end
+
+        -- rc_stats
+        if ( self.rc_stats_enabled == true ) then
+            for _, station in ipairs ( self.stations ) do
+                if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
+                    if ( online == true ) then
+                        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
+                                  .. station .. ".txt"
+                        self.rc_stats_files [ station ] = io.open ( fname, "w" )
+                    end
                 end
             end
         end
     end
 
-    -- iperf server out
-    for key, stats in pairs ( self.iperf_s_outs ) do
-        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf_server.txt"
-        local file = io.open ( fname, "w")
-        if ( file ~= nil )  then
-            file:write ( stats )
-            file:close ()
+    -- regmon stats
+    if ( online == false ) then
+        for key, stats in pairs ( self.regmon_stats ) do
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
+            self.regmon_file = io.open ( fname, "w" )
+            self.regmon_file:write ( stats )
+            self.regmon_file:close ()
+        end
+    else
+        self.regmon_file:write ( self.regmon_stats [ key ] )
+        if ( finish == true ) then
+            self.regmon_file:close ()
         end
     end
 
-    -- iperf client out
-    for key, stats in pairs ( self.iperf_c_outs ) do
-        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf_client.txt"
-        local file = io.open ( fname, "w")
-        if ( file ~= nil )  then
-            file:write ( stats )
-            file:close ()
+    -- cpusage stats
+    if ( online == false ) then
+        for key, stats in pairs ( self.cpusage_stats ) do
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key  .. "-cpusage_stats.txt"
+            self.cpusage_file = io.open ( fname, "w" )
+            self.cpusage_file:write ( stats )
+            self.cpusage_file:close ()
+        end
+    else
+        self.cpusage_file:write ( self.cpusage_stats [ key ] )
+        if ( finish == true ) then
+            self.cpusage_file:close ()
+        end
+    end
+    
+    -- tcpdump pcap
+    if ( online == false ) then
+        for key, stats in pairs ( self.tcpdump_pcaps ) do
+            if ( self.tcpdump_pcap_file ~= nil )  then
+                local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
+                self.tcpdump_pcap_file = io.open ( fname, "w")
+                self.tcpdump_pcap_file:write ( stats )
+                self.tcpdump_pcap_file:close ()
+            end
+        end
+   else
+        self.tcpdump_pcap_file:write ( self.tcpdump_pcaps [ key ] )
+        if ( finish == true ) then
+            self.tcpdump_pcap_file:close ()
+        end
+   end
+
+    -- rc_stats
+    if ( self.rc_stats_enabled == true ) then
+        for _, station in ipairs ( self.stations ) do
+            if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
+                if ( online == false ) then
+                    for key, stats in pairs ( self.rc_stats [ station ] ) do
+                        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
+                            .. station .. ".txt"
+                        self.rc_stats_files [ station ] = io.open ( fname, "w" )
+                        self.rc_stats_files [ station ]:write ( stats )
+                        self.rc_stats_files [ station ]:close ()
+                    end
+                else
+                    self.rc_stats_files [ station ]:write ( self.rc_stats [ station ] [ key ] )
+                    if ( finish == true ) then
+                        self.rc_stats_files [ station ]:close ()
+                    end
+                end
+            end
+        end
+    end
+
+    if ( online == false or finish == true ) then
+        -- iperf server out
+        for key, stats in pairs ( self.iperf_s_outs ) do
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf_server.txt"
+            local file = io.open ( fname, "w")
+            if ( file ~= nil )  then
+                file:write ( stats )
+                file:close ()
+            end
+        end
+
+        -- iperf client out
+        for key, stats in pairs ( self.iperf_c_outs ) do
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf_client.txt"
+            local file = io.open ( fname, "w")
+            if ( file ~= nil )  then
+                file:write ( stats )
+                file:close ()
+            end
         end
     end
 
