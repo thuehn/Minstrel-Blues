@@ -72,9 +72,10 @@ function set_global_tx_power(...) return node:set_global_tx_power(...) end
 function get_global_tx_power(...) return node:get_global_tx_power(...) end
 
 -- cpuage
-function start_cpusage(...) return node:start_cpusage(...) end
-function get_cpusage(...) return node:get_cpusage(...) end
-function stop_cpusage(...) return node:stop_cpusage(...) end
+function start_cpusage ( ... ) return node:start_cpusage ( ... ) end
+function get_cpusage ( ... ) return node:get_cpusage ( ... ) end
+function stop_cpusage ( ... ) return node:stop_cpusage ( ... ) end
+function cleanup_cpusage ( ... ) return node:cleanup_cpusage ( ... ) end
 
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
 function add_monitor(...) return node:add_monitor(...) end
@@ -89,18 +90,20 @@ function get_dmesg ( ... ) return node:get_dmesg ( ... ) end
 function start_rc_stats(...) return node:start_rc_stats(...) end
 function get_rc_stats(...) return node:get_rc_stats(...) end
 function stop_rc_stats(...) return node:stop_rc_stats(...) end
+function cleanup_rc_stats ( ... ) return node:cleanup_rc_stats ( ... ) end
 
 -- regmon
 function start_regmon_stats(...) return node:start_regmon_stats(...) end
 function get_regmon_stats(...) return node:get_regmon_stats(...) end
 function stop_regmon_stats(...) return node:stop_regmon_stats(...) end
+function cleanup_regmon ( ... ) return node:cleanup_regmon ( ... ) end
 
 -- tcpdump
 function start_tcpdump ( ... ) return node:start_tcpdump ( ... ) end
 function get_tcpdump_offline ( ... ) return node:get_tcpdump_offline ( ... ) end
 function get_tcpdump_online ( ... ) return node:get_tcpdump_online ( ... ) end
-function close_tcpdump_pipe ( ... ) return node:close_tcpdump_pipe ( ... ) end
 function stop_tcpdump ( ... ) return node:stop_tcpdump ( ... ) end
+function cleanup_tcpdump ( ... ) return node:cleanup_tcpdump ( ... ) end
 
 -- tcp iperf
 function start_tcp_iperf_s (...) return node:start_tcp_iperf_s(...) end

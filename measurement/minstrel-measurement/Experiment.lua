@@ -100,6 +100,7 @@ function Experiment:fetch_measurement ( ap_ref, key )
 end
 
 function Experiment:unsettle_measurement ( ap_ref, key )
+    ap_ref:cleanup_measurement ( key )
     ap_ref:remove_monitor ()
 end
 

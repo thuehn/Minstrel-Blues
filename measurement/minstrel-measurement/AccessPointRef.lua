@@ -189,6 +189,15 @@ function AccessPointRef:fetch_measurement ( key )
     return self_running and Misc.all_true ( experiments_running )
 end
 
+function AccessPointRef:cleanup_measurement ( key )
+    NodeRef.cleanup_measurement ( self, key )
+    for i, sta_ref in ipairs ( self.refs ) do
+        if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
+            sta_ref:cleanup_measurement ( key )
+        end
+    end
+end
+
 function AccessPointRef:start_iperf_servers ( tcp, key )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then

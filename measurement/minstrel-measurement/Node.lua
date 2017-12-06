@@ -648,7 +648,8 @@ function Node:start_rc_stats ( phy, station )
     return nil
 end
 
-function Node:get_rc_stats ( phy, station )
+function Node:get_rc_stats ( phy, station, online )
+    if ( online == nil ) then online = false end
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
         return dev:get_rc_stats ( station )
@@ -660,6 +661,14 @@ function Node:stop_rc_stats ( phy, station )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
         return dev:stop_rc_stats ( station )
+    end
+    return nil
+end
+
+function Node:cleanup_rc_stats ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:cleanup_rc_stats ()
     end
     return nil
 end
@@ -677,10 +686,11 @@ function Node:start_regmon_stats ( phy )
     return nil
 end
 
-function Node:get_regmon_stats ( phy )
+function Node:get_regmon_stats ( phy, online )
+    if ( online == nil ) then online = false end
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:get_regmon_stats ()
+        return dev:get_regmon_stats ( online )
     end
     return nil
 end
@@ -689,6 +699,14 @@ function Node:stop_regmon_stats ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
         return dev:stop_regmon_stats ()
+    end
+    return nil
+end
+
+function Node:cleanup_regmon ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:cleanup_regmon ()
     end
     return nil
 end
@@ -705,10 +723,11 @@ function Node:start_cpusage ( phy )
     return nil
 end
 
-function Node:get_cpusage ( phy )
+function Node:get_cpusage ( phy, online )
+    if ( online == nil ) then online = false end
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:get_cpusage ()
+        return dev:get_cpusage ( online )
     end
     return nil
 end
@@ -717,6 +736,14 @@ function Node:stop_cpusage ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
         return dev:stop_cpusage ()
+    end
+    return nil
+end
+
+function Node:cleanup_cpusage ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:cleanup_cpusage ()
     end
     return nil
 end
@@ -749,18 +776,18 @@ function Node:get_tcpdump_online ( phy, fname, ms, sz )
     return nil
 end
 
-function Node:close_tcpdump_pipe ( phy )
-    local dev = self:find_wifi_device ( phy )
-    if ( dev ~= nil ) then
-        return dev:close_tcpdump_pipe ()
-    end
-    return nil
-end
-
 function Node:stop_tcpdump ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
         return dev:stop_tcpdump ()
+    end
+    return nil
+end
+
+function Node:cleanup_tcpdump ( phy )
+    local dev = self:find_wifi_device ( phy )
+    if ( dev ~= nil ) then
+        return dev:cleanup_tcpdump ()
     end
     return nil
 end

@@ -184,6 +184,13 @@ function NodeRef:fetch_measurement ( key )
     return false
 end
 
+function NodeRef:cleanup_measurement ( key )
+    if ( self.is_passive == nil or self.is_passive == false ) then
+      return self.stats:cleanup ( self.wifi_cur, key )
+    end
+    return false
+end
+
 function NodeRef:start_tcp_iperf_s ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
         local phy_num = tonumber ( string.sub ( self.wifi_cur, 4 ) )

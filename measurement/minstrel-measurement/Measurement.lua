@@ -501,7 +501,7 @@ function Measurement:fetch ( phy, key )
     -- regmon
     self.regmon_stats [ key ] = self.rpc_node.get_regmon_stats ( phy )
     -- cpusage
-    self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy )
+    self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy, false )
     -- tcpdump
     local running = false
     local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
@@ -524,6 +524,17 @@ function Measurement:fetch ( phy, key )
     -- iperf server out
     -- iperf client out
     -- already done by wait_iperf_c and stop_iperf_s
+end
+
+function Measurement:cleanup ( phy, key )
+    self.rpc_node.cleanup_cpusage ( phy )
+    self.rpc_node.cleanup_regmon ( phy )
+    if ( self.rc_stats_enabled == true ) then
+        for _, station in ipairs ( self.stations ) do
+            self.rpc_node.cleanup_rc_stats ( phy, station )
+        end
+    end
+    self.rpc_node.cleanup_tcpdump ( phy )
 end
 
 function Measurement.resume ( output_dir, online )

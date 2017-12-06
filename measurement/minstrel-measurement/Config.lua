@@ -12,15 +12,15 @@ connections = {} -- table in config file
 Config = {}
 
 Config.find_node = function ( name, nodes ) 
-    for _, node in ipairs ( nodes ) do 
-        if ( node.name == name ) then 
-            return node 
+    for _, node in ipairs ( nodes ) do
+        if ( node.name == name ) then
+            return node
         else
             local addr, rest = parse_ipv4 ( name )
             if ( addr ~= nil ) then
                 local dig, _ = net.lookup ( node.name )
                 if ( dig ~= nil and dig.addr ~= nil ) then
-                    for _, addr2 in ipairs ( addr ) do
+                    for _, addr2 in ipairs ( dig.addr ) do
                         if ( addr2 == addr ) then
                             return node
                         end

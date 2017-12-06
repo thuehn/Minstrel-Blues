@@ -296,7 +296,10 @@ end
 
 function ControlNodeRef:get_stats ( node_name )
     local stats = self.rpc.get_stats ( node_name )
-    -- fixme: seg faults at serialize or transfer via rpc (after copying result, on return result)
+    -- fixme: seg faults at serialize or transfer via rpc from control node
+    --          ( serialize and transfer from node to control is fine )
+    --  rpc from mips_32 to x86_64 is fine
+    --  rpc from x86_64 to x86_64 seg faults
     -- possible solutions:
     -- - don't use -O3 to build luarpc
     return stats

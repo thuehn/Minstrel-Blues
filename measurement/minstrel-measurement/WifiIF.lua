@@ -239,21 +239,20 @@ function WifiIF:start_regmon_stats ( sampling_rate )
     return pid
 end
 
-function WifiIF:get_regmon_stats ()
+function WifiIF:get_regmon_stats ( online )
+    if ( online == nil ) then online = false end
     if ( self.regmon_proc == nil ) then 
         self.node:send_error ( "no regmon process running" )
         return nil 
     end
     self.node:send_info ( "send regmon-stats" )
     local content = nil
-    if ( true ) then -- online
+    if ( online ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.regmon_proc.stdout, ms, sz )
     else
         content = self.regmon_proc.stdout:read ( "*a" )
-        self.regmon_proc.stdin:close ()
-        self.regmon_proc.stdout:close ()
     end
     if ( content ~= nil ) then
         self.node:send_info ( string.len ( content ) .. " bytes from regmon" )
@@ -269,16 +268,22 @@ function WifiIF:stop_regmon_stats ()
         return nil 
     end
     self.node:send_info ( "stop collecting regmon stats with pid " .. self.regmon_proc.pid )
-    if ( true ) then -- online
-        self.regmon_proc.stdin:close ()
-        self.regmon_proc.stdout:close ()
-    end
     local exit_code
     if ( self.node:kill ( self.regmon_proc.pid ) ) then
         exit_code = lpc.wait ( self.regmon_proc.pid )
     end
-    self.regmon_proc = nil
     return exit_code
+end
+
+function WifiIF:cleanup_regmon ()
+    if ( self.regmon_proc == nil ) then 
+        self.node:send_error ( "no regmon process running" )
+        return nil 
+    end
+    self.node:send_info ( "clean regmon with pid " .. self.regmon_proc.pid )
+    self.regmon_proc.stdin:close ()
+    self.regmon_proc.stdout:close ()
+    self.regmon_proc = nil
 end
 
 -- --------------------------
@@ -298,21 +303,20 @@ function WifiIF:start_cpusage ()
     return pid
 end
 
-function WifiIF:get_cpusage ()
+function WifiIF:get_cpusage ( online )
+    if ( online == nil ) then online = false end
     if ( self.cpusage_proc == nil ) then 
         self.node:send_error ( "no cpusage process running" )
         return nil 
     end
     self.node:send_info ( "send cpusage" )
     local content = nil
-    if ( true ) then -- online
+    if ( online ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.cpusage_proc.stdout, ms, sz, self.node )
     else
         content = self.cpusage_proc.stdout:read ( "*a" )
-        self.cpusage_proc.stdin:close ()
-        self.cpusage_proc.stdout:close ()
     end
     self.node:send_info ( string.len ( content ) .. " bytes from cpusage" )
     return content
@@ -324,16 +328,22 @@ function WifiIF:stop_cpusage ()
         return nil 
     end
     self.node:send_info ( "stop cpusage with pid " .. self.cpusage_proc.pid )
-    if ( true ) then -- online
-        self.cpusage_proc.stdin:close ()
-        self.cpusage_proc.stdout:close ()
-    end
     local exit_code
     if ( self.node:kill ( self.cpusage_proc.pid ) ) then
         exit_code = lpc.wait ( self.cpusage_proc.pid )
     end
-    self.cpusage_proc = nil
     return exit_code
+end
+
+function WifiIF:cleanup_cpusage ()
+    if ( self.cpusage_proc == nil ) then 
+        self.node:send_error ( "no cpusage process running" )
+        return nil 
+    end
+    self.node:send_info ( "clean cpusage with pid " .. self.cpusage_proc.pid )
+    self.cpusage_proc.stdin:close ()
+    self.cpusage_proc.stdout:close ()
+    self.cpusage_proc = nil
 end
 
 -- --------------------------
@@ -362,25 +372,24 @@ function WifiIF:start_rc_stats ( station, sampling_rate )
     end
 end
 
-function WifiIF:get_rc_stats ( station )
+function WifiIF:get_rc_stats ( station, online )
     if ( station == nil ) then
         self.node:send_error ( "Cannot send rc_stats because the station argument is nil!" )
         return nil
     end
+    if ( online == nil ) then online = false end
     self.node:send_info ( "send rc-stats for " .. self.iface ..  ", station " .. station )
     if ( self.rc_stats_procs [ station ] == nil ) then 
         self.node:send_warning ( " no rc-stats for " .. station .. " found" )
         return nil 
     end
     self.node:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ].pid )
-    if ( true ) then -- online
+    if ( online ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.rc_stats_procs [ station ].stdout, ms, sz )
     else
         content = self.rc_stats_procs [ station ].stdout:read ("*a")
-        self.rc_stats_procs [ station ].stdin:close()
-        self.rc_stats_procs [ station ].stdout:close()
     end
     self.node:send_info ( string.len ( content ) .. " bytes from rc_stats" )
     return content 
@@ -393,16 +402,23 @@ function WifiIF:stop_rc_stats ( station )
         return nil
     end
     self.node:send_info ( "stop collecting rc stats with pid " .. self.rc_stats_procs [ station ].pid )
-    if ( true ) then -- online
-        self.rc_stats_procs [ station ].stdin:close()
-        self.rc_stats_procs [ station ].stdout:close()
-    end
     local exit_code
     if ( self.node:kill ( self.rc_stats_procs [ station ].pid ) ) then
         exit_code = lpc.wait ( self.rc_stats_procs [ station ].pid )
     end
-    self.rc_stats_procs [ station ] = nil
     return exit_code
+end
+
+function WifiIF:cleanup_rc_stats ( station )
+    if ( self.rc_stats_procs [ station ] == nil 
+        or self.rc_stats_procs [ station ].pid == nil ) then 
+        self.node:send_error ( " rc_stats for station " .. ( station or "unset" ) .. " is not running!" )
+        return nil
+    end
+    self.node:send_info ( "clean rc stats with pid " .. self.rc_stats_procs [ station ].pid )
+    self.rc_stats_procs [ station ].stdin:close()
+    self.rc_stats_procs [ station ].stdout:close()
+    self.rc_stats_procs [ station ] = nil
 end
 
 -- --------------------------
@@ -498,16 +514,6 @@ function WifiIF:get_tcpdump_online ( fname, ms, sz )
     return content
 end
 
-function WifiIF:close_tcpdump_pipe ()
-    if ( self.tcpdump_proc.stdin ~= nil ) then
-        self.tcpdump_proc.stdin:close ()
-    end
-    if ( self.tcpdump_proc.stdout ~= nil ) then
-        self.tcpdump_proc.stdout:close ()
-    end
-    self.tcpdump_proc = nil
-end
-
 function WifiIF:stop_tcpdump ()
     if ( self.tcpdump_proc == nil ) then
         self.node:send_error ( "No tcpdump running." )
@@ -519,6 +525,20 @@ function WifiIF:stop_tcpdump ()
         exit_code = lpc.wait ( self.tcpdump_proc.pid )
     end
     return exit_code
+end
+
+function WifiIF:cleanup_tcpdump ()
+    if ( self.tcpdump_proc == nil ) then 
+        self.node:send_error ( "no tcpdump process running" )
+        return nil 
+    end
+    if ( self.tcpdump_proc.stdin ~= nil ) then
+        self.tcpdump_proc.stdin:close ()
+    end
+    if ( self.tcpdump_proc.stdout ~= nil ) then
+        self.tcpdump_proc.stdout:close ()
+    end
+    self.tcpdump_proc = nil
 end
 
 -- --------------------------
