@@ -483,11 +483,16 @@ function WifiIF:get_tcpdump_offline ( fname )
     self.tcpdump_proc.stdin:close ()
     self.tcpdump_proc.stdout:close ()
     self.tcpdump_proc = nil
+    if ( content ~= nil ) then
+        self.node:send_info ( string.len ( content ) .. "  bytes from tcpdump" )
+    else
+        self.node:send_info ( "0 bytes from tcpdump" )
+    end
     return content
 end
 
 function WifiIF:get_tcpdump_online ( fname, ms, sz )
-    self.node:send_info ( "send tcpdump online for file " .. ( fname or "none" ) )
+    self.node:send_info ( "send tcpdump online from pipe" )
     if ( ms == nil ) then ms = 100 end
     --if ( sz == nil ) then sz = 1024 end
     --if ( sz == nil ) then sz = 4096 end

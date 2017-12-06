@@ -262,7 +262,11 @@ end
 
 function ControlNode:list_stations ( ap )
     local ap_ref = self:find_node_ref ( ap )
-    return ap_ref.stations
+    if ( ap_ref ~= nil ) then
+        self:send_debug ( "send stations: " .. table_tostring ( ap_ref.stations ) )
+        return ap_ref.stations or {}
+    end
+    return {}
 end
 
 function ControlNode:set_ani ( name, ani )
@@ -500,85 +504,79 @@ function ControlNode:get_keys ()
     return self.keys
 end
 
-function ControlNode:get_tcpdump_size ( ref_name )
-    self:send_info ( "*** Send tcpdump pcaps sizes from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+function ControlNode:get_tcpdump_size ( ref_name, key )
+    self:send_info ( "*** Send tcpdump pcaps size from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
     local node_ref = self:find_node_ref ( ref_name )
-    local size = {}
-    for key, data in pairs ( node_ref.stats.tcpdump_pcaps ) do
-        size [ key ] = string.len ( data )
-    end
-    return size
-end
-
-function ControlNode:get_tcpdump_pcaps ( ref_name, offset, count )
-    self:send_info ( "*** Copy tcpdump pcaps from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
-    self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-    local out = {}
-    local node_ref = self:find_node_ref ( ref_name )
-    if ( node_ref == nil ) then
-        return out
-    end
-    -- lua rpc seg faults when transfering more than 10MiB data
-    -- split into parts as a workaround
-    -- fixme: code is orthogonal now (optimize loop order)
-    if ( offset ~= nil and count ~= nil ) then
-        self:send_debug ( tostring ( offset ) .. " - " .. tostring ( offset + count - 1 ) )
-        for key, data in pairs ( node_ref.stats.tcpdump_pcaps ) do
-            out [ key ] = string.sub ( data, offset, offset + count - 1 )
-            if ( offset + count >= string.len ( data ) ) then
-                -- delete all data transferred
-                node_ref.stats.tcpdump_pcaps [ key ] = {}
-            end
-        end
+    if ( key == nil ) then
+        return nil
     else
-        out = copy_map ( node_ref.stats.tcpdump_pcaps )
-        node_ref.stats.tcpdump_pcaps = {}
+        if ( node_ref.stats.tcpdump_pcaps [ key ] ) then
+            return string.len ( node_ref.stats.tcpdump_pcaps [ key ] )
+        else
+            return 0
+        end
     end
-    for key, stats in pairs ( out ) do
-        self:send_debug ( "key: " .. key )
-        self:send_debug ( string.len ( stats ) )
+end
+
+function ControlNode:get_tcpdump_pcap ( ref_name, key, offset, count )
+    self:send_info ( "*** Copy tcpdump pcap for key " .. ( key or nil ) 
+                     .. " from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+    local out = nil
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        self:send_debug ( "tcpdump pcaps copied: 0 bytes" )
+        return out
     end
-    self:send_debug ( "tcpdump pcaps copied" )
-    self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+    if ( offset ~= nil and count ~= nil ) then
+        out = node_ref:get_tcpdump_pcap ( key, offset, offset + count + 1 )
+    else
+        out = node_ref:get_tcpdump_pcap ( key, offset, offset + count + 1 )
+    end
+    self:send_debug ( "tcpdump pcaps copied: " .. string.len ( out ) .. " bytes" )
     return out
 end
 
-function ControlNode:get_rc_stats ( ref_name )
-    self:send_info ( "*** Copy rc_stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
-    local out = {}
+function ControlNode:get_rc_stats ( ref_name, station, key )
+    self:send_info ( "*** Copy rc_stats from nodes for " .. ( ref_name or "unset" )
+                        .. ", station " .. ( station or "none" )
+                        .. ", key " .. ( key or "none" ) .. ". ***" )
+    local out = nil
     local node_ref = self:find_node_ref ( ref_name )
     if ( node_ref == nil ) then
         return out
     end
-    out = copy_map ( node_ref.stats.rc_stats )
-    node_ref.stats.rc_stats = {}
-    self:send_debug ( "rc stats copied" )
+    out = node_ref.stats.rc_stats [ station ] [ key ]
+    node_ref.stats.rc_stats [ station ] [ key ] = nil
+    self:send_debug ( "rc stats copied: " .. string.len ( out ) )
     return out
 end
 
-function ControlNode:get_cpusage_stats ( ref_name )
-    self:send_info ( "*** Copy cpusage_stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
-    local out = {}
+function ControlNode:get_cpusage_stats ( ref_name, key )
+    self:send_info ( "*** Copy cpusage_stats from nodes for " .. ( ref_name or "unset" )
+                        .. " and key " .. ( key or "none" ) .. ". ***" )
+    local out = nil
     local node_ref = self:find_node_ref ( ref_name )
     if ( node_ref == nil ) then
         return out
     end
-    out = copy_map ( node_ref.stats.cpusage_stats )
-    node_ref.stats.cpusage_stats = {}
-    self:send_debug ( "cpusage stats copied" )
+    out = node_ref.stats.cpusage_stats [ key ]
+    node_ref.stats.cpusage_stats [ key ] = nil
+    self:send_debug ( "cpusage stats copied and removed" )
     return out
 end
 
-function ControlNode:get_regmon_stats ( ref_name )
-    self:send_info ( "*** Copy regmon_stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
-    local out = {}
+function ControlNode:get_regmon_stats ( ref_name, key )
+    self:send_info ( "*** Copy regmon_stats from nodes for " .. ( ref_name or "unset" )
+                        .. " and key " .. ( key or "none" ) .. ". ***" )
+    local out = nil
     local node_ref = self:find_node_ref ( ref_name )
     if ( node_ref == nil ) then
         return out
     end
-    out = copy_map ( node_ref.stats.regmon_stats )
-    node_ref.stats.regmon_stats = {}
-    self:send_debug ( "regmon stats copied" )
+    out = node_ref.stats.regmon_stats [ key ]
+    node_ref.stats.regmon_stats [ key ] = nil
+    self:send_debug ( "regmon stats copied and removed" )
     return out
 end
 

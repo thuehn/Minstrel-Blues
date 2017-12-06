@@ -179,9 +179,28 @@ end
 -- collect traces
 function NodeRef:fetch_measurement ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
-      return self.stats:fetch ( self.wifi_cur, key )
+        return self.stats:fetch ( self.wifi_cur, key )
     end
     return false
+end
+
+function NodeRef:get_tcpdump_pcap ( key, from, to)
+    -- lua rpc seg faults when transfering more than 10MiB data
+    -- split into parts as a workaround
+    if ( key ~= nil and ( self.is_passive == nil or self.is_passive == false ) ) then
+        local out
+        if ( from ~= nil and to ~= nil ) then
+            out = string.sub ( self.stats.tcpdump_pcaps [ key ], from, to ) 
+            if ( to >= string.len ( out ) ) then
+                self.stats.tcpdump_pcaps [ key ] = {}
+            end
+        else
+            out = self.stats.tcpdump_pcaps [ key ]
+            self.stats.tcpdump_pcaps [ key ] = {}
+        end
+        return out
+    end
+    return nil
 end
 
 function NodeRef:cleanup_measurement ( key )

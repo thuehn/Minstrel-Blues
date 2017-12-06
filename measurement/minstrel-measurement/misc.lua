@@ -15,6 +15,7 @@ function table_size ( tbl )
 end
 
 function table_tostring ( tbl, max_line_size, delim )
+    if ( tbl == nil ) then return "none" end
     if ( delim == nil ) then delim = ", " end
     local count = 1
     local lines = {}

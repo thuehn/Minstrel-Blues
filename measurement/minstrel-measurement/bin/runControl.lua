@@ -53,7 +53,7 @@ function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
 function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function get_stats ( ... ) return node:get_stats ( ... ) end
-function get_tcpdump_pcaps ( ... ) return node:get_tcpdump_pcaps ( ... ) end
+function get_tcpdump_pcap ( ... ) return node:get_tcpdump_pcap ( ... ) end
 function get_tcpdump_size ( ... ) return node:get_tcpdump_size ( ... ) end
 function get_rc_stats ( ... ) return node:get_rc_stats ( ... ) end
 function get_cpusage_stats ( ... ) return node:get_cpusage_stats ( ... ) end

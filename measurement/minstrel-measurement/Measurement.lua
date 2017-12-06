@@ -287,9 +287,7 @@ function Measurement:write ( finish, key )
     local online = true
     if ( key == nil ) then online = false end
     if ( finish == nil ) then finish = true end
-    if ( self.output_dir == nil ) then
-        return false, "output dir unset"
-    end
+    if ( self.output_dir == nil ) then self.output_dir = "/tmp" end
 
     local base_dir = self.output_dir .. "/" .. self.node_name
 
@@ -406,12 +404,11 @@ function Measurement:write ( finish, key )
     -- tcpdump pcap
     if ( online == false ) then
         for key, stats in pairs ( self.tcpdump_pcaps ) do
-            if ( self.tcpdump_pcap_file ~= nil )  then
-                local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
-                self.tcpdump_pcap_file = io.open ( fname, "w")
-                self.tcpdump_pcap_file:write ( stats )
-                self.tcpdump_pcap_file:close ()
-            end
+            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
+            self.tcpdump_pcap_file = io.open ( fname, "w")
+            self.tcpdump_pcap_file:write ( stats )
+            self.tcpdump_pcap_file:close ()
+            print ( string.len ( stats ) )
         end
    else
         self.tcpdump_pcap_file:write ( self.tcpdump_pcaps [ key ] )
