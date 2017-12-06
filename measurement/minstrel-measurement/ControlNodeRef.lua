@@ -294,6 +294,14 @@ function ControlNodeRef:list_stations ( ap_name )
     return self.rpc.list_stations ( ap_name )
 end
 
+function ControlNodeRef:get_stats ( node_name )
+    local stats = self.rpc.get_stats ( node_name )
+    -- fixme: seg faults at serialize or transfer via rpc (after copying result, on return result)
+    -- possible solutions:
+    -- - don't use -O3 to build luarpc
+    return stats
+end
+
 function ControlNodeRef:get_mac ( node_name )
     return self.rpc.get_mac ( node_name )
 end
@@ -590,8 +598,11 @@ end
 -- fixme: sometimes this waits forever
 function ControlNodeRef:stop_local ()
     print ( "kill control:" .. ( self.ctrl_pid or "none" ) )
-    ps.kill ( self.ctrl_pid, ps.SIGINT )
-    ps.kill ( self.ctrl_pid, ps.SIGINT )
+    -- lua should terminate by two times sigint, but sometimes it didn't
+    --ps.kill ( self.ctrl_pid, ps.SIGINT )
+    --ps.kill ( self.ctrl_pid, ps.SIGINT )
+    ps.kill ( self.ctrl_pid )
+    ps.kill ( self.ctrl_pid )
     lpc.wait ( self.ctrl_pid )
 end
 
@@ -741,9 +752,36 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
 
         print ("* Transfer Measurement Result *")
 
+        local max_size = 1024 * 1024 -- 1 megabyte at once
         for _, ref_name in ipairs ( node_names ) do
             
-            local stats = self.rpc.get_stats ( ref_name )
+            print ( "transfer node: " .. ref_name )
+
+            --local stats = self.rpc.get_stats ( ref_name )
+            --local stats = self:get_stats ( ref_name )
+            local pcap_sizes = self.rpc.get_tcpdump_size ( ref_name )
+            pprint ( pcap_sizes )
+            local tcpdump_pcaps = {}
+            for key, size in pairs ( pcap_sizes ) do
+                tcpdump_pcaps [ key ] = ""
+                local i = 0
+                print ( i, size, max_size, ( ( i + 1 ) * max_size ) + 1 )
+                while ( ( ( ( i + 1 ) * max_size ) + 1 ) <= size ) do
+                    local pcaps = self.rpc.get_tcpdump_pcaps ( ref_name, ( max_size * i ) + 1, max_size )
+                    if ( pcaps [ key ] ~= nil ) then
+                        tcpdump_pcaps [ key ] = tcpdump_pcaps [ key ] .. pcaps [ key ]
+                    end
+                    i = i + 1
+                end
+            end
+            
+            local rc_stats = self.rpc.get_rc_stats ( ref_name )
+            local cpusage_stats = self.rpc.get_cpusage_stats ( ref_name )
+            local regmon_stats = self.rpc.get_regmon_stats ( ref_name )
+            local iperf_s_out = self.rpc.get_iperf_s_out ( ref_name )
+            local iperf_c_out = self.rpc.get_iperf_c_out ( ref_name )
+
+            print ( "stats fetched" )
 
             local mac = self:get_mac ( ref_name )
             local opposite_macs = self:get_opposite_macs ( ref_name )
@@ -752,17 +790,25 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
             measurement.node_mac_br = self:get_mac_br ()
 
             local stations = {}
-            for station, _ in pairs ( stats.rc_stats ) do
+            for station, _ in pairs ( rc_stats ) do
+            --for station, _ in pairs ( stats.rc_stats ) do
                 stations [ #stations + 1 ] = station
             end
             measurement:enable_rc_stats ( stations ) -- resets rc_stats
 
-            merge_map ( stats [ 'cpusage_stats' ] , measurement.cpusage_stats )
-            merge_map ( stats [ 'rc_stats' ] , measurement.rc_stats )
-            merge_map ( stats [ 'regmon_stats' ] , measurement.regmon_stats )
-            merge_map ( stats [ 'tcpdump_pcaps' ] , measurement.tcpdump_pcaps )
-            merge_map ( stats [ 'iperf_s_outs' ] , measurement.iperf_s_outs )
-            merge_map ( stats [ 'iperf_c_outs' ] , measurement.iperf_c_outs )
+            merge_map ( rc_stats, measurement.rc_stats )
+            merge_map ( tcpdump_pcaps, measurement.tcpdump_pcaps )
+            merge_map ( cpusage_stats, measurement.cpusage_stats )
+            merge_map ( regmon_stats, measurement.regmon_stats )
+            merge_map ( iperf_s_out, measurement.iperf_s_outs )
+            merge_map ( iperf_c_out, measurement.iperf_c_outs )
+
+            --merge_map ( stats [ 'cpusage_stats' ], measurement.cpusage_stats )
+            --merge_map ( stats [ 'rc_stats' ], measurement.rc_stats )
+            --merge_map ( stats [ 'regmon_stats' ], measurement.regmon_stats )
+            --merge_map ( stats [ 'tcpdump_pcaps' ], measurement.tcpdump_pcaps )
+            --merge_map ( stats [ 'iperf_s_outs' ], measurement.iperf_s_outs )
+            --merge_map ( stats [ 'iperf_c_outs' ], measurement.iperf_c_outs )
 
             local status, err = measurement:write ()
             if ( status == false ) then

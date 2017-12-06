@@ -500,22 +500,139 @@ function ControlNode:get_keys ()
     return self.keys
 end
 
+function ControlNode:get_tcpdump_size ( ref_name )
+    self:send_info ( "*** Send tcpdump pcaps sizes from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local node_ref = self:find_node_ref ( ref_name )
+    local size = {}
+    for key, data in pairs ( node_ref.stats.tcpdump_pcaps ) do
+        size [ key ] = string.len ( data )
+    end
+    return size
+end
+
+function ControlNode:get_tcpdump_pcaps ( ref_name, offset, count )
+    self:send_info ( "*** Copy tcpdump pcaps from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+    local out = {}
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        return out
+    end
+    -- lua rpc seg faults when transfering more than 10MiB data
+    -- split into parts as a workaround
+    -- fixme: code is orthogonal now (optimize loop order)
+    if ( offset ~= nil and count ~= nil ) then
+        self:send_debug ( tostring ( offset ) .. " - " .. tostring ( offset + count - 1 ) )
+        for key, data in pairs ( node_ref.stats.tcpdump_pcaps ) do
+            out [ key ] = string.sub ( data, offset, offset + count - 1 )
+            if ( offset + count >= string.len ( data ) ) then
+                -- delete all data transferred
+                node_ref.stats.tcpdump_pcaps [ key ] = {}
+            end
+        end
+    else
+        out = copy_map ( node_ref.stats.tcpdump_pcaps )
+        node_ref.stats.tcpdump_pcaps = {}
+    end
+    for key, stats in pairs ( out ) do
+        self:send_debug ( "key: " .. key )
+        self:send_debug ( string.len ( stats ) )
+    end
+    self:send_debug ( "tcpdump pcaps copied" )
+    self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+    return out
+end
+
+function ControlNode:get_rc_stats ( ref_name )
+    self:send_info ( "*** Copy rc_stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local out = {}
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        return out
+    end
+    out = copy_map ( node_ref.stats.rc_stats )
+    node_ref.stats.rc_stats = {}
+    self:send_debug ( "rc stats copied" )
+    return out
+end
+
+function ControlNode:get_cpusage_stats ( ref_name )
+    self:send_info ( "*** Copy cpusage_stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local out = {}
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        return out
+    end
+    out = copy_map ( node_ref.stats.cpusage_stats )
+    node_ref.stats.cpusage_stats = {}
+    self:send_debug ( "cpusage stats copied" )
+    return out
+end
+
+function ControlNode:get_regmon_stats ( ref_name )
+    self:send_info ( "*** Copy regmon_stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local out = {}
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        return out
+    end
+    out = copy_map ( node_ref.stats.regmon_stats )
+    node_ref.stats.regmon_stats = {}
+    self:send_debug ( "regmon stats copied" )
+    return out
+end
+
+function ControlNode:get_iperf_s_out ( ref_name )
+    self:send_info ( "*** Copy iperf server output from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local out = {}
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        return out
+    end
+    out = copy_map ( node_ref.stats.iperf_s_out )
+    node_ref.stats.iperf_s_out = {}
+    self:send_debug ( "iperf server out copied" )
+    return out
+end
+
+function ControlNode:get_iperf_c_out ( ref_name )
+    self:send_info ( "*** Copy iperf client output from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
+    local out = {}
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        return out
+    end
+    out = copy_map ( node_ref.stats.iperf_c_out )
+    node_ref.stats.iperf_c_out = {}
+    self:send_debug ( "iperf client out copied" )
+    return out
+end
+
 function ControlNode:get_stats ( ref_name )
     self:send_info ( "*** Copy stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
-    local node_ref = self:find_node_ref ( ref_name )
     local out = {}
+    local node_ref = self:find_node_ref ( ref_name )
+    if ( node_ref == nil ) then
+        return out
+    end
     out [ 'regmon_stats' ] = copy_map ( node_ref.stats.regmon_stats )
     node_ref.stats.regmon_stats = {}
+    self:send_debug ( "regmon stats copied" )
     out [ 'tcpdump_pcaps' ] = copy_map ( node_ref.stats.tcpdump_pcaps )
     node_ref.stats.tcpdump_pcaps = {}
+    self:send_debug ( "tcpdump pcaps copied" )
     out [ 'cpusage_stats' ] = copy_map ( node_ref.stats.cpusage_stats )
     node_ref.stats.cpusage_stats = {}
+    self:send_debug ( "cpusage stats copied" )
     out [ 'rc_stats' ] = copy_map ( node_ref.stats.rc_stats )
-    --node_ref.stats.rc_stats = {}
+    node_ref.stats.rc_stats = {}
+    self:send_debug ( "rc stats copied" )
     out [ 'iperf_s_outs' ] = copy_map ( node_ref.stats.iperf_s_outs )
     node_ref.stats.iperf_s_outs = {}
+    self:send_debug ( "iperf server output copied" )
     out [ 'iperf_c_outs' ] = copy_map ( node_ref.stats.iperf_c_outs )
     node_ref.stats.iperf_c_outs = {}
+    self:send_debug ( "iperf client output copied" )
     return out
 end
 

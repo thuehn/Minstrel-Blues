@@ -207,7 +207,7 @@ function Measurement:read ()
     for key, stats in pairs ( self.tcpdump_pcaps ) do
         local fname = self.output_dir .. "/" .. self.node_name 
                     .. "/" .. self.node_name .. "-" .. key .. ".pcap"
-        local file = io.open(fname, "rb")
+        local file = io.open (fname, "rb")
         if ( file ~= nil ) then
             stats = file:read ("*a")
             self.tcpdump_pcaps [ key ] = stats

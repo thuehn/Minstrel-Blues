@@ -66,6 +66,6 @@ install:
 	cp $(BIN_DIR)/$(KILL_REMOTE) $(INSTALL_BIN_DIR)/$(KILL_REMOTE)
 	chmod 755 $(INSTALL_BIN_DIR)/$(KILL_REMOTE)
 	mkdir -p $(INSTALL_LUA_LIB_DIR)
-	cp -r *.lua $(INSTALL_LUA_LIB_DIR)
+	cp *.lua $(INSTALL_LUA_LIB_DIR)
 	mkdir -p $(INSTALL_LUA_LIB_DIR)/parsers
-	cp -r parsers/*.lua $(INSTALL_LUA_LIB_DIR)/parsers
+	cp parsers/*.lua $(INSTALL_LUA_LIB_DIR)/parsers
