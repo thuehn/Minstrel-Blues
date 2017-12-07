@@ -318,7 +318,11 @@ function WifiIF:get_cpusage ( online )
     else
         content = self.cpusage_proc.stdout:read ( "*a" )
     end
-    self.node:send_info ( string.len ( content ) .. " bytes from cpusage" )
+    if ( content ~= nil ) then
+        self.node:send_info ( string.len ( content ) .. " bytes from cpusage" )
+    else
+        self.node:send_info ( "no bytes from cpusage" )
+    end
     return content
 end
 
@@ -391,7 +395,11 @@ function WifiIF:get_rc_stats ( station, online )
     else
         content = self.rc_stats_procs [ station ].stdout:read ("*a")
     end
-    self.node:send_info ( string.len ( content ) .. " bytes from rc_stats" )
+    if ( content ~= nil ) then
+        self.node:send_info ( string.len ( content ) .. " bytes from rc_stats" )
+    else
+        self.node:send_info ( "no bytes from rc_stats" )
+    end
     return content 
 end
 
