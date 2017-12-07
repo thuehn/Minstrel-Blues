@@ -532,9 +532,10 @@ function Measurement:start ( phy, key )
     local cpusage_pid = self.rpc_node.start_cpusage ( phy )
     -- tcpdump
     self.tcpdump_pcaps [ key ] = ""
-    local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
+    local  fname = nil
     if ( self.online == false ) then
-        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, tcpdump_fname )
+        local fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
+        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, fname )
     else
         local tcpdump_pid = self.rpc_node.start_tcpdump ( phy )
     end
@@ -549,7 +550,6 @@ function Measurement:start ( phy, key )
 end
 
 function Measurement:stop ( phy, key )
-    local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
     -- regmon 
     local exit_code = self.rpc_node.stop_regmon_stats ( phy )
     -- cpusage
@@ -580,12 +580,11 @@ function Measurement:fetch ( phy, key )
         self.cpusage_stats [ key ] = self.cpusage_stats [ key ] .. stats 
     end
     -- tcpdump
+    local fname = nil
     if ( self.online == false ) then
-        local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
-        stats = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
-    else
-        stats = self.rpc_node.get_tcpdump_online ( phy, tcpdump_fname )
+        fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
     end
+    stats = self.rpc_node.get_tcpdump ( phy, fname )
     if ( stats ~= nil ) then
         self.tcpdump_pcaps [ key ] = self.tcpdump_pcaps [ key ] .. stats 
     else

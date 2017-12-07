@@ -9,7 +9,6 @@ Experiment = { control = nil
              , tx_rates = nil
              , tcpdata = nil
              , is_fixed = nil
-             , key = nil
              }
 
 
@@ -90,10 +89,11 @@ function Experiment:settle_measurement ( ap_ref, key )
 end
 
 function Experiment:start_measurement ( ap_ref, key )
+    self.control:send_debug("start_mesurement not implemented")
 end
 
 function Experiment:stop_measurement ( ap_ref, key )
-    ap_ref:stop_measurement ( key )
+    self.control:send_debug("stop_experiment not implemented")
 end
 
 function Experiment:fetch_measurement ( ap_ref, key )

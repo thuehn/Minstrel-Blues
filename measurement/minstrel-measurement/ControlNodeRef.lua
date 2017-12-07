@@ -841,10 +841,6 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         print ( exp_header )
 
         -- fixme: MESH
---        ret, err = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, htmode )
---        if ( ret == false ) then
---            return ret, err
---        end
         ret, err = self.rpc.init_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, htmode )
         if ( ret == false ) then
             return ret, err

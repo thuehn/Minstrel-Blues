@@ -100,8 +100,7 @@ function cleanup_regmon ( ... ) return node:cleanup_regmon ( ... ) end
 
 -- tcpdump
 function start_tcpdump ( ... ) return node:start_tcpdump ( ... ) end
-function get_tcpdump_offline ( ... ) return node:get_tcpdump_offline ( ... ) end
-function get_tcpdump_online ( ... ) return node:get_tcpdump_online ( ... ) end
+function get_tcpdump ( ... ) return node:get_tcpdump ( ... ) end
 function stop_tcpdump ( ... ) return node:stop_tcpdump ( ... ) end
 function cleanup_tcpdump ( ... ) return node:cleanup_tcpdump ( ... ) end
 

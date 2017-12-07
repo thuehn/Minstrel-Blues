@@ -14,7 +14,6 @@
 -- plugin support with loadfile
 -- check authorized keys manually ( no ssh-copy-id)
 -- plot ath and non-ath networks
--- regmon: luci config allows non-existant debugfs entries
 -- reachability of stations for all access points
 --   - allow empty command line arg --sta ( just --ap needed )
 -- cooperative channel selection

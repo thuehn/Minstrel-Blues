@@ -469,53 +469,40 @@ function WifiIF:start_tcpdump ( fname )
     return pid
 end
 
-function WifiIF:get_tcpdump_offline ( fname )
-    self.node:send_info ( "send tcpdump offline for file " .. ( fname or "none" ) )
-    local file = io.open ( fname, "rb" )
-    if ( file == nil ) then 
-        self.node:send_error ( "no tcpdump file found" )
-        return nil 
+function WifiIF:get_tcpdump ( fname, ms, sz )
+    local online = true
+    if ( ms == nil ) then ms = 100 end
+    --if ( sz == nil ) then sz = 1024 end
+    --if ( sz == nil ) then sz = 4096 end
+    if ( sz == nil ) then sz = 1024*4096 end
+    if ( fname ~= nil ) then
+        online = false
+        self.node:send_info ( "send tcpdump offline for file " .. fname )
+    else
+        self.node:send_info ( "send tcpdump online from pipe" )
     end
-    local content = file:read ( "*a" )
-    file:close ()
-    self.node:send_info ( "remove tcpump pcap file " .. ( fname or "none" ) )
-    os.remove ( fname )
-    self.tcpdump_proc.stdin:close ()
-    self.tcpdump_proc.stdout:close ()
-    self.tcpdump_proc = nil
+    local content = nil
+    if ( online == false ) then
+        local file = io.open ( fname, "rb" )
+        if ( file == nil ) then 
+            self.node:send_error ( "no tcpdump file found" )
+            return nil 
+        end
+        content = file:read ( "*a" )
+        file:close ()
+        self.node:send_info ( "remove tcpdump pcap file " .. ( fname or "none" ) )
+        os.remove ( fname )
+        self.tcpdump_proc.stdin:close ()
+        self.tcpdump_proc.stdout:close ()
+        self.tcpdump_proc = nil
+    else
+        content = misc.read_nonblock ( self.tcpdump_proc.stdout, ms, sz, self.node )
+    end
     if ( content ~= nil ) then
         self.node:send_info ( string.len ( content ) .. "  bytes from tcpdump" )
     else
         self.node:send_info ( "0 bytes from tcpdump" )
     end
-    return content
-end
-
-function WifiIF:get_tcpdump_online ( fname, ms, sz )
-    self.node:send_info ( "send tcpdump online from pipe" )
-    if ( ms == nil ) then ms = 100 end
-    --if ( sz == nil ) then sz = 1024 end
-    --if ( sz == nil ) then sz = 4096 end
-    if ( sz == nil ) then sz = 1024*4096 end
-    local file = nil
-    local offline = false
-    if ( offline ) then
-        file = io.open ( fname, "rb" )
-        if ( file == nil ) then 
-            self.node:send_error ( "no tcpdump file found" )
-            return nil 
-        end
-    else
-        file = self.tcpdump_proc.stdout
-    end
-    local content = misc.read_nonblock ( file, ms, sz, self.node )
-    if ( offline ) then
-        file:close ()
-    end
-    --self.node:send_info ( "remove tcpump pcap file " .. ( fname or "none" ) )
-    --os.remove ( fname )
-    --self.tcpdump_proc.stdin:close ()
-    --self.tcpdump_proc.stdout:close ()
     return content
 end
 
