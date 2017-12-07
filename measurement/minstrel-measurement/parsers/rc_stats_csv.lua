@@ -144,8 +144,9 @@ function RcStatsCsv:new (o)
     return o
 end
 
-function RcStatsCsv:create ( mode, guard, count, best_rate, rate, stats, last, sum_of )
-    local o = RcStatsCsv:new( { mode = mode
+function RcStatsCsv:create ( ts, mode, guard, count, best_rate, rate, stats, last, sum_of )
+    local o = RcStatsCsv:new( { ts = ts
+                              , mode = mode
                               , guard = guard
                               , count = count
                               , best_rate = best_rate 
@@ -169,6 +170,7 @@ function RcStatsCsv:__tostring()
     if ( self.sum_of ~= nil ) then sum_of = self.sum_of:__tostring() else sum_of = "" end
 
     local out = ""
+    out = out .. "timestamp: " .. (self.ts or "") .. " "
     out = out .. "mode: " .. (self.mode or "") .. " "
     out = out .. "guard: " .. (self.guard or "") .. " "
     out = out .. "count: " .. (self.count or "") .. " "
@@ -190,31 +192,32 @@ function parse_rc_stats_csv( rest )
     local fields = split ( rest, ',' )
 
     local stats = RcStatsCsv:create ()
-    stats.mode = fields [ 1 ]
-    stats.guard = fields [ 2 ]
-    stats.count = fields [ 3 ]
-    stats.best_rate = fields [ 4 ]
+    stats.ts = fields [ 1 ]
+    stats.mode = fields [ 2 ]
+    stats.guard = fields [ 3 ]
+    stats.count = fields [ 4 ]
+    stats.best_rate = fields [ 5 ]
 
     stats.rate = RcRate:create()
-    stats.rate.name = trim ( fields [ 5 ] )
-    stats.rate.idx = fields [ 6 ]
-    stats.rate.airtime = fields [ 7 ]
-    stats.rate.max_tp = fields [ 8 ]
+    stats.rate.name = trim ( fields [ 6 ] )
+    stats.rate.idx = fields [ 7 ]
+    stats.rate.airtime = fields [ 8 ]
+    stats.rate.max_tp = fields [ 9 ]
     
     stats.stats = RcStats:create()
-    stats.stats.avg_tp = fields [ 9 ]
-    stats.stats.avg_prob = fields [ 10 ]
-    stats.stats.sd_prob = fields [ 11 ]
+    stats.stats.avg_tp = fields [ 10 ]
+    stats.stats.avg_prob = fields [ 11 ]
+    stats.stats.sd_prob = fields [ 12 ]
 
     stats.last = RcLast:create()
-    stats.last.prob = fields [ 12 ]
-    stats.last.retry = fields [ 13 ]
-    stats.last.suc = fields [ 14 ]
-    stats.last.att = fields [ 15 ]
+    stats.last.prob = fields [ 13 ]
+    stats.last.retry = fields [ 14 ]
+    stats.last.suc = fields [ 15 ]
+    stats.last.att = fields [ 16 ]
     
     stats.sum_of = RcSumOf:create()
-    stats.sum_of.num_success = fields [ 16 ]
-    stats.sum_of.num_attemps = fields [ 17 ]
+    stats.sum_of.num_success = fields [ 17 ]
+    stats.sum_of.num_attemps = fields [ 18 ]
 
     return stats
 end
