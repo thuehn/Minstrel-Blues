@@ -623,7 +623,7 @@ end
 function ControlNodeRef:init_experiments ( command, args, ap_names, is_fixed )
     print ( "Init Experiments" )
 
-    local ret = self.rpc.init_experiment ( command, args, ap_names, is_fixed )
+    local ret = self.rpc.init_experiments ( command, args, ap_names, is_fixed )
 
     local all_rates = copy_map ( self.rpc.get_txrates () )
     for name, rates in pairs ( all_rates ) do 
@@ -654,6 +654,65 @@ function ControlNodeRef:reachable ()
         end
     end
     return true
+end
+
+function ControlNodeRef:write_measurement ( node_names, key )
+    print ("* Transfer Measurement Result *")
+
+    local max_size = 1024 * 1024 -- 1 megabyte at once
+    for _, ref_name in ipairs ( node_names ) do
+
+        print ( "transfer node: " .. ref_name )
+
+        local mac = self:get_mac ( ref_name )
+        local opposite_macs = self:get_opposite_macs ( ref_name )
+
+        local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
+        measurement.node_mac_br = self:get_mac_br ()
+
+        local stations = self:list_stations ( ref_name )
+        measurement:enable_rc_stats ( stations ) -- resets rc_stats
+
+        local size = self.rpc.get_tcpdump_size ( ref_name, key )
+        local tcpdump_pcap = ""
+        local i = 0
+        repeat
+            local pcap = self.rpc.get_tcpdump_pcap ( ref_name, key, ( max_size * i ) + 1, max_size )
+            if ( pcap ~= nil ) then
+                tcpdump_pcap = tcpdump_pcap .. pcap
+            end
+            i = i + 1
+        until ( ( ( i + 1 ) * max_size ) + 1 ) > size
+        measurement.tcpdump_pcaps [ key ] = tcpdump_pcap
+
+        for _, station in ipairs ( stations ) do
+            measurement.rc_stats [ station ] [ key ] = self.rpc.get_rc_stats ( ref_name, station, key )
+        end
+
+        measurement.cpusage_stats [ key ] = self.rpc.get_cpusage_stats ( ref_name, key )
+        measurement.regmon_stats [ key ] = self.rpc.get_regmon_stats ( ref_name, key )
+        
+        local iperf_s_out = self.rpc.get_iperf_s_out ( ref_name )
+        merge_map ( iperf_s_out, measurement.iperf_s_outs )
+        
+        local iperf_c_out = self.rpc.get_iperf_c_out ( ref_name )
+        merge_map ( iperf_c_out, measurement.iperf_c_outs )
+
+        print ( "stats fetched" )
+
+        local status, err = measurement:write ()
+        if ( status == false ) then
+            print ( "err: can't access directory '" ..  ( output_dir or "unset" )
+                            .. "': " .. ( err or "unknown error" ) )
+        else
+            print ( measurement:__tostring() )
+        end
+
+        if ( dmesg == true ) then
+            self:get_dmesg ( ref_name, key )
+        end
+    end
+
 end
 
 -- fixme: MESH
@@ -750,73 +809,26 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         print ( exp_header )
 
         -- fixme: MESH
-        ret, err = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, htmode )
+--        ret, err = self.rpc.run_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, htmode )
+--        if ( ret == false ) then
+--            return ret, err
+--        end
+        ret, err = self.rpc.init_experiment ( command, args, ap_names, is_fixed, key, counter, min_len, channel, htmode )
         if ( ret == false ) then
             return ret, err
         end
 
-        repeat
+        if ( self.online == true ) then
+            repeat
+                self.rpc.exp_next_data ( key )
+                self:write_measurement ( node_names, key )
+            until self.rpc.exp_has_data ( key ) == false
+        end
 
-            print ("* Transfer Measurement Result *")
+        ret, err = self.rpc.finish_experiment ( key )
+        self:write_measurement ( node_names, key )
 
-            local max_size = 1024 * 1024 -- 1 megabyte at once
-            for _, ref_name in ipairs ( node_names ) do
-
-                print ( "transfer node: " .. ref_name )
-
-                local mac = self:get_mac ( ref_name )
-                local opposite_macs = self:get_opposite_macs ( ref_name )
-
-                local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
-                measurement.node_mac_br = self:get_mac_br ()
-
-                local stations = self:list_stations ( ref_name )
-                measurement:enable_rc_stats ( stations ) -- resets rc_stats
-
-                local size = self.rpc.get_tcpdump_size ( ref_name, key )
-                local tcpdump_pcap = ""
-                local i = 0
-                repeat
-                    local pcap = self.rpc.get_tcpdump_pcap ( ref_name, key, ( max_size * i ) + 1, max_size )
-                    if ( pcap ~= nil ) then
-                        tcpdump_pcap = tcpdump_pcap .. pcap
-                    end
-                    i = i + 1
-                until ( ( ( i + 1 ) * max_size ) + 1 ) > size
-                measurement.tcpdump_pcaps [ key ] = tcpdump_pcap
-
-                for _, station in ipairs ( stations ) do
-                    measurement.rc_stats [ station ] [ key ] = self.rpc.get_rc_stats ( ref_name, station, key )
-                end
-
-                measurement.cpusage_stats [ key ] = self.rpc.get_cpusage_stats ( ref_name, key )
-                measurement.regmon_stats [ key ] = self.rpc.get_regmon_stats ( ref_name, key )
-                
-                local iperf_s_out = self.rpc.get_iperf_s_out ( ref_name )
-                merge_map ( iperf_s_out, measurement.iperf_s_outs )
-                
-                local iperf_c_out = self.rpc.get_iperf_c_out ( ref_name )
-                merge_map ( iperf_c_out, measurement.iperf_c_outs )
-
-                print ( "stats fetched" )
-
-                local status, err = measurement:write ()
-                if ( status == false ) then
-                    print ( "err: can't access directory '" ..  ( output_dir or "unset" )
-                                    .. "': " .. ( err or "unknown error" ) )
-                else
-                    print ( measurement:__tostring() )
-                end
-
-                if ( dmesg == true ) then
-                    self:get_dmesg ( ref_name, key )
-                end
-            end
-
-            counter = counter + 1
-
-        until self.online == false
-
+        counter = counter + 1
     end
 
     return ret, err

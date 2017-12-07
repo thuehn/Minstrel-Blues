@@ -38,6 +38,7 @@ function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, 
                                 , keys = {}
                                 , retries = retries
                                 , online = online
+                                , running = false
                                 } )
     if ( o.ctrl.addr == nil ) then
         o.ctrl:get_addr ()
@@ -453,7 +454,7 @@ function ControlNode:stop ( rsa_key )
     end
 end
 
-function ControlNode:init_experiment ( command, args, ap_names, is_fixed )
+function ControlNode:init_experiments ( command, args, ap_names, is_fixed )
 
     if ( command == "tcp") then
         self.exp = TcpExperiment:create ( self, args, is_fixed )
@@ -547,7 +548,7 @@ function ControlNode:get_rc_stats ( ref_name, station, key )
         return out
     end
     out = node_ref.stats.rc_stats [ station ] [ key ]
-    node_ref.stats.rc_stats [ station ] [ key ] = nil
+    node_ref.stats.rc_stats [ station ] [ key ] = ""
     self:send_debug ( "rc stats copied: " .. string.len ( out ) )
     return out
 end
@@ -561,7 +562,7 @@ function ControlNode:get_cpusage_stats ( ref_name, key )
         return out
     end
     out = node_ref.stats.cpusage_stats [ key ]
-    node_ref.stats.cpusage_stats [ key ] = nil
+    node_ref.stats.cpusage_stats [ key ] = ""
     self:send_debug ( "cpusage stats copied and removed" )
     return out
 end
@@ -575,7 +576,7 @@ function ControlNode:get_regmon_stats ( ref_name, key )
         return out
     end
     out = node_ref.stats.regmon_stats [ key ]
-    node_ref.stats.regmon_stats [ key ] = nil
+    node_ref.stats.regmon_stats [ key ] = ""
     self:send_debug ( "regmon stats copied and removed" )
     return out
 end
@@ -642,7 +643,7 @@ end
 
 -- runs experiment 'exp' for all nodes 'ap_refs'
 -- in parallel
-function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, number, count, channel, htmode )
+function ControlNode:init_experiment ( command, args, ap_names, is_fixed, key, number, count, channel, htmode )
 
     function find_rate ( rate_name, rate_names, rate_indices )
         rate_name = string.gsub ( rate_name, " ", "" )
@@ -759,26 +760,33 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     for _, ap_ref in ipairs ( self.ap_refs ) do
          self.exp:start_experiment ( ap_ref, key )
     end
-    
-    if ( self.online == true ) then
-        local running = true
-        while ( running ) do
-            running = false
-            self:send_info ("*** Fetch Measurement ***" )
-            -- fixme: MESH
-            for i, ap_ref in ipairs ( self.ap_refs ) do
-                --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-                local has_content = self.exp:fetch_measurement ( ap_ref, key )
-                self:send_debug ( "experiments has_content: " .. tostring ( has_content ) )
-                running = running or ap_ref:is_exp_running ()
-                self:send_debug ( "experiments running: " .. tostring ( running ) )
-                --collectgarbage ()
-                --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-            end
-            posix.sleep (1)
-        end
-    end
 
+    self.running = true
+    return true, nil
+end
+
+function ControlNode:exp_has_data ()
+    self:send_info ( "Experiment running: " .. tostring ( self.running ) )
+    return self.running, nil
+end
+
+function ControlNode:exp_next_data ( key )
+    self.running = false
+    self:send_info ("*** Fetch Measurement ***" )
+    -- fixme: MESH
+    for i, ap_ref in ipairs ( self.ap_refs ) do
+        --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+        local has_content = self.exp:fetch_measurement ( ap_ref, key )
+        self:send_debug ( "experiments has_content: " .. tostring ( has_content ) )
+        self.running = self.running or ap_ref:is_exp_running ()
+        self:send_debug ( "experiments running: " .. tostring ( self.running ) )
+        --collectgarbage ()
+        --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+    end
+    return true, nil
+end
+
+function ControlNode:finish_experiment ( key )
     self:send_info ("*** Wait Experiment ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
@@ -792,6 +800,7 @@ function ControlNode:run_experiment ( command, args, ap_names, is_fixed, key, nu
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:stop_measurement ( ap_ref, key )
     end
+    self.running = false
 
     self:send_info ("*** Fetch Measurement ***" )
     -- fixme: MESH

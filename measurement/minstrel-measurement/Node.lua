@@ -652,7 +652,7 @@ function Node:get_rc_stats ( phy, station, online )
     if ( online == nil ) then online = false end
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:get_rc_stats ( station )
+        return dev:get_rc_stats ( station, online )
     end
     return nil
 end

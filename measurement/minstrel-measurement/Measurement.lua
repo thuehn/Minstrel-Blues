@@ -6,9 +6,6 @@ local pprint = require ('pprint')
 --  AP: regmon, tcpdump, cpusage, rc_stats per station
 --]]
 
-pprint = require('pprint')
-
-
 -- String name, String typ, String value
 -- "expermiment_order", "List", "{1}"
 -- "mac", "mac", "AA:22:BB:33:CC:44"
@@ -408,7 +405,6 @@ function Measurement:write ( finish, key )
             self.tcpdump_pcap_file = io.open ( fname, "w")
             self.tcpdump_pcap_file:write ( stats )
             self.tcpdump_pcap_file:close ()
-            print ( string.len ( stats ) )
         end
    else
         self.tcpdump_pcap_file:write ( self.tcpdump_pcaps [ key ] )
@@ -530,8 +526,10 @@ end
 
 function Measurement:start ( phy, key )
     -- regmon 
+    self.regmon_stats [ key ] = ""
     local regmon_pid = self.rpc_node.start_regmon_stats ( phy )
     -- cpusage
+    self.cpusage_stats [ key ] = ""
     local cpusage_pid = self.rpc_node.start_cpusage ( phy )
     -- tcpdump
     self.tcpdump_pcaps [ key ] = ""
@@ -544,27 +542,21 @@ function Measurement:start ( phy, key )
     -- rc stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
+            self.rc_stats [ station ] [ key ] = ""
             local rc_stats_pid = self.rpc_node.start_rc_stats ( phy, station )
         end
-    end
-    if ( self.online ) then
-        self:fetch_online ( phy, key, tcpdump_fname )
     end
     return true
 end
 
 function Measurement:stop ( phy, key )
     local tcpdump_fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
-    if ( self.online ) then
-        self:fetch_online ( phy, key, tcpdump_fname )
-    end
     -- regmon 
     local exit_code = self.rpc_node.stop_regmon_stats ( phy )
     -- cpusage
     local exit_code = self.rpc_node.stop_cpusage ( phy )
     -- tcpdump
     local exit_code = self.rpc_node.stop_tcpdump ( phy )
--- fixme: run after experiments   self.rpc_node.close_tcpdump_pipe ( phy )
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
@@ -573,37 +565,41 @@ function Measurement:stop ( phy, key )
     end
 end
 
-function Measurement:fetch_online ( phy, key, fname )
-    -- always read tcpdump to reduce memory consumption
-    local content = self.rpc_node.get_tcpdump_online ( phy, fname )
-    if ( content ~= nil ) then
-        self.tcpdump_pcaps [ key ] = self.tcpdump_pcaps [ key ]
-                                        .. content
-        return true
-    else
-        return false
-    end
-end
-
 function Measurement:fetch ( phy, key )
+    local running = true
+    local stats = nil
     -- regmon
-    self.regmon_stats [ key ] = self.rpc_node.get_regmon_stats ( phy )
-    -- cpusage
-    self.cpusage_stats [ key ] = self.rpc_node.get_cpusage ( phy, false )
-    -- tcpdump
-    local running = false
-    local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
-    if ( self.online == false ) then
-        self.tcpdump_pcaps [ key ] = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
+    stats = self.rpc_node.get_regmon_stats ( phy, self.online )
+    if ( stats ~= nil ) then
+        self.regmon_stats [ key ] = self.regmon_stats [ key ] .. stats
     else
-        running = self:fetch_online ( phy, key, tcpdump_fname )
+        --running = false
+    end
+    -- cpusage
+    stats = self.rpc_node.get_cpusage ( phy, self.online )
+    if ( stats ~= nil ) then
+        self.cpusage_stats [ key ] = self.cpusage_stats [ key ] .. stats 
+    end
+    -- tcpdump
+    if ( self.online == false ) then
+        local tcpdump_fname = "/tmp/" .. self.node_name .."-" .. key .. ".pcap"
+        stats = self.rpc_node.get_tcpdump_offline ( phy, tcpdump_fname )
+    else
+        stats = self.rpc_node.get_tcpdump_online ( phy, tcpdump_fname )
+    end
+    if ( stats ~= nil ) then
+        self.tcpdump_pcaps [ key ] = self.tcpdump_pcaps [ key ] .. stats 
+    else
+        running = false
     end
     
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            local stats = self.rpc_node.get_rc_stats ( phy, station )
-            self.rc_stats [ station ] [ key ] = stats
+            local stats = self.rpc_node.get_rc_stats ( phy, station, self.online )
+            if ( stats ~= nil ) then
+                self.rc_stats [ station ] [ key ] = self.rc_stats [ station ] [ key ] .. stats
+            end
         end
     end
 

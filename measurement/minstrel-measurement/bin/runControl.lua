@@ -46,12 +46,17 @@ function stop ( ... ) return node:stop ( ... ) end
 function connect_nodes ( ... ) return node:connect_nodes ( ... ) end
 function disconnect_nodes ( ... ) return node:disconnect_nodes ( ... ) end
 
-function init_experiment ( ... ) return node:init_experiment ( ... ) end
+function init_experiments ( ... ) return node:init_experiments ( ... ) end
 function get_keys ( ... ) return node:get_keys ( ... ) end
 function get_txpowers ( ... ) return node:get_txpowers ( ... ) end
 function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
-function run_experiment ( ... ) return node:run_experiment ( ... ) end
+--function run_experiment ( ... ) return node:run_experiment ( ... ) end
+function init_experiment ( ... ) return node:init_experiment ( ... ) end
+function exp_has_data ( ... ) return node:exp_has_data ( ... ) end
+function exp_next_data ( ... ) return node:exp_next_data ( ... ) end
+function finish_experiment ( ... ) return node:finish_experiment ( ... ) end
+
 function get_stats ( ... ) return node:get_stats ( ... ) end
 function get_tcpdump_pcap ( ... ) return node:get_tcpdump_pcap ( ... ) end
 function get_tcpdump_size ( ... ) return node:get_tcpdump_size ( ... ) end

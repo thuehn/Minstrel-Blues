@@ -9,6 +9,7 @@ Experiment = { control = nil
              , tx_rates = nil
              , tcpdata = nil
              , is_fixed = nil
+             , key = nil
              }
 
 

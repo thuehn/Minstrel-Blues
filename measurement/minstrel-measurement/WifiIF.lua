@@ -373,18 +373,18 @@ function WifiIF:start_rc_stats ( station, sampling_rate )
 end
 
 function WifiIF:get_rc_stats ( station, online )
+    if ( online == nil ) then online = false end
     if ( station == nil ) then
         self.node:send_error ( "Cannot send rc_stats because the station argument is nil!" )
         return nil
     end
-    if ( online == nil ) then online = false end
     self.node:send_info ( "send rc-stats for " .. self.iface ..  ", station " .. station )
     if ( self.rc_stats_procs [ station ] == nil ) then 
         self.node:send_warning ( " no rc-stats for " .. station .. " found" )
         return nil 
     end
-    self.node:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ].pid )
-    if ( online ) then
+    --self.node:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ].pid )
+    if ( online == true ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.rc_stats_procs [ station ].stdout, ms, sz )
