@@ -29,7 +29,8 @@ ControlNodeRef = { name = nil           -- hostname of the control node ( String
                  , mesh_nodes_config = nil -- list of mesh nodes configs
                  , ctrl_pid = nil       -- PID of control node process
                  , retries = nil        -- number of retries for rpc and wifi connections
-                 , online = nil         -- try to fetch data online
+                 , online = nil         -- fetch data online
+                 , measurements = nil   -- list of running measurements
                  }
 
 function ControlNodeRef:new (o)
@@ -147,6 +148,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                  , connections = connections
                                  , retries = retries
                                  , online = online
+                                 , measurements = {}
                                  }
 
     if ( log_port ~= nil and log_fname ~= nil ) then
@@ -656,10 +658,8 @@ function ControlNodeRef:reachable ()
     return true
 end
 
-function ControlNodeRef:write_measurement ( node_names, key )
-    print ("* Transfer Measurement Result *")
 
-    local max_size = 1024 * 1024 -- 1 megabyte at once
+function ControlNodeRef:create_measurement ( node_names, key )
     for _, ref_name in ipairs ( node_names ) do
 
         print ( "transfer node: " .. ref_name )
@@ -673,8 +673,28 @@ function ControlNodeRef:write_measurement ( node_names, key )
         local stations = self:list_stations ( ref_name )
         measurement:enable_rc_stats ( stations ) -- resets rc_stats
 
+        measurement.tcpdump_pcaps [ key ] = ""
+        for _, station in ipairs ( stations ) do
+            measurement.rc_stats [ station ] [ key ] = ""
+        end
+
+        measurement.cpusage_stats [ key ] = ""
+        measurement.regmon_stats [ key ] = ""
+
+        self.measurements [ ref_name ] = measurement
+    end
+end
+
+function ControlNodeRef:write_measurement ( node_names, online, finish, key )
+    print ("* Transfer Measurement Result *")
+
+    local max_size = 1024 * 1024 -- 1 megabyte at once
+    for _, ref_name in ipairs ( node_names ) do
+
+        print ( "transfer node: " .. ref_name )
+
         local size = self.rpc.get_tcpdump_size ( ref_name, key )
-        local tcpdump_pcap = ""
+        local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_pcaps [ key ]
         local i = 0
         repeat
             local pcap = self.rpc.get_tcpdump_pcap ( ref_name, key, ( max_size * i ) + 1, max_size )
@@ -683,29 +703,41 @@ function ControlNodeRef:write_measurement ( node_names, key )
             end
             i = i + 1
         until ( ( ( i + 1 ) * max_size ) + 1 ) > size
-        measurement.tcpdump_pcaps [ key ] = tcpdump_pcap
+        self.measurements [ ref_name ].tcpdump_pcaps [ key ] = tcpdump_pcap
 
+        local stations = self:list_stations ( ref_name )
         for _, station in ipairs ( stations ) do
-            measurement.rc_stats [ station ] [ key ] = self.rpc.get_rc_stats ( ref_name, station, key )
+            self.measurements [ ref_name ].rc_stats [ station ] [ key ]
+                = self.measurements [ ref_name ].rc_stats [ station ] [ key ]
+                  .. self.rpc.get_rc_stats ( ref_name, station, key )
         end
 
-        measurement.cpusage_stats [ key ] = self.rpc.get_cpusage_stats ( ref_name, key )
-        measurement.regmon_stats [ key ] = self.rpc.get_regmon_stats ( ref_name, key )
+        self.measurements [ ref_name ].cpusage_stats [ key ]
+            = self.measurements [ ref_name ].cpusage_stats [ key ]
+              .. self.rpc.get_cpusage_stats ( ref_name, key )
+
+        self.measurements [ ref_name ].regmon_stats [ key ]
+            = self.measurements [ ref_name ].regmon_stats [ key ]
+              .. self.rpc.get_regmon_stats ( ref_name, key )
         
         local iperf_s_out = self.rpc.get_iperf_s_out ( ref_name )
-        merge_map ( iperf_s_out, measurement.iperf_s_outs )
+        merge_map ( iperf_s_out, self.measurements [ ref_name ].iperf_s_outs )
         
         local iperf_c_out = self.rpc.get_iperf_c_out ( ref_name )
-        merge_map ( iperf_c_out, measurement.iperf_c_outs )
+        merge_map ( iperf_c_out, self.measurements [ ref_name ].iperf_c_outs )
 
         print ( "stats fetched" )
 
-        local status, err = measurement:write ()
+        local status, err = self.measurements [ ref_name ]:write ( online, finish, key )
         if ( status == false ) then
             print ( "err: can't access directory '" ..  ( output_dir or "unset" )
                             .. "': " .. ( err or "unknown error" ) )
         else
-            print ( measurement:__tostring() )
+            print ( self.measurements [ ref_name ]:__tostring() )
+        end
+
+        if ( finish == true ) then
+            self.measurements [ ref_name ] = nil
         end
 
         if ( dmesg == true ) then
@@ -818,15 +850,17 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
             return ret, err
         end
 
+        self:create_measurement ( node_names, key )
         if ( self.online == true ) then
             repeat
                 self.rpc.exp_next_data ( key )
-                self:write_measurement ( node_names, key )
+                self:write_measurement ( node_names, self.online, false, key )
+                posix.sleep (1)
             until self.rpc.exp_has_data ( key ) == false
         end
 
         ret, err = self.rpc.finish_experiment ( key )
-        self:write_measurement ( node_names, key )
+        self:write_measurement ( node_names, self.online, true, key )
 
         counter = counter + 1
     end

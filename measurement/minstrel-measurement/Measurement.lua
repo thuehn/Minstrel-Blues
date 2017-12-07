@@ -280,9 +280,8 @@ function Measurement:is_open ()
 end
 
 
-function Measurement:write ( finish, key )
-    local online = true
-    if ( key == nil ) then online = false end
+function Measurement:write ( online, finish, key )
+    if ( online == nil ) then online = false end
     if ( finish == nil ) then finish = true end
     if ( self.output_dir == nil ) then self.output_dir = "/tmp" end
 

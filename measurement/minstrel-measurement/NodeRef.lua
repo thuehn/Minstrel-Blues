@@ -146,6 +146,12 @@ function NodeRef:create_measurement ( online )
     end
 end
 
+
+-- fixme: should be done on node to implement i.e. usb-storage on backbone less nodes
+--function NodeRef:write_measurement ( online, finish, key )
+--    self.stats:write ( online, finish, key )
+--end
+
 function NodeRef:restart_wifi ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.rpc.restart_wifi ( self.wifi_cur )
