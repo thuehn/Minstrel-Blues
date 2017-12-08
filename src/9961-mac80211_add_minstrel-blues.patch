@@ -19,7 +19,7 @@
  mac80211-$(CPTCFG_MAC80211_RC_MINSTREL) += $(rc80211_minstrel-y)
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -0,0 +1,661 @@
+@@ -0,0 +1,753 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -433,6 +433,98 @@
 +	}
 +}
 +
++/* Update all TPC statistics if enough samples got collected */
++void
++blues_ht_update_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
++{
++	struct ieee80211_hw *hw = mp->hw;
++	struct minstrel_rate *mr;
++	struct minstrel_mcs_group_data *mg;
++	struct blues_tpc_stats *mts;
++	s8 max_power_level = hw->conf.power_level;
++	int group, i;
++
++	for (group = (ARRAY_SIZE(minstrel_mcs_groups) - 1); group >= 0; group--) {
++		if ((!mi->supported[group]) || (group == MINSTREL_CCK_GROUP))
++			continue;
++
++		mg = &mi->groups[group];
++
++		for (i = (MCS_GROUP_RATES - 1); i >= 0; i++) {
++			if (!(mi->supported[group] & BIT(i))
++				continue;
++
++			mrs = &mg->rc_stats[i];
++			mts = &mg->tpc_stats[i];
++
++
++		/* if enough samples collected update success probabilities */
++		/* TODO: TPC_UPDATE_THRESH_SAMPLE correct? */
++		if ((mts->reference_attempts > TPC_UPDATE_THRESH_SAMPLE) &&
++		    (mts->sample_attempts > TPC_UPDATE_THRESH_SAMPLE)) {
++			blues_calc_ewma(mr, EWMA_REF_POWER | EWMA_SAMPLE_POWER);
++			mr->tpc_stats.stats_outdated = 100;
++
++			/* check if emergency */
++			// FIXME: is this test right here ?
++			if (mts->reference_prob <
++			    MINSTREL_FRAC(TPC_EMERG_THRESH, 100)) {
++					blues_reset_power(mp, mr);
++					blues_reset_stats(mr);
++					continue;
++			}
++
++			/* trigger power level adjustments */
++			blues_adjust_power_levels(mr);
++		}
++
++		/* if stats are unsampled, adjust them according to others */
++		if (mr->tpc_stats.stats_outdated == 0) {
++			/* Unsampled higher rates are reset */
++			if ((i > mi->max_tp_rate[0]) &&
++			    (i > mi->max_tp_rate[1]) &&
++			    (i > mi->max_tp_rate[2])) {
++				blues_reset_power(mp, mr);
++				blues_reset_stats(mr);
++			}
++
++			/*
++			 * Unsampled lower rates are equal to next higher one
++			 * (assumed linear decreasing robustness of rates)
++			 * (FIXME: create sorted rate list for 802.11g)
++			 */
++			if (i < mi->max_tp_rate[0] && i < mi->max_tp_rate[1]) {
++				mts->reference_power =
++					mi->r[i + 1].tpc_stats.reference_power;
++				mts->sample_power =
++					mi->r[i + 1].tpc_stats.sample_power;
++				blues_reset_stats(mr);
++			}
++		}
++
++		/* validate power settings */
++		blues_validate_power_level(mp, mr);
++
++		//printk(KERN_ERR "tpc; rate= %i.%i tpc_sample_power= %i
++		// tpc_sample_attempts= %i\n", mr->bitrate / 2,
++		// mr->bitrate % 2 ? 5 : 0, mr->tpc_sample_power,
++		//mr->tpc_sample_attempts);
++	}
++
++	/*
++	 * Test utility & adjust power of ACK packets
++	 * utility dependend
++	 */
++	if (mp->has_ack_tpc) {
++		if (mp->dbg_thr_weight >= 100)
++			blues_set_ack_power(hw, max_power_level);
++		else
++			blues_adjust_ack_power(mp, mi);
++	}
++}
++
++
++
 +struct blues_tpc_stats *
 +blues_ht_get_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi,
 +		   struct ieee80211_tx_rate *rate)
@@ -683,7 +775,7 @@
 +}
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.h
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,104 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -744,6 +836,9 @@
 +int blues_set_ack_power(struct ieee80211_hw *hw, s8 val);
 +
 +void blues_update_stats(struct minstrel_priv *mp,
++			struct minstrel_sta_info *mi);
++
++void blues_ht_update_stats(struct minstrel_priv *mp,
 +			struct minstrel_sta_info *mi);
 +
 +void blues_count_tx_attempts(struct minstrel_rate *mr,
@@ -1342,7 +1437,109 @@
  		idx = ieee80211_rate_get_vht_mcs(rate);
  	} else {
  		group = MINSTREL_CCK_GROUP;
-@@ -714,7 +680,12 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -440,22 +406,52 @@ minstrel_ht_assign_best_tp_rates(struct
+ 
+ }
+ 
++static void
++minstrel_ht_cross_charge_rate_states(struct minstrel_ht_sta *mi,
++				     int group, int rate)
++{
++	struct minstrel_mcs_group_data *mg;
++	struct minstrel_rate_stats *mrs;
++
++	mg = &mi->groups[group];
++	mrs = &mg->rc_stats[i];
++
++	if (unlikely(mrs->attempts > 0)) {
++		/* cross-charge LGI attempts to it's corresponding SGI rate */
++		if (!(minstrel_mcs_groups[group].flags & IEEE80211_TX_RC_SHORT_GI) &&
++		    (mrs->success == 0) &&
++		    (mi->supported[group + 1]) &&
++		    (mi->supported[group + 1] & BIT(rate)))
++			mi->groups[group + 1].rc_stats[i].attempts += mrs.attempts;
++		/* cross-charge SGI successes to it's corresponding LGI rate */
++		else if ((minstrel_mcs_groups[group].flags & IEEE80211_TX_RC_SHORT_GI) &&
++		    (mrs->success > 0) &&
++		    (mi->supported[group - 1]) &&
++		    (mi->supported[group - 1] & BIT(rate))) {
++			mi->groups[group - 1].rc_stats[i].success += mrs.success;
++			mi->groups[group - 1].rc_stats[i].attempts += mrs.attempts;
++		}
++	}
++}
++
+ /*
+- * Update rate statistics and select new primary rates
++ * Update rate & tpc statistics and select new primary rate-power pairs
+  *
+  * Rules for rate selection:
+- *  - max_prob_rate must use only one stream, as a tradeoff between delivery
++ *  - max_prob_rate must use only one stream, as a trade-off between delivery
+  *    probability and throughput during strong fluctuations
+  *  - as long as the max prob rate has a probability of more than 75%, pick
+- *    higher throughput rates, even if the probablity is a bit lower
++ *    higher throughput rates, even if the probability is a bit lower
+  */
+ static void
+ minstrel_ht_update_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
+ {
+ 	struct minstrel_mcs_group_data *mg;
+ 	struct minstrel_rate_stats *mrs;
++	struct blues_tpc_stats *tpc;
+ 	int index, group, i, j, cur_prob;
+ 	u16 tmp_mcs_tp_rate[MAX_THR_RATES], tmp_cck_tp_rate[MAX_THR_RATES];
++	bool update_tpc = false;
+ 
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	struct minstrel_ht_sta_priv *msp;
+@@ -487,7 +483,34 @@ minstrel_ht_update_stats(struct minstrel
+ 			index = MCS_GROUP_RATES * group + i;
+ 
+ 			mrs = &mg->rc_stats[i];
++			tpc = &mg->tpc_stats[i];
+ 			mrs->retry_updated = false;
++
++			/* cross-charge success/attempts to conditional rates */
++			//minstrel_ht_cross_charge_rate_states(mrs, group, i);
++
++			/* age the history of TPC stats per rate*/
++			if (tpc->stats_outdated > 0)
++				tpc->stats_outdated -= 1;
++
++			/* If enough TPC samples got collected - update stats */
++			if (tpc->tpc_sample_attempts > TPC_UPDATE_THRESH_SAMPLE &&
++			    tpc->tpc_reference_attempts > TPC_UPDATE_THRESH_SAMPLE)
++				update_tpc = true;
++
++			/* Refresh data statistic after reasonable samples */
++			if (tpc->tpc_data_attempts > TPC_UPDATE_THRESH_DATA) {
++				tpc_calc_data_ewma(mr);
++				/* check if case of emergency */
++				if (tpc->tpc_data_prob < MINSTREL_FRAC(TPC_EMERG_THRESH, 100) ||
++				    mr->cur_tp == 0) {
++					tpc_reset_power(mp, mr);
++					tpc_reset_stats(mr);
++					tpc->stats_outdated = 10;
++				}
++			}
++
++			/* re-calculate per rate statistics */
+ 			minstrel_calc_rate_stats(mrs);
+ 			cur_prob = mrs->prob_ewma;
+ 
+@@ -526,6 +549,10 @@ minstrel_ht_update_stats(struct minstrel
+ 	}
+ #endif
+ 
++	/* Test & call tpc_update_stats */
++	if (update_tpc)
++		blues_update_stats(mp, mi);
++
+ 	/* Reset update timer */
+ 	mi->last_stats_update = jiffies;
+ }
+@@ -714,7 +741,12 @@ minstrel_ht_tx_status(void *priv, struct
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct ieee80211_tx_rate *ar = info->status.rates;
  	struct minstrel_rate_stats *rate;
@@ -1355,7 +1552,7 @@
  	bool last, update = false;
  	int i;
  
-@@ -736,20 +707,59 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -736,20 +768,59 @@ minstrel_ht_tx_status(void *priv, struct
  	mi->ampdu_packets++;
  	mi->ampdu_len += info->status.ampdu_len;
  
@@ -1391,7 +1588,7 @@
 -			rate->success += info->status.ampdu_ack_len;
 -
 -		rate->attempts += ar[i].count * info->status.ampdu_len;
-+		/* successfully acknowledged packets */
++		/* count successfully acknowledged packets */
 +		if (last) {
 +			if (txpower[i] == tpc->reference_power) {
 +				tpc->reference_success += info->status.ampdu_len;
@@ -1409,19 +1606,19 @@
 +				rate->success += info->status.ampdu_ack_len;
 +			}
 +		}
-+		/* unacknowledged packets */
++		/* count packet attempts */
 +		if (txpower[i] == tpc->reference_power) {
 +			rate->attempts += ar[i].count * info->status.ampdu_len;
-+			tpc->reference_attempts += info->status.ampdu_len;
++			tpc->reference_attempts += ar[i].count * info->status.ampdu_len;
 +		}
 +		if (txpower[i] == tpc->sample_power + TPC_SAMPLE_POWER_SPAN)
-+			tpc->data_attempts += info->status.ampdu_len;
++			tpc->data_attempts += ar[i].count * info->status.ampdu_len;
 +		if (txpower[i] == tpc->sample_power)
-+			tpc->sample_attempts += info->status.ampdu_len;
++			tpc->sample_attempts += ar[i].count * info->status.ampdu_len;
  	}
  
  	/*
-@@ -1125,6 +1135,7 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1125,6 +1196,7 @@ minstrel_ht_get_rate(void *priv, struct
  	struct minstrel_ht_sta_priv *msp = priv_sta;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct minstrel_priv *mp = priv;
@@ -1429,7 +1626,7 @@
  	int max_r, s_group, s_idx, i, random_skipp;
  	int sample_rate = -1;
  	bool mrr_capable = false;
-@@ -1161,7 +1172,7 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1161,7 +1233,7 @@ minstrel_ht_get_rate(void *priv, struct
  	mi->total_packets++;
  
  	/* wraparound */
@@ -1438,7 +1635,7 @@
  		mi->total_packets = 0;
  		mi->sample_packets = 0;
  	}
-@@ -1169,9 +1180,9 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1169,9 +1241,9 @@ minstrel_ht_get_rate(void *priv, struct
  	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
  
  	if (unlikely(minstrel_ht_requires_sampling(mi, mp, mrr_capable))) {
@@ -1450,7 +1647,7 @@
  
  		/* find rate that is worth sampling */
  		max_r = MCS_GROUP_RATES * ARRAY_SIZE(minstrel_mcs_groups) + 1;
-@@ -1183,43 +1194,64 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1183,43 +1255,64 @@ minstrel_ht_get_rate(void *priv, struct
  			else
  				break;
  		}
@@ -1542,7 +1739,7 @@
  }
  
  static void
-@@ -1413,9 +1445,14 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1413,9 +1506,14 @@ minstrel_ht_rate_init(void *priv, struct
                        struct ieee80211_sta *sta, void *priv_sta)
  {
  	struct minstrel_ht_sta_priv *msp = priv_sta;
@@ -1557,7 +1754,7 @@
  }
  
  static void
-@@ -1434,6 +1471,7 @@ minstrel_ht_alloc_sta(void *priv, struct
+@@ -1434,6 +1532,7 @@ minstrel_ht_alloc_sta(void *priv, struct
  	struct minstrel_ht_sta_priv *msp;
  	struct minstrel_priv *mp = priv;
  	struct ieee80211_hw *hw = mp->hw;
@@ -1565,7 +1762,7 @@
  	int max_rates = 0;
  	int i;
  
-@@ -1455,6 +1493,11 @@ minstrel_ht_alloc_sta(void *priv, struct
+@@ -1455,6 +1554,11 @@ minstrel_ht_alloc_sta(void *priv, struct
  	if (!msp->sample_table)
  		goto error1;
  
