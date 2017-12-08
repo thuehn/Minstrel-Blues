@@ -196,7 +196,7 @@
  
  	return TX_CONTINUE;
  }
-@@ -3360,10 +3360,10 @@ static bool ieee80211_xmit_fast(struct i
+@@ -3394,10 +3394,10 @@ static bool ieee80211_xmit_fast(struct i
  	memset(info, 0, sizeof(*info));
  	info->band = fast_tx->band;
  	info->control.vif = &sdata->vif;
@@ -210,7 +210,7 @@
  
  	if (hdr->frame_control & cpu_to_le16(IEEE80211_STYPE_QOS_DATA)) {
  		tid = skb->priority & IEEE80211_QOS_CTL_TAG1D_MASK;
-@@ -4287,8 +4287,8 @@ __ieee80211_beacon_get(struct ieee80211_
+@@ -4326,8 +4326,8 @@ __ieee80211_beacon_get(struct ieee80211_
  	info->control.vif = vif;
  
  	info->flags |= IEEE80211_TX_CTL_CLEAR_PS_FILT |

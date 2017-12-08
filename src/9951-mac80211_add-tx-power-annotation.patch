@@ -67,7 +67,7 @@
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
-@@ -2061,6 +2076,16 @@ struct ieee80211_txq {
+@@ -2064,6 +2079,16 @@ struct ieee80211_txq {
   * @IEEE80211_HW_NEEDS_ALIGNED4_SKBS: Driver need aligned skbs to four-byte.
   *	Padding will be added after ieee80211_hdr, before IV/LLC.
   *
@@ -84,9 +84,9 @@
   * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
   */
  enum ieee80211_hw_flags {
-@@ -2104,6 +2129,9 @@ enum ieee80211_hw_flags {
- 	IEEE80211_HW_REPORTS_LOW_ACK,
+@@ -2108,6 +2133,9 @@ enum ieee80211_hw_flags {
  	IEEE80211_HW_SUPPORTS_TX_FRAG,
+ 	IEEE80211_HW_SUPPORTS_TDLS_BUFFER_STA,
  	IEEE80211_HW_NEEDS_ALIGNED4_SKBS,
 +	IEEE80211_HW_SUPPORTS_TPC_PER_PACKET,
 +	IEEE80211_HW_SUPPORTS_TPC_PER_MRR,
@@ -94,7 +94,7 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2219,6 +2247,9 @@ enum ieee80211_hw_flags {
+@@ -2223,6 +2251,9 @@ enum ieee80211_hw_flags {
   *	supported by HW.
   * @max_nan_de_entries: maximum number of NAN DE functions supported by the
   *	device.
@@ -104,7 +104,7 @@
   */
  struct ieee80211_hw {
  	struct ieee80211_conf conf;
-@@ -2254,6 +2285,7 @@ struct ieee80211_hw {
+@@ -2258,6 +2289,7 @@ struct ieee80211_hw {
  	u8 n_cipher_schemes;
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	u8 max_nan_de_entries;
@@ -181,9 +181,9 @@
  
 --- a/net/mac80211/debugfs.c
 +++ b/net/mac80211/debugfs.c
-@@ -212,6 +212,9 @@ static const char *hw_flag_names[] = {
- 	FLAG(REPORTS_LOW_ACK),
+@@ -213,6 +213,9 @@ static const char *hw_flag_names[] = {
  	FLAG(SUPPORTS_TX_FRAG),
+ 	FLAG(SUPPORTS_TDLS_BUFFER_STA),
  	FLAG(NEEDS_ALIGNED4_SKBS),
 +	FLAG(SUPPORTS_TPC_PER_PACKET),
 +	FLAG(SUPPORTS_TPC_PER_MRR),
@@ -201,7 +201,7 @@
  	}
  
  	return changed;
-@@ -1084,6 +1085,12 @@ int ieee80211_register_hw(struct ieee802
+@@ -1083,6 +1084,12 @@ int ieee80211_register_hw(struct ieee802
  
  	local->dynamic_ps_forced_timeout = -1;
  
