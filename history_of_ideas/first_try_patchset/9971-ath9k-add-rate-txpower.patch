@@ -1,0 +1,45 @@
+--- a/drivers/net/wireless/ath/ath9k/ath9k.h
++++ b/drivers/net/wireless/ath/ath9k/ath9k.h
+@@ -228,6 +228,7 @@ struct ath_buf {
+ 	dma_addr_t bf_daddr;		/* physical addr of desc */
+ 	dma_addr_t bf_buf_addr;	/* physical addr of data buffer, for DMA */
+ 	struct ieee80211_tx_rate rates[4];
++	s8 txpower[4];
+ 	struct ath_buf_state bf_state;
+ };
+ 
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -194,6 +194,9 @@ static bool ath_merge_ratetbl(struct iee
+ 	struct ieee80211_sta_rates *ratetbl;
+ 	int i;
+ 
++	for (i = 0; i < ARRAY_SIZE(bf->txpower); i++)
++		bf->txpower[i] = MAX_RATE_POWER;
++
+ 	if (!sta)
+ 		return false;
+ 
+@@ -206,10 +209,12 @@ static bool ath_merge_ratetbl(struct iee
+ 		i = 0;
+ 	} else {
+ 		bf->rates[0] = info->control.rates[0];
++		bf->txpower[0] = info->control.txpower * 2;
+ 		i = 1;
+ 	}
+ 
+ 	for ( ; i < IEEE80211_TX_MAX_RATES; i++) {
++		bf->txpower[i] = ratetbl->rate[i].txpower * 2;
+ 		bf->rates[i].idx = ratetbl->rate[i].idx;
+ 		bf->rates[i].flags = ratetbl->rate[i].flags;
+ 		if (info->control.use_rts)
+@@ -1411,6 +1416,9 @@ static void ath_buf_set_rate(struct ath_
+ 							is_cck);
+ 	}
+ 
++	for (i = 0; i < ARRAY_SIZE(bf->rates); i++)
++		info->txpower[i] = min_t(u8, info->txpower[i], bf->txpower[i]);
++
+ 	/* For AR5416 - RTS cannot be followed by a frame larger than 8K */
+ 	if (bf_isaggr(bf) && (len > sc->sc_ah->caps.rts_aggr_limit))
+ 		info->flags &= ~ATH9K_TXDESC_RTSENA;

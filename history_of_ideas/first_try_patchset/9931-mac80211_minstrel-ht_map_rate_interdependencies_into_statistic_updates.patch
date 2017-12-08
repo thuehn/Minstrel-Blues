@@ -1,0 +1,66 @@
+--- a/net/mac80211/rc80211_minstrel.h
++++ b/net/mac80211/rc80211_minstrel.h
+@@ -57,9 +57,9 @@ minstrel_ewmv(int old_ewmv, int cur_prob
+ }
+ 
+ struct minstrel_rate_stats {
+-	/* current / last sampling period attempts/success counters */
+-	u16 attempts, last_attempts;
+-	u16 success, last_success;
++	/* current, last & correlated sampling period attempts/success counters */
++	u16 attempts, last_attempts, corr_attempts;
++	u16 success, last_success, corr_success;
+ 
+ 	/* total attempts/success counters */
+ 	u32 att_hist, succ_hist;
+--- a/net/mac80211/rc80211_minstrel_ht.c
++++ b/net/mac80211/rc80211_minstrel_ht.c
+@@ -435,6 +435,34 @@ minstrel_ht_assign_best_tp_rates(struct
+ 
+ }
+ 
++/* add rate attempts & successes to correlated rates */
++static inline void
++minstrel_ht_add_stats_to_correlated_rates(struct minstrel_rate_stats *mrs)
++{
++	struct minstrel_mcs_group_data *mg;
++	unsigned int cur_tx_time;
++	int group, i, j;
++
++	for (group = 0; group < ARRAY_SIZE(minstrel_mcs_groups); group++) {
++
++		/* only consider HT and VHT rates */
++		if (!(minstrel_mcs_groups[i]->flags & IEEE80211_TX_RC_MCS) ||
++		    !(minstrel_mcs_groups[i]->flags & IEEE80211_TX_RC_VHT_MCS))
++			continue;
++
++		mg = &mi->groups[group];
++		if (!mi->supported[group])
++			continue;
++
++		for (i = 0; i < MCS_GROUP_RATES; i++) {
++			if (!(mi->supported[group] & BIT(i)))
++				continue;
++
++//			mg->duration[i]
++		}
++	}
++}
++
+ /*
+  * Update rate statistics and select new primary rates
+  *
+@@ -480,7 +508,13 @@ minstrel_ht_update_stats(struct minstrel
+ 
+ 			mrs = &mg->rates[i];
+ 			mrs->retry_updated = false;
++
++			/* add rate stats to correlated rates */
++			minstrel_ht_add_stats_to_correlated_rates(mrs);
++
++			/* re-calculate statistics per rate*/
+ 			minstrel_calc_rate_stats(mrs);
++
+ 			cur_prob = mrs->prob_ewma;
+ 
+ 			if (minstrel_ht_get_tp_avg(mi, group, i, cur_prob) == 0)

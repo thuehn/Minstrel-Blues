@@ -1,0 +1,66 @@
+--- a/drivers/net/wireless/ath/ath5k/ath5k.h
++++ b/drivers/net/wireless/ath/ath5k/ath5k.h
+@@ -1632,6 +1632,8 @@ void ath5k_hw_set_antenna_mode(struct at
+ void ath5k_hw_set_antenna_switch(struct ath5k_hw *ah, u8 ee_mode);
+ /* TX power setup */
+ int ath5k_hw_set_txpower_limit(struct ath5k_hw *ah, u8 txpower);
++/* ACK packets tx power setup */
++void ath5k_hw_set_ack_txpower(struct ath5k_hw *ah, s8 ack_txpower);
+ /* Init function */
+ int ath5k_hw_phy_init(struct ath5k_hw *ah, struct ieee80211_channel *channel,
+ 				u8 mode, bool fast);
+--- a/drivers/net/wireless/ath/ath5k/mac80211-ops.c
++++ b/drivers/net/wireless/ath/ath5k/mac80211-ops.c
+@@ -218,6 +218,10 @@ ath5k_config(struct ieee80211_hw *hw, u3
+ 			ath5k_hw_set_tx_retry_limits(ah, i);
+ 	}
+ 
++	if (changed & IEEE80211_CONF_CHANGE_ACK_TXPOWER) {
++		ath5k_hw_set_ack_txpower(ah, conf->ack_txpower);
++	}
++
+ 	/* TODO:
+ 	 * 1) Move this on config_interface and handle each case
+ 	 * separately eg. when we have only one STA vif, use
+--- a/drivers/net/wireless/ath/ath5k/phy.c
++++ b/drivers/net/wireless/ath/ath5k/phy.c
+@@ -3704,9 +3704,9 @@ ath5k_hw_txpower(struct ath5k_hw *ah, st
+ 			AR5K_TUNE_MAX_TXPOWER, AR5K_PHY_TXPOWER_RATE_MAX);
+ 
+ 		ath5k_hw_reg_write(ah,
+-			AR5K_REG_MS(AR5K_TUNE_MAX_TXPOWER, AR5K_TPC_ACK) |
+-			AR5K_REG_MS(AR5K_TUNE_MAX_TXPOWER, AR5K_TPC_CTS) |
+-			AR5K_REG_MS(AR5K_TUNE_MAX_TXPOWER, AR5K_TPC_CHIRP),
++			AR5K_REG_SM(AR5K_TUNE_MAX_TXPOWER, AR5K_TPC_ACK) |
++			AR5K_REG_SM(AR5K_TUNE_MAX_TXPOWER, AR5K_TPC_CTS) |
++			AR5K_REG_SM(AR5K_TUNE_MAX_TXPOWER, AR5K_TPC_CHIRP),
+ 			AR5K_TPC);
+ 	} else {
+ 		ath5k_hw_reg_write(ah, AR5K_TUNE_MAX_TXPOWER,
+@@ -3733,6 +3733,26 @@ ath5k_hw_set_txpower_limit(struct ath5k_
+ 	return ath5k_hw_txpower(ah, ah->ah_current_channel, txpower);
+ }
+ 
++void ath5k_hw_set_ack_txpower(struct ath5k_hw *ah, s8 ack_txpower)
++{
++	u32 tpc;
++
++	if (ack_txpower > ah->ah_txpower.txp_requested)
++		ack_txpower = ah->ah_txpower.txp_requested;
++
++	ack_txpower *= 2;
++	ack_txpower += ah->ah_txpower.txp_offset;
++
++	if (ack_txpower > AR5K_TUNE_MAX_TXPOWER)
++	ack_txpower = AR5K_TUNE_MAX_TXPOWER;
++
++	tpc = ath5k_hw_reg_read(ah, AR5K_TPC);
++	tpc &= ~(AR5K_TPC_ACK | AR5K_TPC_CTS | AR5K_TPC_CHIRP);
++	tpc |= AR5K_REG_SM(ack_txpower, AR5K_TPC_ACK) |
++			   AR5K_REG_SM(ack_txpower, AR5K_TPC_CTS) |
++			   AR5K_REG_SM(ack_txpower, AR5K_TPC_CHIRP);
++	ath5k_hw_reg_write(ah, tpc, AR5K_TPC);
++}
+ 
+ /*************\
+  Init function

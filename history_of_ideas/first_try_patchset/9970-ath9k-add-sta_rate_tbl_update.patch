@@ -1,0 +1,57 @@
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -188,6 +188,41 @@ static void ath_send_bar(struct ath_atx_
+ 			   seqno << IEEE80211_SEQ_SEQ_SHIFT);
+ }
+ 
++static bool ath_merge_ratetbl(struct ieee80211_sta *sta, struct ath_buf *bf,
++			      struct ieee80211_tx_info *info)
++{
++	struct ieee80211_sta_rates *ratetbl;
++	int i;
++
++	if (!sta)
++		return false;
++
++	ratetbl = rcu_dereference(sta->rates);
++	if (!ratetbl)
++		return false;
++
++	if (likely(info->control.rates[0].idx < 0 ||
++		   !info->control.rates[0].count)) {
++		i = 0;
++	} else {
++		bf->rates[0] = info->control.rates[0];
++		i = 1;
++	}
++
++	for ( ; i < IEEE80211_TX_MAX_RATES; i++) {
++		bf->rates[i].idx = ratetbl->rate[i].idx;
++		bf->rates[i].flags = ratetbl->rate[i].flags;
++		if (info->control.use_rts)
++			bf->rates[i].count = ratetbl->rate[i].count_rts;
++		else if (info->control.use_cts_prot)
++			bf->rates[i].count = ratetbl->rate[i].count_cts;
++		else
++			bf->rates[i].count = ratetbl->rate[i].count;
++	}
++
++	return true;
++}
++
+ static void ath_set_rates(struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 			  struct ath_buf *bf, bool ps)
+ {
+@@ -199,8 +234,10 @@ static void ath_set_rates(struct ieee802
+ 		info->control.rates[0].count = 0;
+ 	}
+ 
+-	ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
+-			       ARRAY_SIZE(bf->rates));
++	if (!ath_merge_ratetbl(sta, bf, info))
++		ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
++				       ARRAY_SIZE(bf->rates));
++
+ 	if (!ps)
+ 		return;
+ 
