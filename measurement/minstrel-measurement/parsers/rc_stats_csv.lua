@@ -12,6 +12,20 @@ HT20  LGI  1   BCD   MCS0     0    1477     5.6       0.0       0.0      0.0    
 
 -- rc_stats_cvs: 7,3,1.0 left
 
+--[[
+              best   ____________rate__________    ________statistics________    _____last____    ______sum-of________    _________________________tpc-statistics__________________________
+mode guard #  rate  [name   idx airtime  max_tp]  [avg(tp) avg(prob) sd(prob)]  [retry|suc|att]  [#success | #attempts]  [     sample-power    |   reference-power   |      data-power     ]
+														                                                             	 [  suc|att   prob dBm |  suc|att   prob dBm |  suc|att   prob dBm ]
+CCK    LP  1          1.0M  120   10548     0.0       0.0      27.6      0.0       0     0 1             2   7                0 0      0.0   0      0 0      0.0   0      0 0      0.0   2
+CCK    LP  1          2.0M  121    5476     0.0       0.0     100.0      0.0       0     0 0             1   1                0 0      0.0   0      0 0      0.0   0      0 0      0.0   2
+CCK    LP  1          5.5M  122    2411     2.4       2.4     100.0      0.0       0     0 0             1   1                0 0      0.0   0      0 0      0.0   0      0 0      0.0   2
+CCK    LP  1         11.0M  123    1535     4.8       4.8     100.0      0.0       0     1 1             2   2                0 0      0.0   0      0 0      0.0   0      0 0      0.0   2
+HT20  LGI  1         MCS0     0    1477     4.8       4.8     100.0      0.0       3     0 0             8   8                0 0      0.0   0      0 0      0.0   0      0 0      0.0   2
+HT20  LGI  1         MCS1     1     739     9.7       9.7     100.0      0.0       4     0 0             2   2                0 0      0.0   0      0 0      0.0   0      0 0      0.0   2
+HT20  LGI  1         MCS2     2     493    14.6      14.6     100.0      0.0       5     0 0             2   2                0 0      0.0   0      0 0      0.0   0      0 0      0.0   2
+
+--]]
+
 RcRate = { name = nil
          , idx = nil
          , airtime = nil
@@ -71,8 +85,7 @@ function RcStats:__tostring()
     return out
 end
 
-RcLast = { prob = nil
-         , retry = nil
+RcLast = { retry = nil
          , suc = nil
          , att = nil
          }
@@ -84,9 +97,8 @@ function RcLast:new (o)
     return o
 end
 
-function RcLast:create ( prob, retry, suc, att )
-    local o = RcLast:new( { prob = prob
-                          , retry = retry
+function RcLast:create ( retry, suc, att )
+    local o = RcLast:new( { retry = retry
                           , suc = suc
                           , att = att
                           } )
@@ -95,7 +107,6 @@ end
 
 function RcLast:__tostring() 
     local out = ""
-    out = out .. "prob: " .. (self.prob or "") .. " "
     out = out .. "retry: " .. (self.retry or "") .. " "
     out = out .. "suc: " .. (self.suc or "") .. " "
     out = out .. "att: " .. (self.att or "") .. " "
@@ -127,6 +138,69 @@ function RcSumOf:__tostring()
     return out
 end
 
+
+RcTpc = { sp_succ = nil -- sample power
+        , sp_att = nil
+        , sp_prob = nil
+        , sp_dbm = nil
+        , rp_succ = nil -- reference power
+        , rp_att = nil
+        , rp_prob = nil
+        , rp_dbm = nil
+        , dp_succ = nil -- data power
+        , dp_att = nil
+        , dp_prob = nil
+        , db_dbm = nil
+        }
+
+function RcTpc:new (o)
+    local o = o or {}
+    setmetatable(o, self)
+    self.__index = self
+    return o
+end
+
+function RcTpc:create ( sp_succ, sp_att, sp_prob, sp_dbm
+                      , rp_succ, rp_att, rp_prob, rp_dbm
+                      , dp_succ, dp_att, dp_prob, dp_dbm
+                      )
+
+    local o = RcTpc:new( { sp_succ = sp_succ
+                         , sp_att = sp_att
+                         , sp_prob = sp_prob
+                         , sp_dbm = sp_dbm
+                         , rp_succ = rp_succ
+                         , rp_att = rp_att
+                         , rp_prob = rp_prob
+                         , rp_dbm = rp_dbm
+                         , dp_succ = dp_succ
+                         , dp_att = dp_att
+                         , dp_prob = dp_prob
+                         , dp_dbm = db_dbm
+                         } )
+    return o
+end
+
+function RcTpc:__tostring() 
+    local out = ""
+    out = out .. "sp succ: " .. ( self.sp_succ or "" ) .. " "
+    out = out .. "sp_att: " .. ( self.sp_att or "" ) .. " "
+    out = out .. "sp_prob: " .. ( self.sp_prob or "" ) .. " "
+    out = out .. "sp_dbm: " .. ( self.sp_dbm or "" ) .. " "
+
+    out = out .. "rp succ: " .. ( self.rp_succ or "" ) .. " "
+    out = out .. "rp_att: " .. ( self.rp_att or "" ) .. " "
+    out = out .. "rp_prob: " .. ( self.rp_prob or "" ) .. " "
+    out = out .. "rp_dbm: " .. ( self.rp_dbm or "" ) .. " "
+
+    out = out .. "dp succ: " .. ( self.dp_succ or "" ) .. " "
+    out = out .. "dp_att: " .. ( self.dp_att or "" ) .. " "
+    out = out .. "dp_prob: " .. ( self.dp_prob or "" ) .. " "
+    out = out .. "dp_dbm: " .. ( self.dp_dbm or "" ) .. " "
+
+    return out
+end
+
 RcStatsCsv = { mode = nil
              , guard = nil
              , count = nil
@@ -135,6 +209,7 @@ RcStatsCsv = { mode = nil
              , stats = nil
              , last = nil
              , sum_of = nil
+             , tpc = nil
              }
 
 function RcStatsCsv:new (o)
@@ -144,7 +219,7 @@ function RcStatsCsv:new (o)
     return o
 end
 
-function RcStatsCsv:create ( ts, mode, guard, count, best_rate, rate, stats, last, sum_of )
+function RcStatsCsv:create ( ts, mode, guard, count, best_rate, rate, stats, last, sum_of, tpc )
     local o = RcStatsCsv:new( { ts = ts
                               , mode = mode
                               , guard = guard
@@ -154,6 +229,7 @@ function RcStatsCsv:create ( ts, mode, guard, count, best_rate, rate, stats, las
                               , stats = stats
                               , last = last
                               , sum_of = sum_of
+                              , tpc = tpc
                               } )
     return o
 end
@@ -179,7 +255,8 @@ function RcStatsCsv:__tostring()
     out = out .. "[rate] " .. rate .. "\n"
     out = out .. "[stats] " .. stats .. "\n"
     out = out .. "[last] " .. last .. "\n"
-    out = out .. "[sum of] " .. sum_of
+    out = out .. "[sum of] " .. sum_of .. "\n"
+    out = out .. "[tpc]" .. tpc
     return out
 end
 
@@ -210,14 +287,27 @@ function parse_rc_stats_csv( rest )
     stats.stats.sd_prob = fields [ 12 ]
 
     stats.last = RcLast:create()
-    stats.last.prob = fields [ 13 ]
-    stats.last.retry = fields [ 14 ]
-    stats.last.suc = fields [ 15 ]
-    stats.last.att = fields [ 16 ]
+    stats.last.retry = fields [ 13 ]
+    stats.last.suc = fields [ 14 ]
+    stats.last.att = fields [ 15 ]
     
     stats.sum_of = RcSumOf:create()
-    stats.sum_of.num_success = fields [ 17 ]
-    stats.sum_of.num_attemps = fields [ 18 ]
+    stats.sum_of.num_success = fields [ 16 ]
+    stats.sum_of.num_attemps = fields [ 17 ]
+
+    stats.tpc = RcTpc:create()
+    stats.tpc.sp_succ = fields [ 18 ]
+    stats.tpc.sp_att = fields [ 19 ]
+    stats.tpc.sp_prob = fields [ 20 ]
+    stats.tpc.sp_dbm = fields [ 21 ]
+    stats.tpc.rp_succ = fields [ 22 ]
+    stats.tpc.rp_att = fields [ 23 ]
+    stats.tpc.rp_prob = fields [ 24 ]
+    stats.tpc.rp_dbm = fields [ 25 ]
+    stats.tpc.dp_succ = fields [ 26 ]
+    stats.tpc.dp_att = fields [ 27 ]
+    stats.tpc.dp_prob = fields [ 28 ]
+    stats.tpc.dp_dbm = fields [ 29 ]
 
     return stats
 end
