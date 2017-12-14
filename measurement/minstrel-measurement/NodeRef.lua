@@ -3,7 +3,7 @@ local posix = require ('posix') -- sleep
 local net = require ('Net')
 
 require ('NetIfRef')
-require ('Measurement')
+require ('Measurements')
 require ('LogNodeRef')
 
 NodeRef = { name = nil
@@ -139,7 +139,7 @@ end
 
 function NodeRef:create_measurement ( online )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        self.stats = Measurement:create ( self.name, self:get_mac (), self:get_opposite_macs ()
+        self.stats = Measurements:create ( self.name, self:get_mac (), self:get_opposite_macs ()
                                         , self.rpc, self.output_dir, online )
         self.stats.node_mac_br = self:get_mac_br ()
         self.stats.opposite_macs_br = self:get_opposite_macs_br ()
@@ -196,13 +196,17 @@ function NodeRef:get_tcpdump_pcap ( key, from, to)
     if ( key ~= nil and ( self.is_passive == nil or self.is_passive == false ) ) then
         local out
         if ( from ~= nil and to ~= nil ) then
-            out = string.sub ( self.stats.tcpdump_pcaps [ key ], from, to ) 
+            out = string.sub ( self.stats.tcpdump_meas [ key ].stats, from, to ) 
+            --out = string.sub ( self.stats.tcpdump_pcaps [ key ], from, to ) 
             if ( to >= string.len ( out ) ) then
-                self.stats.tcpdump_pcaps [ key ] = ""
+                --self.stats.tcpdump_pcaps [ key ] = ""
+                self.stats.tcpdump_meas [ key ].stats = ""
             end
         else
-            out = self.stats.tcpdump_pcaps [ key ]
-            self.stats.tcpdump_pcaps [ key ] = ""
+            --out = self.stats.tcpdump_pcaps [ key ]
+            --self.stats.tcpdump_pcaps [ key ] = ""
+            out = self.stats.tcpdump_meas [ key ].stats
+            self.stats.tcpdump_meas [ key ].stats = ""
         end
         return out
     end

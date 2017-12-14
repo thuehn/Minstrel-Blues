@@ -9,7 +9,7 @@ local net = require ('Net')
 local ps = require ('posix.signal') --kill
 
 require ('NetIfRef')
-require ('Measurement')
+require ('Measurements')
 require ('LogNodeRef')
 
 ControlNodeRef = { name = nil           -- hostname of the control node ( String )
@@ -294,17 +294,6 @@ end
 
 function ControlNodeRef:list_stations ( ap_name )
     return self.rpc.list_stations ( ap_name )
-end
-
-function ControlNodeRef:get_stats ( node_name )
-    local stats = self.rpc.get_stats ( node_name )
-    -- fixme: seg faults at serialize or transfer via rpc from control node
-    --          ( serialize and transfer from node to control is fine )
-    --  rpc from mips_32 to x86_64 is fine
-    --  rpc from x86_64 to x86_64 seg faults
-    -- possible solutions:
-    -- - don't use -O3 to build luarpc
-    return stats
 end
 
 function ControlNodeRef:get_mac ( node_name )
@@ -667,21 +656,23 @@ function ControlNodeRef:create_measurement ( node_names, key )
         local mac = self:get_mac ( ref_name )
         local opposite_macs = self:get_opposite_macs ( ref_name )
 
-        local measurement = Measurement:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
-        measurement.node_mac_br = self:get_mac_br ()
+        local measurements = Measurements:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
+        measurements:add_key ( key, self.output_dir )
+        measurements.node_mac_br = self:get_mac_br ()
 
         local stations = self:list_stations ( ref_name )
-        measurement:enable_rc_stats ( stations ) -- resets rc_stats
+        measurements:enable_rc_stats ( stations ) -- resets rc_stats
 
-        measurement.tcpdump_pcaps [ key ] = ""
-        for _, station in ipairs ( stations ) do
-            measurement.rc_stats [ station ] [ key ] = ""
-        end
+        --measurements.tcpdump_pcaps [ key ] = ""
+        --for _, station in ipairs ( stations ) do
+        --    measurements.rc_stats [ station ] [ key ] = ""
+        --end
 
-        measurement.cpusage_stats [ key ] = ""
-        measurement.regmon_stats [ key ] = ""
+        --measurements.cpusage_stats [ key ] = ""
+        --measurements.regmon_stats [ key ] = ""
+        measurements.regmon_meas [ key ].stats = ""
 
-        self.measurements [ ref_name ] = measurement
+        self.measurements [ ref_name ] = measurements
     end
 end
 
@@ -694,7 +685,8 @@ function ControlNodeRef:write_measurement ( node_names, online, finish, key )
         print ( "transfer node: " .. ref_name )
 
         local size = self.rpc.get_tcpdump_size ( ref_name, key )
-        local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_pcaps [ key ]
+        local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_meas [ key ].stats
+        --local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_pcaps [ key ]
         local i = 0
         repeat
             local pcap = self.rpc.get_tcpdump_pcap ( ref_name, key, ( max_size * i ) + 1, max_size )
@@ -703,21 +695,36 @@ function ControlNodeRef:write_measurement ( node_names, online, finish, key )
             end
             i = i + 1
         until ( ( ( i + 1 ) * max_size ) + 1 ) > size
-        self.measurements [ ref_name ].tcpdump_pcaps [ key ] = tcpdump_pcap
+        self.measurements [ ref_name ].tcpdump_meas [ key ].stats = tcpdump_pcap
+        --self.measurements [ ref_name ].tcpdump_pcaps [ key ] = tcpdump_pcap
 
         local stations = self:list_stations ( ref_name )
         for _, station in ipairs ( stations ) do
-            self.measurements [ ref_name ].rc_stats [ station ] [ key ]
-                = self.measurements [ ref_name ].rc_stats [ station ] [ key ]
-                  .. self.rpc.get_rc_stats ( ref_name, station, key )
+            --self.measurements [ ref_name ].rc_stats [ station ] [ key ]
+            --    = self.measurements [ ref_name ].rc_stats [ station ] [ key ]
+            --      .. self.rpc.get_rc_stats ( ref_name, station, key )
+            if ( self.measurements [ ref_name ].rc_stats_meas ~= nil
+                 and self.measurements [ ref_name ].rc_stats_meas [ station ] ~= nil
+                 and self.measurements [ ref_name ].rc_stats_meas [ station ] [ key ] ~= nil ) then
+                -- fixme: never reached
+                self.measurements [ ref_name ].rc_stats_meas [ station ] [ key ].stats
+                    = ( self.measurements [ ref_name ].rc_stats_meas [ station ] [ key ].stats or "" )
+                      .. self.rpc.get_rc_stats ( ref_name, station, key )
+            end
         end
 
-        self.measurements [ ref_name ].cpusage_stats [ key ]
-            = self.measurements [ ref_name ].cpusage_stats [ key ]
+        --self.measurements [ ref_name ].cpusage_stats [ key ]
+        --    = self.measurements [ ref_name ].cpusage_stats [ key ]
+        --      .. self.rpc.get_cpusage_stats ( ref_name, key )
+        self.measurements [ ref_name ].cpusage_meas [ key ].stats
+            = self.measurements [ ref_name ].cpusage_meas [ key ].stats
               .. self.rpc.get_cpusage_stats ( ref_name, key )
 
-        self.measurements [ ref_name ].regmon_stats [ key ]
-            = self.measurements [ ref_name ].regmon_stats [ key ]
+        --self.measurements [ ref_name ].regmon_stats [ key ]
+        --    = self.measurements [ ref_name ].regmon_stats [ key ]
+        --      .. self.rpc.get_regmon_stats ( ref_name, key )
+        self.measurements [ ref_name ].regmon_meas [ key ].stats
+            = self.measurements [ ref_name ].regmon_meas [ key ].stats
               .. self.rpc.get_regmon_stats ( ref_name, key )
         
         local iperf_s_out = self.rpc.get_iperf_s_out ( ref_name )

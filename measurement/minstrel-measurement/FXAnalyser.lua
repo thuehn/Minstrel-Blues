@@ -28,7 +28,8 @@ function FXAnalyser:snrs_tshark ( measurement, border, field, suffix )
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
     local tshark_bin = "/usr/bin/tshark"
 
-    for key, stats in pairs ( measurement.tcpdump_pcaps ) do
+    for key, _ in pairs ( measurement.tcpdump_meas ) do
+    --for key, stats in pairs ( measurement.tcpdump_pcaps ) do
         local snrs_fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-" .. suffix .. ".txt"
         local snrs = {}
         if ( isFile ( snrs_fname ) == false ) then
@@ -130,7 +131,8 @@ function FXAnalyser:snrs ( measurement, border )
 
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
 
-    for key, stats in pairs ( measurement.tcpdump_pcaps ) do
+    --for key, stats in pairs ( measurement.tcpdump_pcaps ) do
+    for key, _ in pairs ( measurement.tcpdump_meas ) do
         local snrs_fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-snrs.txt"
         local snrs = {}
         if ( isFile ( snrs_fname ) == false ) then

@@ -57,7 +57,6 @@ function exp_has_data ( ... ) return node:exp_has_data ( ... ) end
 function exp_next_data ( ... ) return node:exp_next_data ( ... ) end
 function finish_experiment ( ... ) return node:finish_experiment ( ... ) end
 
-function get_stats ( ... ) return node:get_stats ( ... ) end
 function get_tcpdump_pcap ( ... ) return node:get_tcpdump_pcap ( ... ) end
 function get_tcpdump_size ( ... ) return node:get_tcpdump_size ( ... ) end
 function get_rc_stats ( ... ) return node:get_rc_stats ( ... ) end

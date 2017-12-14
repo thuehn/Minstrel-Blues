@@ -511,8 +511,10 @@ function ControlNode:get_tcpdump_size ( ref_name, key )
     if ( key == nil ) then
         return nil
     else
-        if ( node_ref.stats.tcpdump_pcaps [ key ] ) then
-            return string.len ( node_ref.stats.tcpdump_pcaps [ key ] )
+        --if ( node_ref.stats.tcpdump_pcaps [ key ] ) then
+        --    return string.len ( node_ref.stats.tcpdump_pcaps [ key ] )
+        if ( node_ref.stats.tcpdump_meas [ key ].stats ) then
+            return string.len ( node_ref.stats.tcpdump_meas [ key ].stats )
         else
             return 0
         end
@@ -547,8 +549,10 @@ function ControlNode:get_rc_stats ( ref_name, station, key )
     if ( node_ref == nil ) then
         return out
     end
-    out = node_ref.stats.rc_stats [ station ] [ key ]
-    node_ref.stats.rc_stats [ station ] [ key ] = ""
+    out = node_ref.stats.rc_stats_meas [ station ] [ key ].stats
+    node_ref.stats.rc_stats_meas [ station ] [ key ].stats = ""
+    --out = node_ref.stats.rc_stats [ station ] [ key ]
+    --node_ref.stats.rc_stats [ station ] [ key ] = ""
     self:send_debug ( "rc stats copied: " .. string.len ( out ) )
     return out
 end
@@ -561,8 +565,10 @@ function ControlNode:get_cpusage_stats ( ref_name, key )
     if ( node_ref == nil ) then
         return out
     end
-    out = node_ref.stats.cpusage_stats [ key ]
-    node_ref.stats.cpusage_stats [ key ] = ""
+    out = node_ref.stats.cpusage_meas [ key ].stats
+    node_ref.stats.cpusage_meas [ key ].stats = ""
+    --out = node_ref.stats.cpusage_stats [ key ]
+    --node_ref.stats.cpusage_stats [ key ] = ""
     self:send_debug ( "cpusage stats copied and removed" )
     return out
 end
@@ -575,8 +581,10 @@ function ControlNode:get_regmon_stats ( ref_name, key )
     if ( node_ref == nil ) then
         return out
     end
-    out = node_ref.stats.regmon_stats [ key ]
-    node_ref.stats.regmon_stats [ key ] = ""
+    --out = node_ref.stats.regmon_stats [ key ]
+    --node_ref.stats.regmon_stats [ key ] = ""
+    out = node_ref.stats.regmon_meas [ key ].stats
+    node_ref.stats.regmon_meas [ key ].stats = ""
     self:send_debug ( "regmon stats copied and removed" )
     return out
 end
@@ -604,34 +612,6 @@ function ControlNode:get_iperf_c_out ( ref_name )
     out = copy_map ( node_ref.stats.iperf_c_out )
     node_ref.stats.iperf_c_out = {}
     self:send_debug ( "iperf client out copied" )
-    return out
-end
-
-function ControlNode:get_stats ( ref_name )
-    self:send_info ( "*** Copy stats from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
-    local out = {}
-    local node_ref = self:find_node_ref ( ref_name )
-    if ( node_ref == nil ) then
-        return out
-    end
-    out [ 'regmon_stats' ] = copy_map ( node_ref.stats.regmon_stats )
-    node_ref.stats.regmon_stats = {}
-    self:send_debug ( "regmon stats copied" )
-    out [ 'tcpdump_pcaps' ] = copy_map ( node_ref.stats.tcpdump_pcaps )
-    node_ref.stats.tcpdump_pcaps = {}
-    self:send_debug ( "tcpdump pcaps copied" )
-    out [ 'cpusage_stats' ] = copy_map ( node_ref.stats.cpusage_stats )
-    node_ref.stats.cpusage_stats = {}
-    self:send_debug ( "cpusage stats copied" )
-    out [ 'rc_stats' ] = copy_map ( node_ref.stats.rc_stats )
-    node_ref.stats.rc_stats = {}
-    self:send_debug ( "rc stats copied" )
-    out [ 'iperf_s_outs' ] = copy_map ( node_ref.stats.iperf_s_outs )
-    node_ref.stats.iperf_s_outs = {}
-    self:send_debug ( "iperf server output copied" )
-    out [ 'iperf_c_outs' ] = copy_map ( node_ref.stats.iperf_c_outs )
-    node_ref.stats.iperf_c_outs = {}
-    self:send_debug ( "iperf client output copied" )
     return out
 end
 
@@ -743,7 +723,7 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed, key, n
     self:send_info ( "Waiting one extra second for initialised debugfs" )
     posix.sleep (1)
 
-    self:send_info ("*** Start Measurement ***" )
+    self:send_info ("*** Start Measurements ***" )
 
     -- -------------------------------------------------------
     -- fixme: MESH
@@ -772,7 +752,7 @@ end
 
 function ControlNode:exp_next_data ( key )
     self.running = false
-    self:send_info ("*** Fetch Measurement ***" )
+    self:send_info ("*** Fetch Measurements ***" )
     -- fixme: MESH
     for i, ap_ref in ipairs ( self.ap_refs ) do
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
@@ -795,14 +775,14 @@ function ControlNode:finish_experiment ( key )
 
     -- -------------------------------------------------------
 
-    self:send_info ("*** Stop Measurement ***" )
+    self:send_info ("*** Stop Measurements ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         self.exp:stop_measurement ( ap_ref, key )
     end
     self.running = false
 
-    self:send_info ("*** Fetch Measurement ***" )
+    self:send_info ("*** Fetch Measurements ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )

@@ -3,7 +3,7 @@ local argparse = require ('argparse')
 local pprint = require ('pprint')
 local config = require ('Config')
 
-require ('Measurement')
+require ('Measurements')
 
 require ('FXAnalyser')
 require ('RendererPerRate')
@@ -34,7 +34,7 @@ for _, name in ipairs ( ( scandir ( args.input ) ) ) do
                 local snrs = {}
                 if ( isFile ( snrs_fname ) == false ) then
 
-                    local measurement = Measurement.parse ( name, args.input, key, false )
+                    local measurement = Measurements.parse ( name, args.input, key, false )
                     --print ( measurement:__tostring () )
 
                     --print ( "Analyse SNR" )

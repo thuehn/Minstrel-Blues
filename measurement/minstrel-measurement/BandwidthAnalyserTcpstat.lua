@@ -20,7 +20,8 @@ function BandwidthTcpstatAnalyser:bandwidths ( measurement, border )
     
     local base_dir = measurement.output_dir .. "/" .. measurement.node_name
 
-    for key, stats in pairs ( measurement.tcpdump_pcaps ) do
+    for key, _ in pairs ( measurement.tcpdump_meas ) do
+    --for key, stats in pairs ( measurement.tcpdump_pcaps ) do
         local bandwidths_fname = base_dir .. "/" .. measurement.node_name .. "-" .. key .. "-bandwidths.txt"
         local bandwidths = {}
         if ( isFile ( bandwidths_fname ) == false ) then

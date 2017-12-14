@@ -154,7 +154,7 @@ local output_dir = args.output
 if ( isDir ( output_dir ) == false ) then
     local status, err = lfs.mkdir ( output_dir )
 else
-    keys = Measurement.resume ( output_dir, args.online )
+    keys = Measurements.resume ( output_dir, args.online )
     if ( keys == nil ) then
         for _, fname in ipairs ( ( scandir ( output_dir ) ) ) do
             if ( fname ~= "." and fname ~= ".." ) then
