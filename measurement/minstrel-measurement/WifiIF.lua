@@ -406,7 +406,7 @@ end
 function WifiIF:stop_rc_stats ( station )
     if ( self.rc_stats_procs [ station ] == nil 
         or self.rc_stats_procs [ station ].pid == nil ) then 
-        self.node:send_error ( " rc_stats for station " .. ( station or "unset" ) .. " is not running!" )
+        self.node:send_error ( "stop: rc_stats for station '" .. ( station or "unset" ) .. "' is not running!" )
         return nil
     end
     self.node:send_info ( "stop collecting rc stats with pid " .. self.rc_stats_procs [ station ].pid )
@@ -420,7 +420,7 @@ end
 function WifiIF:cleanup_rc_stats ( station )
     if ( self.rc_stats_procs [ station ] == nil 
         or self.rc_stats_procs [ station ].pid == nil ) then 
-        self.node:send_error ( " rc_stats for station " .. ( station or "unset" ) .. " is not running!" )
+        self.node:send_error ( "cleanup: rc_stats for station '" .. ( station or "unset" ) .. "' is not running!" )
         return nil
     end
     self.node:send_info ( "clean rc stats with pid " .. self.rc_stats_procs [ station ].pid )

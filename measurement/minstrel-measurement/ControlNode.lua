@@ -525,19 +525,27 @@ function ControlNode:get_tcpdump_pcap ( ref_name, key, offset, count )
     self:send_info ( "*** Copy tcpdump pcap for key " .. ( key or nil ) 
                      .. " from nodes for " .. ( ref_name or "unset" ) .. ". ***" )
     --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-    local out = nil
     local node_ref = self:find_node_ref ( ref_name )
     if ( node_ref == nil ) then
         self:send_debug ( "tcpdump pcaps copied: 0 bytes" )
-        return out
+        return false, "ControlNode:get_tcpdump_pcap failed: node_ref not found"
     end
+    local out = nil
     if ( offset ~= nil and count ~= nil ) then
-        out = node_ref:get_tcpdump_pcap ( key, offset, offset + count + 1 )
+        local succ, res = node_ref:get_tcpdump_pcap ( key, offset, offset + count + 1 )
+        if ( succ == false ) then
+            return false, "ControlNode:get_tcpdump_pcap failed: " .. ( res or "unknown" )
+        end
+        out = res
     else
-        out = node_ref:get_tcpdump_pcap ( key, offset, offset + count + 1 )
+        local succ, res = node_ref:get_tcpdump_pcap ( key )
+        if ( succ == false ) then
+            return false, "ControlNode:get_tcpdump_pcap failed: " .. ( res or "unknown" )
+        end
+        out = res
     end
     self:send_debug ( "tcpdump pcaps copied: " .. string.len ( out ) .. " bytes" )
-    return out
+    return true, out
 end
 
 function ControlNode:get_rc_stats ( ref_name, station, key )
@@ -756,7 +764,11 @@ function ControlNode:exp_next_data ( key )
     -- fixme: MESH
     for i, ap_ref in ipairs ( self.ap_refs ) do
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-        local has_content = self.exp:fetch_measurement ( ap_ref, key )
+        local succ, res = self.exp:fetch_measurement ( ap_ref, key )
+        if ( succ == false ) then
+            return false, "ControlNode:exp_next_data failed: " .. ( res or "unknown" )
+        end
+        local has_content = res
         self:send_debug ( "experiments has_content: " .. tostring ( has_content ) )
         self.running = self.running or ap_ref:is_exp_running ()
         self:send_debug ( "experiments running: " .. tostring ( self.running ) )
@@ -786,7 +798,11 @@ function ControlNode:finish_experiment ( key )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-        local has_content = self.exp:fetch_measurement ( ap_ref, key )
+        local succ, res = self.exp:fetch_measurement ( ap_ref, key )
+        if ( succ == false ) then
+            return false, "ControlNode:exp_next_data failed: " .. ( res or "unknown" )
+        end
+        local has_content = res
         self:send_debug ( "experiments has_content: " .. tostring ( has_content ) )
         --collectgarbage ()
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )

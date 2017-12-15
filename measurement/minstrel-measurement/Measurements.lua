@@ -14,20 +14,12 @@ Measurements = { rpc_node = nil
                , node_mac_br = nil
                , opposite_macs = nil
                , opposite_macs_br = nil
-               --, regmon_stats = nil
-               --, tcpdump_pcaps = nil
-               --, cpusage_stats = nil
-               --, rc_stats = nil
                , rc_stats_enabled = nil
                , iperf_s_outs = nil
                , iperf_c_outs = nil
                , stations = nil
                , output_dir = nil
                , online = nil
-               --, regmon_file = nil
-               --, tcpdump_pcap_file = nil
-               --, cpusage_file = nil
-               --, rc_stats_files = nil
                , regmon_meas = nil
                , cpusage_meas = nil
                , tcpdump_meas = nil
@@ -49,16 +41,11 @@ function Measurements:create ( name, mac, opposite_macs, rpc, output_dir, online
                                  , node_mac_br = nil
                                  , opposite_macs = opposite_macs
                                  , opposite_macs_br = nil
-                                 --, regmon_stats = {}
-                                 --, tcpdump_pcaps = {}
-                                 --, cpusage_stats = {}
-                                 --, rc_stats = {}
                                  , rc_stats_enabled = false
                                  , iperf_s_outs = {}
                                  , iperf_c_outs = {}
                                  , output_dir = output_dir
                                  , online = online
-                                 --, rc_stats_files = {}
                                  , regmon_meas = {}
                                  , cpusage_meas = {}
                                  , tcpdump_meas = {}
@@ -104,38 +91,46 @@ end
 
 function Measurements:add_key ( key, output_dir )
 
+    if ( key == nil ) then
+        return false, "Measurement::add_key: key unset"
+    end
+
     if ( output_dir == nil ) then
-        return false, "output dir unset"
+        return false, "Measurement::add_key: output dir unset"
     end
 
     local base_dir = output_dir .. "/" .. self.node_name
-    if ( key ~= nil ) then
-        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
-        self.regmon_meas [ key ] = RegmonMeas:create ( key, fname )
 
-        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-cpusage_stats.txt"
-        self.cpusage_meas [ key ] = CpusageMeas:create ( key, fname )
+    local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
+    self.regmon_meas [ key ] = RegmonMeas:create ( key, fname )
 
-        local fname = output_dir .. "/" .. self.node_name 
-                    .. "/" .. self.node_name .. "-" .. key .. ".pcap"
-        self.tcpdump_meas [ key ] = TcpdumpPcapsMeas:create ( key, fname )
+    local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-cpusage_stats.txt"
+    self.cpusage_meas [ key ] = CpusageMeas:create ( key, fname )
+
+    local fname = output_dir .. "/" .. self.node_name 
+                .. "/" .. self.node_name .. "-" .. key .. ".pcap"
+    self.tcpdump_meas [ key ] = TcpdumpPcapsMeas:create ( key, fname )
+
+    if ( self.rc_stats_enabled == true ) then
+        local stations = read_stations ( output_dir )
+        if ( table_size ( stations ) == 0 ) then
+            return false, "Measurement::add_key: rc_stats enabled but no stations linked"
+        end
+        for _, station in ipairs ( stations ) do
+            if ( self.rc_stats_meas == nil ) then
+                self.rc_stats_meas = {}
+            end
+            if ( self.rc_stats_meas [ station ] == nil ) then
+                self.rc_stats_meas [ station ] = {}
+            end
+            if ( key ~= nil ) then
+                local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
+                                       .. station .. ".txt"
+                self.rc_stats_meas [ station ] [ key ] = RcStatsMeas:create ( station, key, fname )
+            end
+        end
     end
-
-    local stations = read_stations ( output_dir )
-    for _, station in ipairs ( stations ) do
-        if ( self.rc_stats_meas == nil ) then
-            self.rc_stats_meas = {}
-        end
-        if ( self.rc_stats_meas [ station ] == nil ) then
-            self.rc_stats_meas [ station ] = {}
-        end
-        if ( key ~= nil ) then
-            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
-                                   .. station .. ".txt"
-            self.rc_stats_meas [ station ] [ key ] = RcStatsMeas:create ( station, key, fname )
-        end
-    end
-
+    return true, nil
 end
 
 function read_keys ( input_dir )
@@ -162,18 +157,8 @@ function Measurements.parse ( name, input_dir, key, online )
         -- load single measurement
         if ( key ~= nil ) then
 
-            measurements:add_key ( key, input_dir )
+            local succ, res = measurements:add_key ( key, input_dir )
         
-            --measurements.regmon_stats [ key ] = ""
-            --measurements.cpusage_stats [ key ] = ""
-            --local stations = read_stations ( input_dir )
-            --for _, station in ipairs ( stations ) do
-            --    if ( measurements.rc_stats [ station ] == nil ) then
-            --        measurements.rc_stats [ station ] = {}
-            --    end
-            --    measurements.rc_stats [ station ] [ key ] = ""
-            --end
-            --measurements.tcpdump_pcaps [ key ] = ""
             measurements.iperf_s_outs [ key ] = ""
             measurements.iperf_c_outs [ key ] = ""
         end
@@ -181,7 +166,6 @@ function Measurements.parse ( name, input_dir, key, online )
 
     local measurements = Measurements:create ( name, nil, nil, nil, input_dir, online )
 
-    --measurements.tcpdump_pcaps = {}
     if ( key ~= nil ) then
         init_measurements ( measurements, name, input_dir, key )
         measurements:read ()
@@ -199,7 +183,7 @@ end
 
 function Measurements:read ()
     if ( self.output_dir == nil ) then
-        return false, "output dir unset"
+        return false, "Measurements:read: output dir unset"
     end
 
     local base_dir = self.output_dir .. "/" .. self.node_name
@@ -210,51 +194,22 @@ function Measurements:read ()
 
     -- regmon stats
     for key, stats in pairs ( self.regmon_meas ) do
-        self.add_key ( self, key, self.output_dir )
+        local succ, res = self.add_key ( self, key, self.output_dir )
+        if ( succ == false ) then
+            return false, "Measurements:read: add_key failed: " .. ( res or "unknown" )
+        end
         meas : read ()
     end
-
---    for key, stats in pairs ( self.regmon_stats ) do
---        local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
---        local file = io.open ( fname, "r" )
---        if ( file ~= nil ) then
---            stats = file:read ( "*a" )
---            self.regmon_stats [ key ] = stats
---            file:close ()
---        end
---    end
 
     -- cpusage stats
     for key, meas in pairs ( self.cpusage_meas ) do
         meas : read ()
     end
-    --for key, stats in pairs ( self.cpusage_stats ) do
-    --    local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-cpusage_stats.txt"
-    --    local file = io.open ( fname, "r" )
-    --    if ( file ~= nil ) then
-    --        stats = file:read ( "*a" )
-    --        self.cpusage_stats [ key ] = stats
-    --        file:close ()
-    --    end
-    --end
 
     -- tcpdump pcap
     for key, meas in pairs ( self.tcpdump_meas ) do
         meas : read ()
     end
-
---    for key, stats in pairs ( self.tcpdump_pcaps ) do
---        local fname = self.output_dir .. "/" .. self.node_name 
---                    .. "/" .. self.node_name .. "-" .. key .. ".pcap"
---        local file = io.open (fname, "rb")
---        if ( file ~= nil ) then
---            stats = file:read ("*a")
---            self.tcpdump_pcaps [ key ] = stats
---            file:close ()
---        else
---            self.tcpdump_pcaps [ key ] = ""
---        end
---    end
 
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
@@ -266,22 +221,6 @@ function Measurements:read ()
             end
         end
     end
-    --if ( self.rc_stats_enabled == true ) then
-    --    for _, station in ipairs ( self.stations ) do
-    --        if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
-    --            for key, stats in pairs ( self.rc_stats [ station ] ) do
-    --                local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
-    --                        .. station .. ".txt"
-    --                local file = io.open(fname, "r")
-    --                if ( file ~= nil ) then
-    --                    stats = file:read ( "*a" )
-    --                    self.rc_stats [ station ] [ key ] = stats
-    --                    file:close ()
-    --                end
-    --            end
-    --        end
-    --    end
-    --end
 
     -- iperf server out
     for key, stats in pairs ( self.iperf_s_outs ) do
@@ -310,7 +249,6 @@ end
 
 function Measurements:is_open ( key )
     return self.regmon_meas [  key ].online_file ~= nil and self.tcdump_pcap_file ~= nil
-    --return self.regmon_file ~= nil and self.tcdump_pcap_file ~= nil
 end
 
 
@@ -320,7 +258,10 @@ function Measurements:write ( online, finish, key )
     if ( self.output_dir == nil ) then self.output_dir = "/tmp" end
 
     if ( key ~= nil and self.regmon_meas [ key ] == nil ) then
-        self.add_key ( self, key, self.output_dir )
+        local succ, res = self.add_key ( self, key, self.output_dir )
+        if ( succ == false ) then
+            return false, "Measurements:write: " .. ( res or "unknown" )
+        end
     end
 
     local base_dir = self.output_dir .. "/" .. self.node_name
@@ -339,22 +280,16 @@ function Measurements:write ( online, finish, key )
         -- regmon stats
         if ( online == true ) then
             self.regmon_meas [ key ] : open_online ()
-            --local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
-            --self.regmon_file = io.open ( fname, "w" )
         end
 
         -- cpusage stats
         if ( online == true ) then
             self.cpusage_meas [ key ] : open_online ()
-            --local fname = base_dir .. "/" .. self.node_name .. "-" .. key  .. "-cpusage_stats.txt"
-            --self.cpusage_file = io.open ( fname, "w" )
         end
 
         -- tcpdump pcap
         if ( online == true ) then
             self.tcpdump_meas [ key ] : open_online ()
-            --local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
-            --self.tcpdump_pcap_file = io.open ( fname, "w")
         end
 
         -- rc_stats
@@ -363,23 +298,11 @@ function Measurements:write ( online, finish, key )
                 for _, station in ipairs ( self.stations ) do
                     if ( self.rc_stats_meas ~= nil and self.rc_stats_meas [ station ] ~= nil
                          and self.rc_stats_meas [ station ] [ key ] ~= nil ) then
-                         --fixme: not reached
                         self.rc_stats_meas [ station ] [ key ] : open_online ()
                     end
                 end
             end
         end
-        --if ( self.rc_stats_enabled == true ) then
-        --    for _, station in ipairs ( self.stations ) do
-        --        if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
-        --            if ( online == true ) then
-        --                local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
-        --                          .. station .. ".txt"
-        --                self.rc_stats_files [ station ] = io.open ( fname, "w" )
-        --            end
-        --        end
-        --    end
-        --end
     end
 
     -- regmon stats
@@ -388,58 +311,17 @@ function Measurements:write ( online, finish, key )
         self.regmon_meas [ key ]:close_online ()
     end
 
---    if ( online == false ) then
---        for key, stats in pairs ( self.regmon_stats ) do
---            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-regmon_stats.txt"
---            self.regmon_file = io.open ( fname, "w" )
---            self.regmon_file:write ( stats )
---            self.regmon_file:close ()
---        end
---    else
---        self.regmon_file:write ( self.regmon_stats [ key ] )
---        if ( finish == true ) then
---            self.regmon_meas [ key ]:close_online ()
---            self.regmon_file:close ()
---        end
---    end
-
     -- cpusage stats
     self.cpusage_meas [ key ] : write ( online )
     if ( finish == true ) then
         self.cpusage_meas [ key ]:close_online ()
     end
-    --if ( online == false ) then
-    --    for key, stats in pairs ( self.cpusage_stats ) do
-    --        local fname = base_dir .. "/" .. self.node_name .. "-" .. key  .. "-cpusage_stats.txt"
-    --        self.cpusage_file = io.open ( fname, "w" )
-    --        self.cpusage_file:write ( stats )
-    --        self.cpusage_file:close ()
-    --    end
-    --else
-    --    self.cpusage_file:write ( self.cpusage_stats [ key ] )
-    --    if ( finish == true ) then
-    --        self.cpusage_file:close ()
-    --    end
-    --end
     
     -- tcpdump pcap
     self.tcpdump_meas [ key ] : write ( online )
     if ( finish == true ) then
         self.tcpdump_meas [ key ]:close_online ()
     end
---    if ( online == false ) then
---        for key, stats in pairs ( self.tcpdump_pcaps ) do
---            local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. ".pcap"
---            self.tcpdump_pcap_file = io.open ( fname, "w")
---            self.tcpdump_pcap_file:write ( stats )
---            self.tcpdump_pcap_file:close ()
---        end
---   else
---        self.tcpdump_pcap_file:write ( self.tcpdump_pcaps [ key ] )
---        if ( finish == true ) then
---            self.tcpdump_pcap_file:close ()
---        end
---   end
 
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
@@ -454,26 +336,6 @@ function Measurements:write ( online, finish, key )
             end
         end
     end
-    --if ( self.rc_stats_enabled == true ) then
-    --    for _, station in ipairs ( self.stations ) do
-    --        if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil ) then
-    --            if ( online == false ) then
-    --                for key, stats in pairs ( self.rc_stats [ station ] ) do
-    --                    local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-rc_stats-"
-    --                        .. station .. ".txt"
-    --                    self.rc_stats_files [ station ] = io.open ( fname, "w" )
-    --                    self.rc_stats_files [ station ]:write ( stats )
-    --                    self.rc_stats_files [ station ]:close ()
-    --                end
-    --            else
-    --                self.rc_stats_files [ station ]:write ( self.rc_stats [ station ] [ key ] )
-    --                if ( finish == true ) then
-    --                    self.rc_stats_files [ station ]:close ()
-    --                end
-    --            end
-    --        end
-    --    end
-    --end
 
     if ( online == false or finish == true ) then
         -- iperf server out
@@ -497,7 +359,7 @@ function Measurements:write ( online, finish, key )
         end
     end
 
-    return true
+    return true, nil
 end
 
 function Measurements:__tostring () 
@@ -517,55 +379,31 @@ function Measurements:__tostring ()
     out = out .. ( self.node_mac_br or "no mac (bridged) set" ) .. "\n"
     -- regmon stats
     out = out .. "regmon: " .. table_size ( self.regmon_meas ) .. " stats\n"
-    --out = out .. "regmon: " .. table_size ( self.regmon_stats ) .. " stats\n"
     local key
     local stat
     for _, meas in pairs ( self.regmon_meas ) do
         out = out .. meas : __tostring ()
     end
-    --for key, stat in pairs ( self.regmon_stats ) do
-    --    out = out .. "regmon-" .. key .. ": " .. string.len(stat) .. " bytes\n"
-        --print (stat)
-    --end
     -- cpusage stats
     out = out .. "cpusage: " .. table_size ( self.cpusage_meas ) .. " stats\n"
-    --out = out .. "cpusage: " .. table_size ( self.cpusage_stats ) .. " stats\n"
     for _, meas in pairs ( self.cpusage_meas ) do
         out = out .. meas : __tostring ()
     end
-    --for key, stat in pairs ( self.cpusage_stats ) do
-    --    out = out .. "cpusage_stats-" .. key .. ": " .. string.len(stat) .. " bytes\n"
-    --    for _, str in ipairs ( split ( stat, "\n" ) ) do
-    ----        local cpustat = parse_cpusage ( str )
-    ----        print (cpustat)
-    --    end
-    --end
     -- tcpdump pcap
     -- -- pcap.DLT = { EN10MB=DLT_EN10MB, [DLT_EN10MB] = "EN10MB", ... }
     out = out .. "pcaps: " .. table_size ( self.tcpdump_meas ) .. " stats\n"
-    --out = out .. "pcaps: " .. table_size ( self.tcpdump_pcaps ) .. " stats\n"
     for _, meas in pairs ( self.tcpdump_meas ) do
         out = out .. meas : __tostring ()
     end
-    --for key, stats in pairs ( self.tcpdump_pcaps ) do
-    --    out = out .. "tcpdump_pcap-" .. key .. ": " .. string.len ( stats ) .. " bytes\n"
-    --end
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
             out = out .. "rc_stats:" .. table_size ( self.rc_stats_meas [ station ] ) .. " stats\n"
-            --out = out .. "rc_stats:" .. table_size ( self.rc_stats [ station ] ) .. " stats\n"
             if ( self.rc_stats_meas ~= nil and self.rc_stats_meas [ station ] ~= nil ) then
                 for _, meas in pairs ( self.rc_stats_meas [ station ] ) do
                     out = out .. meas : __tostring ()
                 end
             end
-            --if ( self.rc_stats ~= nil and self.rc_stats [ station ] ~= nil) then
-            --    for key, stat in pairs ( self.rc_stats [ station ] ) do
-            --        out = out .. "rc_stats-" .. station .. "-" .. key .. ": " .. string.len ( stat ) .. " bytes\n"
-            --        -- if (stat ~= nil) then print (stat) end
-            --    end
-            --end
         end
     end
     -- iperf server out
@@ -594,16 +432,15 @@ function Measurements:enable_rc_stats ( stations )
 end
 
 function Measurements:start ( phy, key )
-    self.add_key ( self, key, self.output_dir )
+    local succ, res = self.add_key ( self, key, self.output_dir )
+    if ( succ == false ) then
+        return false, "Measurements:start add_key failed: " .. ( res or "unknown" ) end
     -- regmon 
-    --self.regmon_stats [ key ] = ""
     local regmon_pid = self.rpc_node.start_regmon_stats ( phy )
     -- cpusage
-    --self.cpusage_stats [ key ] = ""
     local cpusage_pid = self.rpc_node.start_cpusage ( phy )
     -- tcpdump
-    --self.tcpdump_pcaps [ key ] = ""
-    local  fname = nil
+    local fname = nil
     if ( self.online == false ) then
         local fname = "/tmp/" .. self.node_name .. "-" .. key .. ".pcap"
         local tcpdump_pid = self.rpc_node.start_tcpdump ( phy, fname )
@@ -613,11 +450,10 @@ function Measurements:start ( phy, key )
     -- rc stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            --self.rc_stats [ station ] [ key ] = ""
             local rc_stats_pid = self.rpc_node.start_rc_stats ( phy, station )
         end
     end
-    return true
+    return true, nil
 end
 
 function Measurements:stop ( phy, key )
@@ -635,25 +471,44 @@ function Measurements:stop ( phy, key )
     end
 end
 
-function Measurements:fetch ( phy, key )
+function Measurements:fetch ( phy, key, debug_node )
+
+    if ( phy == nil ) then
+        return false, "Measurements:fetch failed: phy unset"
+    end
+
+    if ( key == nil ) then
+        return false, "Measurements:fetch failed: key unset"
+    end
+
     local running = true
     local stats = nil
     -- regmon
     if ( self.regmon_meas [ key ] == nil ) then
-        self.add_key ( self, key, self.output_dir )
+        local succ, res = self.add_key ( self, key, self.output_dir )
+        if ( succ == false ) then
+            return false, "Measurements:fetch add_key failed: " .. ( res or "unknown" )
+        end
     end
+    debug_node:send_debug ( "fetch: init regmon " .. self.regmon_meas [ key ]:__tostring () )
+
     stats = self.rpc_node.get_regmon_stats ( phy, self.online )
     if ( stats ~= nil ) then
+        if ( debug_node ~= nil ) then
+            debug_node:send_debug ( "Measurements:fetch regmon " .. string.len ( stats ) .. " bytes" )
+        end
         self.regmon_meas [ key ].stats = ( self.regmon_meas [ key ].stats or "" ) .. stats
-        --self.regmon_stats [ key ] = self.regmon_stats [ key ] .. stats
+        debug_node:send_debug ( "fetch: new regmon " .. self.regmon_meas [ key ]:__tostring () )
     else
         --running = false
     end
     -- cpusage
     stats = self.rpc_node.get_cpusage ( phy, self.online )
     if ( stats ~= nil ) then
+        if ( debug_node ~= nil ) then
+            debug_node:send_debug ( "Measurements:fetch cpusage " .. string.len ( stats ) .. " bytes" )
+        end
         self.cpusage_meas [ key ].stats = ( self.cpusage_meas [ key ].stats or "" ) .. stats
-        --self.cpusage_stats [ key ] = self.cpusage_stats [ key ] .. stats 
     end
     -- tcpdump
     local fname = nil
@@ -662,8 +517,10 @@ function Measurements:fetch ( phy, key )
     end
     stats = self.rpc_node.get_tcpdump ( phy, fname )
     if ( stats ~= nil ) then
+        if ( debug_node ~= nil ) then
+            debug_node:send_debug ( "Measurements:fetch tcpdump pcaps " .. string.len ( stats ) .. " bytes" )
+        end
         self.tcpdump_meas [ key ].stats = ( self.tcpdump_meas [ key ].stats or "" ) .. stats
-        --self.tcpdump_pcaps [ key ] = self.tcpdump_pcaps [ key ] .. stats 
     else
         running = false
     end
@@ -671,27 +528,28 @@ function Measurements:fetch ( phy, key )
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            if ( self.rc_stats_meas == nil
-                 or self.rc_stats_meas [ station ] == nil
-                 or self.rc_stats_meas [ station ] [ key ] == nil ) then
-                self.add_key ( self, key, self.output_dir )
-            end
             local stats = self.rpc_node.get_rc_stats ( phy, station, self.online )
             if ( stats ~= nil
                 and self.rc_stats_meas ~= nil and self.rc_stats_meas [ station ] ~= nil
                 and self.rc_stats_meas [ station ] [ key ] ~= nil ) then
-                -- fixme: never reached
-                self.rc_stats_meas [ station ] [ key ].stats 
-                    = ( self.rc_stats_meas [ station ] [ key ].stats or "" )
-                      .. stats
-                --self.rc_stats [ station ] [ key ] = self.rc_stats [ station ] [ key ] .. stats
+                    if ( debug_node ~= nil ) then
+                        debug_node:send_debug ( "Measurements:fetch rc_stats " .. string.len ( stats ) .. " bytes" )
+                    end
+                    self.rc_stats_meas [ station ] [ key ].stats 
+                        = ( self.rc_stats_meas [ station ] [ key ].stats or "" )
+                          .. stats
             else
                 running = false
             end
         end
     end
 
-    return running
+    debug_node:send_debug ( "fetched: "
+                            .. self.regmon_meas [ key ]:__tostring()
+                            .. self.cpusage_meas [ key ]:__tostring()
+                            .. self.tcpdump_meas [ key ]:__tostring()
+                          )
+    return true, running
 
     -- iperf server out
     -- iperf client out
@@ -716,7 +574,6 @@ function Measurements.resume ( output_dir, online )
              and Config.find_node ( name, nodes ) ~= nil ) then
             local measurement = Measurements.parse ( name, output_dir, nil, online )
             for key, pcap in pairs ( measurement.tcpdump_meas ) do
-            --for key, pcap in pairs ( measurement.tcpdump_pcaps ) do
                 if ( pcap == nil or pcap == "" ) then
                     if ( keys == nil ) then
                         keys = {}

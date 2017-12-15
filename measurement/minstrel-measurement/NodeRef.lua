@@ -172,7 +172,10 @@ end
 
 function NodeRef:start_measurement ( key )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        self.stats:start ( self.wifi_cur, key )
+        local succ, res = self.stats:start ( self.wifi_cur, key )
+        if ( succ == false ) then
+            self:send_error ( "NodeRef::start_measurement: " .. ( res or "unknown" ) )
+        end
     end
 end
 
@@ -184,17 +187,33 @@ end
 
 -- collect traces
 function NodeRef:fetch_measurement ( key )
+    self:send_debug ( "NodeRef::fetch_measurement for key" .. ( key or "unset" ) )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        return self.stats:fetch ( self.wifi_cur, key )
+        local stas = "none"
+        if ( self.stats.stations ~= nil ) then
+            stas = table_tostring ( self.stats.stations )
+        end
+        self:send_debug ( "stations: " .. stas )
+        local succ, res = self.stats:fetch ( self.wifi_cur, key, self )
+        if ( succ == false ) then
+            self:send_error ( "NodeRef::fetch_measurement: " .. ( res or "unknown" ) )
+        end
+        self:send_debug ( self.stats:__tostring () )
+        return succ, res
     end
-    return false
+    return true, false
 end
 
 function NodeRef:get_tcpdump_pcap ( key, from, to)
     -- lua rpc seg faults when transfering more than 10MiB data
     -- split into parts as a workaround
-    if ( key ~= nil and ( self.is_passive == nil or self.is_passive == false ) ) then
-        local out
+    if ( key == nil ) then
+        return false, "NodeRef:get_tcpdump_pcap failed: key is not set"
+    end
+    local out
+    if ( self.is_passive == nil or self.is_passive == false ) then
+        self:send_debug ( "NodeRef::get_tcpdump_pcap: pcaps "
+                          .. string.len ( self.stats.tcpdump_meas [ key ].stats ) .. " bytes present" )
         if ( from ~= nil and to ~= nil ) then
             out = string.sub ( self.stats.tcpdump_meas [ key ].stats, from, to ) 
             --out = string.sub ( self.stats.tcpdump_pcaps [ key ], from, to ) 
@@ -208,9 +227,11 @@ function NodeRef:get_tcpdump_pcap ( key, from, to)
             out = self.stats.tcpdump_meas [ key ].stats
             self.stats.tcpdump_meas [ key ].stats = ""
         end
-        return out
+        self:send_debug ( "NodeRef::get_tcpdump_pcap: send " .. string.len ( out ) .. " bytes for key " .. key )
+        return true, out
     end
-    return nil
+    self:send_debug ( "NodeRef::get_tcpdump_pcap: send 0 bytes" )
+    return true, nil
 end
 
 function NodeRef:cleanup_measurement ( key )
@@ -273,7 +294,7 @@ end
 
 function NodeRef:set_date ( year, month, day, hour, minute, second )
     if ( self.is_passive == nil or self.is_passive == false ) then
-        return self.rpc.set_date (  year, month, day, hour, minute, second )
+        return self.rpc.set_date ( year, month, day, hour, minute, second )
     end
 end
 
@@ -301,24 +322,24 @@ end
 
 function NodeRef:send_error ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_error ( self.name, msg )
+        self.log_ref:send_error ( self.name .. "-Ref", msg )
     end
 end
 
 function NodeRef:send_info ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_info ( self.name, msg )
+        self.log_ref:send_info ( self.name .. "-Ref", msg )
     end
 end
 
 function NodeRef:send_warning ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_warning ( self.name, msg )
+        self.log_ref:send_warning ( self.name .. "-Ref", msg )
     end
 end
 
 function NodeRef:send_debug ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_debug ( self.name, msg )
+        self.log_ref:send_debug ( self.name .. "-Ref", msg )
     end
 end

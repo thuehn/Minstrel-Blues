@@ -689,7 +689,12 @@ function ControlNodeRef:write_measurement ( node_names, online, finish, key )
         --local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_pcaps [ key ]
         local i = 0
         repeat
-            local pcap = self.rpc.get_tcpdump_pcap ( ref_name, key, ( max_size * i ) + 1, max_size )
+            local succ, res = self.rpc.get_tcpdump_pcap ( ref_name, key, ( max_size * i ) + 1, max_size )
+            if ( succ == false ) then
+                print ( "ERROR: ControlNodeRef:write_measurement:" .. ( res or "unknown" ) )
+                return
+            end
+            local pcap = res
             if ( pcap ~= nil ) then
                 tcpdump_pcap = tcpdump_pcap .. pcap
             end
@@ -856,7 +861,11 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         self:create_measurement ( node_names, key )
         if ( self.online == true ) then
             repeat
-                self.rpc.exp_next_data ( key )
+                ret, err = self.rpc.exp_next_data ( key )
+                if ( ret == false ) then
+                    print ( "ERROR: ControlNodeRef:run_experiments exp_next_data failed: " .. ( ret or "unknown" ) )
+                    return ret, err
+                end
                 self:write_measurement ( node_names, self.online, false, key )
                 posix.sleep (1)
             until self.rpc.exp_has_data ( key ) == false
@@ -902,24 +911,24 @@ end
 
 function ControlNodeRef:send_error ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_error ( self.name, msg )
+        self.log_ref:send_error ( self.name .. "-Ref", msg )
     end
 end
 
 function ControlNodeRef:send_info ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_info ( self.name, msg )
+        self.log_ref:send_info ( self.name .. "-Ref", msg )
     end
 end
 
 function ControlNodeRef:send_warning ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_warning ( self.name, msg )
+        self.log_ref:send_warning ( self.name .. "-Ref", msg )
     end
 end
 
 function ControlNodeRef:send_debug ( msg )
     if ( self.log_ref ~= nil ) then
-        self.log_ref:send_debug ( self.name, msg )
+        self.log_ref:send_debug ( self.name .. "-Ref", msg )
     end
 end

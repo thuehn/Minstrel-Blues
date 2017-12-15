@@ -179,14 +179,26 @@ function AccessPointRef:stop_measurement ( key )
 end
 
 function AccessPointRef:fetch_measurement ( key )
-    local self_running = NodeRef.fetch_measurement ( self, key )
+    self.log_ref:send_debug ( "AccessPointRef:fetch_measurement for key: " .. ( key or "none" ) )
+    local succ, res = NodeRef.fetch_measurement ( self, key )
+    if ( succ == false ) then
+        return succ, res
+    end
+    self:send_debug ( "AccesspointRef:fetch_measurement " .. self.name .. ": " .. self.stats:__tostring() )
+    local self_running = res
     local experiments_running = {}
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            experiments_running [i] = sta_ref:fetch_measurement ( key )
+            self.log_ref:send_debug ( "AccessPointRef:fetch_measurement for station: " .. ( sta_ref.name or "none" ) )
+            local succ, res = sta_ref:fetch_measurement ( key )
+            if ( succ == false ) then
+                return succ, res
+            end
+            self:send_debug ( "AccesspointRef:fetch_measurement " .. sta_ref.name .. ":" .. sta_ref.stats:__tostring() )
+            experiments_running [i] = res
         end
     end
-    return self_running and Misc.all_true ( experiments_running )
+    return true, ( self_running and Misc.all_true ( experiments_running ) )
 end
 
 function AccessPointRef:cleanup_measurement ( key )

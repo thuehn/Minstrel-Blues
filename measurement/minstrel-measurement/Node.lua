@@ -665,10 +665,10 @@ function Node:stop_rc_stats ( phy, station )
     return nil
 end
 
-function Node:cleanup_rc_stats ( phy )
+function Node:cleanup_rc_stats ( phy, station )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:cleanup_rc_stats ()
+        return dev:cleanup_rc_stats ( station )
     end
     return nil
 end
