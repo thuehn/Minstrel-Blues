@@ -259,6 +259,7 @@ Config.read_connections = function ( cons )
 
 end
 
+--[[
 Config.save = function ( dir, ctrl, aps, stas, meshs )
     -- ctrl
     local fname = dir .. "/control.txt"
@@ -341,6 +342,6 @@ Config.read = function ( dir )
 
     return ctrl, aps, stas
 end
-
+--]]
 
 return Config

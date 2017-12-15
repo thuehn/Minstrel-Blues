@@ -216,14 +216,10 @@ function NodeRef:get_tcpdump_pcap ( key, from, to)
                           .. string.len ( self.stats.tcpdump_meas [ key ].stats ) .. " bytes present" )
         if ( from ~= nil and to ~= nil ) then
             out = string.sub ( self.stats.tcpdump_meas [ key ].stats, from, to ) 
-            --out = string.sub ( self.stats.tcpdump_pcaps [ key ], from, to ) 
             if ( to >= string.len ( out ) ) then
-                --self.stats.tcpdump_pcaps [ key ] = ""
                 self.stats.tcpdump_meas [ key ].stats = ""
             end
         else
-            --out = self.stats.tcpdump_pcaps [ key ]
-            --self.stats.tcpdump_pcaps [ key ] = ""
             out = self.stats.tcpdump_meas [ key ].stats
             self.stats.tcpdump_meas [ key ].stats = ""
         end

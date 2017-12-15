@@ -21,7 +21,7 @@ function Measurement:read ()
         if ( self.binary_mode == true ) then
             file_mode = file_mode .. "b"
         end
-        local file = io.open ( iself.fname, file_mode )
+        local file = io.open ( self.fname, file_mode )
         if ( file ~= nil ) then
             stats = file:read ( "*a" )
             self.stats = stats

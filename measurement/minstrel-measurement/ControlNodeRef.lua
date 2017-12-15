@@ -9,6 +9,7 @@ local net = require ('Net')
 local ps = require ('posix.signal') --kill
 
 require ('NetIfRef')
+require ('MeasurementOption')
 require ('Measurements')
 require ('LogNodeRef')
 
@@ -31,6 +32,7 @@ ControlNodeRef = { name = nil           -- hostname of the control node ( String
                  , retries = nil        -- number of retries for rpc and wifi connections
                  , online = nil         -- fetch data online
                  , measurements = nil   -- list of running measurements
+                 , mopts = nil          -- additional options and propteries backuped in measurements options.txt file
                  }
 
 function ControlNodeRef:new (o)
@@ -128,7 +130,13 @@ function ControlNodeRef:create ( ctrl_port, output_dir
         print ( )
     end
 
-    Config.save ( output_dir, ctrl_config, aps_config, stas_config, mesh_nodes_config )
+    -- Config.save ( output_dir, ctrl_config, aps_config, stas_config, mesh_nodes_config )
+    -- stations.txt
+    -- accesspoints.txt
+    -- control.txt
+    -- experiment_order.txt
+    -- meshs.txt
+    -- wifi_config.txt
 
     local ctrl_net_ref = NetIfRef:create ( ctrl_config ['ctrl_if'] )
     ctrl_net_ref:set_addr ( ctrl_config ['name'] )
@@ -150,6 +158,13 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                  , online = online
                                  , measurements = {}
                                  }
+
+    o.mopts = {}
+    o.mopts [ "accesspoints" ] = MeasurementsOption:create ( "accesspoints", "List", ap_names )
+    o.mopts [ "stations" ] = MeasurementsOption:create ( "stations", "List", sta_names )
+    o.mopts [ "meshs" ] = MeasurementsOption:create ( "meshs", "List", mesh_names )
+    o.mopts [ "control" ] = MeasurementsOption:create ( "control", "String", ctrl_config.name )
+    MeasurementsOption.write_file ( o.output_dir, o.mopts )
 
     if ( log_port ~= nil and log_fname ~= nil ) then
         o.log_ref = LogNodeRef:create ( net_if.addr, log_port, retries )
@@ -663,15 +678,6 @@ function ControlNodeRef:create_measurement ( node_names, key )
         local stations = self:list_stations ( ref_name )
         measurements:enable_rc_stats ( stations ) -- resets rc_stats
 
-        --measurements.tcpdump_pcaps [ key ] = ""
-        --for _, station in ipairs ( stations ) do
-        --    measurements.rc_stats [ station ] [ key ] = ""
-        --end
-
-        --measurements.cpusage_stats [ key ] = ""
-        --measurements.regmon_stats [ key ] = ""
-        measurements.regmon_meas [ key ].stats = ""
-
         self.measurements [ ref_name ] = measurements
     end
 end
@@ -686,7 +692,6 @@ function ControlNodeRef:write_measurement ( node_names, online, finish, key )
 
         local size = self.rpc.get_tcpdump_size ( ref_name, key )
         local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_meas [ key ].stats
-        --local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_pcaps [ key ]
         local i = 0
         repeat
             local succ, res = self.rpc.get_tcpdump_pcap ( ref_name, key, ( max_size * i ) + 1, max_size )
@@ -701,33 +706,22 @@ function ControlNodeRef:write_measurement ( node_names, online, finish, key )
             i = i + 1
         until ( ( ( i + 1 ) * max_size ) + 1 ) > size
         self.measurements [ ref_name ].tcpdump_meas [ key ].stats = tcpdump_pcap
-        --self.measurements [ ref_name ].tcpdump_pcaps [ key ] = tcpdump_pcap
 
         local stations = self:list_stations ( ref_name )
         for _, station in ipairs ( stations ) do
-            --self.measurements [ ref_name ].rc_stats [ station ] [ key ]
-            --    = self.measurements [ ref_name ].rc_stats [ station ] [ key ]
-            --      .. self.rpc.get_rc_stats ( ref_name, station, key )
             if ( self.measurements [ ref_name ].rc_stats_meas ~= nil
                  and self.measurements [ ref_name ].rc_stats_meas [ station ] ~= nil
                  and self.measurements [ ref_name ].rc_stats_meas [ station ] [ key ] ~= nil ) then
-                -- fixme: never reached
                 self.measurements [ ref_name ].rc_stats_meas [ station ] [ key ].stats
                     = ( self.measurements [ ref_name ].rc_stats_meas [ station ] [ key ].stats or "" )
                       .. self.rpc.get_rc_stats ( ref_name, station, key )
             end
         end
 
-        --self.measurements [ ref_name ].cpusage_stats [ key ]
-        --    = self.measurements [ ref_name ].cpusage_stats [ key ]
-        --      .. self.rpc.get_cpusage_stats ( ref_name, key )
         self.measurements [ ref_name ].cpusage_meas [ key ].stats
             = self.measurements [ ref_name ].cpusage_meas [ key ].stats
               .. self.rpc.get_cpusage_stats ( ref_name, key )
 
-        --self.measurements [ ref_name ].regmon_stats [ key ]
-        --    = self.measurements [ ref_name ].regmon_stats [ key ]
-        --      .. self.rpc.get_regmon_stats ( ref_name, key )
         self.measurements [ ref_name ].regmon_meas [ key ].stats
             = self.measurements [ ref_name ].regmon_meas [ key ].stats
               .. self.rpc.get_regmon_stats ( ref_name, key )
@@ -776,21 +770,7 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         end
         return true
     end
-    --]]
 
-    -- save wifi channel and htmode
-    local fname = self.output_dir .. "/wifi_config.txt"
-    local file = io.open ( fname, "w" )
-    if ( file ~= nil ) then
-        file:write ( "channel = " .. channel .. '\n' )
-        file:write ( "htmode = " .. htmode .. '\n' )
-        file:write ( "distance = " .. self.distance .. '\n' )
-        file:close ()
-    end
-
-    self.rpc.randomize_nodes ()
-
-    --[[
     for _, ap_ref in ipairs ( self.ap_refs ) do
         local free_m = ap_ref:get_free_mem ()
         check_mem ( free_m, ap_ref.name )
@@ -800,6 +780,14 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         end
     end
     --]]
+
+    -- save wifi channel and htmode
+    self.mopts [ "wifi_channel" ] = MeasurementsOption:create ( "wifi_channel", "String", channel )
+    self.mopts [ "wifi_htmode" ] = MeasurementsOption:create ( "wifi_htmode", "String", htmode )
+    self.mopts [ "wifi_distance" ] = MeasurementsOption:create ( "wifi_distance", "String", self.distance )
+    MeasurementsOption.write_file ( self.output_dir, self.mopts )
+
+    self.rpc.randomize_nodes ()
 
     -- choose smallest set of keys
     -- fixme: still differs over all APs maybe
@@ -825,14 +813,8 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
     local keys_random = misc.randomize_list ( keys [ key_index ] )
 
     -- save experiment order
-    local fname = self.output_dir .. "/experiment_order.txt"
-    local file = io.open ( fname, "w" )
-    if ( file ~= nil ) then
-        for _, key in ipairs ( keys_random ) do
-            file:write ( key .. '\n' )
-        end
-        file:close()
-    end
+    self.mopts [ "experiment_order" ] = MeasurementsOption:create ( "experiment_order", "List", keys_random )
+    MeasurementsOption.write_file ( self.output_dir, self.mopts )
 
     local ret = true
     local err = nil

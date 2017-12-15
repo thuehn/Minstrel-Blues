@@ -511,8 +511,6 @@ function ControlNode:get_tcpdump_size ( ref_name, key )
     if ( key == nil ) then
         return nil
     else
-        --if ( node_ref.stats.tcpdump_pcaps [ key ] ) then
-        --    return string.len ( node_ref.stats.tcpdump_pcaps [ key ] )
         if ( node_ref.stats.tcpdump_meas [ key ].stats ) then
             return string.len ( node_ref.stats.tcpdump_meas [ key ].stats )
         else
@@ -559,8 +557,6 @@ function ControlNode:get_rc_stats ( ref_name, station, key )
     end
     out = node_ref.stats.rc_stats_meas [ station ] [ key ].stats
     node_ref.stats.rc_stats_meas [ station ] [ key ].stats = ""
-    --out = node_ref.stats.rc_stats [ station ] [ key ]
-    --node_ref.stats.rc_stats [ station ] [ key ] = ""
     self:send_debug ( "rc stats copied: " .. string.len ( out ) )
     return out
 end
@@ -575,8 +571,6 @@ function ControlNode:get_cpusage_stats ( ref_name, key )
     end
     out = node_ref.stats.cpusage_meas [ key ].stats
     node_ref.stats.cpusage_meas [ key ].stats = ""
-    --out = node_ref.stats.cpusage_stats [ key ]
-    --node_ref.stats.cpusage_stats [ key ] = ""
     self:send_debug ( "cpusage stats copied and removed" )
     return out
 end
@@ -589,8 +583,6 @@ function ControlNode:get_regmon_stats ( ref_name, key )
     if ( node_ref == nil ) then
         return out
     end
-    --out = node_ref.stats.regmon_stats [ key ]
-    --node_ref.stats.regmon_stats [ key ] = ""
     out = node_ref.stats.regmon_meas [ key ].stats
     node_ref.stats.regmon_meas [ key ].stats = ""
     self:send_debug ( "regmon stats copied and removed" )

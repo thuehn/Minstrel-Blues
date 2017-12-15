@@ -1,9 +1,10 @@
 
 local argparse = require ('argparse')
 local pprint = require ('pprint')
-local config = require ('Config')
+--local config = require ('Config')
 
 require ('Measurements')
+require ('MeasurementOption')
 
 require ('FXAnalyser')
 require ('BandwidthAnalyser')
@@ -20,7 +21,26 @@ parser:option ("-c --min_count", "discard rare values", 10 )
 
 local args = parser:parse()
 
-local _, aps, stas = Config.read ( args.input )
+local aps = nil
+local stas = nil
+local succ, res = MeasurementsOption.read_file ( args.input )
+if ( succ == false ) then
+    print ( "ERROR: read options file failed: " .. ( res or "unknown" ) )
+    exit 1
+else
+    if ( res == nil or res [ "accesspoints" ] == nil ) then
+        print ( "ERROR: option accesspoints not found in options file" )
+        exit 1
+    end
+    if ( res == nil or res [ "stations" ] == nil ) then
+        print ( "ERROR: option stations not found in options file" )
+        exit 1
+    end
+    aps = res [ "accesspoints" ].value
+    aps = res [ "stations" ].value
+end
+
+--local _, aps, stas = Config.read ( args.input )
 
 for _, name in ipairs ( ( scandir ( args.input ) ) ) do
 

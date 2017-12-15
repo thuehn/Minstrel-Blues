@@ -72,21 +72,15 @@ function Measurements:set_opposite_macs_br ( macs_br )
 end
 
 function read_stations ( input_dir )
-    local fname = input_dir .. "/stations.txt"
-    if ( isFile ( fname ) ) then
-        local file = io.open ( fname, "r" )
-        if ( file ~= nil ) then
-            local content  = file:read ( "*a" )
-            if ( content ~= nil ) then
-                local stations = split ( content, "\n" )
-                if ( stations [ #stations ] == "" ) then
-                    stations [ #stations ] = nil
-                end
-                return stations
-            end
+    local succ, res = MeasurementsOption.read_file ( input_dir )
+    if ( succ == false ) then
+        return nil
+    else
+        if ( res == nil or res [ "stations" ] == nil ) then
+            return nil
         end
+        return res [ "stations" ].value
     end
-    return nil
 end
 
 function Measurements:add_key ( key, output_dir )
@@ -134,21 +128,15 @@ function Measurements:add_key ( key, output_dir )
 end
 
 function read_keys ( input_dir )
-    local fname = input_dir .. "/experiment_order.txt"
-    if ( isFile ( fname ) ) then
-        local file = io.open ( fname, "r" )
-        if ( file ~= nil ) then
-            local content = file:read ("*a")
-            if ( content ~= nil ) then
-                local keys = split ( content, "\n" )
-                if ( keys [ #keys ] == "" ) then
-                    keys [ #keys ] = nil
-                end
-                return keys
-            end
-        end
+
+    local succ, res = MeasurementsOption.read_file ( input_dir )
+    if ( succ == false ) then
+        return nil
     end
-    return nil
+    if ( res == nil or res [ "experiment_order" ] == nil ) then
+        return nil
+    end
+    return res [ "experiment_order" ].value
 end
 
 function Measurements.parse ( name, input_dir, key, online )
@@ -193,7 +181,7 @@ function Measurements:read ()
     if ( succ == true ) then self.mopts = res end
 
     -- regmon stats
-    for key, stats in pairs ( self.regmon_meas ) do
+    for key, meas in pairs ( self.regmon_meas ) do
         local succ, res = self.add_key ( self, key, self.output_dir )
         if ( succ == false ) then
             return false, "Measurements:read: add_key failed: " .. ( res or "unknown" )
@@ -573,8 +561,8 @@ function Measurements.resume ( output_dir, online )
         if ( name ~= "." and name ~= ".."  and isDir ( output_dir .. "/" .. name )
              and Config.find_node ( name, nodes ) ~= nil ) then
             local measurement = Measurements.parse ( name, output_dir, nil, online )
-            for key, pcap in pairs ( measurement.tcpdump_meas ) do
-                if ( pcap == nil or pcap == "" ) then
+            for key, meas in pairs ( measurement.tcpdump_meas ) do
+                if ( meas.stats == nil or meas.stats == "" ) then
                     if ( keys == nil ) then
                         keys = {}
                         keys [1] = {}

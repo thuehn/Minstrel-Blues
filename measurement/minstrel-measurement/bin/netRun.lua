@@ -167,7 +167,10 @@ else
             end
         end
     else
-        print ( "resume keys: " .. table_tostring ( keys ) )
+        print ( "resume keys: " )
+        for _, ks in ipairs ( keys ) do
+            print ( table_tostring ( ks ) )
+        end
     end
 end
 
