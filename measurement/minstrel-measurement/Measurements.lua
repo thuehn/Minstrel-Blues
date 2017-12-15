@@ -1,25 +1,12 @@
 require ('misc')
 local pprint = require ('pprint')
 require ('Measurement')
+require ('MeasurementOption')
 
 --[[
 --  STA: regmon, tcpdump, cpusage
 --  AP: regmon, tcpdump, cpusage, rc_stats per station
 --]]
-
--- String name, String typ, String value
--- "expermiment_order", "List", "{1}"
--- "mac", "mac", "AA:22:BB:33:CC:44"
--- "mac_br", "mac", "AA:22:BB:33:CC:44"
--- "opposite_macs","List","{...}"
--- "opposite_macs_br","List","{...}"
--- "stations","List","{tp4300}"
-MeasurementsOption = { name = nil
-                     , typ = nil
-                     , value = nil
-                     }
-
--- 
 
 Measurements = { rpc_node = nil
                , node_name = nil
@@ -45,6 +32,7 @@ Measurements = { rpc_node = nil
                , cpusage_meas = nil
                , tcpdump_meas = nil
                , rc_stats_meas = nil
+               , mopts = nil
                }
 
 function Measurements:new (o)
@@ -75,8 +63,25 @@ function Measurements:create ( name, mac, opposite_macs, rpc, output_dir, online
                                  , cpusage_meas = {}
                                  , tcpdump_meas = {}
                                  , rc_stats_meas = {}
+                                 , mopts = {}
                                  } )
+
+    o.mopts [ "node_name" ] = MeasurementsOption:create ( "node_name", "String", name )
+    o.mopts [ "node_mac" ] = MeasurementsOption:create ( "node_mac", "String", mac )
+    o.mopts [ "node_mac_br" ] = MeasurementsOption:create ( "node_mac_br", "String", "" )
+    o.mopts [ "opposite_macs" ] = MeasurementsOption:create ( "opposite_macs", "List", opposite_macs )
+    o.mopts [ "opposite_macs_br" ] = MeasurementsOption:create ( "opposite_macs_br", "List", {} )
+    o.mopts [ "online" ] = MeasurementsOption:create ( "online", "String", tostring ( online ) )
+
     return o
+end
+
+function Measurements:set_node_mac_br ( mac_br )
+    self.mopts [ "node_mac_br" ] = MeasurementsOption:create ( "node_mac_br", "String", mac_br )
+end
+
+function Measurements:set_opposite_macs_br ( macs_br )
+    self.mopts [ "opposite_macs_br" ] = MeasurementsOption:create ( "opposite_macs_br", "List", macs_br )
 end
 
 function read_stations ( input_dir )
@@ -199,53 +204,9 @@ function Measurements:read ()
 
     local base_dir = self.output_dir .. "/" .. self.node_name
 
-    -- mac
-    local fname = base_dir .. "/mac.txt"
-    local file = io.open ( fname )
-    if ( file ~= nil ) then
-        self.node_mac = file:read ( "*a" )
-        if ( self.node_mac ~= nil ) then
-            self.node_mac = string.sub ( self.node_mac, 1, string.len ( self.node_mac) - 1 )
-        end
-        file:close()
-    end
-    -- mac for bridged setups ( tshark filters by bridge mac )
-    local fname = base_dir .. "/mac_br.txt"
-    if ( isFile ( fname ) ) then
-        local file = io.open ( fname )
-        if ( file ~= nil ) then
-            self.node_mac_br = file:read ( "*a" )
-            if ( self.node_mac_br ~= nil ) then
-                self.node_mac_br = string.sub ( self.node_mac_br, 1, string.len ( self.node_mac_br) - 1 )
-            end
-            file:close()
-        end
-    end
-
-    -- opposite macs
-    local fname = base_dir .. "/opposite_macs.txt"
-    local file = io.open ( fname )
-    if ( file ~= nil ) then
-        local content = file:read ( "*a" )
-        if ( content ~= nil ) then
-            self.opposite_macs = split ( content, "\n" )
-            table.remove ( self.opposite_macs, #self.opposite_macs )
-        end
-        file:close()
-    end
-    -- opposite macs for bridged setups ( tshark filters by bridge mac )
-    local fname = base_dir .. "/opposite_macs_br.txt"
-    if ( isFile ( fname ) == true ) then
-        local file = io.open ( fname )
-        if ( file ~= nil ) then
-            local content = file:read ( "*a" )
-            if ( content ~= nil ) then
-                self.opposite_macs_br = split ( content, "\n" )
-                table.remove ( self.opposite_macs_br, #self.opposite_macs )
-            end
-            file:close()
-        end
-    end
+    -- options
+    local succ, res = MeasurementsOption.read_file ( base_dir )
+    if ( succ == true ) then self.mopts = res end
 
     -- regmon stats
     for key, stats in pairs ( self.regmon_meas ) do
@@ -372,45 +333,8 @@ function Measurements:write ( online, finish, key )
     end
 
     if ( self:is_open ( key ) == false ) then
-        -- mac
-        if ( self.node_mac ~= nil ) then
-            local fname = base_dir .. "/mac.txt"
-            local file = io.open ( fname, "w" )
-            if ( file ~= nil ) then
-                file:write ( self.node_mac .. '\n' )
-                file:close ()
-            end
-        end
-        if ( self.node_mac_br ~= nil ) then
-            local fname = base_dir .. "/mac_br.txt"
-            local file = io.open ( fname, "w" )
-            if ( file ~= nil ) then
-                file:write ( self.node_mac_br .. '\n' )
-                file:close ()
-            end
-        end
-
-        -- opposite macs
-        if ( self.opposite_macs ~= nil ) then
-            local fname = base_dir .. "/opposite_macs.txt"
-            local file = io.open ( fname, "w" )
-            if ( file ~= nil ) then
-                for _, mac in ipairs ( self.opposite_macs ) do
-                    file:write ( mac .. '\n' )
-                end
-                file:close ()
-            end
-        end
-        if ( self.opposite_macs_br ~= nil ) then
-            local fname = base_dir .. "/opposite_macs_br.txt"
-            local file = io.open ( fname, "w" )
-            if ( file ~= nil ) then
-                for _, mac in ipairs ( self.opposite_macs_br ) do
-                    file:write ( mac .. '\n' )
-                end
-                file:close ()
-            end
-        end
+        -- options
+        MeasurementsOption.write_file ( base_dir, self.mopts )
 
         -- regmon stats
         if ( online == true ) then
@@ -579,7 +503,17 @@ end
 function Measurements:__tostring () 
     local out = "Measurements\n==========\n"
     out = out .. self.node_name .. "\n"
-    out = out .. ( self.node_mac or "no mac set" ) .. "\n"
+    if ( self.mopts == nil or self.mopts == {} ) then
+        out = "no options set"
+    else
+        local i = 1
+        for _, option in pairs ( self.mopts ) do
+            if ( i == 1 ) then out = out .. '\n' end
+            out = out .. option:__tostring ()
+        end
+    end
+    out = '\n'
+
     out = out .. ( self.node_mac_br or "no mac (bridged) set" ) .. "\n"
     -- regmon stats
     out = out .. "regmon: " .. table_size ( self.regmon_meas ) .. " stats\n"

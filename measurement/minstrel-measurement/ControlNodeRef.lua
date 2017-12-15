@@ -658,7 +658,7 @@ function ControlNodeRef:create_measurement ( node_names, key )
 
         local measurements = Measurements:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
         measurements:add_key ( key, self.output_dir )
-        measurements.node_mac_br = self:get_mac_br ()
+        measurements:set_node_mac_br ( self:get_mac_br () )
 
         local stations = self:list_stations ( ref_name )
         measurements:enable_rc_stats ( stations ) -- resets rc_stats

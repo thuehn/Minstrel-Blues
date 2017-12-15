@@ -141,8 +141,8 @@ function NodeRef:create_measurement ( online )
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.stats = Measurements:create ( self.name, self:get_mac (), self:get_opposite_macs ()
                                         , self.rpc, self.output_dir, online )
-        self.stats.node_mac_br = self:get_mac_br ()
-        self.stats.opposite_macs_br = self:get_opposite_macs_br ()
+        self.stats:set_node_mac_br ( self:get_mac_br () )
+        self.stats:set_opposite_macs_br ( self:get_opposite_macs_br () )
     end
 end
 
