@@ -1,0 +1,175 @@
+--- a/net/mac80211/Makefile
++++ b/net/mac80211/Makefile
+@@ -56,7 +56,8 @@ rc80211_minstrel-y := \
+ 
+ rc80211_minstrel-$(CPTCFG_MAC80211_DEBUGFS) += \
+ 	rc80211_minstrel_debugfs.o \
+-	rc80211_minstrel_ht_debugfs.o
++	rc80211_minstrel_ht_debugfs.o \
++	tpc80211_blues.o
+ 
+ mac80211-$(CPTCFG_MAC80211_RC_MINSTREL) += $(rc80211_minstrel-y)
+ 
+--- a/net/mac80211/rc80211_minstrel_ht.h
++++ b/net/mac80211/rc80211_minstrel_ht.h
+@@ -47,6 +47,9 @@ struct minstrel_mcs_group_data {
+ 
+ 	/* MCS rate statistics */
+ 	struct minstrel_rate_stats rc_stats[MCS_GROUP_RATES];
++
++	/* TPC statistics per rate */
++	struct blues_tpc_stats tpc_stats[MCS_GROUP_RATES];
+ };
+ 
+ struct minstrel_ht_sta {
+@@ -72,6 +75,9 @@ struct minstrel_ht_sta {
+ 	/* min # of packets between sample attempts */
+ 	u8 cur_rc_intersample_spacing;
+ 
++	/* time of last tpc sampling update */
++	unsigned long last_tpc_update;
++
+ 	/* overhead time in usec for each frame */
+ 	unsigned int overhead;
+ 	unsigned int overhead_rtscts;
+@@ -94,6 +100,10 @@ struct minstrel_ht_sta {
+ 
+ 	/* MCS rate group info and statistics */
+ 	struct minstrel_mcs_group_data groups[MINSTREL_GROUPS_NB];
++
++	/* TCP counter & ACK power levels */
++	u8 tpc_sample_probe_counter;
++	s8 tpc_ack_txpower;
+ };
+ 
+ struct minstrel_ht_sta_priv {
+--- /dev/null
++++ b/net/mac80211/tpc80211_blues.c
+@@ -0,0 +1,20 @@
++/*
++ * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
++ * ________________________________________________________________________
++ * A decentralized joint power and rate controller that maximizes the weighted
++ * utility of achievable throughput and interference. Power and rate per link
++ * (per packet) are controlled to replace current static tx power usage. The
++ * goal is to increase overall WiFi network performance by increasing spatial
++ * reuse and hence allow more active links to communicate in parallel. Hence
++ * shared spectrum is used more efficiently by avoiding unnecessary
++ * interference through dynamic joint power and rate control.
++ *
++ * Copyright (C) 2016  Thomas Huehn <thomas@net.t-labs.tu-berlin.de>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ */
++
++#include "tpc80211_blues.h"
+--- /dev/null
++++ b/net/mac80211/tpc80211_blues.h
+@@ -0,0 +1,104 @@
++/*
++ * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
++ * ________________________________________________________________________
++ * A decentralized joint power and rate controller and hepcat that plays as
++ * loud as thourghput vs. interference is weighted. Power and rate per link
++ * (per packet) is under its control to replace static WiFi shouting with
++ * dynamic use and interplay. The big goal is to increase overall network
++ * performance by increasing spatial reuse, more active links in parallel.
++ *
++ * Copyright (C) 2016  Thomas Huehn <thomas@net.t-labs.tu-berlin.de>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ */
++
++#ifndef __TPC80211_BLUES_H
++#define __TPC80211_BLUES_H
++
++#include <net/mac80211.h>
++#include "rate.h"
++#include "rc80211_minstrel.h"
++#include "rc80211_minstrel_ht.h"
++
++#define TPC_SAMPLE_POWER_SPAN 2		/* min span of sample below ref.power */
++#define TPC_MIN_POWER_DECREMENT 1	/* step width of tx-power decrease */
++#define TPC_MIN_POWER_INCREMENT 2	/* step width of tx-power increase */
++#define TPC_PROBING_RATIO 10		/* packet ratio [%] of TPC sampling */
++#define TPC_UPDATE_THRESH_SAMPLE 35	/* sample packet thr. to update TPC */
++#define TPC_UPDATE_THRESH_DATA 12	/* data packet thr. to update TPC */
++#define TPC_UPDATE_INTERVAL 200		/* TPC update interval [ms] */
++#define TPC_DECREASE_PROB_THRESH 12	/* thresh.[%] -> 1 power level down */
++#define TPC_INCREASE_PROB_THRESH 22	/* thresh.[%] -> 1 power level up */
++#define TPC_EMERG_THRESH 30		/* emerg. thresh. [%] -> max power */
++#define TPC_INIT_REF_PROB 90		/* initial ewma ref prob. [%] */
++#define TPC_INIT_DATA_PROB 85		/* initial ewma data prob. [%] */
++#define TPC_INIT_SAMPLE_PROB 80		/* initial ewma sample prob. [%] */
++#define BLUES_DEFAULT_THR_WEIGHT 100	/* weighting factor in utility calc */
++
++enum blues_ewma_update_flags {
++	EWMA_REF_POWER		= BIT(0),
++	EWMA_SAMPLE_POWER	= BIT(1),
++	EWMA_DATA_POWER		= BIT(2),
++};
++
++struct blues_utility {
++	int cur_thr;
++	int cur_pwr;
++	int pwr_thr_ratio;
++	int rel_thr;
++	int rel_intrf;
++	int utility;
++	int max_utility_index;
++};
++
++int blues_set_ack_power(struct ieee80211_hw *hw, s8 val);
++
++void blues_update_stats(struct minstrel_priv *mp,
++			struct minstrel_sta_info *mi);
++
++void blues_ht_update_stats(struct minstrel_priv *mp,
++			   struct minstrel_ht_sta *mi);
++
++void blues_count_tx_attempts(struct minstrel_rate *mr,
++			      int count,
++			      s8 power);
++
++void blues_reset_stats(struct minstrel_rate *mr);
++
++void blues_reset_power(struct minstrel_priv *mp,
++		       struct minstrel_rate *mr);
++
++void blues_ht_reset_power(struct minstrel_ht_sta *mi,
++			  struct ieee80211_hw *hw,
++			  int group, int rate);
++
++void blues_ht_tpc_init(struct minstrel_priv *mp,
++		       struct minstrel_ht_sta_priv *msp);
++
++void blues_count_tx_success(struct minstrel_rate *mr,
++			     int count,
++			     s8 power);
++
++void minstrel_blues_update_rate_power_table(struct minstrel_priv *mp,
++					    struct minstrel_sta_info *mi);
++
++bool blues_requires_sampling(struct minstrel_sta_info *mi,
++			     struct minstrel_priv *mp,
++			     bool mrr_capable);
++
++bool blues_ht_requires_sampling(struct minstrel_ht_sta *mi,
++				struct minstrel_priv *mp,
++				bool mrr_capable);
++
++int blues_get_next_sample_rate(struct minstrel_sta_info *mi);
++
++int blues_ht_get_next_sample_rate(struct minstrel_ht_sta *mi);
++
++struct blues_tpc_stats *blues_ht_get_stats(struct minstrel_priv *mp,
++					   struct minstrel_ht_sta *mi,
++					   struct ieee80211_tx_rate *rate);
++
++#endif
