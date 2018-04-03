@@ -1,6 +1,6 @@
 --- a/net/mac80211/rc80211_minstrel_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_debugfs.c
-@@ -77,6 +77,7 @@ minstrel_stats_open(struct inode *inode,
+@@ -61,6 +61,7 @@ minstrel_stats_open(struct inode *inode,
  	struct minstrel_debugfs_info *ms;
  	unsigned int i, tp_max, tp_avg, eprob;
  	char *p;
@@ -8,7 +8,7 @@
  
  	ms = kmalloc(2048, GFP_KERNEL);
  	if (!ms)
-@@ -124,10 +125,11 @@ minstrel_stats_open(struct inode *inode,
+@@ -108,10 +109,11 @@ minstrel_stats_open(struct inode *inode,
  				mrs->succ_hist,
  				mrs->att_hist);
  	}
@@ -22,7 +22,7 @@
  	ms->len = p - ms->buf;
  
  	WARN_ON(ms->len + sizeof(*ms) > 2048);
-@@ -150,6 +152,7 @@ minstrel_stats_csv_open(struct inode *in
+@@ -126,6 +128,7 @@ minstrel_stats_csv_open(struct inode *in
  	struct minstrel_debugfs_info *ms;
  	unsigned int i, tp_max, tp_avg, eprob;
  	char *p;
@@ -30,7 +30,7 @@
  
  	ms = kmalloc(2048, GFP_KERNEL);
  	if (!ms)
-@@ -157,12 +160,14 @@ minstrel_stats_csv_open(struct inode *in
+@@ -133,12 +136,14 @@ minstrel_stats_csv_open(struct inode *in
  
  	file->private_data = ms;
  	p = ms->buf;
@@ -47,7 +47,7 @@
  		p += sprintf(p, "%s" ,((i == mi->max_tp_rate[2]) ? "C" : ""));
 --- a/net/mac80211/rc80211_minstrel_ht_debugfs.c
 +++ b/net/mac80211/rc80211_minstrel_ht_debugfs.c
-@@ -110,6 +110,7 @@ minstrel_ht_stats_open(struct inode *ino
+@@ -129,6 +129,7 @@ minstrel_ht_stats_open(struct inode *ino
  	struct minstrel_ht_sta_priv *msp = inode->i_private;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct minstrel_debugfs_info *ms;
@@ -55,7 +55,7 @@
  	unsigned int i;
  	int ret;
  	char *p;
-@@ -147,6 +148,8 @@ minstrel_ht_stats_open(struct inode *ino
+@@ -166,6 +167,8 @@ minstrel_ht_stats_open(struct inode *ino
  	p += sprintf(p, "Average # of aggregated frames per A-MPDU: %d.%d\n",
  		MINSTREL_TRUNC(mi->avg_ampdu_len),
  		MINSTREL_TRUNC(mi->avg_ampdu_len * 10) % 10);
@@ -64,7 +64,7 @@
  	ms->len = p - ms->buf;
  	WARN_ON(ms->len + sizeof(*ms) > 32768);
  
-@@ -162,7 +165,8 @@ static const struct file_operations mins
+@@ -181,7 +184,8 @@ static const struct file_operations mins
  };
  
  static char *
@@ -74,7 +74,7 @@
  {
  	const struct mcs_group *mg;
  	unsigned int j, tp_max, tp_avg, eprob, tx_time;
-@@ -192,6 +196,8 @@ minstrel_ht_stats_csv_dump(struct minstr
+@@ -212,6 +216,8 @@ minstrel_ht_stats_csv_dump(struct minstr
  		if (!(mi->supported[i] & BIT(j)))
  			continue;
  
@@ -83,7 +83,7 @@
  		if (gflags & IEEE80211_TX_RC_MCS) {
  			p += sprintf(p, "HT%c0,", htmode);
  			p += sprintf(p, "%cGI,", gimode);
-@@ -258,6 +264,7 @@ minstrel_ht_stats_csv_open(struct inode
+@@ -281,6 +287,7 @@ minstrel_ht_stats_csv_open(struct inode
  	struct minstrel_ht_sta_priv *msp = inode->i_private;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct minstrel_debugfs_info *ms;
@@ -91,7 +91,7 @@
  	unsigned int i;
  	int ret;
  	char *p;
-@@ -277,12 +284,13 @@ minstrel_ht_stats_csv_open(struct inode
+@@ -300,12 +307,13 @@ minstrel_ht_stats_csv_open(struct inode
  	file->private_data = ms;
  
  	p = ms->buf;

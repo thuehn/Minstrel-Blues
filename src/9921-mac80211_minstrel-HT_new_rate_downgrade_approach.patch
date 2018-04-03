@@ -10,7 +10,7 @@
  /* Number of bits for an average sized packet */
  #define MCS_NBITS ((AVG_PKT_SIZE * AVG_AMPDU_SIZE) << 3)
  
-@@ -366,7 +369,7 @@ minstrel_ht_sort_best_tp_rates(struct mi
+@@ -367,7 +370,7 @@ minstrel_ht_sort_best_tp_rates(struct mi
  }
  
  /*
@@ -19,7 +19,7 @@
   */
  static void
  minstrel_ht_set_best_prob_rate(struct minstrel_ht_sta *mi, u16 index)
-@@ -375,8 +378,6 @@ minstrel_ht_set_best_prob_rate(struct mi
+@@ -376,8 +379,6 @@ minstrel_ht_set_best_prob_rate(struct mi
  	struct minstrel_rate_stats *mrs;
  	int tmp_group, tmp_idx, tmp_tp_avg, tmp_prob;
  	int max_tp_group, cur_tp_avg, cur_group, cur_idx;
@@ -28,7 +28,7 @@
  
  	cur_group = index / MCS_GROUP_RATES;
  	cur_idx = index % MCS_GROUP_RATES;
-@@ -395,30 +396,17 @@ minstrel_ht_set_best_prob_rate(struct mi
+@@ -396,30 +397,17 @@ minstrel_ht_set_best_prob_rate(struct mi
  	    (max_tp_group != MINSTREL_CCK_GROUP))
  		return;
  
@@ -59,7 +59,7 @@
  /*
   * Assign new rate set per sta and use CCK rates only if the fastest
   * rate (max_tp_rate[0]) is from CCK group. This prohibits such sorted
-@@ -453,37 +441,6 @@ minstrel_ht_assign_best_tp_rates(struct
+@@ -454,37 +442,6 @@ minstrel_ht_assign_best_tp_rates(struct
  }
  
  /*
@@ -97,7 +97,7 @@
   * Update rate statistics and select new primary rates
   *
   * Rules for rate selection:
-@@ -497,9 +454,8 @@ minstrel_ht_update_stats(struct minstrel
+@@ -498,9 +455,8 @@ minstrel_ht_update_stats(struct minstrel
  {
  	struct minstrel_mcs_group_data *mg;
  	struct minstrel_rate_stats *mrs;
@@ -109,7 +109,7 @@
  
  	if (mi->ampdu_packets > 0) {
  		mi->avg_ampdu_len = minstrel_ewma(mi->avg_ampdu_len,
-@@ -526,10 +482,6 @@ minstrel_ht_update_stats(struct minstrel
+@@ -527,10 +483,6 @@ minstrel_ht_update_stats(struct minstrel
  
  		mi->sample_count++;
  
@@ -120,7 +120,7 @@
  		for (i = 0; i < MCS_GROUP_RATES; i++) {
  			if (!(mi->supported[group] & BIT(i)))
  				continue;
-@@ -553,25 +505,15 @@ minstrel_ht_update_stats(struct minstrel
+@@ -554,25 +506,15 @@ minstrel_ht_update_stats(struct minstrel
  							       tmp_cck_tp_rate);
  			}
  
@@ -146,7 +146,7 @@
  	/* try to sample all available rates during each interval */
  	mi->sample_count *= 8;
  
-@@ -629,27 +571,112 @@ minstrel_set_next_sample_idx(struct mins
+@@ -630,27 +572,112 @@ minstrel_set_next_sample_idx(struct mins
  	}
  }
  
@@ -273,7 +273,7 @@
  	}
  }
  
-@@ -684,7 +711,7 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -685,7 +712,7 @@ minstrel_ht_tx_status(void *priv, struct
  	struct minstrel_ht_sta_priv *msp = priv_sta;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct ieee80211_tx_rate *ar = info->status.rates;
@@ -282,7 +282,7 @@
  	struct minstrel_priv *mp = priv;
  	bool last, update = false;
  	int i;
-@@ -730,23 +757,23 @@ minstrel_ht_tx_status(void *priv, struct
+@@ -731,23 +758,23 @@ minstrel_ht_tx_status(void *priv, struct
  	}
  
  	/*
@@ -324,7 +324,7 @@
  	if (time_after(jiffies, mi->last_stats_update +
 --- a/net/mac80211/rc80211_minstrel_ht.h
 +++ b/net/mac80211/rc80211_minstrel_ht.h
-@@ -52,10 +52,6 @@ struct minstrel_mcs_group_data {
+@@ -45,10 +45,6 @@ struct minstrel_mcs_group_data {
  	u8 index;
  	u8 column;
  
@@ -335,7 +335,7 @@
  	/* MCS rate statistics */
  	struct minstrel_rate_stats rates[MCS_GROUP_RATES];
  };
-@@ -86,6 +82,7 @@ struct minstrel_ht_sta {
+@@ -79,6 +75,7 @@ struct minstrel_ht_sta {
  
  	/* tx flags to add for frames for this sta */
  	u32 tx_flags;

@@ -13,7 +13,16 @@
  /*
   * Perform EWMA (Exponentially Weighted Moving Average) calculation
   */
-@@ -91,6 +97,7 @@ struct minstrel_sta_info {
+@@ -82,8 +88,6 @@ struct minstrel_rate {
+ 	unsigned int perfect_tx_time;
+ 	unsigned int ack_time;
+ 
+-	int sample_limit;
+-
+ 	struct minstrel_rate_stats stats;
+ };
+ 
+@@ -91,6 +95,7 @@ struct minstrel_sta_info {
  	struct ieee80211_sta *sta;
  
  	unsigned long last_stats_update;
@@ -21,7 +30,7 @@
  	unsigned int sp_ack_dur;
  	unsigned int rate_avg;
  
-@@ -98,16 +105,15 @@ struct minstrel_sta_info {
+@@ -98,16 +103,15 @@ struct minstrel_sta_info {
  
  	u8 max_tp_rate[MAX_THR_RATES];
  	u8 max_prob_rate;
@@ -39,7 +48,7 @@
  
  	/* sampling table */
  	u8 *sample_table;
-@@ -120,14 +126,11 @@ struct minstrel_sta_info {
+@@ -115,14 +119,11 @@ struct minstrel_sta_info {
  
  struct minstrel_priv {
  	struct ieee80211_hw *hw;
@@ -90,7 +99,17 @@
  /* find & sort topmost throughput rates */
  static inline void
  minstrel_sort_best_tp_rates(struct minstrel_sta_info *mi, int i, u8 *tp_list)
-@@ -297,11 +323,8 @@ minstrel_tx_status(void *priv, struct ie
+@@ -220,9 +246,7 @@ minstrel_update_stats(struct minstrel_pr
+ 			mr->adjusted_retry_count = mrs->retry_count >> 1;
+ 			if (mr->adjusted_retry_count > 2)
+ 				mr->adjusted_retry_count = 2;
+-			mr->sample_limit = 4;
+ 		} else {
+-			mr->sample_limit = -1;
+ 			mr->adjusted_retry_count = mrs->retry_count;
+ 		}
+ 		if (!mr->adjusted_retry_count)
+@@ -297,11 +321,8 @@ minstrel_tx_status(void *priv, struct ie
  	if ((info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE) && (i >= 0))
  		mi->sample_packets++;
  
@@ -103,7 +122,7 @@
  		minstrel_update_stats(mp, mi);
  }
  
-@@ -319,7 +342,6 @@ minstrel_get_retry_count(struct minstrel
+@@ -319,7 +340,6 @@ minstrel_get_retry_count(struct minstrel
  	return retry;
  }
  
@@ -111,7 +130,7 @@
  static int
  minstrel_get_next_sample(struct minstrel_sta_info *mi)
  {
-@@ -343,27 +365,16 @@ minstrel_get_rate(void *priv, struct iee
+@@ -343,27 +363,16 @@ minstrel_get_rate(void *priv, struct iee
  	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
  	struct minstrel_sta_info *mi = priv_sta;
  	struct minstrel_priv *mp = priv;
@@ -143,20 +162,20 @@
  	/* increase sum packet counter */
  	mi->total_packets++;
  
-@@ -383,76 +394,50 @@ minstrel_get_rate(void *priv, struct iee
+@@ -383,76 +392,50 @@ minstrel_get_rate(void *priv, struct iee
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
  		return;
  
 -	delta = (mi->total_packets * sampling_ratio / 100) -
 -			(mi->sample_packets + mi->sample_deferred / 2);
--
++	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
+ 
 -	/* delta < 0: no sampling required */
 -	prev_sample = mi->prev_sample;
 -	mi->prev_sample = false;
 -	if (delta < 0 || (!mrr_capable && prev_sample))
 -		return;
-+	mrr_capable = mp->has_mrr && !txrc->rts && !txrc->bss_conf->use_cts_prot;
- 
+-
 -	if (mi->total_packets >= 10000) {
 -		mi->sample_deferred = 0;
 -		mi->sample_packets = 0;
@@ -257,7 +276,15 @@
  static void
  calc_rate_durations(enum nl80211_band band,
  		    struct minstrel_rate *d,
-@@ -578,6 +563,7 @@ minstrel_rate_init(void *priv, struct ie
+@@ -542,7 +525,6 @@ minstrel_rate_init(void *priv, struct ie
+ 
+ 		/* calculate maximum number of retransmissions before
+ 		 * fallback (based on maximum segment size) */
+-		mr->sample_limit = -1;
+ 		mrs->retry_count = 1;
+ 		mr->retry_count_cts = 1;
+ 		mrs->retry_count_rtscts = 1;
+@@ -578,6 +560,7 @@ minstrel_rate_init(void *priv, struct ie
  
  	mi->n_rates = n;
  	mi->last_stats_update = jiffies;
@@ -265,16 +292,26 @@
  
  	init_sample_table(mi);
  	minstrel_update_rates(mp, mi);
-@@ -612,6 +598,8 @@ minstrel_alloc_sta(void *priv, struct ie
- 		goto error1;
+--- a/net/mac80211/rc80211_minstrel_ht.c
++++ b/net/mac80211/rc80211_minstrel_ht.c
+@@ -778,7 +778,7 @@ minstrel_ht_tx_status(void *priv, struct
+ 	}
  
+ 	if (time_after(jiffies, mi->last_stats_update +
+-				(mp->update_interval / 2 * HZ) / 1000)) {
++				(RATE_SAMPLING_INT * 2 * HZ) / 1000)) {
+ 		update = true;
+ 		minstrel_ht_update_stats(mp, mi);
+ 	}
+@@ -1193,6 +1193,7 @@ minstrel_ht_update_caps(void *priv, stru
+ 
+ 	mi->sta = sta;
  	mi->last_stats_update = jiffies;
 +	mi->last_rate_update = jiffies;
-+
- 	return mi;
  
- error1:
-@@ -677,12 +665,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
+ 	ack_dur = ieee80211_frame_duration(sband->band, 10, 60, 1, 1, 0);
+ 	mi->overhead = ieee80211_frame_duration(sband->band, 0, 60, 1, 1, 0);
+@@ -1428,12 +1429,6 @@ minstrel_ht_alloc(struct ieee80211_hw *h
  	mp->cw_min = 15;
  	mp->cw_max = 1023;
  
@@ -287,7 +324,7 @@
  	/* maximum time that the hw is allowed to stay in one MRR segment */
  	mp->segment_size = 6000;
  
-@@ -696,7 +678,6 @@ minstrel_alloc(struct ieee80211_hw *hw,
+@@ -1447,7 +1442,6 @@ minstrel_ht_alloc(struct ieee80211_hw *h
  		mp->has_mrr = true;
  
  	mp->hw = hw;
@@ -295,14 +332,3 @@
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	mp->fixed_rate_idx = (u32) -1;
---- a/net/mac80211/rc80211_minstrel_ht.c
-+++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -777,7 +777,7 @@ minstrel_ht_tx_status(void *priv, struct
- 	}
- 
- 	if (time_after(jiffies, mi->last_stats_update +
--				(mp->update_interval / 2 * HZ) / 1000)) {
-+				(RATE_SAMPLING_INT * 2 * HZ) / 1000)) {
- 		update = true;
- 		minstrel_ht_update_stats(mp, mi);
- 	}
