@@ -32,14 +32,13 @@
  	/* overhead time in usec for each frame */
  	unsigned int overhead;
  	unsigned int overhead_rtscts;
-@@ -94,6 +100,10 @@ struct minstrel_ht_sta {
+@@ -94,6 +100,9 @@ struct minstrel_ht_sta {
  
  	/* MCS rate group info and statistics */
  	struct minstrel_mcs_group_data groups[MINSTREL_GROUPS_NB];
 +
-+	/* TCP counter & ACK power levels */
++	/* TCP counter */
 +	u8 tpc_sample_probe_counter;
-+	s8 tpc_ack_txpower;
  };
  
  struct minstrel_ht_sta_priv {
@@ -173,3 +172,38 @@
 +					   struct ieee80211_tx_rate *rate);
 +
 +#endif
+--- a/net/mac80211/rc80211_minstrel.h
++++ b/net/mac80211/rc80211_minstrel.h
+@@ -101,6 +101,7 @@ struct minstrel_rate {
+ 	unsigned int ack_time;
+ 
+ 	struct minstrel_rate_stats rc_stats;
++	struct blues_tpc_stats tcp_stats;
+ };
+ 
+ struct minstrel_sta_info {
+@@ -108,6 +109,7 @@ struct minstrel_sta_info {
+ 
+ 	unsigned long last_stats_update;
+ 	unsigned long last_rate_update;
++	unsigned long last_tcp_update;
+ 	unsigned int sp_ack_dur;
+ 	unsigned int rate_avg;
+ 
+@@ -116,6 +118,7 @@ struct minstrel_sta_info {
+ 	u8 max_tp_rate[MAX_THR_RATES];
+ 	u8 max_prob_rate;
+ 	u8 cur_rc_intersample_spacing;
++	u8 tpc_sample_probe_counter;
+ 	unsigned int total_packets;
+ 	unsigned int sample_packets;
+ 
+@@ -141,6 +144,8 @@ struct minstrel_priv {
+ 	unsigned int max_retry;
+ 	unsigned int segment_size;
+ 	bool has_mrr;
++	bool has_tpc_per_packet;
++	bool has_tpc_per_mrr_chain;
+ 
+ 	u8 cck_rates[4];
+ 
