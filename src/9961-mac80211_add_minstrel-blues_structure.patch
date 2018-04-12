@@ -37,7 +37,7 @@
  	/* MCS rate group info and statistics */
  	struct minstrel_mcs_group_data groups[MINSTREL_GROUPS_NB];
 +
-+	/* TCP counter */
++	/* TPC counter */
 +	u8 tpc_sample_probe_counter;
  };
  
@@ -178,7 +178,7 @@
  	unsigned int ack_time;
  
  	struct minstrel_rate_stats rc_stats;
-+	struct blues_tpc_stats tcp_stats;
++	struct blues_tpc_stats tpc_stats;
  };
  
  struct minstrel_sta_info {
@@ -186,7 +186,7 @@
  
  	unsigned long last_stats_update;
  	unsigned long last_rate_update;
-+	unsigned long last_tcp_update;
++	unsigned long last_tpc_update;
  	unsigned int sp_ack_dur;
  	unsigned int rate_avg;
  
