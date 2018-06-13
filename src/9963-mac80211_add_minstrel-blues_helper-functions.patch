@@ -1,6 +1,6 @@
 --- a/net/mac80211/tpc80211_blues.c
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -18,3 +18,72 @@
+@@ -18,3 +18,106 @@
   */
  
  #include "tpc80211_blues.h"
@@ -71,6 +71,40 @@
 +		tpc->reference_success = 0;
 +		tpc->reference_attempts = 0;
 +	}
++}
++
++/* Reset all statistics to default */
++void
++blues_reset_stats(struct minstrel_rate *mr)
++{
++	struct blues_tpc_stats *tpc = &mr->tpc_stats;
++
++	tpc->reference_prob = MINSTREL_FRAC(TPC_INIT_REF_PROB, 100);
++	tpc->reference_success = tpc->reference_attempts = 0;
++	tpc->data_prob = MINSTREL_FRAC(TPC_INIT_DATA_PROB, 100);
++	tpc->data_success = tpc->data_attempts = 0;
++	tpc->sample_prob = MINSTREL_FRAC(TPC_INIT_SAMPLE_PROB, 100);
++	tpc->sample_success = tpc->sample_attempts = 0;
++	tpc->stats_outdated = 10;
++}
++
++/* Initialize or reset all TPC power-levels */
++void
++blues_reset_power(struct minstrel_priv *mp, struct minstrel_rate *mr)
++{
++	struct ieee80211_hw *hw = mp->hw;
++	struct blues_tpc_stats *tpc = &mr->tpc_stats;
++	s8 max_power_level = hw->conf.power_level;
++	s8 min_power_level = hw->min_txpower;
++
++	tpc->reference_power = max_power_level;
++	tpc->sample_power = max_power_level;
++	if (tpc->sample_power > min_power_level + TPC_SAMPLE_POWER_SPAN)
++		 tpc->sample_power -= TPC_SAMPLE_POWER_SPAN;
++	else
++		 tpc->sample_power = min_power_level;
++	// printk(KERN_ERR "blues_reset_power called for bitrate: %i.%i\n",
++	//	  mr->bitrate / 2, mr->bitrate % 2 ? 5 : 0);
 +}
 +
 --- a/net/mac80211/rc80211_minstrel_ht.c
