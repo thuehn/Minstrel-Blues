@@ -47,26 +47,7 @@
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
-@@ -78,6 +78,18 @@ struct minstrel_rate_stats {
- 	bool retry_updated;
- };
- 
-+struct blues_tpc_stats {
-+	/* per rate tpc values */
-+	u16 reference_success, reference_attempts;
-+	u16 data_success, data_attempts;
-+	u16 sample_success, sample_attempts;
-+	u16 reference_prob, data_prob, sample_prob;
-+	u32 ref_succ_hist, ref_att_hist;
-+	u32 sample_succ_hist, sample_att_hist;
-+	s8 reference_power, sample_power;
-+	u8 stats_outdated;
-+};
-+
- struct minstrel_rate {
- 	int bitrate;
- 
-@@ -115,6 +127,11 @@ struct minstrel_sta_info {
+@@ -115,6 +115,11 @@ struct minstrel_sta_info {
  
  	/* sampling table */
  	u8 *sample_table;

@@ -67,7 +67,7 @@
 +#include "tpc80211_blues.h"
 --- /dev/null
 +++ b/net/mac80211/tpc80211_blues.h
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,100 @@
 +/*
 + * Transmit Power Control (TPC) algorithm "MINSTREL-BLUES".
 + * ________________________________________________________________________
@@ -132,10 +132,6 @@
 +void blues_ht_update_stats(struct minstrel_priv *mp,
 +			   struct minstrel_ht_sta *mi);
 +
-+void blues_count_tx_attempts(struct minstrel_rate *mr,
-+			      int count,
-+			      s8 power);
-+
 +void blues_reset_stats(struct minstrel_rate *mr);
 +
 +void blues_reset_power(struct minstrel_priv *mp,
@@ -148,9 +144,9 @@
 +void blues_ht_tpc_init(struct minstrel_priv *mp,
 +		       struct minstrel_ht_sta_priv *msp);
 +
-+void blues_count_tx_success(struct minstrel_rate *mr,
-+			     int count,
-+			     s8 power);
++void blues_count_tx_attempts(struct minstrel_rate *mr, int count, s8 power);
++
++void blues_count_tx_success(struct minstrel_rate *mr, int count, s8 power);
 +
 +void minstrel_blues_update_rate_power_table(struct minstrel_priv *mp,
 +					    struct minstrel_sta_info *mi);
@@ -174,7 +170,26 @@
 +#endif
 --- a/net/mac80211/rc80211_minstrel.h
 +++ b/net/mac80211/rc80211_minstrel.h
-@@ -101,6 +101,7 @@ struct minstrel_rate {
+@@ -78,6 +78,18 @@ struct minstrel_rate_stats {
+ 	bool retry_updated;
+ };
+ 
++struct blues_tpc_stats {
++	/* per rate tpc values */
++	u16 reference_success, reference_attempts;
++	u16 data_success, data_attempts;
++	u16 sample_success, sample_attempts;
++	u16 reference_prob, data_prob, sample_prob;
++	u32 ref_succ_hist, ref_att_hist;
++	u32 sample_succ_hist, sample_att_hist;
++	s8 reference_power, sample_power;
++	u8 stats_outdated;
++};
++
+ struct minstrel_rate {
+ 	int bitrate;
+ 
+@@ -89,6 +101,7 @@ struct minstrel_rate {
  	unsigned int ack_time;
  
  	struct minstrel_rate_stats rc_stats;
@@ -182,7 +197,7 @@
  };
  
  struct minstrel_sta_info {
-@@ -108,6 +109,7 @@ struct minstrel_sta_info {
+@@ -96,6 +109,7 @@ struct minstrel_sta_info {
  
  	unsigned long last_stats_update;
  	unsigned long last_rate_update;
@@ -190,7 +205,7 @@
  	unsigned int sp_ack_dur;
  	unsigned int rate_avg;
  
-@@ -116,6 +118,7 @@ struct minstrel_sta_info {
+@@ -104,6 +118,7 @@ struct minstrel_sta_info {
  	u8 max_tp_rate[MAX_THR_RATES];
  	u8 max_prob_rate;
  	u8 cur_rc_intersample_spacing;
@@ -198,7 +213,7 @@
  	unsigned int total_packets;
  	unsigned int sample_packets;
  
-@@ -141,6 +144,8 @@ struct minstrel_priv {
+@@ -129,6 +144,8 @@ struct minstrel_priv {
  	unsigned int max_retry;
  	unsigned int segment_size;
  	bool has_mrr;
