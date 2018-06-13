@@ -1,6 +1,6 @@
 --- a/net/mac80211/tpc80211_blues.c
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -18,3 +18,106 @@
+@@ -18,3 +18,153 @@
   */
  
  #include "tpc80211_blues.h"
@@ -105,6 +105,53 @@
 +		 tpc->sample_power = min_power_level;
 +	// printk(KERN_ERR "blues_reset_power called for bitrate: %i.%i\n",
 +	//	  mr->bitrate / 2, mr->bitrate % 2 ? 5 : 0);
++}
++
++void
++blues_count_tx_attempts(struct minstrel_rate *mr, int count, s8 power)
++{
++	struct blues_tpc_stats *tpc = &mr->tpc_stats;
++
++	if (power == tpc->reference_power) {
++		 tpc->reference_attempts += count;
++		 tpc->ref_att_hist += count;
++	}
++
++	if (power == tpc->sample_power + TPC_SAMPLE_POWER_SPAN)
++		 tpc->data_attempts += count;
++
++	if (power == tpc->sample_power) {
++		 tpc->sample_attempts += count;
++		 tpc->sample_att_hist += count;
++	}
++}
++
++void
++blues_count_tx_success(struct minstrel_rate *mr, int count, s8 power)
++{
++	struct blues_tpc_stats *tpc = &mr->tpc_stats;
++
++	if (power == tpc->reference_power) {
++		 tpc->reference_success += count;
++		 tpc->ref_succ_hist += count;
++	}
++
++	if (power == tpc->sample_power + TPC_SAMPLE_POWER_SPAN)
++		 tpc->data_success += count;
++
++	if (power == tpc->sample_power) {
++		 tpc->sample_success += count;
++		 tpc->sample_succ_hist += count;
++	}
++	//FIXME: should we really count this thing below?
++	if (power < tpc->sample_power) {
++		 tpc->sample_attempts += count;
++		 tpc->sample_success += count;
++	}
++	/*
++	* TODO: what about higher/lower power-levels ->
++	* only count if not/true successful ?
++	*/
 +}
 +
 --- a/net/mac80211/rc80211_minstrel_ht.c
