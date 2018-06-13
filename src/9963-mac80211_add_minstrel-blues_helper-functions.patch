@@ -1,6 +1,6 @@
 --- a/net/mac80211/tpc80211_blues.c
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -18,3 +18,34 @@
+@@ -18,3 +18,72 @@
   */
  
  #include "tpc80211_blues.h"
@@ -33,6 +33,44 @@
 +		power_uW = 1000;
 +
 +	return power_uW;
++}
++
++/* Calculate EWMA of success probabilities */
++static void
++blues_calc_ewma(struct minstrel_rate *mr, u32 flags)
++{
++	struct blues_tpc_stats *tpc = &mr->tpc_stats;
++	u32 success_ratio;
++
++	/* update data power stats */
++	if (flags & EWMA_DATA_POWER) {
++		success_ratio = MINSTREL_FRAC(tpc->data_success,
++					      tpc->data_attempts);
++		tpc->data_prob = minstrel_ewma(tpc->data_prob,
++					       success_ratio, EWMA_LEVEL);
++		tpc->data_success = 0;
++		tpc->data_attempts = 0;
++	}
++
++	/* update sample power stats */
++	if (flags & EWMA_SAMPLE_POWER) {
++		success_ratio = MINSTREL_FRAC(tpc->sample_success,
++					      tpc->sample_attempts);
++		tpc->sample_prob = minstrel_ewma(tpc->sample_prob,
++						 success_ratio, EWMA_LEVEL);
++		tpc->sample_success = 0;
++		tpc->sample_attempts = 0;
++	}
++
++	/* update ref power stats */
++	if (flags & EWMA_REF_POWER) {
++		success_ratio = MINSTREL_FRAC(tpc->reference_success,
++					      tpc->reference_attempts);
++		tpc->reference_prob = minstrel_ewma(tpc->reference_prob,
++						    success_ratio, EWMA_LEVEL);
++		tpc->reference_success = 0;
++		tpc->reference_attempts = 0;
++	}
 +}
 +
 --- a/net/mac80211/rc80211_minstrel_ht.c
