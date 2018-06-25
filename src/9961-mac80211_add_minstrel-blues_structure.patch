@@ -213,7 +213,17 @@
  	unsigned int total_packets;
  	unsigned int sample_packets;
  
-@@ -129,6 +144,8 @@ struct minstrel_priv {
+@@ -116,6 +131,9 @@ struct minstrel_sta_info {
+ 	/* sampling table */
+ 	u8 *sample_table;
+ 
++	/* tpc sampling */
++	u8 tpc_alternate_sampling;
++
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	u8 fixed_txpower;
+ 	u32 fixed_txrate;
+@@ -129,6 +147,8 @@ struct minstrel_priv {
  	unsigned int max_retry;
  	unsigned int segment_size;
  	bool has_mrr;

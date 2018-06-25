@@ -1,6 +1,6 @@
 --- a/net/mac80211/tpc80211_blues.c
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -18,3 +18,153 @@
+@@ -18,3 +18,176 @@
   */
  
  #include "tpc80211_blues.h"
@@ -152,6 +152,29 @@
 +	* TODO: what about higher/lower power-levels ->
 +	* only count if not/true successful ?
 +	*/
++}
++
++int
++blues_get_next_sample(struct minstrel_sta_info *mi)
++{
++       unsigned int sample_ndx;
++
++       /* for TPC sampling alternate between all max_tp_rates */
++       if (mi->tpc_alternate_sampling == 0) {
++               sample_ndx = mi->max_tp_rate[0];
++               mi->tpc_alternate_sampling = 1;
++       } else if (mi->tpc_alternate_sampling == 1) {
++               sample_ndx = mi->max_tp_rate[1];
++               mi->tpc_alternate_sampling = 2;
++       } else {
++               if (mi->r[mi->max_tp_rate[2]].perfect_tx_time > mi->r[mi->max_tp_rate[0]].perfect_tx_time)
++                       sample_ndx = mi->max_tp_rate[2];
++               else
++                       sample_ndx = mi->max_prob_rate;
++               mi->tpc_alternate_sampling = 1;
++       }
++
++       return sample_ndx;
 +}
 +
 --- a/net/mac80211/rc80211_minstrel_ht.c
