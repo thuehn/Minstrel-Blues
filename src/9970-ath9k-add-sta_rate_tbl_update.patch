@@ -1,6 +1,6 @@
 --- a/drivers/net/wireless/ath/ath9k/xmit.c
 +++ b/drivers/net/wireless/ath/ath9k/xmit.c
-@@ -188,6 +188,41 @@ static void ath_send_bar(struct ath_atx_
+@@ -188,11 +188,47 @@ static void ath_send_bar(struct ath_atx_
  			   seqno << IEEE80211_SEQ_SEQ_SHIFT);
  }
  
@@ -40,18 +40,13 @@
 +}
 +
  static void ath_set_rates(struct ieee80211_vif *vif, struct ieee80211_sta *sta,
- 			  struct ath_buf *bf, bool ps)
+ 			  struct ath_buf *bf)
  {
-@@ -199,8 +234,10 @@ static void ath_set_rates(struct ieee802
- 		info->control.rates[0].count = 0;
- 	}
- 
 -	ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
 -			       ARRAY_SIZE(bf->rates));
 +	if (!ath_merge_ratetbl(sta, bf, info))
 +		ieee80211_get_tx_rates(vif, sta, bf->bf_mpdu, bf->rates,
 +				       ARRAY_SIZE(bf->rates));
-+
- 	if (!ps)
- 		return;
+ }
  
+ static void ath_txq_skb_done(struct ath_softc *sc, struct ath_txq *txq,
