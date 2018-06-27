@@ -23,8 +23,8 @@
 @@ -206,10 +209,12 @@ static bool ath_merge_ratetbl(struct iee
  		i = 0;
  	} else {
- 		bf->rates[0] = info->control.rates[0];
-+		bf->txpower[0] = info->control.txpower * 2;
+ 		bf->rates[0] = tx_info->control.rates[0];
++		bf->txpower[0] = tx_info->control.txpower * 2;
  		i = 1;
  	}
  
@@ -32,8 +32,8 @@
 +		bf->txpower[i] = ratetbl->rate[i].txpower * 2;
  		bf->rates[i].idx = ratetbl->rate[i].idx;
  		bf->rates[i].flags = ratetbl->rate[i].flags;
- 		if (info->control.use_rts)
-@@ -1395,6 +1400,9 @@ static void ath_buf_set_rate(struct ath_
+ 		if (tx_info->control.use_rts)
+@@ -1399,6 +1404,9 @@ static void ath_buf_set_rate(struct ath_
  							is_cck);
  	}
  
