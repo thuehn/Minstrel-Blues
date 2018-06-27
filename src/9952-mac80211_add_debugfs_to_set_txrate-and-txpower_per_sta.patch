@@ -1,6 +1,6 @@
 --- a/net/mac80211/rc80211_minstrel.c
 +++ b/net/mac80211/rc80211_minstrel.c
-@@ -186,6 +186,14 @@ minstrel_update_rates(struct minstrel_pr
+@@ -187,6 +187,14 @@ minstrel_update_rates(struct minstrel_pr
  	ratetbl->rate[i].count_cts = mp->max_retry;
  	ratetbl->rate[i].count_rts = mp->max_retry;
  
@@ -15,7 +15,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, ratetbl);
  }
  
-@@ -289,9 +297,13 @@ minstrel_update_stats(struct minstrel_pr
+@@ -290,9 +298,13 @@ minstrel_update_stats(struct minstrel_pr
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	/* use fixed index if set */
  	if (mp->fixed_rate_idx != -1) {
@@ -31,7 +31,7 @@
  	}
  #endif
  
-@@ -393,8 +405,12 @@ minstrel_get_rate(void *priv, struct iee
+@@ -395,8 +407,12 @@ minstrel_get_rate(void *priv, struct iee
  	}
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -125,7 +125,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, rates);
  }
  
-@@ -1125,8 +1148,12 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1126,8 +1149,12 @@ minstrel_ht_get_rate(void *priv, struct
  	info->flags |= mi->tx_flags;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -139,7 +139,7 @@
  #endif
  
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
-@@ -1373,6 +1400,10 @@ use_legacy:
+@@ -1375,6 +1402,10 @@ use_legacy:
  	memset(&msp->legacy, 0, sizeof(msp->legacy));
  	msp->legacy.r = msp->ratelist;
  	msp->legacy.sample_table = msp->sample_table;
@@ -150,7 +150,7 @@
  	return mac80211_minstrel.rate_init(priv, sband, chandef, sta,
  					   &msp->legacy);
  }
-@@ -1425,6 +1456,11 @@ minstrel_ht_alloc_sta(void *priv, struct
+@@ -1427,6 +1458,11 @@ minstrel_ht_alloc_sta(void *priv, struct
  	if (!msp->sample_table)
  		goto error1;
  

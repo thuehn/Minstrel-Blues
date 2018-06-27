@@ -133,7 +133,7 @@
  #include "rate.h"
  #include "rc80211_minstrel.h"
  
-@@ -151,12 +152,21 @@ static void
+@@ -152,12 +153,21 @@ static void
  minstrel_update_rates(struct minstrel_priv *mp, struct minstrel_sta_info *mi)
  {
  	struct ieee80211_sta_rates *ratetbl;
