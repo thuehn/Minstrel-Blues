@@ -1,0 +1,49 @@
+--- a/net/mac80211/rc80211_minstrel.c
++++ b/net/mac80211/rc80211_minstrel.c
+@@ -55,6 +55,7 @@
+ #include "sta_info.h"
+ #include "rate.h"
+ #include "rc80211_minstrel.h"
++#include "tpc80211_blues.h"
+ 
+ #define SAMPLE_TBL(_mi, _idx, _col) \
+ 		_mi->sample_table[(_idx * SAMPLE_COLUMNS) + _col]
+@@ -454,6 +455,9 @@ minstrel_get_rate(void *priv, struct iee
+ 			sampling_setup = &info->control.rates[0];
+ 			mi->sample_packets++;
+ 		}
++	} else if (unlikely(blues_requires_sampling(mi, mp, mrr_capable))) {
++
++
+ 	} else {
+ 		/* no sampling required */
+ 		return;
+--- a/net/mac80211/tpc80211_blues.c
++++ b/net/mac80211/tpc80211_blues.c
+@@ -192,3 +192,26 @@ blues_get_next_sample(struct minstrel_st
+        return sample_ndx;
+ }
+ 
++bool
++blues_requires_sampling(struct minstrel_sta_info *mi, struct minstrel_priv *mp,
++			bool mrr_capable)
++{
++	int tpc_sampling_interval;
++
++	/* Check multi-rate-retry capabilities & adjust tpc sampling interval
++	 * Blues TPC adaptation is designed to be a slower process  as rate
++	 * adaptation. Hence TPC sampling is done on a 5x slower frequency */
++	if (mrr_capable)
++		tpc_sampling_interval = RATE_SAMPLING_INT * 5;
++	else
++		tpc_sampling_interval = RATE_SAMPLING_INT * 10;
++
++	if (time_after(jiffies, mi->last_tpc_update +
++			(tpc_sampling_interval * HZ) / 1000)) {
++               mi->last_tpc_update = jiffies;
++               return true;
++       } else {
++               return false;
++       }
++}
++

@@ -1,6 +1,6 @@
 --- a/net/mac80211/tpc80211_blues.c
 +++ b/net/mac80211/tpc80211_blues.c
-@@ -18,3 +18,176 @@
+@@ -18,3 +18,177 @@
   */
  
  #include "tpc80211_blues.h"
@@ -167,7 +167,8 @@
 +               sample_ndx = mi->max_tp_rate[1];
 +               mi->tpc_alternate_sampling = 2;
 +       } else {
-+               if (mi->r[mi->max_tp_rate[2]].perfect_tx_time > mi->r[mi->max_tp_rate[0]].perfect_tx_time)
++               if (mi->r[mi->max_tp_rate[2]].perfect_tx_time >
++		   mi->r[mi->max_tp_rate[0]].perfect_tx_time)
 +                       sample_ndx = mi->max_tp_rate[2];
 +               else
 +                       sample_ndx = mi->max_prob_rate;
