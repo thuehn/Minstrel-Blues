@@ -66,7 +66,7 @@
  
 --- a/net/mac80211/rc80211_minstrel.c
 +++ b/net/mac80211/rc80211_minstrel.c
-@@ -88,6 +88,32 @@ int minstrel_get_tp_avg(struct minstrel_
+@@ -88,6 +88,33 @@ int minstrel_get_tp_avg(struct minstrel_
  		return MINSTREL_TRUNC(100000 * (prob_ewma / usecs));
  }
  
@@ -77,6 +77,7 @@
 +			   bool mrr_capable)
 +{
 +	int rate_sampling_interval;
++	int intersample_delta;
 +
 +	/* Check multi-rate-retry capabilities & adjust sampling interval */
 +	if (mrr_capable)
@@ -84,14 +85,14 @@
 +	else
 +		rate_sampling_interval = RATE_SAMPLING_INT * 2;
 +
-+	if (mi->cur_rc_intersample_spacing >= MIN_INTERSAMPLE_SPACING &&
++	intersample_delta = mi->sample_packets - mi->cur_rc_intersample_spacing;
++	if (intersample_delta >= MIN_INTERSAMPLE_SPACING &&
 +	    (time_after(jiffies, mi->last_rate_update +
 +	    (rate_sampling_interval * HZ) / 1000))) {
-+		mi->cur_rc_intersample_spacing = 0;
++		mi->cur_rc_intersample_spacing = mi->sample_packets;
 +		mi->last_rate_update = jiffies;
 +		return true;
 +	} else {
-+		mi->cur_rc_intersample_spacing++;
 +		return false;
 +	}
 +}
@@ -99,7 +100,7 @@
  /* find & sort topmost throughput rates */
  static inline void
  minstrel_sort_best_tp_rates(struct minstrel_sta_info *mi, int i, u8 *tp_list)
-@@ -220,9 +246,7 @@ minstrel_update_stats(struct minstrel_pr
+@@ -220,9 +247,7 @@ minstrel_update_stats(struct minstrel_pr
  			mr->adjusted_retry_count = mrs->retry_count >> 1;
  			if (mr->adjusted_retry_count > 2)
  				mr->adjusted_retry_count = 2;
@@ -109,7 +110,7 @@
  			mr->adjusted_retry_count = mrs->retry_count;
  		}
  		if (!mr->adjusted_retry_count)
-@@ -297,11 +321,8 @@ minstrel_tx_status(void *priv, struct ie
+@@ -297,11 +322,8 @@ minstrel_tx_status(void *priv, struct ie
  	if ((info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE) && (i >= 0))
  		mi->sample_packets++;
  
@@ -122,7 +123,7 @@
  		minstrel_update_stats(mp, mi);
  }
  
-@@ -319,7 +340,6 @@ minstrel_get_retry_count(struct minstrel
+@@ -319,7 +341,6 @@ minstrel_get_retry_count(struct minstrel
  	return retry;
  }
  
@@ -130,7 +131,7 @@
  static int
  minstrel_get_next_sample(struct minstrel_sta_info *mi)
  {
-@@ -343,27 +363,16 @@ minstrel_get_rate(void *priv, struct iee
+@@ -343,27 +364,16 @@ minstrel_get_rate(void *priv, struct iee
  	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
  	struct minstrel_sta_info *mi = priv_sta;
  	struct minstrel_priv *mp = priv;
@@ -162,7 +163,15 @@
  	/* increase sum packet counter */
  	mi->total_packets++;
  
-@@ -383,76 +392,50 @@ minstrel_get_rate(void *priv, struct iee
+@@ -371,6 +381,7 @@ minstrel_get_rate(void *priv, struct iee
+ 	if (mi->total_packets == ~0) {
+ 		mi->sample_packets = 0;
+ 		mi->total_packets = 0;
++		mi->cur_rc_intersample_spacing = 0;
+ 	}
+ 
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+@@ -383,76 +394,50 @@ minstrel_get_rate(void *priv, struct iee
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
  		return;
  
@@ -216,7 +225,7 @@
 -		mi->sample_deferred++;
 -	} else {
 -		if (!msr->sample_limit)
-+	/* check if sampling is required */
++	/* check if rate sampling is required */
 +	if (unlikely(minstrel_requires_sampling(mi, mp, mrr_capable))) {
 +		/* get next random rate sample */
 +		sampling_ndx = minstrel_get_next_sample(mi);
@@ -276,7 +285,7 @@
  static void
  calc_rate_durations(enum nl80211_band band,
  		    struct minstrel_rate *d,
-@@ -542,7 +525,6 @@ minstrel_rate_init(void *priv, struct ie
+@@ -542,7 +527,6 @@ minstrel_rate_init(void *priv, struct ie
  
  		/* calculate maximum number of retransmissions before
  		 * fallback (based on maximum segment size) */
@@ -284,7 +293,7 @@
  		mrs->retry_count = 1;
  		mr->retry_count_cts = 1;
  		mrs->retry_count_rtscts = 1;
-@@ -578,6 +560,7 @@ minstrel_rate_init(void *priv, struct ie
+@@ -578,6 +562,7 @@ minstrel_rate_init(void *priv, struct ie
  
  	mi->n_rates = n;
  	mi->last_stats_update = jiffies;

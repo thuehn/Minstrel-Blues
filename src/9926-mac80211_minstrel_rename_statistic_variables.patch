@@ -9,7 +9,7 @@
  		return 0;
  
  	if (prob_ewma > MINSTREL_FRAC(90, 100))
-@@ -120,10 +120,10 @@ minstrel_sort_best_tp_rates(struct minst
+@@ -121,10 +121,10 @@ minstrel_sort_best_tp_rates(struct minst
  {
  	int j;
  	struct minstrel_rate_stats *tmp_mrs;
@@ -22,7 +22,7 @@
  		if (minstrel_get_tp_avg(&mi->r[i], cur_mrs->prob_ewma) <=
  		    minstrel_get_tp_avg(&mi->r[tp_list[j - 1]], tmp_mrs->prob_ewma))
  			break;
-@@ -144,7 +144,7 @@ minstrel_set_rate(struct minstrel_sta_in
+@@ -145,7 +145,7 @@ minstrel_set_rate(struct minstrel_sta_in
  	ratetbl->rate[offset].idx = r->rix;
  	ratetbl->rate[offset].count = r->adjusted_retry_count;
  	ratetbl->rate[offset].count_cts = r->retry_count_cts;
@@ -31,7 +31,7 @@
  }
  
  static void
-@@ -233,8 +233,8 @@ minstrel_update_stats(struct minstrel_pr
+@@ -234,8 +234,8 @@ minstrel_update_stats(struct minstrel_pr
  
  	for (i = 0; i < mi->n_rates; i++) {
  		struct minstrel_rate *mr = &mi->r[i];
@@ -42,7 +42,7 @@
  
  		/* Update statistics of success probability per rate */
  		minstrel_calc_rate_stats(mrs);
-@@ -312,10 +312,10 @@ minstrel_tx_status(void *priv, struct ie
+@@ -313,10 +313,10 @@ minstrel_tx_status(void *priv, struct ie
  		if (ndx < 0)
  			continue;
  
@@ -55,7 +55,7 @@
  	}
  
  	if ((info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE) && (i >= 0))
-@@ -334,7 +334,7 @@ minstrel_get_retry_count(struct minstrel
+@@ -335,7 +335,7 @@ minstrel_get_retry_count(struct minstrel
  	u8 retry = mr->adjusted_retry_count;
  
  	if (info->control.use_rts)
@@ -64,7 +64,7 @@
  	else if (info->control.use_cts_prot)
  		retry = max_t(u8, 2, min(mr->retry_count_cts, retry));
  	return retry;
-@@ -403,7 +403,7 @@ minstrel_get_rate(void *priv, struct iee
+@@ -405,7 +405,7 @@ minstrel_get_rate(void *priv, struct iee
  		/* If we're not using MRR and the sampling rate already
  		* has a probability of >95%, we shouldn't be attempting
  		* to use it, as this only wastes precious airtime */
@@ -73,7 +73,7 @@
  		    MINSTREL_FRAC(95, 100)))
  			return;
  
-@@ -415,7 +415,7 @@ minstrel_get_rate(void *priv, struct iee
+@@ -417,7 +417,7 @@ minstrel_get_rate(void *priv, struct iee
  		 * for such rates not sampled within last 20 update cycles. */
  		if (mrr_capable &&
  		    msr->perfect_tx_time > mr->perfect_tx_time &&
@@ -82,7 +82,7 @@
  			indirect_rate_sampling = true;
  
  		/* setup mrr sampling: indirect -> mrr[1], direct -> mrr[0] */
-@@ -501,7 +501,7 @@ minstrel_rate_init(void *priv, struct ie
+@@ -503,7 +503,7 @@ minstrel_rate_init(void *priv, struct ie
  
  	for (i = 0; i < sband->n_bitrates; i++) {
  		struct minstrel_rate *mr = &mi->r[n];
@@ -91,7 +91,7 @@
  		unsigned int tx_time = 0, tx_time_cts = 0, tx_time_rtscts = 0;
  		unsigned int tx_time_single;
  		unsigned int cw = mp->cw_min;
-@@ -547,7 +547,7 @@ minstrel_rate_init(void *priv, struct ie
+@@ -549,7 +549,7 @@ minstrel_rate_init(void *priv, struct ie
  				(mrs->retry_count_rtscts < mp->max_retry))
  				mrs->retry_count_rtscts++;
  		} while ((tx_time < mp->segment_size) &&
@@ -100,7 +100,7 @@
  		mr->adjusted_retry_count = mrs->retry_count;
  		if (!(sband->bitrates[i].flags & IEEE80211_RATE_ERP_G))
  			mr->retry_count_cts = mrs->retry_count;
-@@ -576,7 +576,7 @@ static u32 minstrel_get_expected_through
+@@ -578,7 +578,7 @@ static u32 minstrel_get_expected_through
  	/* convert pkt per sec in kbps (1200 is the average pkt size used for
  	 * computing cur_tp
  	 */
@@ -230,7 +230,7 @@
  		return 1;
  
  	duration = g->duration[rate];
-@@ -1029,24 +1029,24 @@ minstrel_ht_find_sample_rate(struct mins
+@@ -1030,24 +1030,24 @@ minstrel_ht_find_sample_rate(struct mins
  	s_idx = sample_rate % MCS_GROUP_RATES;
  	s_group = sample_rate / MCS_GROUP_RATES;
  	s_dur = minstrel_get_duration(sample_rate); //duration or throughput ?
@@ -260,7 +260,7 @@
  		return sample_rate;
  
  	/* skip current max_tp_rate for sampling */
-@@ -1064,7 +1064,7 @@ minstrel_ht_find_sample_rate(struct mins
+@@ -1065,7 +1065,7 @@ minstrel_ht_find_sample_rate(struct mins
  	    (sample_rate == mi->max_tp_rate[2]))) ||
  	    ((mp->hw->max_rates == 2) &&
  	    (sample_rate == mi->max_tp_rate[1])))) {
@@ -269,7 +269,7 @@
  		return -1;
  	}
  
-@@ -1072,7 +1072,7 @@ minstrel_ht_find_sample_rate(struct mins
+@@ -1073,7 +1073,7 @@ minstrel_ht_find_sample_rate(struct mins
  	if ((s_skipped < random_skipp) &&
  	    ((s_max_tp * 10 > 15 * cur_max_tp) ||
  	     (s_max_tp * 15 < 10 * cur_min_tp))) {
@@ -278,7 +278,7 @@
  		return -1;
  	}
  
-@@ -1080,7 +1080,7 @@ minstrel_ht_find_sample_rate(struct mins
+@@ -1081,7 +1081,7 @@ minstrel_ht_find_sample_rate(struct mins
  	if ((s_skipped < random_skipp + 30) &&
  	    ((s_prob < MINSTREL_FRAC(10, 100)) ||
  	     (s_max_tp * 2 < cur_tp))) {
@@ -287,7 +287,7 @@
  		return -1;
  	}
  
-@@ -1160,7 +1160,7 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1162,7 +1162,7 @@ minstrel_ht_get_rate(void *priv, struct
  		/* annotate rate sampling with selected rate */
  		s_idx = sample_rate % MCS_GROUP_RATES;
  		s_group = sample_rate / MCS_GROUP_RATES;
@@ -296,7 +296,7 @@
  		sampling_setup = &info->control.rates[0];
  		mi->sample_packets++;
  		info->flags |= IEEE80211_TX_CTL_RATE_CTRL_PROBE;
-@@ -1523,7 +1523,7 @@ static u32 minstrel_ht_get_expected_thro
+@@ -1525,7 +1525,7 @@ static u32 minstrel_ht_get_expected_thro
  
  	i = mi->max_tp_rate[0] / MCS_GROUP_RATES;
  	j = mi->max_tp_rate[0] % MCS_GROUP_RATES;

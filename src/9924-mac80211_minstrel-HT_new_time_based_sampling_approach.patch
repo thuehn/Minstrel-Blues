@@ -58,7 +58,7 @@
  	if (info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
  		mi->sample_packets += info->status.ampdu_len;
  
-@@ -985,98 +971,143 @@ minstrel_ht_update_rates(struct minstrel
+@@ -985,98 +971,144 @@ minstrel_ht_update_rates(struct minstrel
  }
  
  static int
@@ -109,6 +109,7 @@
 +			      bool mrr_capable)
 +{
 +	int rate_sampling_interval;
++	int intersample_delta;
 +
 +	/* check multi-rate-retry capabilities & adjust sampling interval */
 +	if (mrr_capable)
@@ -121,16 +122,16 @@
 -	    minstrel_get_duration(mi->max_tp_rate[1])) {
 -		tp_rate1 = mi->max_tp_rate[1];
 -		tp_rate2 = mi->max_tp_rate[0];
-+	if (mi->cur_rc_intersample_spacing >= MIN_INTERSAMPLE_SPACING &&
++	intersample_delta = mi->sample_packets - mi->cur_rc_intersample_spacing;
++	if (intersample_delta >= MIN_INTERSAMPLE_SPACING &&
 +	    (time_after(jiffies, mi->last_rate_update +
 +	    (rate_sampling_interval * HZ) / 1000))) {
-+		mi->cur_rc_intersample_spacing = 0;
++		mi->cur_rc_intersample_spacing = mi->sample_packets;
 +		mi->last_rate_update = jiffies;
 +		return true;
  	} else {
 -		tp_rate1 = mi->max_tp_rate[0];
 -		tp_rate2 = mi->max_tp_rate[1];
-+		mi->cur_rc_intersample_spacing++;
 +		return false;
  	}
 +}
@@ -260,7 +261,7 @@
  	if (!msp->is_ht)
  		return mac80211_minstrel.get_rate(priv, sta, &msp->legacy, txrc);
  
-@@ -1094,10 +1125,9 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1094,42 +1126,73 @@ minstrel_ht_get_rate(void *priv, struct
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
  	if (mp->hw->max_rates == 1 &&
  	    (info->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO))
@@ -273,8 +274,10 @@
  	mi->total_packets++;
  
  	/* wraparound */
-@@ -1106,30 +1136,61 @@ minstrel_ht_get_rate(void *priv, struct
+ 	if (mi->total_packets == ~0) {
+ 		mi->total_packets = 0;
  		mi->sample_packets = 0;
++		mi->cur_rc_intersample_spacing = 0;
  	}
  
 -	if (sample_idx < 0)
@@ -355,7 +358,7 @@
  }
  
  static void
-@@ -1202,16 +1263,6 @@ minstrel_ht_update_caps(void *priv, stru
+@@ -1202,16 +1265,6 @@ minstrel_ht_update_caps(void *priv, stru
  
  	mi->avg_ampdu_len = MINSTREL_FRAC(1, 1);
  
@@ -372,7 +375,7 @@
  	if (!use_vht) {
  		stbc = (ht_cap & IEEE80211_HT_CAP_RX_STBC) >>
  			IEEE80211_HT_CAP_RX_STBC_SHIFT;
-@@ -1324,7 +1375,10 @@ minstrel_ht_rate_init(void *priv, struct
+@@ -1324,7 +1377,10 @@ minstrel_ht_rate_init(void *priv, struct
  		      struct cfg80211_chan_def *chandef,
                        struct ieee80211_sta *sta, void *priv_sta)
  {
