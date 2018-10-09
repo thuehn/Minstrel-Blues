@@ -1,6 +1,6 @@
 --- a/drivers/net/wireless/ath/ath5k/ath5k.h
 +++ b/drivers/net/wireless/ath/ath5k/ath5k.h
-@@ -1453,7 +1453,7 @@ struct ath5k_hw {
+@@ -1452,7 +1452,7 @@ struct ath5k_hw {
  	 */
  	int (*ah_setup_tx_desc)(struct ath5k_hw *, struct ath5k_desc *,
  		unsigned int, unsigned int, int, enum ath5k_pkt_type,
@@ -11,7 +11,7 @@
  		struct ath5k_tx_status *);
 --- a/drivers/net/wireless/ath/ath5k/base.c
 +++ b/drivers/net/wireless/ath/ath5k/base.c
-@@ -741,6 +741,7 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+@@ -738,6 +738,7 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
  	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
  	unsigned int pktlen, flags, keyidx = AR5K_TXKEYIX_INVALID;
  	struct ieee80211_rate *rate;
@@ -19,7 +19,7 @@
  	unsigned int mrr_rate[3], mrr_tries[3];
  	int i, ret;
  	u16 hw_rate;
-@@ -757,6 +758,8 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+@@ -754,6 +755,8 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
  	if (dma_mapping_error(ah->dev, bf->skbaddr))
  		return -ENOSPC;
  
@@ -28,7 +28,7 @@
  	ieee80211_get_tx_rates(info->control.vif, (control) ? control->sta : NULL, skb, bf->rates,
  			       ARRAY_SIZE(bf->rates));
  
-@@ -774,6 +777,13 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+@@ -771,6 +774,13 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
  
  	hw_rate = ath5k_get_rate_hw_value(ah->hw, info, bf, 0);
  
@@ -42,7 +42,7 @@
  	pktlen = skb->len;
  
  	/* FIXME: If we are in g mode and rate is a CCK rate
-@@ -799,7 +809,7 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
+@@ -796,7 +806,7 @@ ath5k_txbuf_setup(struct ath5k_hw *ah, s
  	ret = ah->ah_setup_tx_desc(ah, ds, pktlen,
  		ieee80211_get_hdrlen_from_skb(skb), padsize,
  		get_hw_packet_type(skb),
@@ -51,7 +51,7 @@
  		hw_rate,
  		bf->rates[0].count, keyidx, ah->ah_tx_ant, flags,
  		cts_rate, duration);
-@@ -1819,6 +1829,7 @@ ath5k_beacon_setup(struct ath5k_hw *ah,
+@@ -1816,6 +1826,7 @@ ath5k_beacon_setup(struct ath5k_hw *ah,
  	u8 antenna;
  	u32 flags;
  	const int padsize = 0;
@@ -59,7 +59,7 @@
  
  	bf->skbaddr = dma_map_single(ah->dev, skb->data, skb->len,
  			DMA_TO_DEVICE);
-@@ -1872,7 +1883,7 @@ ath5k_beacon_setup(struct ath5k_hw *ah,
+@@ -1869,7 +1880,7 @@ ath5k_beacon_setup(struct ath5k_hw *ah,
  	ret = ah->ah_setup_tx_desc(ah, ds, skb->len,
  			ieee80211_get_hdrlen_from_skb(skb), padsize,
  			AR5K_PKT_TYPE_BEACON,

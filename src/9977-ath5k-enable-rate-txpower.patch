@@ -11,7 +11,7 @@
  #define ATH5K_TUNE_CALIBRATION_INTERVAL_ANI	1000	/* 1 sec */
 --- a/drivers/net/wireless/ath/ath5k/base.c
 +++ b/drivers/net/wireless/ath/ath5k/base.c
-@@ -2558,6 +2558,8 @@ ath5k_init_ah(struct ath5k_hw *ah, const
+@@ -2554,6 +2554,8 @@ ath5k_init_ah(struct ath5k_hw *ah, const
  	ieee80211_hw_set(hw, SIGNAL_DBM);
  	ieee80211_hw_set(hw, RX_INCLUDES_FCS);
  	ieee80211_hw_set(hw, HOST_BROADCAST_PS_BUFFERING);
@@ -20,7 +20,7 @@
  
  	hw->wiphy->interface_modes =
  		BIT(NL80211_IFTYPE_AP) |
-@@ -2631,6 +2633,9 @@ ath5k_init_ah(struct ath5k_hw *ah, const
+@@ -2627,6 +2629,9 @@ ath5k_init_ah(struct ath5k_hw *ah, const
  					 AR5K_INIT_RETRY_LONG);
  	}
  
@@ -32,7 +32,7 @@
  	/* Finish private driver data initialization */
 --- a/drivers/net/wireless/ath/ath5k/phy.c
 +++ b/drivers/net/wireless/ath/ath5k/phy.c
-@@ -3698,7 +3698,7 @@ ath5k_hw_txpower(struct ath5k_hw *ah, st
+@@ -3694,7 +3694,7 @@ ath5k_hw_txpower(struct ath5k_hw *ah, st
  		AR5K_TXPOWER_CCK(13, 16) | AR5K_TXPOWER_CCK(12, 8) |
  		AR5K_TXPOWER_CCK(11, 0), AR5K_PHY_TXPOWER_RATE4);
  

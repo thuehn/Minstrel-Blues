@@ -1,6 +1,6 @@
 --- a/drivers/net/wireless/ath/ath9k/ath9k.h
 +++ b/drivers/net/wireless/ath/ath9k/ath9k.h
-@@ -229,6 +229,7 @@ struct ath_buf {
+@@ -227,6 +227,7 @@ struct ath_buf {
  	dma_addr_t bf_daddr;		/* physical addr of desc */
  	dma_addr_t bf_buf_addr;	/* physical addr of data buffer, for DMA */
  	struct ieee80211_tx_rate rates[4];
