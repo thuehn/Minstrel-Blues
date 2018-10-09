@@ -1,6 +1,6 @@
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -913,7 +913,12 @@ struct ieee80211_tx_info {
+@@ -939,7 +939,12 @@ struct ieee80211_tx_info {
  					u8 use_cts_prot:1;
  					u8 short_preamble:1;
  					u8 skip_table:1;
@@ -14,7 +14,7 @@
  				};
  				/* only needed before rate control */
  				unsigned long jiffies;
-@@ -1290,6 +1295,7 @@ enum ieee80211_conf_flags {
+@@ -1341,6 +1346,7 @@ enum ieee80211_conf_flags {
   * @IEEE80211_CONF_CHANGE_SMPS: Spatial multiplexing powersave mode changed
   *	Note that this is only valid if channel contexts are not used,
   *	otherwise each channel context has the number of chains listed.
@@ -22,7 +22,7 @@
   */
  enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_SMPS		= BIT(1),
-@@ -1300,6 +1306,7 @@ enum ieee80211_conf_changed {
+@@ -1351,6 +1357,7 @@ enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_CHANNEL		= BIT(6),
  	IEEE80211_CONF_CHANGE_RETRY_LIMITS	= BIT(7),
  	IEEE80211_CONF_CHANGE_IDLE		= BIT(8),
@@ -30,7 +30,7 @@
  };
  
  /**
-@@ -1355,6 +1362,11 @@ enum ieee80211_smps_mode {
+@@ -1406,6 +1413,11 @@ enum ieee80211_smps_mode {
   *	configured for an HT channel.
   *	Note that this is only valid if channel contexts are not used,
   *	otherwise each channel context has the number of chains listed.
@@ -42,7 +42,7 @@
   */
  struct ieee80211_conf {
  	u32 flags;
-@@ -1369,6 +1381,8 @@ struct ieee80211_conf {
+@@ -1420,6 +1432,8 @@ struct ieee80211_conf {
  	struct cfg80211_chan_def chandef;
  	bool radar_enabled;
  	enum ieee80211_smps_mode smps_mode;
@@ -51,7 +51,7 @@
  };
  
  /**
-@@ -1729,13 +1743,14 @@ enum ieee80211_sta_rx_bandwidth {
+@@ -1784,13 +1798,14 @@ enum ieee80211_sta_rx_bandwidth {
   * struct ieee80211_sta_rates - station rate selection table
   *
   * @rcu_head: RCU head used for freeing the table on update
@@ -67,7 +67,7 @@
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
-@@ -2064,6 +2079,16 @@ struct ieee80211_txq {
+@@ -2132,6 +2147,16 @@ struct ieee80211_txq {
   * @IEEE80211_HW_NEEDS_ALIGNED4_SKBS: Driver need aligned skbs to four-byte.
   *	Padding will be added after ieee80211_hdr, before IV/LLC.
   *
@@ -84,9 +84,9 @@
   * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
   */
  enum ieee80211_hw_flags {
-@@ -2108,6 +2133,9 @@ enum ieee80211_hw_flags {
- 	IEEE80211_HW_SUPPORTS_TX_FRAG,
- 	IEEE80211_HW_SUPPORTS_TDLS_BUFFER_STA,
+@@ -2178,6 +2203,9 @@ enum ieee80211_hw_flags {
+ 	IEEE80211_HW_DEAUTH_NEED_MGD_TX_PREP,
+ 	IEEE80211_HW_DOESNT_SUPPORT_QOS_NDP,
  	IEEE80211_HW_NEEDS_ALIGNED4_SKBS,
 +	IEEE80211_HW_SUPPORTS_TPC_PER_PACKET,
 +	IEEE80211_HW_SUPPORTS_TPC_PER_MRR,
@@ -94,7 +94,7 @@
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2223,6 +2251,9 @@ enum ieee80211_hw_flags {
+@@ -2296,6 +2324,9 @@ enum ieee80211_hw_flags {
   *	supported by HW.
   * @max_nan_de_entries: maximum number of NAN DE functions supported by the
   *	device.
@@ -104,7 +104,7 @@
   */
  struct ieee80211_hw {
  	struct ieee80211_conf conf;
-@@ -2258,6 +2289,7 @@ struct ieee80211_hw {
+@@ -2331,6 +2362,7 @@ struct ieee80211_hw {
  	u8 n_cipher_schemes;
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	u8 max_nan_de_entries;
@@ -181,9 +181,9 @@
  
 --- a/net/mac80211/debugfs.c
 +++ b/net/mac80211/debugfs.c
-@@ -213,6 +213,9 @@ static const char *hw_flag_names[] = {
- 	FLAG(SUPPORTS_TX_FRAG),
- 	FLAG(SUPPORTS_TDLS_BUFFER_STA),
+@@ -215,6 +215,9 @@ static const char *hw_flag_names[] = {
+ 	FLAG(DEAUTH_NEED_MGD_TX_PREP),
+ 	FLAG(DOESNT_SUPPORT_QOS_NDP),
  	FLAG(NEEDS_ALIGNED4_SKBS),
 +	FLAG(SUPPORTS_TPC_PER_PACKET),
 +	FLAG(SUPPORTS_TPC_PER_MRR),
@@ -193,7 +193,7 @@
  
 --- a/net/mac80211/main.c
 +++ b/net/mac80211/main.c
-@@ -159,6 +159,7 @@ static u32 ieee80211_hw_conf_chan(struct
+@@ -160,6 +160,7 @@ static u32 ieee80211_hw_conf_chan(struct
  	if (local->hw.conf.power_level != power) {
  		changed |= IEEE80211_CONF_CHANGE_POWER;
  		local->hw.conf.power_level = power;
@@ -201,7 +201,7 @@
  	}
  
  	return changed;
-@@ -1083,6 +1084,12 @@ int ieee80211_register_hw(struct ieee802
+@@ -1137,6 +1138,12 @@ int ieee80211_register_hw(struct ieee802
  
  	local->dynamic_ps_forced_timeout = -1;
  
