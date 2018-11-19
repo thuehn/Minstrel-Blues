@@ -14,14 +14,14 @@ LICENSE="public-domain"
 KEYWORDS="~amd64 ~x86 ~amd64-linux ~x86-linux"
 IUSE=""
 
-RDEPEND="dev-lang/lua:0="
+RDEPEND="dev-lang/lua:0= =sys-devel/automake-1.14.1-r2"
 DEPEND="${RDEPEND}"
 
 S="${WORKDIR}"/${PN}-release-v${PV}
 
 src_unpack() {
-    unpack ${A}
-    cd "${S}"
-    epatch "${FILESDIR}/0001-no-la-delete.patch"
+	unpack ${A}
+	cd "${S}"
+	epatch "${FILESDIR}/0001-no-la-delete.patch"
 }
 
