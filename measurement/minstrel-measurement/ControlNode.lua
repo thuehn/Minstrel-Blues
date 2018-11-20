@@ -660,7 +660,9 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed, key, n
     for _, ap_ref in ipairs ( self.ap_refs ) do
 
         -- set channel and ht
-        ap_ref.rpc.set_channel_htmode ( ap_ref.wifi_cur, channel, htmode )
+        if ( channel ~= nil and htmode ~= nil ) then
+            ap_ref.rpc.set_channel_htmode ( ap_ref.wifi_cur, channel, htmode )
+        end
 
         -- self:send_debug ( ap_ref:__tostring() )
         -- for _, station in ipairs ( ap_ref.rpc.visible_stations( ap_ref.wifi_cur ) ) do
@@ -699,7 +701,9 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed, key, n
         -- fixme: MESH
         for i, sta_ref in ipairs ( ap_ref.refs ) do
 
-            sta_ref.rpc.set_channel_htmode ( sta_ref.wifi_cur, channel, htmode )
+            if ( channel ~= nil and htmode ~= nil ) then
+                sta_ref.rpc.set_channel_htmode ( sta_ref.wifi_cur, channel, htmode )
+            end
 
             if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
 

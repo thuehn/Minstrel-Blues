@@ -198,7 +198,7 @@ function NodeRef:fetch_measurement ( key )
         if ( succ == false ) then
             self:send_error ( "NodeRef::fetch_measurement: " .. ( res or "unknown" ) )
         end
-        self:send_debug ( self.stats:__tostring () )
+        self:send_debug ( "NodeRef::fetch_measurement: " .. self.stats:__tostring () )
         return succ, res
     end
     return true, false

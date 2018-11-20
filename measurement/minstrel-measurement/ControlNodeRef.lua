@@ -782,8 +782,8 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
     --]]
 
     -- save wifi channel and htmode
-    self.mopts [ "wifi_channel" ] = MeasurementsOption:create ( "wifi_channel", "String", channel )
-    self.mopts [ "wifi_htmode" ] = MeasurementsOption:create ( "wifi_htmode", "String", htmode )
+    self.mopts [ "wifi_channel" ] = MeasurementsOption:create ( "wifi_channel", "String", channel or "unset" )
+    self.mopts [ "wifi_htmode" ] = MeasurementsOption:create ( "wifi_htmode", "String", htmode or "unset" )
     self.mopts [ "wifi_distance" ] = MeasurementsOption:create ( "wifi_distance", "String", self.distance )
     MeasurementsOption.write_file ( self.output_dir, self.mopts )
 
