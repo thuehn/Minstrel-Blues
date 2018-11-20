@@ -423,7 +423,7 @@ function ControlNodeRef:prepare_aps ()
                 self.rpc.set_phy ( ap_name, phy )
                 if ( self.rpc.enable_wifi ( ap_name, true ) == true ) then
                     local ssid = self.rpc.get_ssid ( ap_name )
-                    print ( "SSID: " .. ssid )
+                    print ( "SSID: " .. ( ssid or "unset" ) )
                 end
                 found = true
             end
