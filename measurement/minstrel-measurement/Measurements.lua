@@ -105,12 +105,8 @@ function Measurements:add_key ( key, output_dir )
                 .. "/" .. self.node_name .. "-" .. key .. ".pcap"
     self.tcpdump_meas [ key ] = TcpdumpPcapsMeas:create ( key, fname )
 
-    if ( self.rc_stats_enabled == true ) then
-        local stations = read_stations ( output_dir )
-        if ( table_size ( stations ) == 0 ) then
-            return false, "Measurement::add_key: rc_stats enabled but no stations linked"
-        end
-        for _, station in ipairs ( stations ) do
+    if ( self.rc_stats_enabled == true and self.stations ~= nil ) then
+        for _, station in ipairs ( self.stations ) do
             if ( self.rc_stats_meas == nil ) then
                 self.rc_stats_meas = {}
             end
@@ -179,6 +175,8 @@ function Measurements:read ()
     -- options
     local succ, res = MeasurementsOption.read_file ( base_dir )
     if ( succ == true ) then self.mopts = res end
+
+    self.stations = read_stations ( self.output_dir )
 
     -- regmon stats
     for key, meas in pairs ( self.regmon_meas ) do
@@ -386,7 +384,7 @@ function Measurements:__tostring ()
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
-            out = out .. "rc_stats:" .. table_size ( self.rc_stats_meas [ station ] ) .. " stats\n"
+            out = out .. "rc_stats: " .. table_size ( self.rc_stats_meas [ station ] ) .. " stats\n"
             if ( self.rc_stats_meas ~= nil and self.rc_stats_meas [ station ] ~= nil ) then
                 for _, meas in pairs ( self.rc_stats_meas [ station ] ) do
                     out = out .. meas : __tostring ()
@@ -407,7 +405,7 @@ function Measurements:__tostring ()
 end
 
 function Measurements:enable_rc_stats ( stations )
-    if ( stations == nil or stations == {} ) then
+    if ( table_size ( stations or {} ) == 0 ) then
         self.rc_stats_enabled = false
         return
     end
@@ -415,7 +413,6 @@ function Measurements:enable_rc_stats ( stations )
     self.stations = stations
     for _, station in ipairs ( stations ) do
         self.rc_stats_meas [ station ] = {}
-        --self.rc_stats [ station ] = {}
     end
 end
 
@@ -515,27 +512,44 @@ function Measurements:fetch ( phy, key, debug_node )
     
     -- rc_stats
     if ( self.rc_stats_enabled == true ) then
+        if ( self.rc_stats_meas == nil ) then self.rc_stats_meas = {} end
         for _, station in ipairs ( self.stations ) do
             local stats = self.rpc_node.get_rc_stats ( phy, station, self.online )
-            if ( stats ~= nil
-                and self.rc_stats_meas ~= nil and self.rc_stats_meas [ station ] ~= nil
-                and self.rc_stats_meas [ station ] [ key ] ~= nil ) then
-                    if ( debug_node ~= nil ) then
-                        debug_node:send_debug ( "Measurements:fetch rc_stats " .. string.len ( stats ) .. " bytes" )
-                    end
-                    self.rc_stats_meas [ station ] [ key ].stats 
-                        = ( self.rc_stats_meas [ station ] [ key ].stats or "" )
-                          .. stats
+            if ( stats ~= nil ) then
+                if ( debug_node ~= nil ) then
+                    debug_node:send_debug ( "Measurements:fetch rc_stats " .. string.len ( stats ) .. " bytes" )
+                end
+                self.rc_stats_meas [ station ] [ key ].stats
+                    = ( self.rc_stats_meas [ station ] [ key ].stats or "" )
+                      .. stats
             else
                 running = false
             end
         end
+    else
+        if ( debug_node ~= nil ) then
+            debug_node:send_debug ( "Measurements:fetch rc_stats disabled" )
+        end
     end
 
+    local rc_stats_str = ""
+    if ( self.rc_stats_enabled == true ) then
+        for i, station in ipairs ( self.stations ) do
+            if ( i > 1 ) then rc_stats_str = rc_stats_str .. '\n' end
+            rc_stats_str = rc_stats_str .. station
+            rc_stats_str = rc_stats_str .. ": "
+            if ( self.rc_stats_meas [ station ] [ key ] ~= nil ) then
+                self.rc_stats_meas [ station ] [ key ]:__tostring()
+            end
+        end
+    else
+        rc_stats_str = "rc_stats: disabled"
+    end
     debug_node:send_debug ( "fetched: "
                             .. self.regmon_meas [ key ]:__tostring()
                             .. self.cpusage_meas [ key ]:__tostring()
                             .. self.tcpdump_meas [ key ]:__tostring()
+                            .. rc_stats_str
                           )
     return true, running
 

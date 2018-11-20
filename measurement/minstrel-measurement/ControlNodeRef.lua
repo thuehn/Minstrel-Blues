@@ -672,11 +672,15 @@ function ControlNodeRef:create_measurement ( node_names, key )
         local opposite_macs = self:get_opposite_macs ( ref_name )
 
         local measurements = Measurements:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
-        measurements:add_key ( key, self.output_dir )
-        measurements:set_node_mac_br ( self:get_mac_br () )
 
-        local stations = self:list_stations ( ref_name )
+        local stations = self.rpc.list_stations ( ref_name )
         measurements:enable_rc_stats ( stations ) -- resets rc_stats
+
+        local added, err_msg = measurements:add_key ( key, self.output_dir )
+        if ( not added and err_msg ~= nil ) then
+            print ( "ERROR: " .. err_msg )
+        end
+        measurements:set_node_mac_br ( self:get_mac_br () )
 
         self.measurements [ ref_name ] = measurements
     end
