@@ -246,6 +246,7 @@ function parse_hexbyte ( str, pos )
 end
 
 -- parse six hexadecimal tuples seperated by colons from begin of 'str'
+-- fixme: different return type ({},nil,{a:b:c:d:e:f})
 function parse_mac ( str, pos )
     local rest = str
     local mac = {} 
@@ -267,7 +268,7 @@ function parse_mac ( str, pos )
     local out = ""
     for _, byte in ipairs ( mac ) do
         if ( string.len ( out ) > 0) then out = out .. ":" end
-        out = out .. byte
+        out = string.lower ( out ) .. byte
     end
     return out, rest, pos
 end
