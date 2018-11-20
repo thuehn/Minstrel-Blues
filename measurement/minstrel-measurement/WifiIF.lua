@@ -1,6 +1,7 @@
 
 require ('NetIF')
 require ('parsers/iw_info')
+require ('parsers/iwinfo')
 require ('parsers/iw_link')
 
 local misc = require ('misc')
@@ -11,7 +12,7 @@ local uci = require ('Uci')
 WifiIF = NetIF:new()
 local debugfs = "/sys/kernel/debug/ieee80211"
 
-function WifiIF:create ( lua_bin, iface, addr, mon, phy, node )
+function WifiIF:create ( lua_bin, iface, addr, mon, phy, node, iw_full )
     local o = WifiIF:new ( { lua_bin = lua_bin
                            , iface = iface
                            , addr = addr
@@ -24,6 +25,7 @@ function WifiIF:create ( lua_bin, iface, addr, mon, phy, node )
                            , tcpdump_proc = nil
                            , iperf_client_procs = {}
                            , iperf_server_proc = nil
+                           , iw_full = iw_full
                            } )
 
     return o
@@ -58,26 +60,47 @@ function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
 end
 
 function WifiIF:get_iw_info ()
-    self.node:send_info ( "send iw info for " .. ( self.iface or "none" ) )
-    local str, exit_code = misc.execute ( "iw", self.iface, "info" )
+    self.node:send_debug ( "get_iw_info " .. ( self.iface or "none" ) )
+    local str
+    local exit_code
+    if ( self.iw_full == true ) then
+        str, exit_code = misc.execute ( "iw", self.iface, "info" )
+        if ( str ~= nil and exit_code == 0) then
+            return str
+        end
+    end
+    str, exit_code = misc.execute ( "iwinfo", self.iface, "info" )
     if ( str ~= nil and exit_code == 0) then
         return str
     end
+    self.node:send_debug ( "get_iw_info " .. ( self.iface or "none" ) )
     return nil
 end
 
 -- AP only
 -- wireless.default_radio0.ssid='LEDE'
 function WifiIF:get_ssid ()
-    self.node:send_info ( "send ssid for " .. ( self.iface or "none" ) )
-    local str, exit_code = misc.execute ( "iw", self.iface, "info" )
+    self.node:send_debug ( "get_ssid " .. ( self.iface or "none" ) )
+    local str, exit_code
+    if ( self.iw_full == true ) then
+        str, exit_code = misc.execute ( "iw", self.iface, "info" )
+        if ( str ~= nil and exit_code == 0) then
+            local iwinfo = parse_iwinfo ( str )
+            if ( iwinfo ~= nil ) then
+                self.node:send_info ( " send ssid: " .. ( iwinfo.ssid or "none" ) )
+                return iwinfo.ssid, nil
+            end
+        end
+    end
+    str, exit_code = misc.execute ( "iwinfo", self.iface, "info" )
     if ( str ~= nil and exit_code == 0) then
-        local iwinfo = parse_iwinfo ( str )
+        local iwinfo = parse_iw_info ( str )
         if ( iwinfo ~= nil ) then
-            self.node:send_info ( " ssid " .. ( iwinfo.ssid or "none" ) )
+            self.node:send_info ( " send ssid: " .. ( iwinfo.ssid or "none" ) )
             return iwinfo.ssid, nil
         end
     end
+    self.node:send_debug ( "get_ssid " .. ( self.iface or "none" ) )
     return nil, nil
 end
 

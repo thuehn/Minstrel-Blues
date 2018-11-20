@@ -17,7 +17,6 @@ require ('parsers/iw_link')
 require ('parsers/ifconfig')
 require ('parsers/dhcp_lease')
 require ('parsers/rc_stats_csv')
-require ('parsers/iw_info')
 
 local lease_fname = "/tmp/dhcp.leases"
 local debugfs = "/sys/kernel/debug/ieee80211"
@@ -48,6 +47,7 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries )
     if ( ctrl ~= nil and ctrl.addr == nil ) then
         ctrl:get_addr ( )
     end
+    local iw_full = false
     for i, phy in ipairs ( phys ) do
         local netif = WifiIF:create ( lua_bin )
         netif.node = o
@@ -69,6 +69,13 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries )
             end
         else
             netif.addr, msg = net.get_addr ( netif.iface )
+            if ( i == 1 ) then
+                local str, exit_code = misc.execute ( "iw", netif.iface, "info" )
+                if ( str ~= nil and exit_code == 0) then
+                    iw_full = true
+                end
+            end
+            netif.iw_full = iw_full
             o.wifis [ phy ] = netif
         end
     end

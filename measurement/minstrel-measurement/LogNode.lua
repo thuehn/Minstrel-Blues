@@ -74,7 +74,7 @@ function LogNode:send ( msgtype, from, msg )
     if ( msg ~= nil and string.len ( msg ) >= 80 ) then
         local msg_noindent
         if ( string.find ( msg, "\n" ) == nil ) then
-            msg_noindent = ( msg ):gsub ( ("."):rep ( 80 ),"%1\n" ):sub ( 1, -1 )
+            msg_noindent = ( msg ):gsub ( ("."):rep ( 80 ),"%1\n" ):sub ( 1, -1 ) -- fixme: sub(1,-1) does nothing
         else
             msg_noindent = msg
         end
