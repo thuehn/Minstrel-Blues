@@ -8,6 +8,7 @@ local misc = require ('misc')
 local pprint = require ('pprint')
 local lpc = require ('lpc')
 local uci = require ('Uci')
+local unistd = require ('posix.unistd') -- sleep
 
 WifiIF = NetIF:new()
 local debugfs = "/sys/kernel/debug/ieee80211"
@@ -34,7 +35,7 @@ end
 function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
     self.node:send_info ( "set channel and htmode of " .. ( self.iface or "none" )
                         .. " to " .. ( channel or "none" ) .. " " .. ( htmode or "none" ) )
-    if ( proc_version.system == "LEDE" ) then
+    if ( proc_version.system == "LEDE" or proc_version.system == "OpenWrt" ) then
         local var = "wireless.radio"
         var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
         var = var .. ".channel"
@@ -43,6 +44,7 @@ function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
         var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
         var = var .. ".htmode"
         local _, exit_code = uci.set_var ( var, htmode )
+        unistd.sleep (1)
     else
         if ( htmode == "HT40" and tonumber ( channel ) >= 1 and tonumber ( channel ) <= 7 ) then
             htmode = "HT40+"
@@ -54,8 +56,11 @@ function WifiIF:set_channel_htmode ( channel, htmode, proc_version )
         local _,_ = misc.execute ( "ifconfig", self.iface, "down" )
         -- interface has to be disabled when setting channel, freq or htmode
         -- command failed: Device or resource busy (-16)
+        unistd.sleep (1)
         local str, exit_code = misc.execute ( "iw", "phy", self.phy, "set", "channel", channel, htmode )
+        unistd.sleep (1)
         local _,_ = misc.execute ( "ifconfig", self.iface, "up" )
+        unistd.sleep (1)
     end
 end
 
@@ -209,7 +214,7 @@ end
 
 function WifiIF:set_ldpc ( enabled, proc_version )
     self.node:send_info ( "set ldpc for " .. ( self.phy or "none" ) .. " to " .. tostring ( enabled ) )
-    if ( proc_version.system == "LEDE" ) then
+    if ( proc_version.system == "LEDE" or proc_version.system == "OpenWrt" ) then
         local var = "wireless.radio"
         var = var .. string.sub ( self.phy, 4, string.len ( self.phy ) )
         var = var .. ".ldpc"

@@ -85,7 +85,7 @@ end
 function Node:enable_wifi ( enabled, phy )
     if ( phy == nil ) then return false end
     if ( enabled == nil ) then enabled = false end
-    if ( self.proc_version.system == "LEDE" ) then
+    if ( self.proc_version.system == "LEDE" or self.proc_version.system == "OpenWrt" ) then
         local value = 1
         if ( enabled == true ) then 
             value = 0
@@ -117,7 +117,7 @@ function Node:restart_wifi ( phy )
         return nil
     end
     self:send_debug ("restart wifi" )
-    if ( self.proc_version.system == "LEDE" ) then
+    if ( self.proc_version.system == "LEDE" or self.proc_version.system == "OpenWrt" ) then
         --local wifi, err = misc.execute ( "/sbin/reload_config" )
         local wifi, err = misc.execute ( "/sbin/wifi" )
         --local wifi, err = misc.execute ( "/bin/ash", "/sbin/wifi" )
@@ -186,7 +186,7 @@ function Node:get_ctrl_addr ()
 end
 
 function Node:get_regmon_rate ()
-    if ( self.proc_version.system == "LEDE" ) then
+    if ( self.proc_version.system == "LEDE" or self.proc_version.system == "OpenWrt" ) then
         local var = "regmon.regmon.samplingrate"
         return tonumber ( uci.get_var ( var ) )
     else

@@ -98,7 +98,7 @@ end
 -- -------------------------
 
 function NodeBase:get_board ()
-    if ( self.proc_version.system == "LEDE" ) then
+    if ( self.proc_version.system == "LEDE" or self.proc_version.system == "OpenWrt" ) then
         local fname = "/etc/board.json"
         if ( isFile ( fname ) ) then
             local file = io.open ( fname, "r" )
@@ -160,7 +160,7 @@ function NodeBase:set_timezone ( timezone )
 end
 
 function NodeBase:set_date ( year, month, day, hour, min, second )
-    if ( self.proc_version.system == "LEDE" ) then
+    if ( self.proc_version.system == "LEDE" or self.proc_version.system == "OpenWrt" ) then
         -- use busybox date
         return set_date_bb ( year, month, day, hour, min, second )
     else
