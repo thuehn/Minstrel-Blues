@@ -73,11 +73,11 @@ Specify a DNS nameserver by adding an option ```nameserver = "192.168.0.4"``` to
 
 The host from option ```ctrl``` manages the measurement. It can be a different machine than the one running the measurement scripts. The fetched data from all measurement nodes are stored at the host running the measurement script.
 
-The option ```connections``` is a map for grouping accesspoints with stations by name or IP addresses. Theses identifiers have be used in the ```name``` field of ```nodes``` that is a list of anonymous records of fields ```name```, ```radio```, ```ctrl_if``` and ```rsa_key```. The field ```radio``` denotes the radio interface prefixed by "radio" and indexed by phy index. The field ```ctrl_if``` denotes the control interface for SSH and RPC connections. The control interface of a node record may be the same as the radio interface and may be a bridge. Devices with more than one radio can participate with more radios in experiments by adding them multiple times with individual couplings of radio and control interfaces. The RSA keys are used for controlling all measurement nodes remotely from the controller. Therefore the controllers public RSA key have to be added to the authorized key file of dropbear at all nodes.
+The option ```connections``` is a map for grouping accesspoints with stations by name or IP addresses. Theses identifiers have to be used in the ```name``` field of ```nodes``` that is a list of anonymous records of fields ```name```, ```radio```, ```ctrl_if``` and ```rsa_key```. The field ```radio``` denotes the radio interface prefixed by "radio" and indexed by phy index. The field ```ctrl_if``` denotes the control interface for SSH and RPC connections. The control interface of a node record may be the same as the radio interface and may be a bridge. Devices with more than one radio can participate with more radios in experiments by adding them multiple times with individual couplings of radio and control interfaces. The RSA keys are used for controlling all measurement nodes remotely from the controller. Therefore the controllers public RSA key have to be added to the authorized key file of dropbear at all nodes.
 
 ## Execute Measurement
 
-In a first setup connect all stations to the accesspoints manually. Check the public RSA key of the controller on all nodes by logging into manually with ```ssh -i <remote_rsa_key_file_path< <host>``` from the control node. Do the same for your local machine and the control node.
+In a first setup connect all stations to the accesspoints manually. Check the public RSA key of the controller on all nodes by logging into manually with ```ssh -i <remote_rsa_key_file_path> <host>``` from the control node. Do the same for your local machine and the control node.
 
 ### Static Power
 
@@ -91,7 +91,7 @@ The following script executes 4 UDP (2x2) experiments on one accesspoint connect
 
 The command will start the control node and the control node itself starts the measurement nodes with ```ssh```. Remote procedure connections between the controller and the other nodes are established. Each experiment is executed seperately in randomized order and the processes on all nodes are managed with RPC functions by the controller. The collected data traces are fetched after each experiment and are stored in a time stamp directory in ```/tmp``` because no empty output directory was specified.
 
-The data can be fetched online during each experiment running with command line option ```--online``` when different interfaces for controling and experimenting are present. Without enabling option ```--online``` or providing local usb storage it is not possible to perform long experiments or high data rates since the traces have to be collected in the memory of device during an experiment.
+The data can be fetched online during each experiment running with command line option ```--online``` when different interfaces for controling and experimenting are present. Without enabling option ```--online``` or providing local USB storage with option ```--dump_to_dir``` it is not possible to perform long experiments or high data rates since the traces have to be collected in the limited device memory during an experiment.
 
 Please refer to the output of option ```--help``` for a complete list of available options.
 
@@ -128,7 +128,6 @@ The following command extracts the signal noise rate (SNR) from dumped pcap file
 
 The next steps may be:
 
-* support for usb local storage
 * mesh networks
 * dynamic power experiments
 
