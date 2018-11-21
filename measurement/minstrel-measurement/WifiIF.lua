@@ -13,7 +13,7 @@ local unistd = require ('posix.unistd') -- sleep
 WifiIF = NetIF:new()
 local debugfs = "/sys/kernel/debug/ieee80211"
 
-function WifiIF:create ( lua_bin, iface, addr, mon, phy, node, iw_full, dump_to_dir )
+function WifiIF:create ( lua_bin, iface, addr, mon, phy, node, iw_full, online, dump_to_dir )
     local o = WifiIF:new ( { lua_bin = lua_bin
                            , iface = iface
                            , addr = addr
@@ -27,9 +27,9 @@ function WifiIF:create ( lua_bin, iface, addr, mon, phy, node, iw_full, dump_to_
                            , iperf_client_procs = {}
                            , iperf_server_proc = nil
                            , iw_full = iw_full
+                           , online = online or false
                            , dump_to_dir = dump_to_dir
                            } )
-
     return o
 end
 
@@ -279,19 +279,18 @@ function WifiIF:start_regmon_stats ( sampling_rate )
     return pid
 end
 
-function WifiIF:get_regmon_stats ( online )
-    if ( online == nil ) then online = false end
+function WifiIF:get_regmon_stats ()
     if ( self.regmon_proc == nil ) then 
         self.node:send_error ( "no regmon process running" )
         return nil 
     end
     local online_str = ""
     local dump_str = ""
-    if ( online == true ) then online_str = " online" end
+    if ( self.online == true ) then online_str = " online" end
     if ( self.dump_to_dir == nil ) then dump_str = " dump" end
     self.node:send_info ( "send regmon-stats" .. online_str .. dump_str )
     local content = nil
-    if ( online == true ) then
+    if ( self.online == true ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.regmon_proc.stdout, ms, sz )
@@ -359,15 +358,14 @@ function WifiIF:start_cpusage ()
     return pid
 end
 
-function WifiIF:get_cpusage ( online )
-    if ( online == nil ) then online = false end
+function WifiIF:get_cpusage ()
     if ( self.cpusage_proc == nil ) then 
         self.node:send_error ( "no cpusage process running" )
         return nil 
     end
     self.node:send_info ( "send cpusage" )
     local content = nil
-    if ( online ) then
+    if ( self.online ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.cpusage_proc.stdout, ms, sz, self.node )
@@ -442,15 +440,14 @@ function WifiIF:start_rc_stats ( station, sampling_rate )
     end
 end
 
-function WifiIF:get_rc_stats ( station, online )
-    if ( online == nil ) then online = false end
+function WifiIF:get_rc_stats ( station )
     if ( station == nil ) then
         self.node:send_error ( "Cannot send rc_stats because the station argument is nil!" )
         return nil
     end
     local online_str = ""
     local dump_str = ""
-    if ( online == true ) then online_str = " online" end
+    if ( self.online == true ) then online_str = " online" end
     if ( self.dump_to_dir == nil ) then dump_str = " dump" end
     self.node:send_info ( "send rc-stats for " .. self.iface ..  ", station " .. station .. online_str .. dump_str )
     if ( self.rc_stats_procs [ station ] == nil ) then 
@@ -459,7 +456,7 @@ function WifiIF:get_rc_stats ( station, online )
     end
     --self.node:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ].pid )
     local content
-    if ( online == true ) then
+    if ( self.online == true ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.rc_stats_procs [ station ].stdout, ms, sz )
@@ -561,19 +558,17 @@ function WifiIF:start_tcpdump ()
 end
 
 function WifiIF:get_tcpdump ( ms, sz )
-    local online = true
     if ( ms == nil ) then ms = 100 end
     --if ( sz == nil ) then sz = 1024 end
     --if ( sz == nil ) then sz = 4096 end
     if ( sz == nil ) then sz = 1024*4096 end
     if ( self.dump_to_dir ~= nil ) then
-        online = false
         self.node:send_info ( "send tcpdump offline for dir " .. self.dump_to_dir )
     else
         self.node:send_info ( "send tcpdump online from pipe" )
     end
     local content = nil
-    if ( online == false ) then
+    if ( self.online == false ) then
         local file, msg = io.open ( self.dump_to_dir .. "/tcpdump.pcap", "rb" )
         if ( file == nil ) then 
             self.node:send_error ( "no tcpdump file found! " .. msg )

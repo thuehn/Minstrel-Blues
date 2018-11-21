@@ -381,6 +381,9 @@ function ControlNode:start_nodes ( rsa_key, distance )
         if ( log_port ~= nil ) then
             remote_cmd = remote_cmd .. " --log_port " .. log_port
         end
+        if ( self.online == true ) then
+            remote_cmd = remote_cmd .. " -o "
+        end
         if ( self.dump_to_dir ~= nil ) then
             remote_cmd = remote_cmd .. " -d "
             remote_cmd = remote_cmd .. self.dump_to_dir

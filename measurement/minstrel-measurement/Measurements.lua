@@ -425,11 +425,7 @@ function Measurements:start ( phy, key )
     -- cpusage
     local cpusage_pid = self.rpc_node.start_cpusage ( phy )
     -- tcpdump
-    if ( self.online == false ) then
-        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy )
-    else
-        local tcpdump_pid = self.rpc_node.start_tcpdump ( phy )
-    end
+    local tcpdump_pid = self.rpc_node.start_tcpdump ( phy )
     -- rc stats
     if ( self.rc_stats_enabled == true ) then
         for _, station in ipairs ( self.stations ) do
@@ -475,7 +471,7 @@ function Measurements:fetch ( phy, key, debug_node )
     end
     debug_node:send_debug ( "fetch: init regmon " .. self.regmon_meas [ key ]:__tostring () )
 
-    stats = self.rpc_node.get_regmon_stats ( phy, self.online )
+    stats = self.rpc_node.get_regmon_stats ( phy )
     if ( stats ~= nil ) then
         if ( debug_node ~= nil ) then
             debug_node:send_debug ( "Measurements:fetch regmon " .. string.len ( stats ) .. " bytes" )
@@ -486,7 +482,7 @@ function Measurements:fetch ( phy, key, debug_node )
         --running = false
     end
     -- cpusage
-    stats = self.rpc_node.get_cpusage ( phy, self.online )
+    stats = self.rpc_node.get_cpusage ( phy )
     if ( stats ~= nil ) then
         if ( debug_node ~= nil ) then
             debug_node:send_debug ( "Measurements:fetch cpusage " .. string.len ( stats ) .. " bytes" )
@@ -508,7 +504,7 @@ function Measurements:fetch ( phy, key, debug_node )
     if ( self.rc_stats_enabled == true ) then
         if ( self.rc_stats_meas == nil ) then self.rc_stats_meas = {} end
         for _, station in ipairs ( self.stations ) do
-            local stats = self.rpc_node.get_rc_stats ( phy, station, self.online )
+            local stats = self.rpc_node.get_rc_stats ( phy, station )
             if ( stats ~= nil ) then
                 if ( debug_node ~= nil ) then
                     debug_node:send_debug ( "Measurements:fetch rc_stats " .. string.len ( stats ) .. " bytes" )

@@ -23,7 +23,7 @@ local debugfs = "/sys/kernel/debug/ieee80211"
 
 Node = NodeBase:new ()
 
-function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries, dump_to_dir )
+function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries, online, dump_to_dir )
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
     end
@@ -36,6 +36,7 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries, d
                          , wifis = {}
                          , retries = retries
                          , dmesg_file = nil
+                         , online = online or false
                          } )
 
     self:get_proc_version ()
@@ -49,7 +50,7 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries, d
     end
     local iw_full = false
     for i, phy in ipairs ( phys ) do
-        local netif = WifiIF:create ( lua_bin, nil, nil, "mon" .. tostring ( i - 1 ), phy, o, nil, dump_to_dir )
+        local netif = WifiIF:create ( lua_bin, nil, nil, "mon" .. tostring ( i - 1 ), phy, o, nil, online, dump_to_dir )
         netif.iface, _ = net.get_interface_name ( phy )
         if ( netif.iface == nil ) then
             o:send_warning ( "Cannot determine radio interface name. radio is disabled, enabling" )
@@ -652,11 +653,10 @@ function Node:start_rc_stats ( phy, station )
     return nil
 end
 
-function Node:get_rc_stats ( phy, station, online )
-    if ( online == nil ) then online = false end
+function Node:get_rc_stats ( phy, station )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:get_rc_stats ( station, online )
+        return dev:get_rc_stats ( station )
     end
     return nil
 end
@@ -690,11 +690,10 @@ function Node:start_regmon_stats ( phy )
     return nil
 end
 
-function Node:get_regmon_stats ( phy, online )
-    if ( online == nil ) then online = false end
+function Node:get_regmon_stats ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:get_regmon_stats ( online )
+        return dev:get_regmon_stats ()
     end
     return nil
 end
@@ -727,11 +726,10 @@ function Node:start_cpusage ( phy )
     return nil
 end
 
-function Node:get_cpusage ( phy, online )
-    if ( online == nil ) then online = false end
+function Node:get_cpusage ( phy )
     local dev = self:find_wifi_device ( phy )
     if ( dev ~= nil ) then
-        return dev:get_cpusage ( online )
+        return dev:get_cpusage ()
     end
     return nil
 end

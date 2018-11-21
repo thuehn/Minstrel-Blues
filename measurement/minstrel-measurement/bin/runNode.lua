@@ -14,13 +14,14 @@ parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("-P --port", "Control RPC port", "12346" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("--retries", "number of retries for rpc and wifi connections", "10" )
+parser:flag ("-o --online", "Fetch collected traces during experiment", false )
 parser:option ("-d --dump_to_dir", "Dump collected traces to local directory" )
 
 local args = parser:parse ()
 
 local ctrl = NetIF:create ( args.ctrl_if )
 local node = Node:create ( args.name, arg[-1] or "/usr/bin/lua", ctrl, args.port, args.log_port, args.log_ip
-                         , args.retries, args.dump_to_dir )
+                         , args.retries, args.online, args.dump_to_dir )
 if ( node == nil ) then
     print ( "Error: node not started" )
     od.exit (1)
@@ -39,18 +40,18 @@ function restart_wifi( ... ) return node:restart_wifi( ... ) end
 
 function get_iw_info ( ... ) return node:get_iw_info ( ... ) end
 function get_iw_link ( ... ) return node:get_iw_link ( ... ) end
-function get_ssid (...) return node:get_ssid(...) end
+function get_ssid (...) return node:get_ssid (...) end
 -- move to netif, to emerge node.wifi:stations and node.wifi2:stations for multi chip systems
-function visible_stations(...) return node:visible_stations(...) end
+function visible_stations(...) return node:visible_stations (...) end
 function set_ani (...) return node:set_ani (...) end
 function set_ldpc (...) return node:set_ldpc (...) end
 
 function link_to_ssid ( ... ) return node:link_to_ssid ( ... ) end
-function get_linked_ssid(...) return node:get_linked_ssid(...) end
-function get_linked_iface(...) return node:get_linked_iface(...) end
-function get_linked_mac(...) return node:get_linked_mac(...) end
-function get_linked_signal(...) return node:get_linked_signal(...) end
-function get_linked_rate_idx(...) return node:get_linked_rate_idx(...) end
+function get_linked_ssid ( ... ) return node:get_linked_ssid ( ... ) end
+function get_linked_iface ( ... ) return node:get_linked_iface ( ... ) end
+function get_linked_mac ( ... ) return node:get_linked_mac ( ... ) end
+function get_linked_signal ( ... ) return node:get_linked_signal ( ... ) end
+function get_linked_rate_idx ( ... ) return node:get_linked_rate_idx ( ... ) end
 
 function get_iface(...) return node:get_iface(...) end
 function get_mac(...) return node:get_mac(...) end
