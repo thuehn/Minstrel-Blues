@@ -87,7 +87,7 @@ When running static power measurements then each experiment uses a fixed power a
 
 The following script executes 4 UDP (2x2) experiments on one accesspoint connected with one station from config file. All fixed powers and rates are specified as lists of indices. The data rate is set to 10 Mbits/s for 10 seconds. The control node should use the interface ```eth0``` instead of the interface from the config file. The distance parameter is a text label to denote the average distance between nodes in the log and has no effect to any experiment.
 
-```/usr/bin/netRun udp --enable_fixed --tx_powers 1,2 --tx_rates 1,2 -R 10M -t 10 --net_if eth0 --distance near```
+```/usr/bin/traceWifi udp --enable_fixed --tx_powers 1,2 --tx_rates 1,2 -R 10M -t 10 --net_if eth0 --distance near```
 
 The command will start the control node and the control node itself starts the measurement nodes with ```ssh```. Remote procedure connections between the controller and the other nodes are established. Each experiment is executed seperately in randomized order and the processes on all nodes are managed with RPC functions by the controller. The collected data traces are fetched after each experiment and are stored in a time stamp directory in ```/tmp``` because no empty output directory was specified.
 
@@ -119,7 +119,7 @@ For three dimensional processing additional dependecies are needed.
 
 ## Example: Preprocessing SNR from pcap files with ```tshark``` from static power measurement.
 
-This example can process data from static power measurements, i.e. ```/usr/bin/netRun udp --enable_fixed```. The fixed power and the fixed rate were coded in the pcap file names.
+This example can process data from static power measurements, i.e. ```/usr/bin/traceWifi udp --enable_fixed```. The fixed power and the fixed rate were coded in the pcap file names.
 The following command extracts the signal noise rate (SNR) from dumped pcap files, saves a comma separated list in file ```~/data/snr-histogram-per_rate-power.csv``` and passes that file to the ```R``` script ```R/rate-power-validation.R```. The ```R``` script will plot several diagrams into files in the data directory and after than it will open an three dimenstional interactive plot of the whole SNR diagram with a chrome browser.
 
 ```/usr/bin/analyseSNR -t ~/data```

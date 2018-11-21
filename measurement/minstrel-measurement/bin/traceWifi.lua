@@ -43,7 +43,7 @@ require ('Config')
 require ('NetIF')
 require ('ControlNodeRef')
 
-local parser = argparse( "netRun", "Run minstrel blues multi AP / multi STA mesurement" )
+local parser = argparse( "traceWifi", "Run minstrel blues multi AP / multi STA measurement" )
 
 parser:argument ("command", "tcp, udp, mcast, noop")
 

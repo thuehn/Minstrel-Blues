@@ -2,7 +2,7 @@
 *.swp
 *.out
 fetch_file
-netRun
+traceWifi
 runControl
 runLogger
 runNode
