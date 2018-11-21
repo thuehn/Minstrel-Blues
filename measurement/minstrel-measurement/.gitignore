@@ -7,6 +7,7 @@ runControl
 runLogger
 runNode
 kill_remote
+analyseSNR
 luac.out
 .Rhistory
 .RData

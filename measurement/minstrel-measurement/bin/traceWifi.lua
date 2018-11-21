@@ -66,6 +66,7 @@ parser:flag ("--ctrl_only", "Just connect with control node", false )
 parser:option ("--net_if", "Used network interface", "eth0" )
 parser:option ("--retries", "number of retries for rpc and wifi connections", "10" )
 parser:flag ("--online", "fetch data online when possible", false )
+parser:option ("-d --dump_to_dir", "Dump collected traces to local directory at each device until experiments are finished" )
 
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("-l --log_file", "Logging to File", "measurement.log" )
@@ -291,6 +292,7 @@ local ctrl_ref = ControlNodeRef:create ( args.ctrl_port
                                        , args.command
                                        , args.retries
                                        , args.online
+                                       , args.dump_to_dir
                                        )
 
 if ( ctrl_ref == nil ) then

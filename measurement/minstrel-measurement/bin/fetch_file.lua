@@ -7,6 +7,7 @@ parser:argument("filename", "Filename to fetch.")
 parser:flag ("-l --line", "Read line by line", false )
 parser:flag ("-b --binary", "Read binary file", false )
 parser:option ("-i --interval", "Number of nanoseconds between reads", "500000000" )
+parser:option ("-d --dump_to_file", "Dump all content to another file" )
 local args = parser:parse()
 
 -- fixme: -l or -b, exclude -lb
@@ -32,13 +33,44 @@ while ( true ) do
         io.stderr:write ( "Error: Open file failed: " .. fname .. ", mode: " .. mode .. "\n" )
         os.exit ( 1 )
     end
+
+    local output_file
+    if ( args.dump_to_file ~= nil ) then
+        local output_mode = "a"
+        if ( args.binary ) then
+            output_mode = output_mode .. "b"
+        end
+        output_file = io.open ( args.dump_to_file, output_mode )
+        if ( output_file == nil ) then
+            io.stderr:write ( "Error: Open file failed: " .. args.dump_to_file .. ", mode: " .. output_mode .. "\n" )
+            os.exit ( 1 )
+        end
+    end
+
     if ( args.line ) then
         local line = file:read ("*l")
-        if (line ~= nil) then print ( line ) end
+        if ( line ~= nil ) then
+            if ( args.dump_to_file == nil ) then
+                print ( line )
+            else
+                if ( output_file ~= nil ) then
+                    output_file:write ( line )
+                end
+            end
+        end
     else
         local content = file:read ("*a")
-        if (content ~= nil) then print ( content ) end
+        if (content ~= nil) then
+            print ( content )
+        else
+            if ( output_file ~= nil ) then
+                output_file:write ( content )
+            end
+        end
     end
-    file:close()
-    misc.nanosleep(interval_num * nanoseconds) -- sleep for 500000 µs 
+    if ( output_file ~= nil ) then
+        output_file:close ()
+    end
+    file:close ()
+    misc.nanosleep ( interval_num * nanoseconds ) -- sleep for 500000 µs
 end

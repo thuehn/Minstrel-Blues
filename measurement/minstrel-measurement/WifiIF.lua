@@ -13,7 +13,7 @@ local unistd = require ('posix.unistd') -- sleep
 WifiIF = NetIF:new()
 local debugfs = "/sys/kernel/debug/ieee80211"
 
-function WifiIF:create ( lua_bin, iface, addr, mon, phy, node, iw_full )
+function WifiIF:create ( lua_bin, iface, addr, mon, phy, node, iw_full, dump_to_dir )
     local o = WifiIF:new ( { lua_bin = lua_bin
                            , iface = iface
                            , addr = addr
@@ -27,6 +27,7 @@ function WifiIF:create ( lua_bin, iface, addr, mon, phy, node, iw_full )
                            , iperf_client_procs = {}
                            , iperf_server_proc = nil
                            , iw_full = iw_full
+                           , dump_to_dir = dump_to_dir
                            } )
 
     return o
@@ -262,7 +263,18 @@ function WifiIF:start_regmon_stats ( sampling_rate )
         return nil
     end
     self.node:send_info ( "start collecting regmon stats for " .. self.iface .. ", " .. self.phy )
-    local pid, stdin, stdout = misc.spawn ( self.lua_bin, fetch_file_bin, "-l", "-i", sampling_rate, file )
+    local cmd = { self.lua_bin
+                , fetch_file_bin
+                , "-l"
+                , "-i"
+                , sampling_rate
+                , file
+                }
+    if ( self.dump_to_dir ~= nil ) then
+        cmd [ # cmd + 1 ] = "-d"
+        cmd [ # cmd + 1 ] = self.dump_to_dir .. "/regmon_stats.txt"
+    end
+    local pid, stdin, stdout = misc.spawn ( unpack ( cmd ) )
     self.regmon_proc = { pid = pid, stdin = stdin, stdout = stdout }
     return pid
 end
@@ -273,12 +285,25 @@ function WifiIF:get_regmon_stats ( online )
         self.node:send_error ( "no regmon process running" )
         return nil 
     end
-    self.node:send_info ( "send regmon-stats" )
+    local online_str = ""
+    local dump_str = ""
+    if ( online == true ) then online_str = " online" end
+    if ( self.dump_to_dir == nil ) then dump_str = " dump" end
+    self.node:send_info ( "send regmon-stats" .. online_str .. dump_str )
     local content = nil
-    if ( online ) then
+    if ( online == true ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.regmon_proc.stdout, ms, sz )
+    elseif ( self.dump_to_dir ~= nil ) then
+        self.node:send_info ( "read dumped regmon_stats from " .. self.dump_to_dir .. "/regmon_stats.txt" )
+        local file, msg = io.open ( self.dump_to_dir .. "/regmon_stats.txt", "r" )
+        if ( file ~= nil ) then
+            content = file:read ( "*a" )
+            file:close ()
+        else
+            self.node:send_error ( "reading dumped regmon_stats failed. File not opened! " .. msg )
+        end
     else
         content = self.regmon_proc.stdout:read ( "*a" )
     end
@@ -312,6 +337,9 @@ function WifiIF:cleanup_regmon ()
     self.regmon_proc.stdin:close ()
     self.regmon_proc.stdout:close ()
     self.regmon_proc = nil
+    if ( self.dump_to_dir ~= nil ) then
+        os.remove ( self.dump_to_dir .. "/regmon_stats.txt" )
+    end
 end
 
 -- --------------------------

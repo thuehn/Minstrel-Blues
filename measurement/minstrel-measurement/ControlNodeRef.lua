@@ -31,6 +31,7 @@ ControlNodeRef = { name = nil           -- hostname of the control node ( String
                  , ctrl_pid = nil       -- PID of control node process
                  , retries = nil        -- number of retries for rpc and wifi connections
                  , online = nil         -- fetch data online
+                 , dump_to_dir = nil    -- dump collected traces to local directory at each device until experiments are finished
                  , measurements = nil   -- list of running measurements
                  , mopts = nil          -- additional options and propteries backuped in measurements options.txt file
                  }
@@ -53,6 +54,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                , command
                                , retries
                                , online
+                               , dump_to_dir
                                )
     if ( retries == nil ) then error ( "retries" ) end
     print ( "retries: " .. retries )
@@ -156,6 +158,7 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                  , connections = connections
                                  , retries = retries
                                  , online = online
+                                 , dump_to_dir = dump_to_dir
                                  , measurements = {}
                                  }
 
@@ -558,6 +561,11 @@ function ControlNodeRef:start ()
         cmd [ #cmd + 1 ] = self.log_ref.port
     end
 
+    if ( self.dump_to_dir ~= nil ) then
+        cmd [ #cmd + 1 ] = "-d"
+        cmd [ #cmd + 1 ] = self.dump_to_dir
+    end
+
     print ( table_tostring ( cmd, nil, "" ) )
     local pid, _, _ = misc.spawn ( unpack ( cmd ) )
     print ( "Control: " .. pid )
@@ -578,6 +586,9 @@ function ControlNodeRef:start_remote ()
     if ( self.log_ref ~= nil and self.net_if.addr ~= nil ) then
         remote_cmd = remote_cmd .. " --log_ip " .. self.net_if.addr
                        .. " --log_port " .. self.log_ref.port
+    end
+    if ( self.dump_to_dir ~= nil ) then
+        remote_cmd = remote_cmd .. " -d " .. self.dump_to_dir
     end
     print ( remote_cmd )
     -- fixme:  "-i", node_ref.rsa_key, 

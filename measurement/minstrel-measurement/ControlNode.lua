@@ -25,7 +25,8 @@ require ('parsers/iw_info')
 
 ControlNode = NodeBase:new ()
 
-function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, retries, online )
+function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, retries, online, dump_to_dir )
+    -- fixme: each node can be configured individually for online transfer or local storage
     local o = ControlNode:new ( { name = name
                                 , ctrl = ctrl
                                 , port = port
@@ -40,6 +41,7 @@ function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, 
                                 , keys = {}
                                 , retries = retries
                                 , online = online
+                                , dump_to_dir = dump_to_dir
                                 , running = false
                                 } )
     if ( o.ctrl.addr == nil ) then
@@ -379,6 +381,11 @@ function ControlNode:start_nodes ( rsa_key, distance )
         if ( log_port ~= nil ) then
             remote_cmd = remote_cmd .. " --log_port " .. log_port
         end
+        if ( self.dump_to_dir ~= nil ) then
+            remote_cmd = remote_cmd .. " -d "
+            remote_cmd = remote_cmd .. self.dump_to_dir
+        end
+
         local ssh_command = { "ssh" }
         if ( rsa_key ~= nil ) then
             ssh_command [ #ssh_command + 1 ] = "-i"

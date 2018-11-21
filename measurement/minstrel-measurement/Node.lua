@@ -23,7 +23,7 @@ local debugfs = "/sys/kernel/debug/ieee80211"
 
 Node = NodeBase:new ()
 
-function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries )
+function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries, dump_to_dir )
     if ( name == nil) then
         error ( "A Node needs to have a name set, but it isn't!" )
     end
@@ -49,10 +49,7 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries )
     end
     local iw_full = false
     for i, phy in ipairs ( phys ) do
-        local netif = WifiIF:create ( lua_bin )
-        netif.node = o
-        netif.phy = phy
-        netif.mon = "mon" .. tostring ( i - 1 )
+        local netif = WifiIF:create ( lua_bin, nil, nil, "mon" .. tostring ( i - 1 ), phy, o, nil, dump_to_dir )
         netif.iface, _ = net.get_interface_name ( phy )
         if ( netif.iface == nil ) then
             o:send_warning ( "Cannot determine radio interface name. radio is disabled, enabling" )

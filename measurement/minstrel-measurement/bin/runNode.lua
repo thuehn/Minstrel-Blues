@@ -14,12 +14,13 @@ parser:option ("--log_ip", "IP of Logging node" )
 parser:option ("-P --port", "Control RPC port", "12346" )
 parser:option ("-L --log_port", "Logging RPC port", "12347" )
 parser:option ("--retries", "number of retries for rpc and wifi connections", "10" )
+parser:option ("-d --dump_to_dir", "Dump collected traces to local directory" )
 
 local args = parser:parse ()
 
 local ctrl = NetIF:create ( args.ctrl_if )
 local node = Node:create ( args.name, arg[-1] or "/usr/bin/lua", ctrl, args.port, args.log_port, args.log_ip
-                         , args.retries )
+                         , args.retries, args.dump_to_dir )
 if ( node == nil ) then
     print ( "Error: node not started" )
     od.exit (1)

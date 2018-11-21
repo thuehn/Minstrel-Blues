@@ -15,6 +15,7 @@ parser:option ("-L --log_port", "Logging port", "12347" )
 parser:flag ("--enable_fixed", "enable fixed setting of parameters", false)
 parser:option ("--retries", "number of retries for rpc and wifi connections", "10" )
 parser:flag ("--online", "fetch data online when possible", false )
+parser:option ("-d --dump_to_dir", "Dump collected traces to local directory at each device until experiments are finished" )
 
 parser:option ("-O --output", "measurement / analyse data directory", "/tmp")
 
@@ -22,7 +23,7 @@ local args = parser:parse ()
 
 local net = NetIF:create ( args.ctrl_if )
 local node = ControlNode:create ( "Control", net, args.port, args.log_port, args.log_ip
-                                , args.output, args.retries, args.online )
+                                , args.output, args.retries, args.online, args.dump_to_dir )
 
 function __tostring ( ... ) return node:__tostring ( ... ) end
 
