@@ -97,7 +97,7 @@ Please refer to the output of option ```--help``` for a complete list of availab
 
 # Analyse Measurement
 
-Statistical analysis and reporting is done in language ```R```. The traces of the measurement have to be processed by a lua script to extract data points for inspectation.
+Statistical analysis and reporting is done in language ```R```. The traces of the measurement have to be processed by a lua script to extract data points for inspection.
 
 ## Dependencies
 

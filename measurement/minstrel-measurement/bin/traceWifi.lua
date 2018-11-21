@@ -133,6 +133,11 @@ if ( args.distance == nil ) then
     print ("")
 end
 
+if ( args.online == true and args.dump_to_dir ~= nil ) then
+    Config.show_choice_error ( parser, { "online", "dump_to_dir" }, falsee )
+    print ("")
+end
+
 local has_config = Config.load_config ( args.config ) 
 
 local ap_setups
