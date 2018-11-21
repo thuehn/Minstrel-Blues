@@ -90,6 +90,8 @@ function MeasurementsOption.read_file ( dir )
     return false, "file not found or empty" 
 end
 
+-- dir: String output directory name
+-- mopts: map option_name -> option
 function MeasurementsOption.write_file ( dir, mopts )
     if ( dir == nil ) then
         return false, "input dir unset"
@@ -117,5 +119,30 @@ function MeasurementsOption.write_file ( dir, mopts )
         end
         file:close ()
     end
+    -- deprectated (still used by R scripts)
+    fname = dir .. "/wifi_config.txt"
+    file = io.open ( fname, "w" )
+    if ( file ~= nil ) then
+        local channel = "unset"
+        if ( mopts [ "wifi_channel" ] ~= nil ) then
+            channel = mopts [ "wifi_channel" ].value
+        end
+        local htmode = "unset"
+        if ( mopts [ "wifi_htmode" ] ~= nil ) then
+            htmode = mopts [ "wifi_htmode" ].value
+        end
+        local distance = "unset"
+        if ( mopts [ "wifi_distance" ] ~= nil ) then
+            distance = mopts [ "wifi_distance" ].value
+        end
+        local line = "channel = " .. channel .. '\n'
+        file:write ( line )
+        local line = "htmode = " .. htmode .. '\n'
+        file:write ( line )
+        local line = "distance = " .. distance
+        file:write ( line )
+    end
+    file:close ()
+
     return true, nil
 end
