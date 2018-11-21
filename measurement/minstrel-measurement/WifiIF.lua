@@ -525,7 +525,7 @@ local tcpdump_bin = "/usr/sbin/tcpdump"
 -- tcpdump -i mon0 -s 150 -U
 --  -B capture buffer size
 --  -s snapshot length ( default 262144)
-function WifiIF:start_tcpdump ( fname )
+function WifiIF:start_tcpdump ()
     if ( self.tcpdump_proc ~= nil ) then
         self.node:send_error (" Tcpdump not started. Already running.")
         return nil
@@ -534,12 +534,12 @@ function WifiIF:start_tcpdump ( fname )
     local snaplen = 150
     --local snaplen = 256
     local msg = "start tcpdump "
-    if ( fname == nil ) then
+    if ( self.dump_to_dir == nil ) then
         msg = msg .. "online "
     else
         msg = msg .. "offline "
     end
-    msg = msg .. " for " .. ( self.mon or "none" ) .. " writing to " .. ( fname or "none" )
+    msg = msg .. " for " .. ( self.mon or "none" ) .. " writing to " .. ( self.dump_to_dir or "none" )
     self.node:send_info ( msg )
 
     cmd = { tcpdump_bin
@@ -548,8 +548,8 @@ function WifiIF:start_tcpdump ( fname )
           , "-U"
           , "-w"
           }
-    if ( fname ~= nil ) then
-        cmd [ #cmd + 1 ] = fname
+    if ( self.dump_to_dir ~= nil ) then
+        cmd [ #cmd + 1 ] = self.dump_to_dir .. "/tcpdump.pcap"
     else
         cmd [ #cmd + 1 ] = "-"
     end
@@ -560,32 +560,27 @@ function WifiIF:start_tcpdump ( fname )
     return pid
 end
 
-function WifiIF:get_tcpdump ( fname, ms, sz )
+function WifiIF:get_tcpdump ( ms, sz )
     local online = true
     if ( ms == nil ) then ms = 100 end
     --if ( sz == nil ) then sz = 1024 end
     --if ( sz == nil ) then sz = 4096 end
     if ( sz == nil ) then sz = 1024*4096 end
-    if ( fname ~= nil ) then
+    if ( self.dump_to_dir ~= nil ) then
         online = false
-        self.node:send_info ( "send tcpdump offline for file " .. fname )
+        self.node:send_info ( "send tcpdump offline for dir " .. self.dump_to_dir )
     else
         self.node:send_info ( "send tcpdump online from pipe" )
     end
     local content = nil
     if ( online == false ) then
-        local file = io.open ( fname, "rb" )
+        local file, msg = io.open ( self.dump_to_dir .. "/tcpdump.pcap", "rb" )
         if ( file == nil ) then 
-            self.node:send_error ( "no tcpdump file found" )
+            self.node:send_error ( "no tcpdump file found! " .. msg )
             return nil 
         end
         content = file:read ( "*a" )
         file:close ()
-        self.node:send_info ( "remove tcpdump pcap file " .. ( fname or "none" ) )
-        os.remove ( fname )
-        self.tcpdump_proc.stdin:close ()
-        self.tcpdump_proc.stdout:close ()
-        self.tcpdump_proc = nil
     else
         content = misc.read_nonblock ( self.tcpdump_proc.stdout, ms, sz, self.node )
     end
@@ -620,6 +615,10 @@ function WifiIF:cleanup_tcpdump ()
     end
     if ( self.tcpdump_proc.stdout ~= nil ) then
         self.tcpdump_proc.stdout:close ()
+    end
+    if ( self.dump_to_dir ~= nil ) then
+        self.node:send_info ( "remove tcpdump pcap file in " .. ( self.dump_to_dir or "none" ) )
+        os.remove ( self.dump_to_dir .. "/tcpdump.pcap" )
     end
     self.tcpdump_proc = nil
 end
