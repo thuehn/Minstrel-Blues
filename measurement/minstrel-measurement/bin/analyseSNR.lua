@@ -23,15 +23,15 @@ local stas = nil
 local succ, res = MeasurementsOption.read_file ( args.input )
 if ( succ == false ) then
     print ( "ERROR: read options file failed: " .. ( res or "unknown" ) )
-    exit 1
+    os.exit ( 1 )
 else
     if ( res == nil or res [ "accesspoints" ] == nil ) then
         print ( "ERROR: option accesspoints not found in options file" )
-        exit 1
+        os.exit ( 1 )
     end
     if ( res == nil or res [ "stations" ] == nil ) then
         print ( "ERROR: option stations not found in options file" )
-        exit 1
+        os.exit ( 1 )
     end
     aps = res [ "accesspoints" ].value
     aps = res [ "stations" ].value
