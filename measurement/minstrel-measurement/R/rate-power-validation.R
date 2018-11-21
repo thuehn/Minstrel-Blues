@@ -373,6 +373,8 @@ export(plot_ly(mean_value,
                         zaxis = z_axis,
                         aspectratio = list(x=2,y=3,z=1)
            )
-    ) , file = tmpFile)
-   # ) , file = tmpFile, selenium = RSelenium::rsDriver)
+         )
+   , file = tmpFile
+   , selenium = RSelenium::rsDriver ()
+   )
 browseURL(tmpFile)
