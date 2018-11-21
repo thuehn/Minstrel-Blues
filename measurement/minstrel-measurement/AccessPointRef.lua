@@ -184,7 +184,7 @@ function AccessPointRef:fetch_measurement ( key )
     if ( succ == false ) then
         return succ, res
     end
-    self:send_debug ( "AccesspointRef:fetch_measurement " .. self.name .. ": " .. self.stats:__tostring() )
+    --self:send_debug ( "AccesspointRef:fetch_measurement " .. self.name .. ": " .. self.stats:__tostring() )
     local self_running = res
     local experiments_running = {}
     for i, sta_ref in ipairs ( self.refs ) do
@@ -194,7 +194,7 @@ function AccessPointRef:fetch_measurement ( key )
             if ( succ == false ) then
                 return succ, res
             end
-            self:send_debug ( "AccesspointRef:fetch_measurement " .. sta_ref.name .. ":" .. sta_ref.stats:__tostring() )
+            --self:send_debug ( "AccesspointRef:fetch_measurement " .. sta_ref.name .. ":" .. sta_ref.stats:__tostring() )
             experiments_running [i] = res
         end
     end
