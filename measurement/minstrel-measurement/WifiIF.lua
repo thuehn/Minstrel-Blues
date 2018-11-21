@@ -421,7 +421,17 @@ function WifiIF:start_rc_stats ( station, sampling_rate )
     local file = debugfs .. "/" .. self.phy .. "/netdev:" .. self.iface .. "/stations/"
                          .. station .. "/rc_stats_csv"
     if ( isFile ( file ) == true ) then
-        local pid, stdin, stdout = misc.spawn ( self.lua_bin, fetch_file_bin, "-i", sampling_rate, file )
+        local cmd = { self.lua_bin
+                    , fetch_file_bin
+                    , "-i"
+                    , sampling_rate
+                    , file
+                    }
+        if ( self.dump_to_dir ~= nil ) then
+            cmd [ # cmd + 1 ] = "-d"
+            cmd [ # cmd + 1 ] = self.dump_to_dir .. "/" .. station .. "-rc_stats_csv.txt"
+        end
+        local pid, stdin, stdout = misc.spawn ( unpack ( cmd ) )
         self.rc_stats_procs [ station ] = { pid = pid, stdin = stdin, stdout = stdout }
         self.node:send_info ( "rc stats for station " .. station .. " started with pid: " .. pid )
         return pid
@@ -438,16 +448,30 @@ function WifiIF:get_rc_stats ( station, online )
         self.node:send_error ( "Cannot send rc_stats because the station argument is nil!" )
         return nil
     end
-    self.node:send_info ( "send rc-stats for " .. self.iface ..  ", station " .. station )
+    local online_str = ""
+    local dump_str = ""
+    if ( online == true ) then online_str = " online" end
+    if ( self.dump_to_dir == nil ) then dump_str = " dump" end
+    self.node:send_info ( "send rc-stats for " .. self.iface ..  ", station " .. station .. online_str .. dump_str )
     if ( self.rc_stats_procs [ station ] == nil ) then 
         self.node:send_warning ( " no rc-stats for " .. station .. " found" )
         return nil 
     end
     --self.node:send_debug ( "rc_stats process: " .. self.rc_stats_procs [ station ].pid )
+    local content
     if ( online == true ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.rc_stats_procs [ station ].stdout, ms, sz )
+    elseif ( self.dump_to_dir ~= nil ) then
+        self.node:send_info ( "read dumped rc_stats_csv from " .. self.dump_to_dir .. "/" .. station .. "-rc_stats_csv.txt" )
+        local file, msg = io.open ( self.dump_to_dir .. "/" .. station .. "-rc_stats_csv.txt", "r" )
+        if ( file ~= nil ) then
+            content = file:read ( "*a" )
+            file:close ()
+        else
+            self.node:send_error ( "reading dumped rc_stats_csv failed. File not opened! " .. msg )
+        end
     else
         content = self.rc_stats_procs [ station ].stdout:read ("*a")
     end
@@ -483,6 +507,9 @@ function WifiIF:cleanup_rc_stats ( station )
     self.rc_stats_procs [ station ].stdin:close()
     self.rc_stats_procs [ station ].stdout:close()
     self.rc_stats_procs [ station ] = nil
+    if ( self.dump_to_dir ~= nil ) then
+        os.remove ( self.dump_to_dir .. "/" .. station .. "-rc_stats_csv.txt" )
+    end
 end
 
 -- --------------------------

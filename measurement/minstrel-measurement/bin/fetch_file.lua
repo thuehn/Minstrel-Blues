@@ -37,12 +37,14 @@ while ( true ) do
     local output_file
     if ( args.dump_to_file ~= nil ) then
         local output_mode = "a"
-        if ( args.binary ) then
+        if ( args.binary == true ) then
             output_mode = output_mode .. "b"
         end
-        output_file = io.open ( args.dump_to_file, output_mode )
+        output_file, msg = io.open ( args.dump_to_file, output_mode )
         if ( output_file == nil ) then
-            io.stderr:write ( "Error: Open file failed: " .. args.dump_to_file .. ", mode: " .. output_mode .. "\n" )
+            io.stderr:write ( "Error: Open file failed: "
+                                .. args.dump_to_file .. ", mode: " .. output_mode .. "! "
+                                .. msg .. "\n" )
             os.exit ( 1 )
         end
     end
@@ -59,11 +61,11 @@ while ( true ) do
             end
         end
     else
-        local content = file:read ("*a")
-        if (content ~= nil) then
-            print ( content )
-        else
-            if ( output_file ~= nil ) then
+        local content = file:read ( "*a" )
+        if ( content ~= nil ) then
+            if ( output_file == nil ) then
+                print ( content )
+            else
                 output_file:write ( content )
             end
         end
