@@ -10,7 +10,7 @@ EGIT_REPO_URI="https://github.com/thuehn/Minstrel-Blues.git"
 LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~hppa ~mips ~ppc ~ppc64 ~x86 ~x86-fbsd"
-IUSE=""
+IUSE="R tshark"
 
 DEPEND=">=dev-lang/lua-5.1
 		dev-lua/luafilesystem
@@ -22,7 +22,9 @@ DEPEND=">=dev-lang/lua-5.1
 		dev-lua/luapprint
 		dev-lua/luarpc
 		dev-lua/luasystem
-		dev-lua/lua-cjson
+		dev-lua/lua-cjson"
+
+RDEPEND="${DEPEND}
 		sys-process/procps
 		sys-apps/coreutils
 		sys-apps/net-tools
@@ -30,8 +32,12 @@ DEPEND=">=dev-lang/lua-5.1
 		net-wireless/iw
 		net-analyzer/tcpdump
 		<net-misc/iperf-3.0
-		virtual/ssh"
-RDEPEND="${DEPEND}"
+		sys-apps/cpusage
+		virtual/ssh
+		tshark ? net-analyzer/wireshark
+		R ? ( dev-lang/R )
+		R ? app-text/pandoc
+		R ? dev-haskell/pandoc-citeproc"
 
 # https://devmanual.gentoo.org/eclass-reference/linux-info.eclass/
 # CFG80211
