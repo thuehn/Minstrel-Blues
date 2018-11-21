@@ -21,6 +21,8 @@ require ('udpExperiment')
 require ('mcastExperiment')
 require ('EmptyExperiment')
 
+require ('parsers/iw_info')
+
 ControlNode = NodeBase:new ()
 
 function ControlNode:create ( name, ctrl, port, log_port, log_addr, output_dir, retries, online )
@@ -487,6 +489,33 @@ function ControlNode:get_txpowers ()
         end
     end
     return powers
+end
+
+function ControlNode:get_channel ()
+    for i, ap_ref in ipairs ( self.ap_refs ) do
+        local str = ap_ref.rpc.get_iw_info ( ap_ref.wifi_cur )
+        if ( str ~= nil ) then
+            local iwinfo = parse_iwinfo ( str )
+            if ( iwinfo ~= nil ) then
+                return iwinfo.channel
+            end
+        end
+    end
+    return nil
+end
+
+function ControlNode:get_htmode ()
+    for i, ap_ref in ipairs ( self.ap_refs ) do
+        local str = ap_ref.rpc.get_iw_info ( ap_ref.wifi_cur )
+        if ( str ~= nil ) then
+            local iwinfo = parse_iwinfo ( str )
+            if ( iwinfo ~= nil ) then
+                if ( iwinfo.width == 20 ) then return "HT20"
+                else return iwinfi.width end
+            end
+        end
+    end
+    return nil
 end
 
 -- fixme: MESH

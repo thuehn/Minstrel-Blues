@@ -135,11 +135,11 @@ function MeasurementsOption.write_file ( dir, mopts )
         if ( mopts [ "wifi_distance" ] ~= nil ) then
             distance = mopts [ "wifi_distance" ].value
         end
-        local line = "channel = " .. channel .. '\n'
+        local line = "channel = " .. ( channel or "unset" ) .. '\n'
         file:write ( line )
-        local line = "htmode = " .. htmode .. '\n'
+        local line = "htmode = " .. ( htmode or "unset" ) .. '\n'
         file:write ( line )
-        local line = "distance = " .. distance
+        local line = "distance = " .. ( distance or "unset" ) .. '\n'
         file:write ( line )
     end
     file:close ()

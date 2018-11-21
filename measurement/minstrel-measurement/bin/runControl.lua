@@ -48,6 +48,10 @@ function disconnect_nodes ( ... ) return node:disconnect_nodes ( ... ) end
 
 function init_experiments ( ... ) return node:init_experiments ( ... ) end
 function get_keys ( ... ) return node:get_keys ( ... ) end
+
+function get_channel ( ... ) return node:get_channel ( ... ) end
+function get_htmode ( ... ) return node:get_htmode ( ... ) end
+
 function get_txpowers ( ... ) return node:get_txpowers ( ... ) end
 function get_txrates ( ... ) return node:get_txrates ( ... ) end
 
