@@ -30,7 +30,7 @@ end
 
 function LogNodeRef:start ( log_file, lua_bin )
     self.pid, _, _ = misc.spawn ( lua_bin, "/usr/bin/runLogger", log_file
-                                , "--port", self.port )
+                                , "--port", self.port, "-a" )
 end
 
 function LogNodeRef:connect ()
