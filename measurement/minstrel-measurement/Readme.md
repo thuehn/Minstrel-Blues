@@ -133,6 +133,14 @@ The next steps may be:
 
 # Troubleshooting
 
+## minstrel-measurement package doesn't appear in menuconfig of OpenWRT/LEDE
+
+When no entry for the measurement package appears under "Languages/Lua" then the feed may not be present or some dependencies are not resolved correctly.
+
+First check whether the packages of a feed are available and installed and then check the dependencies.
+
+All dependencies are listed in the search result section of ```menuconfig```. Enter ```/``` and then type into the search dialog the phrase ```minstrel-measurement``` and all matching packages and options are lists together with their location and the dependencies. When there exists more than one choises for certain package, i.e. one act as a drop-in replacement for the other then the dependencies are not resolved. In section Network the packages ```iw``` and ```iw-full``` are such drop-in replacements the measurement package depends on. Here the package ```iw-full``` should be selected.
+
 ## ssid cannot be determined by a node
 
 Maybe the wrong package of iw is installed. Please check the dependencies. At OpenWRT / LEDE are two variant of iw available. As a test try to run, i.e. ```iw wlan0 info```.
