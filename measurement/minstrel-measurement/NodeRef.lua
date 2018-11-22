@@ -82,6 +82,8 @@ function NodeRef:get_addr ()
 end
 
 function NodeRef:get_mac ()
+    self:send_debug ( "NodeRef::get_mac for radio: " .. ( self.wifi_cur or "unset" ) )
+    if ( self.wifi_cur == nil ) then return nil end
     return self.radios [ self.wifi_cur ].mac
 end
 
