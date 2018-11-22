@@ -89,7 +89,7 @@ Net.get_interface_name = function ( phy )
             return string.sub ( file, 8 )
         end
     end
-    return nil, "No debugfs entry for " .. phy .. " found"
+    return nil, "No debugfs entry for " .. phy .. " found (" .. dname .. ")"
 end
 
 function Net.run ( port, name, log_f )
