@@ -51,7 +51,7 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries, o
     local iw_full = false
     for i, phy in ipairs ( phys ) do
         local netif = WifiIF:create ( lua_bin, nil, nil, "mon" .. tostring ( i - 1 ), phy, o, nil, online, dump_to_dir )
-        netif.iface, _ = net.get_interface_name ( phy )
+        netif.iface, msg = net.get_interface_name ( phy )
         if ( netif.iface == nil ) then
             o:send_warning ( "Cannot determine radio interface name. radio is disabled, enabling" )
             o:enable_wifi ( true, phy )
@@ -60,7 +60,7 @@ function Node:create ( name, lua_bin, ctrl, port, log_port, log_addr, retries, o
             netif.iface, msg = net.get_interface_name ( phy )
             if ( netif.iface == nil ) then
                 o:send_error ( "Empty ieee80211 debugfs: please check permissions and kernel config, i.e. ATH9K_DEBUGFS: " .. msg )
-                return nil
+                --return nil
             else
                 netif.addr, msg = net.get_addr ( netif.iface )
                 o.wifis [ phy ] = netif
