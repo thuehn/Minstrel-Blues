@@ -521,6 +521,7 @@ function ControlNode:get_htmode ()
             local iwinfo = parse_iwinfo ( str )
             if ( iwinfo ~= nil ) then
                 if ( iwinfo.width == 20 ) then return "HT20"
+                elseif ( iwinfo.width == 40 ) then return "HT40"
                 else return iwinfo.width end
             end
         end
