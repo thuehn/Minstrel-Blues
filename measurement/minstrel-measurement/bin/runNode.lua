@@ -24,7 +24,7 @@ local node = Node:create ( args.name, arg[-1] or "/usr/bin/lua", ctrl, args.port
                          , args.retries, args.online, args.dump_to_dir )
 if ( node == nil ) then
     print ( "Error: node not started" )
-    od.exit (1)
+    os.exit (1)
 end
 
 function set_channel_htmode ( ... ) return node:set_channel_htmode ( ... ) end
