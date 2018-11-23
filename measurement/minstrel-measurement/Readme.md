@@ -137,7 +137,7 @@ The following command extracts the signal noise rate (SNR) from dumped pcap file
 The following image shows an two dimasional diagrams as a result of the analysis of an accesspoint.
 ![snr-per-rate-power][snr]
 
-[snr]: https://https://github.com/thuehn/Minstrel-Blues/tree/master/measurement/minstrel-measurement/doc/snr_per_rate_power_v2.png "SNR per rate and power"
+[snr]: https://github.com/thuehn/Minstrel-Blues/tree/master/measurement/minstrel-measurement/doc/snr_per_rate_power_v2.png "SNR per rate and power"
 
 # Future
 
