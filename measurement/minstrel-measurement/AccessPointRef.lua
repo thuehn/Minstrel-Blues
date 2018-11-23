@@ -5,7 +5,8 @@ require ('NodeRef')
 
 AccessPointRef = NodeRef:new()
 
-function AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, log_addr, log_port, retries )
+function AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key, online, dump_to_dir,
+                                 output_dir, log_addr, log_port, retries )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
@@ -13,6 +14,8 @@ function AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, lo
                                  , lua_bin = lua_bin
                                  , ctrl_net_ref = ctrl_net_ref
                                  , rsa_key = rsa_key
+                                 , online = online
+                                 , dump_to_dir = dump_to_dir
                                  , output_dir = output_dir
                                  , refs = {}
                                  , stations = {}
@@ -108,12 +111,12 @@ function AccessPointRef:set_tx_rate ( rate_idx )
     end
 end
 
-function AccessPointRef:create_measurement ( online )
-    NodeRef.create_measurement ( self, online )
+function AccessPointRef:create_measurement ()
+    NodeRef.create_measurement ( self )
     self.stats:enable_rc_stats ( self.stations )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
-            sta_ref:create_measurement ( online )
+            sta_ref:create_measurement ()
         end
     end
 end
@@ -178,9 +181,10 @@ function AccessPointRef:stop_measurement ( key )
     end
 end
 
-function AccessPointRef:fetch_measurement ( key )
+function AccessPointRef:fetch_measurement ( key, fetch_online )
+    if ( fetch_online == nil ) then fetch_online = false end
     self.log_ref:send_debug ( "AccessPointRef:fetch_measurement for key: " .. ( key or "none" ) )
-    local succ, res = NodeRef.fetch_measurement ( self, key )
+    local succ, res = NodeRef.fetch_measurement ( self, key, fetch_online )
     if ( succ == false ) then
         return succ, res
     end
@@ -190,7 +194,7 @@ function AccessPointRef:fetch_measurement ( key )
     for i, sta_ref in ipairs ( self.refs ) do
         if ( sta_ref.is_passive == nil or sta_ref.is_passive == false ) then
             self.log_ref:send_debug ( "AccessPointRef:fetch_measurement for station: " .. ( sta_ref.name or "none" ) )
-            local succ, res = sta_ref:fetch_measurement ( key )
+            local succ, res = sta_ref:fetch_measurement ( key, fetch_online )
             if ( succ == false ) then
                 return succ, res
             end

@@ -284,21 +284,38 @@ end
 
 function ControlNodeRef:add_aps ()
     for _, ap_config in ipairs ( self.aps_config ) do
-        self.rpc.add_ap ( ap_config.name, ap_config.lua_bin or "/usr/bin/lua", ap_config.ctrl_if, ap_config.rsa_key )
+        self.rpc.add_ap ( ap_config.name
+                        , ap_config.lua_bin or "/usr/bin/lua"
+                        , ap_config.ctrl_if
+                        , ap_config.rsa_key
+                        , ap_config.online
+                        , ap_config.dump_to_dir
+                        )
     end
 end
 
 function ControlNodeRef:add_stas ()
     for _, sta_config in ipairs ( self.stas_config ) do
-        self.rpc.add_sta ( sta_config.name, sta_config.lua_bin or "/usr/bin/lua", sta_config.ctrl_if,
-                           sta_config.rsa_key, sta_config.mac )
+        self.rpc.add_sta ( sta_config.name
+                         , sta_config.lua_bin or "/usr/bin/lua"
+                         , sta_config.ctrl_if
+                         , sta_config.rsa_key
+                         , sta_config.mac
+                         , sta_config.online
+                         , sta_config.dump_to_dir
+                         )
     end
 end
 
 function ControlNodeRef:add_mesh_nodes ()
     for _, node_config in ipairs ( self.mesh_nodes_config ) do
-        self.rpc.add_mesh_node ( node_config.name, node_config.lua_bin or "/usr/bin/lua", node_config.ctrl_if,
-                                 node_config.rsa_key )
+        self.rpc.add_mesh_node ( node_config.name
+                               , node_config.lua_bin or "/usr/bin/lua"
+                               , node_config.ctrl_if
+                               , node_config.rsa_key
+                               , node_config.online
+                               , node_config.dump_to_dir
+                               )
     end
 end
 
@@ -677,12 +694,11 @@ end
 function ControlNodeRef:create_measurement ( node_names, key )
     for _, ref_name in ipairs ( node_names ) do
 
-        print ( "transfer node: " .. ref_name )
-
         local mac = self:get_mac ( ref_name )
         local opposite_macs = self:get_opposite_macs ( ref_name )
 
-        local measurements = Measurements:create ( ref_name, mac, opposite_macs, nil, self.output_dir, self.online )
+        local measurements = Measurements:create ( ref_name, mac, opposite_macs, nil, self.output_dir
+                                                 , self.rpc.get_online ( ref_name ) )
 
         local stations = self.rpc.list_stations ( ref_name )
         measurements:enable_rc_stats ( stations ) -- resets rc_stats
@@ -697,13 +713,12 @@ function ControlNodeRef:create_measurement ( node_names, key )
     end
 end
 
-function ControlNodeRef:write_measurement ( node_names, online, finish, key )
-    print ("* Transfer Measurement Result *")
+function ControlNodeRef:write_measurement ( node_names, finish, key )
 
     local max_size = 1024 * 1024 -- 1 megabyte at once
     for _, ref_name in ipairs ( node_names ) do
 
-        print ( "transfer node: " .. ref_name )
+        print ( "copy data from node: " .. ref_name )
 
         local size = self.rpc.get_tcpdump_size ( ref_name, key )
         local tcpdump_pcap = self.measurements [ ref_name ].tcpdump_meas [ key ].stats
@@ -747,9 +762,9 @@ function ControlNodeRef:write_measurement ( node_names, online, finish, key )
         local iperf_c_out = self.rpc.get_iperf_c_out ( ref_name )
         merge_map ( iperf_c_out, self.measurements [ ref_name ].iperf_c_outs )
 
-        print ( "stats fetched" )
+        print ( "data copied" )
 
-        local status, err = self.measurements [ ref_name ]:write ( online, finish, key )
+        local status, err = self.measurements [ ref_name ]:write ( finish, key )
         if ( status == false ) then
             print ( "err: can't access directory '" ..  ( output_dir or "unset" )
                             .. "': " .. ( err or "unknown error" ) )
@@ -859,20 +874,24 @@ function ControlNodeRef:run_experiments ( command, args, ap_names, is_fixed, key
         end
 
         self:create_measurement ( node_names, key )
-        if ( self.online == true ) then
-            repeat
-                ret, err = self.rpc.exp_next_data ( key )
-                if ( ret == false ) then
-                    print ( "ERROR: ControlNodeRef:run_experiments exp_next_data failed: " .. ( ret or "unknown" ) )
-                    return ret, err
-                end
-                self:write_measurement ( node_names, self.online, false, key )
-                posix.sleep (1)
-            until self.rpc.exp_has_data ( key ) == false
-        end
 
+        -- fetch all online nodes (if any)
+        repeat
+            ret, err = self.rpc.exp_next_data ( key )
+            if ( ret == false and err ~= nil ) then
+                print ( "ERROR: ControlNodeRef:run_experiments exp_next_data failed: " .. err )
+                return ret, err
+            end
+            self:write_measurement ( node_names, false, key )
+            print ( "wait for new data" )
+            posix.sleep (1)
+        until self.rpc.exp_has_data ( key ) == false
+
+        -- wait until all experiment has finished
         ret, err = self.rpc.finish_experiment ( key )
-        self:write_measurement ( node_names, self.online, true, key )
+
+        -- fetch offline nodes when experiment has finished
+        self:write_measurement ( node_names, true, key )
 
         counter = counter + 1
     end

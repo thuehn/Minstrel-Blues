@@ -52,8 +52,8 @@ end
 function Experiment:keys ( ap_ref )
 end
 
-function Experiment:prepare_measurement ( ap_ref, online )
-    ap_ref:create_measurement ( online )
+function Experiment:prepare_measurement ( ap_ref )
+    ap_ref:create_measurement ()
     ap_ref.stats:enable_rc_stats ( ap_ref.stations )
 end
 
@@ -96,8 +96,8 @@ function Experiment:stop_measurement ( ap_ref, key )
     self.control:send_debug("stop_experiment not implemented")
 end
 
-function Experiment:fetch_measurement ( ap_ref, key )
-    return ap_ref:fetch_measurement ( key )
+function Experiment:fetch_measurement ( ap_ref, key, fetch_online )
+    return ap_ref:fetch_measurement ( key, fetch_online )
 end
 
 function Experiment:unsettle_measurement ( ap_ref, key )

@@ -32,7 +32,7 @@ function EmptyExperiment:keys ( ap_ref )
     return keys
 end
 
-function EmptyExperiment:prepare_measurement ( ap_ref, online )
+function EmptyExperiment:prepare_measurement ( ap_ref )
 end
 
 function EmptyExperiment:settle_measurement ( ap_ref, key )

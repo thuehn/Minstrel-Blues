@@ -10,6 +10,8 @@ NodeRef = { name = nil
           , lua_bin = nil
           , ctrl_net_ref = nil
           , rsa_key = nil
+          , online = nil
+          , dump_to_file = nil
           , rpc = nil
           , radios = nil
           , wifi_cur = nil
@@ -105,7 +107,13 @@ function NodeRef:__tostring ()
         out = out .. "\n\t\t" .. tostring ( radio )
     end
     if ( self.is_passive == true ) then
-        out = out .. "passive"
+        out = out .. "\n\t\tpassive"
+    end
+    if ( self.online == true ) then
+        out = out .. "\n\t\tfetch online"
+    end
+    if ( self.dump_to_dir ~= nil ) then
+        out = out .. "\n\t\t" .. self.dump_to_dir
     end
     return out
 end
@@ -139,20 +147,14 @@ function NodeRef:wait_linked ()
     return ( retries ~= 0 )
 end
 
-function NodeRef:create_measurement ( online )
+function NodeRef:create_measurement ()
     if ( self.is_passive == nil or self.is_passive == false ) then
         self.stats = Measurements:create ( self.name, self:get_mac (), self:get_opposite_macs ()
-                                        , self.rpc, self.output_dir, online )
+                                         , self.rpc, self.output_dir, self.online )
         self.stats:set_node_mac_br ( self:get_mac_br () )
         self.stats:set_opposite_macs_br ( self:get_opposite_macs_br () )
     end
 end
-
-
--- fixme: should be done on node to implement i.e. usb-storage on backbone less nodes
---function NodeRef:write_measurement ( online, finish, key )
---    self.stats:write ( online, finish, key )
---end
 
 function NodeRef:restart_wifi ()
     if ( self.is_passive == nil or self.is_passive == false ) then
@@ -188,9 +190,18 @@ function NodeRef:stop_measurement ( key )
 end
 
 -- collect traces
-function NodeRef:fetch_measurement ( key )
+function NodeRef:fetch_measurement ( key, fetch_online )
     self:send_debug ( "NodeRef::fetch_measurement for key" .. ( key or "unset" ) )
-    if ( self.is_passive == nil or self.is_passive == false ) then
+    if ( fetch_online == nil ) then fetch_online = false end
+    if ( self.online ~= nil ) then
+        self:send_debug ( self.name .. " should fetch online: " .. tostring ( self.online ) )
+    else
+        self:send_debug ( self.name .. " should fetch online: false" )
+    end
+    -- when fetch_online is set to true we are fetching during experiments when the node should fetch online (self.online)
+    -- when we are fetching data after experiments fetch_online is set to false and we always have to fetch all data
+    if ( ( fetch_online == false or ( self.online ~= nil and self.online == true ) )
+         and ( self.is_passive == nil or self.is_passive == false ) ) then
         local stas = "none"
         if ( self.stats.stations ~= nil ) then
             stas = table_tostring ( self.stats.stations )

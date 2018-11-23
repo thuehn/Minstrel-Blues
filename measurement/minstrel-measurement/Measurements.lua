@@ -238,8 +238,7 @@ function Measurements:is_open ( key )
 end
 
 
-function Measurements:write ( online, finish, key )
-    if ( online == nil ) then online = false end
+function Measurements:write ( finish, key )
     if ( finish == nil ) then finish = true end
     if ( self.output_dir == nil ) then self.output_dir = "/tmp" end
 
@@ -264,22 +263,22 @@ function Measurements:write ( online, finish, key )
         MeasurementsOption.write_file ( base_dir, self.mopts )
 
         -- regmon stats
-        if ( online == true ) then
+        if ( self.online == true ) then
             self.regmon_meas [ key ] : open_online ()
         end
 
         -- cpusage stats
-        if ( online == true ) then
+        if ( self.online == true ) then
             self.cpusage_meas [ key ] : open_online ()
         end
 
         -- tcpdump pcap
-        if ( online == true ) then
+        if ( self.online == true ) then
             self.tcpdump_meas [ key ] : open_online ()
         end
 
         -- rc_stats
-        if ( online == true ) then
+        if ( self.online == true ) then
             if ( self.rc_stats_enabled == true ) then
                 for _, station in ipairs ( self.stations ) do
                     if ( self.rc_stats_meas ~= nil and self.rc_stats_meas [ station ] ~= nil
@@ -292,19 +291,19 @@ function Measurements:write ( online, finish, key )
     end
 
     -- regmon stats
-    self.regmon_meas [ key ] : write ( online )
+    self.regmon_meas [ key ] : write ( self.online )
     if ( finish == true ) then
         self.regmon_meas [ key ]:close_online ()
     end
 
     -- cpusage stats
-    self.cpusage_meas [ key ] : write ( online )
+    self.cpusage_meas [ key ] : write ( self.online )
     if ( finish == true ) then
         self.cpusage_meas [ key ]:close_online ()
     end
     
     -- tcpdump pcap
-    self.tcpdump_meas [ key ] : write ( online )
+    self.tcpdump_meas [ key ] : write ( self.online )
     if ( finish == true ) then
         self.tcpdump_meas [ key ]:close_online ()
     end
@@ -315,7 +314,7 @@ function Measurements:write ( online, finish, key )
             if ( self.rc_stats_meas ~= nil and self.rc_stats_meas [ station ] ~= nil
                  and self.rc_stats_meas [ station ] [ key ] ~= nil ) then
                 --fixme: never reached
-                self.rc_stats_meas [ station ] [ key ] : write ( online )
+                self.rc_stats_meas [ station ] [ key ] : write ( self.online )
                 if ( finish == true ) then
                     self.rc_stats_meas [ station ] [ key ] : close_online ()
                 end
@@ -323,7 +322,7 @@ function Measurements:write ( online, finish, key )
         end
     end
 
-    if ( online == false or finish == true ) then
+    if ( self.online == false or finish == true ) then
         -- iperf server out
         for key, stats in pairs ( self.iperf_s_outs ) do
             local fname = base_dir .. "/" .. self.node_name .. "-" .. key .. "-iperf_server.txt"

@@ -363,9 +363,17 @@ function WifiIF:get_cpusage ()
         self.node:send_error ( "no cpusage process running" )
         return nil 
     end
-    self.node:send_info ( "send cpusage" )
+    local online_str = ""
+    if ( self.online == true ) then
+        online_str = " online"
+    end
+    local dump_to_dir_str = ""
+    if ( self.dump_to_dir ~= nil ) then
+        dump_to_dir_str = " " .. self.dump_to_dir
+    end
+    self.node:send_info ( "send cpusage" .. online_str .. dump_to_dir_str )
     local content = nil
-    if ( self.online ) then
+    if ( self.online == true ) then
         if ( ms == nil ) then ms = 500 end
         if ( sz == nil ) then sz = 1024 end
         content = misc.read_nonblock ( self.cpusage_proc.stdout, ms, sz, self.node )

@@ -6,7 +6,8 @@ require ('AccessPointRef')
 
 MeshNodeRef = AccesspointRef:new()
 
-function MeshNodeRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, log_addr, log_port, retries )
+function MeshNodeRef:create ( name, lua_bin, ctrl_if, rsa_key, online, dump_to_dir,
+                              output_dir, log_addr, log_port, retries )
     local ctrl_net_ref = NetIfRef:create ( ctrl_if )
     ctrl_net_ref:set_addr ( name )
 
@@ -14,6 +15,8 @@ function MeshNodeRef:create ( name, lua_bin, ctrl_if, rsa_key, output_dir, log_a
                               , lua_bin = lua_bin
                               , ctrl_net_ref = ctrl_net_ref
                               , rsa_key = rsa_key
+                              , online = online
+                              , dump_to_dir = dump_to_dir                              
                               , output_dir = output_dir
                               , refs = {}
                               , stations = {}

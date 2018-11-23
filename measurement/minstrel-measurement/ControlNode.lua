@@ -81,29 +81,35 @@ function ControlNode:restart_wifi_debug ()
     end
 end
 
-function ControlNode:add_ap ( name, lua_bin, ctrl_if, rsa_key )
+function ControlNode:add_ap ( name, lua_bin, ctrl_if, rsa_key, online, dump_to_dir )
     self:send_info ( " add access point " .. name )
     local ref = AccessPointRef:create ( name, lua_bin, ctrl_if, rsa_key
+                                      , online or self.online, dump_to_dir or self.dump_to_dir
                                       , self.output_dir, self.log_addr, self.log_port
-                                      , self.retries )
+                                      , self.retries
+                                      )
     self.ap_refs [ #self.ap_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
-function ControlNode:add_sta ( name, lua_bin, ctrl_if, rsa_key, mac )
+function ControlNode:add_sta ( name, lua_bin, ctrl_if, rsa_key, mac, online, dump_to_dir )
     self:send_info ( " add station " .. name )
-    local ref = StationRef:create ( name, lua_bin, ctrl_if, rsa_key
+    local ref = StationRef:create ( name, lua_bin, ctrl_if, rsa_key, mac
+                                  , online or self.online, dump_to_dir or self.dump_to_dir
                                   , self.output_dir, mac, self.log_addr, self.log_port
-                                  , self.retries )
+                                  , self.retries
+                                  )
     self.sta_refs [ #self.sta_refs + 1 ] = ref 
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 
-function ControlNode:add_mesh_node ( name, lua_bin, ctrl_if, rsa_key, mac )
+function ControlNode:add_mesh_node ( name, lua_bin, ctrl_if, rsa_key, online, dump_to_dir )
     self:send_info ( " add mesh_node " .. name )
     local ref = MeshNodeRef:create ( name, lua_bin, ctrl_if, rsa_key
-                                  , self.output_dir, mac, self.log_addr, self.log_port
-                                  , self.retries )
+                                   , online or self.online, dump_to_dir or self.dump_to_dir
+                                   , self.output_dir, self.log_addr, self.log_port
+                                   , self.retries
+                                   )
     self.node_refs [ #self.node_refs + 1 ] = ref
 end
 -- randomize ap and station order
@@ -170,6 +176,12 @@ function ControlNode:list_nodes ()
     local names = {}
     for _,v in ipairs ( self.node_refs ) do names [ #names + 1 ] = v.name end
     return names
+end
+
+function ControlNode:get_online ( node_name )
+    local node_ref = self:find_node_ref ( node_name )
+    if ( node_ref == nil ) then return nil end
+    return node_ref.online
 end
 
 function ControlNode:get_mac ( node_name )
@@ -381,12 +393,12 @@ function ControlNode:start_nodes ( rsa_key, distance )
         if ( log_port ~= nil ) then
             remote_cmd = remote_cmd .. " --log_port " .. log_port
         end
-        if ( self.online == true ) then
+        if ( node_ref.online == true ) then
             remote_cmd = remote_cmd .. " -o "
         end
-        if ( self.dump_to_dir ~= nil ) then
+        if ( node_ref.dump_to_dir ~= nil ) then
             remote_cmd = remote_cmd .. " -d "
-            remote_cmd = remote_cmd .. self.dump_to_dir
+            remote_cmd = remote_cmd .. node_ref.dump_to_dir
         end
 
         local ssh_command = { "ssh" }
@@ -685,13 +697,10 @@ function ControlNode:init_experiment ( command, args, ap_names, is_fixed, key, n
     self:send_info ( exp_header )
     self:send_info ( hrule )
 
-    if ( self.online ~= nil ) then
-        self:send_info ( "fetch online: " .. tostring ( self.online )  )
-    end
     -- fixme: MESH
     self:send_info ("*** Prepare measurement ***")
     for _, ap_ref in ipairs ( self.ap_refs ) do
-        self.exp:prepare_measurement ( ap_ref, self.online )
+        self.exp:prepare_measurement ( ap_ref )
     end
 
     self:send_info ("*** Settle measurement ***")
@@ -796,11 +805,12 @@ end
 
 function ControlNode:exp_next_data ( key )
     self.running = false
-    self:send_info ("*** Fetch Measurements ***" )
+    self:send_info ("*** Fetch online measurements ***" )
     -- fixme: MESH
-    for i, ap_ref in ipairs ( self.ap_refs ) do
+    for _, ap_ref in ipairs ( self.ap_refs ) do
+        self:send_debug ( ap_ref.name .. " fetching ..." )
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-        local succ, res = self.exp:fetch_measurement ( ap_ref, key )
+        local succ, res = self.exp:fetch_measurement ( ap_ref, key, true )
         if ( succ == false ) then
             return false, "ControlNode:exp_next_data failed: " .. ( res or "unknown" )
         end
@@ -810,6 +820,7 @@ function ControlNode:exp_next_data ( key )
         self:send_debug ( "experiments running: " .. tostring ( self.running ) )
         --collectgarbage ()
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
+        self:send_debug ( ap_ref.name .. " ... done" )
     end
     return true, nil
 end
@@ -830,11 +841,11 @@ function ControlNode:finish_experiment ( key )
     end
     self.running = false
 
-    self:send_info ("*** Fetch Measurements ***" )
+    self:send_info ("*** Fetch finished measurements ***" )
     -- fixme: MESH
     for _, ap_ref in ipairs ( self.ap_refs ) do
         --self:send_debug ( tostring ( collectgarbage ( "count" ) ) .. " kB" )
-        local succ, res = self.exp:fetch_measurement ( ap_ref, key )
+        local succ, res = self.exp:fetch_measurement ( ap_ref, key, false )
         if ( succ == false ) then
             return false, "ControlNode:exp_next_data failed: " .. ( res or "unknown" )
         end

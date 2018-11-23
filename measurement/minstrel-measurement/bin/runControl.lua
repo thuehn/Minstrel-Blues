@@ -55,6 +55,8 @@ function get_htmode ( ... ) return node:get_htmode ( ... ) end
 
 function get_txpowers ( ... ) return node:get_txpowers ( ... ) end
 function get_txrates ( ... ) return node:get_txrates ( ... ) end
+ 
+function get_online ( ... ) return node:get_online ( ... ) end
 
 --function run_experiment ( ... ) return node:run_experiment ( ... ) end
 function init_experiment ( ... ) return node:init_experiment ( ... ) end
