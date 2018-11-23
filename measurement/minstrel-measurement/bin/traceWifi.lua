@@ -138,7 +138,12 @@ if ( args.online == true and args.dump_to_dir ~= nil ) then
     print ("")
 end
 
-local has_config = Config.load_config ( args.config ) 
+local has_config, config_file_msg = Config.load_config ( args.config )
+if ( has_config ) then
+    print ( "Found configuration file" .. config_file_msg )
+else
+    print ( "Not using a config file: " .. config_file_msg )
+end
 
 local ap_setups
 local sta_setups

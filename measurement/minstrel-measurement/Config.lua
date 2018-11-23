@@ -38,6 +38,8 @@ Config.cnode_to_string = function ( config )
         .. "\t" .. ( config.radio or "none" )
         .. "\t" .. ( config.ctrl_if or "none" )
         .. "\t" .. ( config.mac or "none" )
+        .. "\t" .. ( tostring ( config.online ) )
+        .. "\t" .. ( config.dump_to_dir or "none" )
 end
 
 Config.connections_tostring = function ( connections )
@@ -91,12 +93,24 @@ Config.create_configs = function ( cmd_lines )
     for i, cmd_line in ipairs ( cmd_lines ) do
         local parts = split ( cmd_line, "," )
         configs [i] = Config.create_config ( parts [ 1 ], parts [ 3 ], ( parts [ 2 ] or "radio0" ) )
+        if ( #parts > 3 ) then
+            configs [i].rsa_key = parts [ 4 ]
+        end
+        if ( #parts > 4 ) then
+            configs [i].mac = parts [ 5 ]
+        end
+        if ( #parts > 5 ) then
+            configs [i].online = parts [ 6 ]
+        end
+        if ( #parts > 6 ) then
+            configs [i].dump_to_dir = parts [ 7 ]
+        end
     end
     return configs
 end
 
 Config.copy_config_nodes = function ( src, dest )
-    for _,v in ipairs( src ) do dest [ #dest + 1 ] = v end
+    for _, v in ipairs ( src ) do dest [ #dest + 1 ] = v end
 end
 
 Config.get_config_fname = function ( fname )
@@ -120,8 +134,7 @@ Config.load_config = function ( fname )
     if ( has_config_arg or has_rcfile ) then
 
         if ( ( has_config_arg == false or not isFile ( fname ) ) and not has_rcfile ) then
-            print ( fname .. " does not exists.")
-            return false
+            return false, fname .. " does not exists."
         end
 
         -- (loadfile, dofile, loadstring)  
@@ -131,10 +144,14 @@ Config.load_config = function ( fname )
             dofile ( rc_fname )
         end
         
-        return true
+        local msg = rc_fname
+        if ( has_config_arg ) then
+            msg = fname
+        end
+        return true, msg
     end
 
-    return false
+    return false, "~/.minstrelmrc doesn't exists and no config file parameter specified!"
 end
 
 Config.set_config_from_arg = function ( config, key, arg )
@@ -163,6 +180,12 @@ Config.set_configs_from_args = function ( configs, args )
                 end
                 if ( parts [ 5 ] ~= nil and parts [ 5 ] ~= "" ) then
                     Config.set_config_from_arg ( config, "mac", parts [ 5 ] )
+                end
+                if ( parts [ 6 ] ~= nil ) then
+                    Config.set_config_from_arg ( config, "online", parts [ 6 ] )
+                end
+                if ( parts [ 7 ] ~= nil and parts [ 7 ] ~= "" ) then
+                    Config.set_config_from_arg ( config, "dump_to_dir", parts [ 7 ] )
                 end
             end
         end
