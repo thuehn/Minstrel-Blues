@@ -93,6 +93,8 @@ The command will start the control node and the control node itself starts the m
 
 The data can be fetched online during each experiment running with command line option ```--online``` when different interfaces for controling and experimenting are present. Without enabling option ```--online``` or providing local USB storage with option ```--dump_to_dir``` it is not possible to perform long experiments or high data rates since the traces have to be collected in the limited device memory during an experiment.
 
+The command line options ```--online``` and ```--dump_to_dir``` are valid for all nodes and individual settings per node are not used if set. Without these command line options the individual settings of all nodes are used or if unset then the data is kept in memory. All command line options are overwriting the corresponding config file options.
+
 Please refer to the output of option ```--help``` for a complete list of available options.
 
 # Analyse Measurement
