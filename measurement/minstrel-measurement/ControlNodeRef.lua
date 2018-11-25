@@ -12,6 +12,7 @@ require ('NetIfRef')
 require ('MeasurementOption')
 require ('Measurements')
 require ('LogNodeRef')
+require ('parsers/netstat')
 
 ControlNodeRef = { name = nil           -- hostname of the control node ( String )
                  , ssh_port = nil       -- ssh port ( Number )
@@ -57,7 +58,6 @@ function ControlNodeRef:create ( ctrl_port, output_dir
                                , dump_to_dir
                                )
     if ( retries == nil ) then error ( "retries" ) end
-    print ( "retries: " .. retries )
     -- access points
     local ap_names = {}
     for _, ap in ipairs ( ap_args ) do
@@ -170,6 +170,8 @@ function ControlNodeRef:create ( ctrl_port, output_dir
     MeasurementsOption.write_file ( o.output_dir, o.mopts )
 
     if ( log_port ~= nil and log_fname ~= nil ) then
+
+        log_port = check_port ( net_if.addr, log_port )
         o.log_ref = LogNodeRef:create ( net_if.addr, log_port, retries )
         o.log_ref:start ( output_dir .. "/" .. log_fname, o.lua_bin )
         o:send_info ( "wait until logger is running" )
@@ -189,6 +191,22 @@ end
 
 function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
+end
+
+function check_port ( addr, port )
+    local pid, stdin, stdout = misc.spawn ( "/bin/netstat", "-antup" )
+    local exit_code = lpc.wait ( pid )
+    local netstat_str = stdout:read ( "*a" )
+    stdin:close ()
+    stdout:close ()
+    local netstat = parse_netstat ( netstat_str )
+    for _, stat in ipairs ( netstat ) do
+        if ( stat.proto == "tcp" and stat.local_port == tostring ( port )
+            and ( stat.local_addr == "0.0.0.0" or stat.local_addr == addr ) ) then
+            return check_port ( addr, port + 1 )
+        end
+    end
+    return port
 end
 
 function ControlNodeRef:init ( disable_autostart, disable_synchronize )

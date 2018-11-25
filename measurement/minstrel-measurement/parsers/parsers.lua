@@ -92,13 +92,29 @@ function parse_real ( str, pos )
     end
 end
 
--- return: str without leading whitespaces ('\n', ' ', '\t')
+-- return: str without leading whitespaces and new lines ('\n', ' ', '\t')
 function skip_layout ( str, pos )
     local state = false
     local rest = str
     repeat
         local c = shead( rest )
         if ( c ~= '\n' and c ~= " " and c ~= '\t') then
+            state = true
+        else
+            rest = stail ( rest )
+            pos = cursor ( pos )
+        end
+    until state
+    return rest, pos
+end
+
+-- return: str without leading whitespaces (' ', '\t')
+function skip_ws ( str, pos )
+    local state = false
+    local rest = str
+    repeat
+        local c = shead( rest )
+        if ( c ~= " " and c ~= '\t') then
             state = true
         else
             rest = stail ( rest )
@@ -301,7 +317,7 @@ function parse_ipv6 ( str, pos )
         num, rest, pos = parse_hex_num ( rest, pos )
         result = result .. num
         state, rest, pos = parse_str ( rest, ":", pos )
-        if ( state == true ) then 
+        if ( state == true ) then
             result = result .. ":"
         end
     until state == false

@@ -103,6 +103,8 @@ The data can be fetched online during each experiment running with command line 
 
 The command line options ```--online``` and ```--dump_to_dir``` are valid for all nodes and individual settings per node are not used if set. Without these command line options the individual settings of all nodes are used or if unset then the data is kept in memory. All command line options are overwriting the corresponding config file options.
 
+A 5G measurement with 1600 Experiments last 5 hours with online fetching of the data traces and 6 hours without.
+
 Please refer to the output of option ```--help``` for a complete list of available options.
 
 # Analyse Measurement
@@ -134,7 +136,8 @@ The following command extracts the signal noise rate (SNR) from dumped pcap file
 
 ```/usr/bin/analyseSNR -t ~/data```
 
-The following image shows an two dimasional diagrams as a result of the analysis of an accesspoint.
+The following image shows a two dimasional diagram as a result of the analysis of the 5G measurement of an accesspoint with one station.
+
 ![snr-per-rate-power][snr]
 
 [snr]: https://github.com/thuehn/Minstrel-Blues/tree/master/measurement/minstrel-measurement/doc/snr_per_rate_power_v2.png "SNR per rate and power"
