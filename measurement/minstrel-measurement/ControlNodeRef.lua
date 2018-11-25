@@ -169,9 +169,12 @@ function ControlNodeRef:create ( ctrl_port, output_dir
     o.mopts [ "control" ] = MeasurementsOption:create ( "control", "String", ctrl_config.name )
     MeasurementsOption.write_file ( o.output_dir, o.mopts )
 
+    o.ctrl_port = check_port ( net_if.addr, o.ctrl_port )
     if ( log_port ~= nil and log_fname ~= nil ) then
-
         log_port = check_port ( net_if.addr, log_port )
+        if ( log_port == o.ctrl_port ) then
+            log_port = check_port ( net_if.addr, tostring ( tonumber ( o.ctrl_port ) + 1 ) )
+        end
         o.log_ref = LogNodeRef:create ( net_if.addr, log_port, retries )
         o.log_ref:start ( output_dir .. "/" .. log_fname, o.lua_bin )
         o:send_info ( "wait until logger is running" )
@@ -201,9 +204,9 @@ function check_port ( addr, port )
     stdout:close ()
     local netstat = parse_netstat ( netstat_str )
     for _, stat in ipairs ( netstat ) do
-        if ( stat.proto == "tcp" and stat.local_port == tostring ( port )
+        if ( stat.proto == "tcp" and stat.local_port == port
             and ( stat.local_addr == "0.0.0.0" or stat.local_addr == addr ) ) then
-            return check_port ( addr, port + 1 )
+            return check_port ( addr, tostring ( tonumber ( port ) + 1 ) )
         end
     end
     return port
