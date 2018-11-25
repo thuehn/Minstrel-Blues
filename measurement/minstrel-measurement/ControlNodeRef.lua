@@ -169,9 +169,10 @@ function ControlNodeRef:create ( ctrl_port, output_dir
     o.mopts [ "control" ] = MeasurementsOption:create ( "control", "String", ctrl_config.name )
     MeasurementsOption.write_file ( o.output_dir, o.mopts )
 
-    o.ctrl_port = check_port ( net_if.addr, o.ctrl_port )
+    local netstat
+    o.ctrl_port, netstat = check_port ( net_if.addr, o.ctrl_port )
     if ( log_port ~= nil and log_fname ~= nil ) then
-        log_port = check_port ( net_if.addr, log_port )
+        log_port, netstat = check_port ( net_if.addr, log_port )
         if ( log_port == o.ctrl_port ) then
             log_port = check_port ( net_if.addr, tostring ( tonumber ( o.ctrl_port ) + 1 ) )
         end
@@ -196,20 +197,23 @@ function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
 end
 
-function check_port ( addr, port )
-    local pid, stdin, stdout = misc.spawn ( "/bin/netstat", "-antup" )
-    local exit_code = lpc.wait ( pid )
-    local netstat_str = stdout:read ( "*a" )
-    stdin:close ()
-    stdout:close ()
-    local netstat = parse_netstat ( netstat_str )
+function check_port ( addr, port, netstat )
+    if ( netstat == nil ) then
+        local pid, stdin, stdout = misc.spawn ( "/bin/netstat", "-antup" )
+        local exit_code = lpc.wait ( pid )
+        netstat_str = stdout:read ( "*a" )
+        stdin:close ()
+        stdout:close ()
+        netstat = parse_netstat ( netstat_str )
+    end
     for _, stat in ipairs ( netstat ) do
         if ( stat.proto == "tcp" and stat.local_port == port
             and ( stat.local_addr == "0.0.0.0" or stat.local_addr == addr ) ) then
-            return check_port ( addr, tostring ( tonumber ( port ) + 1 ) )
+            print ( "Another service is running on port " .. port .. "!" )
+            return check_port ( addr, tostring ( tonumber ( port ) + 1 ), netstat )
         end
     end
-    return port
+    return port, netstat
 end
 
 function ControlNodeRef:init ( disable_autostart, disable_synchronize )
