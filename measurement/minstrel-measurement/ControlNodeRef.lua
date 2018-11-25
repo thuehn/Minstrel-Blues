@@ -172,9 +172,9 @@ function ControlNodeRef:create ( ctrl_port, output_dir
     local netstat
     o.ctrl_port, netstat = check_port ( net_if.addr, o.ctrl_port )
     if ( log_port ~= nil and log_fname ~= nil ) then
-        log_port, netstat = check_port ( net_if.addr, log_port )
+        log_port, netstat = check_port ( net_if.addr, log_port, netstat )
         if ( log_port == o.ctrl_port ) then
-            log_port = check_port ( net_if.addr, tostring ( tonumber ( o.ctrl_port ) + 1 ) )
+            log_port = check_port ( net_if.addr, tostring ( tonumber ( o.ctrl_port ) + 1 ), netstat )
         end
         o.log_ref = LogNodeRef:create ( net_if.addr, log_port, retries )
         o.log_ref:start ( output_dir .. "/" .. log_fname, o.lua_bin )
