@@ -12,7 +12,6 @@ require ('NetIfRef')
 require ('MeasurementOption')
 require ('Measurements')
 require ('LogNodeRef')
-require ('parsers/netstat')
 
 ControlNodeRef = { name = nil           -- hostname of the control node ( String )
                  , ssh_port = nil       -- ssh port ( Number )
@@ -170,15 +169,20 @@ function ControlNodeRef:create ( ctrl_port, output_dir
     MeasurementsOption.write_file ( o.output_dir, o.mopts )
 
     local netstat
-    o.ctrl_port, netstat = check_port ( net_if.addr, o.ctrl_port )
+    local msg
+    o.ctrl_port, netstat, msg = net.check_port ( net_if.addr, o.ctrl_port )
     if ( log_port ~= nil and log_fname ~= nil ) then
-        log_port, netstat = check_port ( net_if.addr, log_port, netstat )
+        log_port, netstat, msg = net.check_port ( net_if.addr, log_port, netstat, msg )
         if ( log_port == o.ctrl_port ) then
-            log_port = check_port ( net_if.addr, tostring ( tonumber ( o.ctrl_port ) + 1 ), netstat )
+            log_port, _, msg = net.check_port ( net_if.addr, tostring ( tonumber ( o.ctrl_port ) + 1 ), netstat, msg )
         end
         o.log_ref = LogNodeRef:create ( net_if.addr, log_port, retries )
         o.log_ref:start ( output_dir .. "/" .. log_fname, o.lua_bin )
         o:send_info ( "wait until logger is running" )
+        if ( msg ~= nil ) then
+            print ( msg )
+            o:send_warning ( msg )
+        end
     end
 
     -- stop when nameserver is not reachable / not working
@@ -195,25 +199,6 @@ end
 
 function ControlNodeRef:__tostring ()
     return self.rpc.__tostring ()
-end
-
-function check_port ( addr, port, netstat )
-    if ( netstat == nil ) then
-        local pid, stdin, stdout = misc.spawn ( "/bin/netstat", "-antup" )
-        local exit_code = lpc.wait ( pid )
-        netstat_str = stdout:read ( "*a" )
-        stdin:close ()
-        stdout:close ()
-        netstat = parse_netstat ( netstat_str )
-    end
-    for _, stat in ipairs ( netstat ) do
-        if ( stat.proto == "tcp" and stat.local_port == port
-            and ( stat.local_addr == "0.0.0.0" or stat.local_addr == addr ) ) then
-            print ( "Another service is running on port " .. port .. "!" )
-            return check_port ( addr, tostring ( tonumber ( port ) + 1 ), netstat )
-        end
-    end
-    return port, netstat
 end
 
 function ControlNodeRef:init ( disable_autostart, disable_synchronize )

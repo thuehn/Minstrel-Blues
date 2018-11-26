@@ -3,9 +3,11 @@ local posix = require ('posix') -- sleep
 require ('parsers/ifconfig')
 require ('parsers/dig')
 require ('parsers/brctl')
+require ('parsers/netstat')
 require ('lfs')
 local misc = require ('misc')
 require ('rpc')
+local pprint = require ('pprint')
 
 Net = {}
 
@@ -90,6 +92,27 @@ Net.get_interface_name = function ( phy )
         end
     end
     return nil, "No debugfs entry for " .. phy .. " found (" .. dname .. ")"
+end
+
+function Net.check_port ( addr, port, netstat, msg )
+    if ( netstat == nil ) then
+        local pid, stdin, stdout = misc.spawn ( "/bin/netstat", "-antup" )
+        local exit_code = lpc.wait ( pid )
+        netstat_str = stdout:read ( "*a" )
+        stdin:close ()
+        stdout:close ()
+        netstat = parse_netstat ( netstat_str )
+    end
+    for _, stat in ipairs ( netstat ) do
+        if ( --stat.proto == "tcp" and 
+            stat.local_port == port
+            and ( stat.local_addr == "0.0.0.0" or stat.local_addr == addr ) ) then
+            return Net.check_port ( addr, tostring ( tonumber ( port ) + 1 ), netstat
+                                  , ( msg or "" ) .. " Another service is running on port " .. port .. "!"
+                                  )
+        end
+    end
+    return port, netstat, msg
 end
 
 function Net.run ( port, name, log_f )
