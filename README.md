@@ -22,12 +22,12 @@ about practical ressource allocation in WiFi networks at the Technical Universit
 3. validate and analyse Minstrel-Blues performance in different WiFi environments
 
 ## How to use Minstrel-Blues ?
-(my development environment is Linux LEDE on embedded routers driving Atheros ath9k WiFi hardware)
-- get the current trunk verision of LEDE (git clone git clone http://git.lede-project.org/source.git)
+(my development environment is based on Linux OpenWrt driving embedded routers with Atheros ath5k/ath9k WiFi hardware)
+- get the current trunk version of OpenWrt trunk (https://openwrt.org/docs/guide-developer/source-code/start)
 - checkout Minstrel-Blues current version
-- copy all patches from the src folder into /lede/packages/kernel/mac80211/patches
-- rebuild mac80211 subsystem by: make package/mac80211/{clean,compile} or re-build complite LEDE
-- install new mac80211 package or flash full image to your router
+- copy all patches from the src/ath folder into your local openwrt/packages/kernel/mac80211/patches/ath
+- rebuild mac80211 subsystem by: make package/mac80211/{clean,compile} or re-build intire OpenWrt
+- install new mac80211 package by using opkg or flash full image to your router
 
 ## Usage instructions to control Minstrel-Blues
 - TBD !
