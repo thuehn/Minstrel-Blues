@@ -1,0 +1,15 @@
+--- a/net/mac80211/rc80211_minstrel.c
++++ b/net/mac80211/rc80211_minstrel.c
+@@ -356,6 +356,12 @@ minstrel_get_rate(void *priv, struct iee
+ 	/* increase sum packet counter */
+ 	mi->total_packets++;
+ 
++	/* avoid overflowing packet counters */
++	if (mi->total_packets == ~0) {
++		mi->sample_packets = 0;
++		mi->total_packets = 0;
++	}
++
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	if (mp->fixed_rate_idx != -1)
+ 		return;
