@@ -1,6 +1,8 @@
---- a/drivers/net/wireless/ath/ath9k/hw.c
-+++ b/drivers/net/wireless/ath/ath9k/hw.c
-@@ -461,7 +461,7 @@ static void ath9k_hw_init_defaults(struc
+Index: backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/hw.c
+===================================================================
+--- backports-5.7-rc3-1.orig/drivers/net/wireless/ath/ath9k/hw.c
++++ backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/hw.c
+@@ -480,7 +480,7 @@ static void ath9k_hw_init_defaults(struc
  	ah->power_mode = ATH9K_PM_UNDEFINED;
  	ah->htc_reset_init = true;
  
@@ -9,9 +11,11 @@
  
  	ah->ani_function = ATH9K_ANI_ALL;
  	if (!AR_SREV_9300_20_OR_LATER(ah))
---- a/drivers/net/wireless/ath/ath9k/init.c
-+++ b/drivers/net/wireless/ath/ath9k/init.c
-@@ -929,6 +929,8 @@ static void ath9k_set_hw_capab(struct at
+Index: backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/init.c
+===================================================================
+--- backports-5.7-rc3-1.orig/drivers/net/wireless/ath/ath9k/init.c
++++ backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/init.c
+@@ -944,6 +944,8 @@ static void ath9k_set_hw_capab(struct at
  	ieee80211_hw_set(hw, HOST_BROADCAST_PS_BUFFERING);
  	ieee80211_hw_set(hw, SUPPORT_FAST_XMIT);
  	ieee80211_hw_set(hw, SUPPORTS_CLONED_SKBS);
@@ -20,7 +24,7 @@
  
  	if (ath9k_ps_enable)
  		ieee80211_hw_set(hw, SUPPORTS_PS);
-@@ -982,6 +984,7 @@ static void ath9k_set_hw_capab(struct at
+@@ -997,6 +999,7 @@ static void ath9k_set_hw_capab(struct at
  	hw->max_rates = 4;
  	hw->max_listen_interval = 10;
  	hw->max_rate_tries = 10;

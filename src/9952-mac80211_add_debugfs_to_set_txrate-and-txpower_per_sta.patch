@@ -1,6 +1,8 @@
---- a/net/mac80211/rc80211_minstrel.c
-+++ b/net/mac80211/rc80211_minstrel.c
-@@ -187,6 +187,14 @@ minstrel_update_rates(struct minstrel_pr
+Index: backports-5.4.27-1/net/mac80211/rc80211_minstrel.c
+===================================================================
+--- backports-5.4.27-1.orig/net/mac80211/rc80211_minstrel.c
++++ backports-5.4.27-1/net/mac80211/rc80211_minstrel.c
+@@ -160,6 +160,14 @@ minstrel_update_rates(struct minstrel_pr
  	ratetbl->rate[i].count_cts = mp->max_retry;
  	ratetbl->rate[i].count_rts = mp->max_retry;
  
@@ -15,7 +17,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, ratetbl);
  }
  
-@@ -290,9 +298,13 @@ minstrel_update_stats(struct minstrel_pr
+@@ -258,9 +266,13 @@ minstrel_update_stats(struct minstrel_pr
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	/* use fixed index if set */
  	if (mp->fixed_rate_idx != -1) {
@@ -31,7 +33,7 @@
  	}
  #endif
  
-@@ -395,8 +407,12 @@ minstrel_get_rate(void *priv, struct iee
+@@ -373,8 +385,12 @@ minstrel_get_rate(void *priv, struct iee
  	}
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -45,9 +47,11 @@
  #endif
  
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
---- a/net/mac80211/rc80211_minstrel.h
-+++ b/net/mac80211/rc80211_minstrel.h
-@@ -115,6 +115,11 @@ struct minstrel_sta_info {
+Index: backports-5.4.27-1/net/mac80211/rc80211_minstrel.h
+===================================================================
+--- backports-5.4.27-1.orig/net/mac80211/rc80211_minstrel.h
++++ backports-5.4.27-1/net/mac80211/rc80211_minstrel.h
+@@ -137,6 +137,11 @@ struct minstrel_sta_info {
  
  	/* sampling table */
  	u8 *sample_table;
@@ -59,19 +63,21 @@
  };
  
  struct minstrel_priv {
---- a/net/mac80211/rc80211_minstrel_ht.c
-+++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -458,6 +458,9 @@ minstrel_ht_update_stats(struct minstrel
+Index: backports-5.4.27-1/net/mac80211/rc80211_minstrel_ht.c
+===================================================================
+--- backports-5.4.27-1.orig/net/mac80211/rc80211_minstrel_ht.c
++++ backports-5.4.27-1/net/mac80211/rc80211_minstrel_ht.c
+@@ -632,6 +632,9 @@ minstrel_ht_update_stats(struct minstrel
  	int index, group, i, j, cur_prob;
- 	u16 tmp_mcs_tp_rate[MAX_THR_RATES], tmp_cck_tp_rate[MAX_THR_RATES];
- 
+ 	u16 tmp_mcs_tp_rate[MAX_THR_RATES], tmp_group_tp_rate[MAX_THR_RATES];
+ 	u16 tmp_cck_tp_rate[MAX_THR_RATES];
 +#ifdef CPTCFG_MAC80211_DEBUGFS
 +	struct minstrel_ht_sta_priv *msp;
 +#endif
- 	if (mi->ampdu_packets > 0) {
- 		mi->avg_ampdu_len = minstrel_ewma(mi->avg_ampdu_len,
- 			MINSTREL_FRAC(mi->ampdu_len, mi->ampdu_packets), EWMA_LEVEL);
-@@ -512,10 +515,15 @@ minstrel_ht_update_stats(struct minstrel
+ 
+ 	mi->sample_mode = MINSTREL_SAMPLE_IDLE;
+ 
+@@ -732,11 +735,16 @@ minstrel_ht_update_stats(struct minstrel
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
  	/* use fixed index if set */
@@ -80,6 +86,7 @@
  		for (i = 0; i < 4; i++)
  			mi->max_tp_rate[i] = mp->fixed_rate_idx;
  		mi->max_prob_rate = mp->fixed_rate_idx;
+ 		mi->sample_mode = MINSTREL_SAMPLE_IDLE;
 +	} else if (msp->fixed_txrate != -1) {
 +		for (i = 0; i < 4; i++)
 +			mi->max_tp_rate[i] = msp->fixed_txrate;
@@ -87,7 +94,7 @@
  	}
  #endif
  
-@@ -597,7 +605,9 @@ minstrel_ht_downgrade_rate(struct minstr
+@@ -818,7 +826,9 @@ minstrel_ht_downgrade_rate(struct minstr
  	int tmp_group, tmp_flags, tmp_streams;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -98,17 +105,17 @@
  		return;
  #endif
  
-@@ -946,6 +956,9 @@ minstrel_ht_update_rates(struct minstrel
- 	struct sta_info *sta;
+@@ -1203,6 +1213,9 @@ minstrel_ht_update_rates(struct minstrel
  	s8 txpower;
+ 	u16 first_rate = mi->max_tp_rate[0];
  	int i = 0;
 +#ifdef CPTCFG_MAC80211_DEBUGFS
 +	struct minstrel_ht_sta_priv *msp;
 +#endif
  
- 	sta = container_of(mi->sta, struct sta_info, sta);
- 	txpower = sta->sdata->vif.bss_conf.txpower;
-@@ -974,6 +987,16 @@ minstrel_ht_update_rates(struct minstrel
+ 	if (mi->sample_mode == MINSTREL_SAMPLE_ACTIVE)
+ 		first_rate = mi->sample_rate;
+@@ -1232,6 +1245,16 @@ minstrel_ht_update_rates(struct minstrel
  
  	mi->sta->max_rc_amsdu_len = minstrel_ht_get_max_amsdu_len(mi);
  	rates->rate[i].idx = -1;
@@ -125,7 +132,7 @@
  	rate_control_set_rates(mp->hw, mi->sta, rates);
  }
  
-@@ -1126,8 +1149,12 @@ minstrel_ht_get_rate(void *priv, struct
+@@ -1355,8 +1378,12 @@ minstrel_ht_get_rate(void *priv, struct
  	info->flags |= mi->tx_flags;
  
  #ifdef CPTCFG_MAC80211_DEBUGFS
@@ -139,7 +146,7 @@
  #endif
  
  	/* Don't use EAPOL frames for sampling on non-mrr hw */
-@@ -1375,6 +1402,10 @@ use_legacy:
+@@ -1580,6 +1607,10 @@ use_legacy:
  	memset(&msp->legacy, 0, sizeof(msp->legacy));
  	msp->legacy.r = msp->ratelist;
  	msp->legacy.sample_table = msp->sample_table;
@@ -150,7 +157,7 @@
  	return mac80211_minstrel.rate_init(priv, sband, chandef, sta,
  					   &msp->legacy);
  }
-@@ -1427,6 +1458,11 @@ minstrel_ht_alloc_sta(void *priv, struct
+@@ -1629,6 +1660,11 @@ minstrel_ht_alloc_sta(void *priv, struct
  	if (!msp->sample_table)
  		goto error1;
  
@@ -162,9 +169,11 @@
  	return msp;
  
  error1:
---- a/net/mac80211/rc80211_minstrel_ht.h
-+++ b/net/mac80211/rc80211_minstrel_ht.h
-@@ -101,6 +101,10 @@ struct minstrel_ht_sta_priv {
+Index: backports-5.4.27-1/net/mac80211/rc80211_minstrel_ht.h
+===================================================================
+--- backports-5.4.27-1.orig/net/mac80211/rc80211_minstrel_ht.h
++++ backports-5.4.27-1/net/mac80211/rc80211_minstrel_ht.h
+@@ -112,6 +112,10 @@ struct minstrel_ht_sta_priv {
  		struct minstrel_ht_sta ht;
  		struct minstrel_sta_info legacy;
  	};

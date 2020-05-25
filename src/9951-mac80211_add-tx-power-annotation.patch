@@ -1,6 +1,8 @@
---- a/include/net/mac80211.h
-+++ b/include/net/mac80211.h
-@@ -939,7 +939,12 @@ struct ieee80211_tx_info {
+Index: backports-5.7-rc3-1/include/net/mac80211.h
+===================================================================
+--- backports-5.7-rc3-1.orig/include/net/mac80211.h
++++ backports-5.7-rc3-1/include/net/mac80211.h
+@@ -1025,7 +1025,12 @@ struct ieee80211_tx_info {
  					u8 use_cts_prot:1;
  					u8 short_preamble:1;
  					u8 skip_table:1;
@@ -14,15 +16,7 @@
  				};
  				/* only needed before rate control */
  				unsigned long jiffies;
-@@ -1341,6 +1346,7 @@ enum ieee80211_conf_flags {
-  * @IEEE80211_CONF_CHANGE_SMPS: Spatial multiplexing powersave mode changed
-  *	Note that this is only valid if channel contexts are not used,
-  *	otherwise each channel context has the number of chains listed.
-+ * @IEEE80211_CONF_CHANGE_ACK_TXPOWER: TX power in dBm for ACK packets changed
-  */
- enum ieee80211_conf_changed {
- 	IEEE80211_CONF_CHANGE_SMPS		= BIT(1),
-@@ -1351,6 +1357,7 @@ enum ieee80211_conf_changed {
+@@ -1466,6 +1471,7 @@ enum ieee80211_conf_changed {
  	IEEE80211_CONF_CHANGE_CHANNEL		= BIT(6),
  	IEEE80211_CONF_CHANGE_RETRY_LIMITS	= BIT(7),
  	IEEE80211_CONF_CHANGE_IDLE		= BIT(8),
@@ -30,19 +24,7 @@
  };
  
  /**
-@@ -1406,6 +1413,11 @@ enum ieee80211_smps_mode {
-  *	configured for an HT channel.
-  *	Note that this is only valid if channel contexts are not used,
-  *	otherwise each channel context has the number of chains listed.
-+ *
-+ * @min_txpower: minimum tx power level in dBm, that is configured for the
-+ *	hardware. Negative values are possible (e.g. -5 dBm).
-+ *
-+ * @ack_txpower: tx power level in dBm of mac layer ACK packets.
-  */
- struct ieee80211_conf {
- 	u32 flags;
-@@ -1420,6 +1432,8 @@ struct ieee80211_conf {
+@@ -1535,6 +1541,8 @@ struct ieee80211_conf {
  	struct cfg80211_chan_def chandef;
  	bool radar_enabled;
  	enum ieee80211_smps_mode smps_mode;
@@ -51,15 +33,7 @@
  };
  
  /**
-@@ -1784,13 +1798,14 @@ enum ieee80211_sta_rx_bandwidth {
-  * struct ieee80211_sta_rates - station rate selection table
-  *
-  * @rcu_head: RCU head used for freeing the table on update
-- * @rate: transmit rates/flags to be used by default.
-+ * @rate: transmit rates/power/flags to be used by default.
-  *	Overriding entries per-packet is possible by using cb tx control.
-  */
- struct ieee80211_sta_rates {
+@@ -1920,6 +1928,7 @@ struct ieee80211_sta_rates {
  	struct rcu_head rcu_head;
  	struct {
  		s8 idx;
@@ -67,64 +41,80 @@
  		u8 count;
  		u8 count_cts;
  		u8 count_rts;
-@@ -2132,6 +2147,16 @@ struct ieee80211_txq {
-  * @IEEE80211_HW_NEEDS_ALIGNED4_SKBS: Driver need aligned skbs to four-byte.
-  *	Padding will be added after ieee80211_hdr, before IV/LLC.
-  *
-+ * @IEEE80211_HW_SUPPORTS_TPC_PER_PACKET: The hardware/driver supports transmit
-+ *	power control (TPC) with one power level per data packet.
-+ *
-+ * @IEEE80211_HW_SUPPORTS_TPC_PER_MRR: The hardware/driver supports transmit
-+ *	power control (TPC) with individual power levels for each
-+ *	multi-rate-retry (mrr) stage per data packet.
-+ *
-+ * @IEEE80211_HW_SUPPORTS_TPC_FOR_ACK_PACKETS: The hardware/driver supports
-+ *	transmit power control (TPC) for ACK packets.
-+ *
-  * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
-  */
- enum ieee80211_hw_flags {
-@@ -2178,6 +2203,9 @@ enum ieee80211_hw_flags {
- 	IEEE80211_HW_DEAUTH_NEED_MGD_TX_PREP,
- 	IEEE80211_HW_DOESNT_SUPPORT_QOS_NDP,
- 	IEEE80211_HW_NEEDS_ALIGNED4_SKBS,
+@@ -2359,6 +2368,9 @@ enum ieee80211_hw_flags {
+ 	IEEE80211_HW_SUPPORTS_MULTI_BSSID,
+ 	IEEE80211_HW_SUPPORTS_ONLY_HE_MULTI_BSSID,
+ 	IEEE80211_HW_AMPDU_KEYBORDER_SUPPORT,
 +	IEEE80211_HW_SUPPORTS_TPC_PER_PACKET,
 +	IEEE80211_HW_SUPPORTS_TPC_PER_MRR,
 +	IEEE80211_HW_SUPPORTS_TPC_FOR_ACK_PACKETS,
  
  	/* keep last, obviously */
  	NUM_IEEE80211_HW_FLAGS
-@@ -2296,6 +2324,9 @@ enum ieee80211_hw_flags {
-  *	supported by HW.
-  * @max_nan_de_entries: maximum number of NAN DE functions supported by the
-  *	device.
-+ *
-+ * @min_txpower: minimum tx power level in dBm, that is supported by the
-+ *	hardware. Negative values are possible (e.g. -5 dBm).
-  */
- struct ieee80211_hw {
- 	struct ieee80211_conf conf;
-@@ -2331,6 +2362,7 @@ struct ieee80211_hw {
+@@ -2523,6 +2535,7 @@ struct ieee80211_hw {
  	u8 n_cipher_schemes;
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	u8 max_nan_de_entries;
 +	s8 min_txpower;
+ 	u8 tx_sk_pacing_shift;
+ 	u8 weight_multiplier;
+ 	u32 max_mtu;
+Index: backports-5.7-rc3-1/net/mac80211/debugfs.c
+===================================================================
+--- backports-5.7-rc3-1.orig/net/mac80211/debugfs.c
++++ backports-5.7-rc3-1/net/mac80211/debugfs.c
+@@ -408,6 +408,9 @@ static const char *hw_flag_names[] = {
+ 	FLAG(SUPPORTS_MULTI_BSSID),
+ 	FLAG(SUPPORTS_ONLY_HE_MULTI_BSSID),
+ 	FLAG(AMPDU_KEYBORDER_SUPPORT),
++	FLAG(SUPPORTS_TPC_PER_PACKET),
++	FLAG(SUPPORTS_TPC_PER_MRR),
++	FLAG(SUPPORTS_TPC_FOR_ACK_PACKETS),
+ #undef FLAG
  };
  
- static inline bool _ieee80211_hw_check(struct ieee80211_hw *hw,
---- a/net/mac80211/rate.c
-+++ b/net/mac80211/rate.c
-@@ -899,6 +899,8 @@ void rate_control_get_rate(struct ieee80
+Index: backports-5.7-rc3-1/net/mac80211/main.c
+===================================================================
+--- backports-5.7-rc3-1.orig/net/mac80211/main.c
++++ backports-5.7-rc3-1/net/mac80211/main.c
+@@ -161,6 +161,7 @@ static u32 ieee80211_hw_conf_chan(struct
+ 	if (local->hw.conf.power_level != power) {
+ 		changed |= IEEE80211_CONF_CHANGE_POWER;
+ 		local->hw.conf.power_level = power;
++		local->hw.conf.ack_txpower = power;
+ 	}
+ 
+ 	return changed;
+@@ -1203,6 +1204,12 @@ int ieee80211_register_hw(struct ieee802
+ 
+ 	local->dynamic_ps_forced_timeout = -1;
+ 
++	/*
++	 * if the driver doesn't specify a min txpower we
++	 * use 0dBm which should be a safe default
++	 */
++	local->hw.conf.min_txpower = local->hw.min_txpower = 0;
++
+ 	if (!local->hw.max_nan_de_entries)
+ 		local->hw.max_nan_de_entries = IEEE80211_MAX_NAN_INSTANCE_ID;
+ 
+Index: backports-5.7-rc3-1/net/mac80211/rate.c
+===================================================================
+--- backports-5.7-rc3-1.orig/net/mac80211/rate.c
++++ backports-5.7-rc3-1/net/mac80211/rate.c
+@@ -884,6 +884,8 @@ void rate_control_get_rate(struct ieee80
  		info->control.rates[i].count = 0;
  	}
  
 +	info->control.txpower = sdata->vif.bss_conf.txpower;
 +
- 	if (ieee80211_hw_check(&sdata->local->hw, HAS_RATE_CONTROL))
+ 	if (rate_control_send_low(sta ? &sta->sta : NULL, txrc))
  		return;
  
---- a/net/mac80211/rc80211_minstrel.c
-+++ b/net/mac80211/rc80211_minstrel.c
+Index: backports-5.7-rc3-1/net/mac80211/rc80211_minstrel.c
+===================================================================
+--- backports-5.7-rc3-1.orig/net/mac80211/rc80211_minstrel.c
++++ backports-5.7-rc3-1/net/mac80211/rc80211_minstrel.c
 @@ -52,6 +52,7 @@
  #include <linux/ieee80211.h>
  #include <linux/slab.h>
@@ -133,7 +123,7 @@
  #include "rate.h"
  #include "rc80211_minstrel.h"
  
-@@ -152,12 +153,21 @@ static void
+@@ -125,12 +126,21 @@ static void
  minstrel_update_rates(struct minstrel_priv *mp, struct minstrel_sta_info *mi)
  {
  	struct ieee80211_sta_rates *ratetbl;
@@ -155,15 +145,21 @@
  	/* Start with max_tp_rate */
  	minstrel_set_rate(mi, ratetbl, i++, mi->max_tp_rate[0]);
  
---- a/net/mac80211/rc80211_minstrel_ht.c
-+++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -943,12 +943,21 @@ static void
+Index: backports-5.7-rc3-1/net/mac80211/rc80211_minstrel_ht.c
+===================================================================
+--- backports-5.7-rc3-1.orig/net/mac80211/rc80211_minstrel_ht.c
++++ backports-5.7-rc3-1/net/mac80211/rc80211_minstrel_ht.c
+@@ -1199,16 +1199,25 @@ static void
  minstrel_ht_update_rates(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
  {
  	struct ieee80211_sta_rates *rates;
 +	struct sta_info *sta;
 +	s8 txpower;
+ 	u16 first_rate = mi->max_tp_rate[0];
  	int i = 0;
+ 
+ 	if (mi->sample_mode == MINSTREL_SAMPLE_ACTIVE)
+ 		first_rate = mi->sample_rate;
  
 +	sta = container_of(mi->sta, struct sta_info, sta);
 +	txpower = sta->sdata->vif.bss_conf.txpower;
@@ -177,40 +173,5 @@
 +	i = 0;
 +
  	/* Start with max_tp_rate[0] */
- 	minstrel_ht_set_rate(mp, mi, rates, i++, mi->max_tp_rate[0]);
- 
---- a/net/mac80211/debugfs.c
-+++ b/net/mac80211/debugfs.c
-@@ -215,6 +215,9 @@ static const char *hw_flag_names[] = {
- 	FLAG(DEAUTH_NEED_MGD_TX_PREP),
- 	FLAG(DOESNT_SUPPORT_QOS_NDP),
- 	FLAG(NEEDS_ALIGNED4_SKBS),
-+	FLAG(SUPPORTS_TPC_PER_PACKET),
-+	FLAG(SUPPORTS_TPC_PER_MRR),
-+	FLAG(SUPPORTS_TPC_FOR_ACK_PACKETS),
- #undef FLAG
- };
- 
---- a/net/mac80211/main.c
-+++ b/net/mac80211/main.c
-@@ -160,6 +160,7 @@ static u32 ieee80211_hw_conf_chan(struct
- 	if (local->hw.conf.power_level != power) {
- 		changed |= IEEE80211_CONF_CHANGE_POWER;
- 		local->hw.conf.power_level = power;
-+		local->hw.conf.ack_txpower = power;
- 	}
- 
- 	return changed;
-@@ -1137,6 +1138,12 @@ int ieee80211_register_hw(struct ieee802
- 
- 	local->dynamic_ps_forced_timeout = -1;
- 
-+	/*
-+	 * if the driver doesn't specify a min txpower we
-+	 * use 0dBm which should be a safe default
-+	 */
-+	local->hw.conf.min_txpower = local->hw.min_txpower = 0;
-+
- 	if (!local->hw.max_nan_de_entries)
- 		local->hw.max_nan_de_entries = IEEE80211_MAX_NAN_INSTANCE_ID;
+ 	minstrel_ht_set_rate(mp, mi, rates, i++, first_rate);
  

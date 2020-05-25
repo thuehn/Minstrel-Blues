@@ -1,6 +1,8 @@
---- a/drivers/net/wireless/ath/ath9k/xmit.c
-+++ b/drivers/net/wireless/ath/ath9k/xmit.c
-@@ -1285,7 +1285,7 @@ static u8 ath_get_rate_txpower(struct at
+Index: backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/xmit.c
+===================================================================
+--- backports-5.4-rc8-1.orig/drivers/net/wireless/ath/ath9k/xmit.c
++++ backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -1233,7 +1233,7 @@ static u8 ath_get_rate_txpower(struct at
  		if (!max_power && !AR_SREV_9280_20_OR_LATER(ah))
  			max_power = 1;
  	} else if (!bf->bf_state.bfs_paprd) {

@@ -1,6 +1,8 @@
---- a/drivers/net/wireless/ath/ath9k/xmit.c
-+++ b/drivers/net/wireless/ath/ath9k/xmit.c
-@@ -188,11 +188,51 @@ static void ath_send_bar(struct ath_atx_
+Index: backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/xmit.c
+===================================================================
+--- backports-5.4-rc8-1.orig/drivers/net/wireless/ath/ath9k/xmit.c
++++ backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -154,11 +154,51 @@ static void ath_send_bar(struct ath_atx_
  			   seqno << IEEE80211_SEQ_SEQ_SHIFT);
  }
  
