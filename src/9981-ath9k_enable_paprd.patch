@@ -1,0 +1,24 @@
+Index: backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/init.c
+===================================================================
+--- backports-5.7-rc3-1.orig/drivers/net/wireless/ath/ath9k/init.c
++++ backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/init.c
+@@ -1046,6 +1046,11 @@ static void ath_get_initial_entropy(stru
+ 	add_device_randomness(buf, sizeof(buf));
+ }
+ 
++void ath9k_enable_paprd(struct ath_hw *ah)
++{
++	ah->config.enable_paprd = 1;
++}
++
+ int ath9k_init_device(u16 devid, struct ath_softc *sc,
+ 		    const struct ath_bus_ops *bus_ops)
+ {
+@@ -1111,6 +1116,7 @@ int ath9k_init_device(u16 devid, struct
+ 			goto debug_cleanup;
+ 	}
+ 
++	ath9k_enable_paprd(ah);
+ 	ath_init_leds(sc);
+ 	ath_start_rfkill_poll(sc);
+ 

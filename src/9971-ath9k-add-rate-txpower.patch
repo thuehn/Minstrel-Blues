@@ -1,5 +1,7 @@
---- a/drivers/net/wireless/ath/ath9k/ath9k.h
-+++ b/drivers/net/wireless/ath/ath9k/ath9k.h
+Index: backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/ath9k.h
+===================================================================
+--- backports-5.4-rc8-1.orig/drivers/net/wireless/ath/ath9k/ath9k.h
++++ backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/ath9k.h
 @@ -227,6 +227,7 @@ struct ath_buf {
  	dma_addr_t bf_daddr;		/* physical addr of desc */
  	dma_addr_t bf_buf_addr;	/* physical addr of data buffer, for DMA */
@@ -8,19 +10,21 @@
  	struct ath_buf_state bf_state;
  };
  
---- a/drivers/net/wireless/ath/ath9k/xmit.c
-+++ b/drivers/net/wireless/ath/ath9k/xmit.c
-@@ -194,6 +194,9 @@ static bool ath_merge_ratetbl(struct iee
+Index: backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/xmit.c
+===================================================================
+--- backports-5.4-rc8-1.orig/drivers/net/wireless/ath/ath9k/xmit.c
++++ backports-5.4-rc8-1/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -160,6 +160,9 @@ static bool ath_merge_ratetbl(struct iee
  	struct ieee80211_sta_rates *ratetbl;
  	int i;
  
 +	for (i = 0; i < ARRAY_SIZE(bf->txpower); i++)
-+		bf->txpower[i] = MAX_RATE_POWER;
++		bf->txpower[i] = MAX_COMBINED_POWER;
 +
  	if (!sta)
  		return false;
  
-@@ -206,10 +209,12 @@ static bool ath_merge_ratetbl(struct iee
+@@ -172,10 +175,12 @@ static bool ath_merge_ratetbl(struct iee
  		i = 0;
  	} else {
  		bf->rates[0] = tx_info->control.rates[0];
@@ -33,7 +37,7 @@
  		bf->rates[i].idx = ratetbl->rate[i].idx;
  		bf->rates[i].flags = ratetbl->rate[i].flags;
  		if (tx_info->control.use_rts)
-@@ -1399,6 +1404,9 @@ static void ath_buf_set_rate(struct ath_
+@@ -1347,6 +1352,9 @@ static void ath_buf_set_rate(struct ath_
  							is_cck);
  	}
  

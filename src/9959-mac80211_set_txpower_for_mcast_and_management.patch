@@ -1,6 +1,8 @@
---- a/net/mac80211/rate.c
-+++ b/net/mac80211/rate.c
-@@ -401,6 +401,9 @@ bool rate_control_send_low(struct ieee80
+Index: backports-5.7-rc3-1/net/mac80211/rate.c
+===================================================================
+--- backports-5.7-rc3-1.orig/net/mac80211/rate.c
++++ backports-5.7-rc3-1/net/mac80211/rate.c
+@@ -392,6 +392,9 @@ static bool rate_control_send_low(struct
  					      txrc->bss_conf->basic_rates,
  					      sband);
  

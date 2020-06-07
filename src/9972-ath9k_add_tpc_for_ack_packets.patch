@@ -1,6 +1,8 @@
---- a/drivers/net/wireless/ath/ath9k/hw.c
-+++ b/drivers/net/wireless/ath/ath9k/hw.c
-@@ -2975,6 +2975,25 @@ void ath9k_hw_set_txpowerlimit(struct at
+Index: backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/hw.c
+===================================================================
+--- backports-5.7-rc3-1.orig/drivers/net/wireless/ath/ath9k/hw.c
++++ backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/hw.c
+@@ -3063,6 +3063,25 @@ void ath9k_hw_set_txpowerlimit(struct at
  }
  EXPORT_SYMBOL(ath9k_hw_set_txpowerlimit);
  
@@ -26,9 +28,11 @@
  void ath9k_hw_setopmode(struct ath_hw *ah)
  {
  	ath9k_hw_set_operating_mode(ah, ah->opmode);
---- a/drivers/net/wireless/ath/ath9k/hw.h
-+++ b/drivers/net/wireless/ath/ath9k/hw.h
-@@ -1053,6 +1053,7 @@ void ath9k_hw_setrxfilter(struct ath_hw
+Index: backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/hw.h
+===================================================================
+--- backports-5.7-rc3-1.orig/drivers/net/wireless/ath/ath9k/hw.h
++++ backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/hw.h
+@@ -1065,6 +1065,7 @@ void ath9k_hw_setrxfilter(struct ath_hw
  bool ath9k_hw_phy_disable(struct ath_hw *ah);
  bool ath9k_hw_disable(struct ath_hw *ah);
  void ath9k_hw_set_txpowerlimit(struct ath_hw *ah, u32 limit, bool test);
@@ -36,16 +40,18 @@
  void ath9k_hw_setopmode(struct ath_hw *ah);
  void ath9k_hw_setmcastfilter(struct ath_hw *ah, u32 filter0, u32 filter1);
  void ath9k_hw_write_associd(struct ath_hw *ah);
---- a/drivers/net/wireless/ath/ath9k/main.c
-+++ b/drivers/net/wireless/ath/ath9k/main.c
-@@ -1458,6 +1458,10 @@ static int ath9k_config(struct ieee80211
+Index: backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/main.c
+===================================================================
+--- backports-5.7-rc3-1.orig/drivers/net/wireless/ath/ath9k/main.c
++++ backports-5.7-rc3-1/drivers/net/wireless/ath/ath9k/main.c
+@@ -1473,6 +1473,10 @@ static int ath9k_config(struct ieee80211
  		ath_chanctx_set_channel(sc, ctx, &hw->conf.chandef);
  	}
  
 +	/* Handle tx power changes for ACK packets*/
-+	if (changed & IEEE80211_CONF_CHANGE_ACK_TXPOWER)
-+		ath9k_hw_set_ack_txpower(ah, conf->ack_txpower);
++       if (changed & IEEE80211_CONF_CHANGE_ACK_TXPOWER)
++               ath9k_hw_set_ack_txpower(ah, conf->ack_txpower);
 +
- 	mutex_unlock(&sc->mutex);
- 	ath9k_ps_restore(sc);
+ 	if (changed & IEEE80211_CONF_CHANGE_POWER)
+ 		ath9k_set_txpower(sc, NULL);
  

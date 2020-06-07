@@ -1,5 +1,7 @@
---- a/net/mac80211/rc80211_minstrel_debugfs.c
-+++ b/net/mac80211/rc80211_minstrel_debugfs.c
+Index: backports-5.4.27-1/net/mac80211/rc80211_minstrel_debugfs.c
+===================================================================
+--- backports-5.4.27-1.orig/net/mac80211/rc80211_minstrel_debugfs.c
++++ backports-5.4.27-1/net/mac80211/rc80211_minstrel_debugfs.c
 @@ -61,6 +61,7 @@ minstrel_stats_open(struct inode *inode,
  	struct minstrel_debugfs_info *ms;
  	unsigned int i, tp_max, tp_avg, eprob;
@@ -8,7 +10,7 @@
  
  	ms = kmalloc(2048, GFP_KERNEL);
  	if (!ms)
-@@ -108,10 +109,11 @@ minstrel_stats_open(struct inode *inode,
+@@ -105,10 +106,11 @@ minstrel_stats_open(struct inode *inode,
  				mrs->succ_hist,
  				mrs->att_hist);
  	}
@@ -22,7 +24,7 @@
  	ms->len = p - ms->buf;
  
  	WARN_ON(ms->len + sizeof(*ms) > 2048);
-@@ -126,6 +128,7 @@ minstrel_stats_csv_open(struct inode *in
+@@ -123,6 +125,7 @@ minstrel_stats_csv_open(struct inode *in
  	struct minstrel_debugfs_info *ms;
  	unsigned int i, tp_max, tp_avg, eprob;
  	char *p;
@@ -30,7 +32,7 @@
  
  	ms = kmalloc(2048, GFP_KERNEL);
  	if (!ms)
-@@ -133,12 +136,14 @@ minstrel_stats_csv_open(struct inode *in
+@@ -130,10 +133,12 @@ minstrel_stats_csv_open(struct inode *in
  
  	file->private_data = ms;
  	p = ms->buf;
@@ -39,15 +41,15 @@
  	for (i = 0; i < mi->n_rates; i++) {
  		struct minstrel_rate *mr = &mi->r[i];
  		struct minstrel_rate_stats *mrs = &mi->r[i].rc_stats;
- 		unsigned int prob_ewmsd;
- 
 +		p += sprintf(p, "%ld.%.6ld,", tv.tv_sec, tv.tv_usec);
+ 
  		p += sprintf(p, "%s" ,((i == mi->max_tp_rate[0]) ? "A" : ""));
  		p += sprintf(p, "%s" ,((i == mi->max_tp_rate[1]) ? "B" : ""));
- 		p += sprintf(p, "%s" ,((i == mi->max_tp_rate[2]) ? "C" : ""));
---- a/net/mac80211/rc80211_minstrel_ht_debugfs.c
-+++ b/net/mac80211/rc80211_minstrel_ht_debugfs.c
-@@ -129,6 +129,7 @@ minstrel_ht_stats_open(struct inode *ino
+Index: backports-5.4.27-1/net/mac80211/rc80211_minstrel_ht_debugfs.c
+===================================================================
+--- backports-5.4.27-1.orig/net/mac80211/rc80211_minstrel_ht_debugfs.c
++++ backports-5.4.27-1/net/mac80211/rc80211_minstrel_ht_debugfs.c
+@@ -123,6 +123,7 @@ minstrel_ht_stats_open(struct inode *ino
  	struct minstrel_ht_sta_priv *msp = inode->i_private;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct minstrel_debugfs_info *ms;
@@ -55,16 +57,16 @@
  	unsigned int i;
  	int ret;
  	char *p;
-@@ -166,6 +167,8 @@ minstrel_ht_stats_open(struct inode *ino
- 	p += sprintf(p, "Average # of aggregated frames per A-MPDU: %d.%d\n",
- 		MINSTREL_TRUNC(mi->avg_ampdu_len),
- 		MINSTREL_TRUNC(mi->avg_ampdu_len * 10) % 10);
+@@ -161,6 +162,8 @@ minstrel_ht_stats_open(struct inode *ino
+ 		p += sprintf(p, "Average # of aggregated frames per A-MPDU: %d.%d\n",
+ 			MINSTREL_TRUNC(mi->avg_ampdu_len),
+ 			MINSTREL_TRUNC(mi->avg_ampdu_len * 10) % 10);
 +	do_gettimeofday(&tv);
 +	p += sprintf(p, "Timestamp: %ld.%.6ld\n", tv.tv_sec, tv.tv_usec);
  	ms->len = p - ms->buf;
  	WARN_ON(ms->len + sizeof(*ms) > 32768);
  
-@@ -181,7 +184,8 @@ static const struct file_operations mins
+@@ -176,7 +179,8 @@ static const struct file_operations mins
  };
  
  static char *
@@ -74,7 +76,7 @@
  {
  	const struct mcs_group *mg;
  	unsigned int j, tp_max, tp_avg, eprob, tx_time;
-@@ -212,6 +216,8 @@ minstrel_ht_stats_csv_dump(struct minstr
+@@ -206,6 +210,8 @@ minstrel_ht_stats_csv_dump(struct minstr
  		if (!(mi->supported[i] & BIT(j)))
  			continue;
  
@@ -83,7 +85,7 @@
  		if (gflags & IEEE80211_TX_RC_MCS) {
  			p += sprintf(p, "HT%c0,", htmode);
  			p += sprintf(p, "%cGI,", gimode);
-@@ -281,6 +287,7 @@ minstrel_ht_stats_csv_open(struct inode
+@@ -273,6 +279,7 @@ minstrel_ht_stats_csv_open(struct inode
  	struct minstrel_ht_sta_priv *msp = inode->i_private;
  	struct minstrel_ht_sta *mi = &msp->ht;
  	struct minstrel_debugfs_info *ms;
@@ -91,7 +93,7 @@
  	unsigned int i;
  	int ret;
  	char *p;
-@@ -300,12 +307,13 @@ minstrel_ht_stats_csv_open(struct inode
+@@ -292,12 +299,13 @@ minstrel_ht_stats_csv_open(struct inode
  	file->private_data = ms;
  
  	p = ms->buf;
