@@ -1,0 +1,164 @@
+From: Sven Eckelmann <sven@narfation.org>
+Date: Thu, 9 Jul 2020 17:11:28 +0200
+Subject: mac80211: Fix retrieval of txpower for interface
+
+The code only supported retrieval of the txpower via
+sdata->vif.bss_conf.txpower. But this would break when the
+local->ops->get_txpower function pointer has to be used or when channel
+context were not enabled.
+
+This missing functionality broke for example the txpower on WDS APs because
+the retrieved power was always 0.
+
+Fixes: "mac80211: add tx power annotation"
+Signed-off-by: Sven Eckelmann <sven@narfation.org>
+
+diff --git a/net/mac80211/cfg.c b/net/mac80211/cfg.c
+index 8b5e4686d094d05147bf67c12fd03b1ca94a73bd..5fad3f5e15d91f8bb257b6852b546fb2fe195aa7 100644
+--- a/net/mac80211/cfg.c
++++ b/net/mac80211/cfg.c
+@@ -2396,18 +2396,13 @@ static int ieee80211_get_tx_power(struct wiphy *wiphy,
+ 				  struct wireless_dev *wdev,
+ 				  int *dbm)
+ {
+-	struct ieee80211_local *local = wiphy_priv(wiphy);
++	struct ieee80211_local *local = sdata->local;
+ 	struct ieee80211_sub_if_data *sdata = IEEE80211_WDEV_TO_SUB_IF(wdev);
+ 
+ 	if (local->ops->get_txpower)
+ 		return drv_get_txpower(local, sdata, dbm);
+ 
+-	if (!local->use_chanctx)
+-		*dbm = local->hw.conf.power_level;
+-	else
+-		*dbm = sdata->vif.bss_conf.txpower;
+-
+-	return 0;
++	return __ieee80211_get_tx_power(sdata, dbm);
+ }
+ 
+ static int ieee80211_set_antenna_gain(struct wiphy *wiphy, int dbi)
+diff --git a/net/mac80211/ieee80211_i.h b/net/mac80211/ieee80211_i.h
+index 91759768ec9e834047915049c3f724ead1ec1fce..4a285450b8a4f75e53a3a21773cbfbcab62edf67 100644
+--- a/net/mac80211/ieee80211_i.h
++++ b/net/mac80211/ieee80211_i.h
+@@ -1737,6 +1737,8 @@ void ieee80211_del_virtual_monitor(struct ieee80211_local *local);
+ bool __ieee80211_recalc_txpower(struct ieee80211_sub_if_data *sdata);
+ void ieee80211_recalc_txpower(struct ieee80211_sub_if_data *sdata,
+ 			      bool update_bss);
++int __ieee80211_get_tx_power(struct ieee80211_sub_if_data *sdata,
++			     int *dbm);
+ 
+ static inline bool ieee80211_sdata_running(struct ieee80211_sub_if_data *sdata)
+ {
+diff --git a/net/mac80211/iface.c b/net/mac80211/iface.c
+index 8d884c6411bf3d7d92899dbdfd21b08ed0b88d53..103bd2fa83578d066b0cb9d6fdc053d6146f17c6 100644
+--- a/net/mac80211/iface.c
++++ b/net/mac80211/iface.c
+@@ -76,6 +76,19 @@ bool __ieee80211_recalc_txpower(struct ieee80211_sub_if_data *sdata)
+ 	return false;
+ }
+ 
++int __ieee80211_get_tx_power(struct ieee80211_sub_if_data *sdata,
++			     int *dbm)
++{
++	struct ieee80211_local *local = sdata->local;
++
++	if (!local->use_chanctx)
++		*dbm = local->hw.conf.power_level;
++	else
++		*dbm = sdata->vif.bss_conf.txpower;
++
++	return 0;
++}
++
+ void ieee80211_recalc_txpower(struct ieee80211_sub_if_data *sdata,
+ 			      bool update_bss)
+ {
+diff --git a/net/mac80211/rate.c b/net/mac80211/rate.c
+index f0a62c847e5eec45ca032a89d4fef0591e966f60..307a6c07154dc764febd59229a157595f132a8ca 100644
+--- a/net/mac80211/rate.c
++++ b/net/mac80211/rate.c
+@@ -872,6 +872,8 @@ void rate_control_get_rate(struct ieee80211_sub_if_data *sdata,
+ 	void *priv_sta = NULL;
+ 	struct ieee80211_sta *ista = NULL;
+ 	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(txrc->skb);
++	int ret;
++	int dbm;
+ 	int i;
+ 
+ 	if (sta && test_sta_flag(sta, WLAN_STA_RATE_CONTROL)) {
+@@ -885,7 +887,11 @@ void rate_control_get_rate(struct ieee80211_sub_if_data *sdata,
+ 		info->control.rates[i].count = 0;
+ 	}
+ 
+-	info->control.txpower = sdata->vif.bss_conf.txpower;
++	ret = __ieee80211_get_tx_power(sdata, &dbm);
++	if (ret != 0)
++		dbm = 0;
++
++	info->control.txpower = dbm;
+ 
+ 	if (ieee80211_hw_check(&sdata->local->hw, HAS_RATE_CONTROL))
+ 		return;
+diff --git a/net/mac80211/rc80211_minstrel.c b/net/mac80211/rc80211_minstrel.c
+index 2b8f58aef8ca72280c63f724ab8b6806412825d5..2f93192faee109c86c21473ef8b8a23f9b2fe728 100644
+--- a/net/mac80211/rc80211_minstrel.c
++++ b/net/mac80211/rc80211_minstrel.c
+@@ -127,18 +127,21 @@ minstrel_update_rates(struct minstrel_priv *mp, struct minstrel_sta_info *mi)
+ {
+ 	struct ieee80211_sta_rates *ratetbl;
+ 	struct sta_info *sta;
+-	s8 txpower;
+ 	int i = 0;
++	int ret;
++	int dbm;
+ 
+ 	sta = container_of(mi->sta, struct sta_info, sta);
+-	txpower = sta->sdata->vif.bss_conf.txpower;
++	ret = __ieee80211_get_tx_power(sta->sdata, &dbm);
++	if (ret != 0)
++		dbm = 0;
+ 
+ 	ratetbl = kzalloc(sizeof(*ratetbl), GFP_ATOMIC);
+ 	if (!ratetbl)
+ 		return;
+ 
+ 	for (i = 0; i < ARRAY_SIZE(ratetbl->rate); i++)
+-		ratetbl->rate[i].txpower = txpower;
++		ratetbl->rate[i].txpower = dbm;
+ 	i = 0;
+ 
+ 	/* Start with max_tp_rate */
+diff --git a/net/mac80211/rc80211_minstrel_ht.c b/net/mac80211/rc80211_minstrel_ht.c
+index 2eef20ca8f18358c83aae5cdd65f985697123cb7..6d0d28402a5fb06ba32f413f955aff6e34c1894c 100644
+--- a/net/mac80211/rc80211_minstrel_ht.c
++++ b/net/mac80211/rc80211_minstrel_ht.c
+@@ -930,21 +930,24 @@ minstrel_ht_update_rates(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
+ {
+ 	struct ieee80211_sta_rates *rates;
+ 	struct sta_info *sta;
+-	s8 txpower;
+ 	int i = 0;
++	int ret;
++	int dbm;
+ #ifdef CPTCFG_MAC80211_DEBUGFS
+ 	struct minstrel_ht_sta_priv *msp;
+ #endif
+ 
+ 	sta = container_of(mi->sta, struct sta_info, sta);
+-	txpower = sta->sdata->vif.bss_conf.txpower;
++	ret = __ieee80211_get_tx_power(sta->sdata, &dbm);
++	if (ret != 0)
++		dbm = 0;
+ 
+ 	rates = kzalloc(sizeof(*rates), GFP_ATOMIC);
+ 	if (!rates)
+ 		return;
+ 
+ 	for (i = 0; i < ARRAY_SIZE(rates->rate); i++)
+-		rates->rate[i].txpower = txpower;
++		rates->rate[i].txpower = dbm;
+ 	i = 0;
+ 
+ 	/* Start with max_tp_rate[0] */
