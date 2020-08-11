@@ -20,16 +20,18 @@
  	if (!sta)
  		return false;
  
-@@ -206,10 +209,12 @@ static bool ath_merge_ratetbl(struct iee
+@@ -206,10 +209,14 @@ static bool ath_merge_ratetbl(struct iee
  		i = 0;
  	} else {
  		bf->rates[0] = tx_info->control.rates[0];
-+		bf->txpower[0] = tx_info->control.txpower * 2;
++		bf->txpower[0] = min_t(u8, MAX_RATE_POWER / 2,
++				       tx_info->control.txpower) * 2;
  		i = 1;
  	}
  
  	for ( ; i < IEEE80211_TX_MAX_RATES; i++) {
-+		bf->txpower[i] = ratetbl->rate[i].txpower * 2;
++		bf->txpower[i] = min_t(u8, MAX_RATE_POWER / 2,
++				       ratetbl->rate[i].txpower) * 2;
  		bf->rates[i].idx = ratetbl->rate[i].idx;
  		bf->rates[i].flags = ratetbl->rate[i].flags;
  		if (tx_info->control.use_rts)
